@@ -3791,18 +3791,71 @@ class OpsLayerTests(TestCase):
         self.assertGreaterEqual(text.count("FAIL  "), 3)  # loud on the dev config
         self.assertNotIn(str(settings.SECRET_KEY)[:20], text)  # secret never printed
 
+    # A shape that counts as production: real email delivery and a real routing
+    # provider are part of that claim, so the validator now requires them.
+    PRODUCTION_SHAPE = {
+        "DEBUG": False,
+        "SECRET_KEY": "p" * 64,
+        "ALLOWED_HOSTS": ["tourism.example.org"],
+        "CORS_ALLOW_ALL_ORIGINS": False,
+        "ML_SERVICE_API_KEY": "real-ml-key-value",
+        "ML_WEBHOOK_SECRET": "real-webhook-secret",
+        "EMAIL_BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+        "EMAIL_HOST_USER": "smtp-user",
+        "EMAIL_HOST_PASSWORD": "smtp-password",
+        "DEFAULT_FROM_EMAIL": "no-reply@tourism.example.org",
+        "ROUTING_API_URL": "https://router.example.org",
+    }
+    POSTGRES = {"default": {"ENGINE": "django.db.backends.postgresql", "NAME": "tourism"}}
+
+    def test_config_validator_blocks_console_email_backend(self):
+        """Console email means verification and password-reset mail never leave
+        the box, which is not something production can ship."""
+        import io
+        from django.core.management import call_command
+        out = io.StringIO()
+        shape = {**self.PRODUCTION_SHAPE,
+                 "EMAIL_BACKEND": "django.core.mail.backends.console.EmailBackend"}
+        with self.settings(**shape, DATABASES=self.POSTGRES):
+            with self.assertRaises(SystemExit):
+                call_command("validate_production_config", stdout=out)
+        text = out.getvalue()
+        self.assertIn("RESULT: FAIL", text)
+        self.assertIn("console", text)
+        self.assertIn("real email delivery", text)
+
+    def test_config_validator_blocks_incomplete_smtp_credentials(self):
+        import io
+        from django.core.management import call_command
+        out = io.StringIO()
+        shape = {**self.PRODUCTION_SHAPE, "EMAIL_HOST_PASSWORD": ""}
+        with self.settings(**shape, DATABASES=self.POSTGRES):
+            with self.assertRaises(SystemExit):
+                call_command("validate_production_config", stdout=out)
+        text = out.getvalue()
+        self.assertIn("RESULT: FAIL", text)
+        self.assertIn("SMTP", text)
+
+    def test_config_validator_blocks_missing_routing_provider(self):
+        """Without a road-routing provider the site must not be allowed to claim
+        verified street-level routing."""
+        import io
+        from django.core.management import call_command
+        out = io.StringIO()
+        shape = {**self.PRODUCTION_SHAPE, "ROUTING_API_URL": ""}
+        with self.settings(**shape, DATABASES=self.POSTGRES):
+            with self.assertRaises(SystemExit):
+                call_command("validate_production_config", stdout=out)
+        text = out.getvalue()
+        self.assertIn("RESULT: FAIL", text)
+        self.assertIn("ROUTING_API_URL", text)
+        self.assertIn("verified road routing", text)
+
     def test_config_validator_passes_on_production_shape(self):
         import io
         from django.core.management import call_command
         out = io.StringIO()
-        with self.settings(DEBUG=False,
-                           SECRET_KEY="p" * 64,
-                           ALLOWED_HOSTS=["tourism.example.org"],
-                           CORS_ALLOW_ALL_ORIGINS=False,
-                           DATABASES={"default": {"ENGINE": "django.db.backends.postgresql",
-                                                  "NAME": "tourism"}},
-                           ML_SERVICE_API_KEY="real-ml-key-value",
-                           ML_WEBHOOK_SECRET="real-webhook-secret"):
+        with self.settings(**self.PRODUCTION_SHAPE, DATABASES=self.POSTGRES):
             call_command("validate_production_config", stdout=out)  # no SystemExit
         self.assertIn("RESULT: PASS", out.getvalue())
 
@@ -3811,13 +3864,8 @@ class OpsLayerTests(TestCase):
         from unittest.mock import MagicMock
         from django.core.management import call_command
         out = io.StringIO()
-        prod = dict(DEBUG=False, SECRET_KEY="p" * 64,
-                    ALLOWED_HOSTS=["tourism.example.org"],
-                    CORS_ALLOW_ALL_ORIGINS=False,
-                    DATABASES={"default": {"ENGINE": "django.db.backends.sqlite3",
-                                           "NAME": ":memory:"}},
-                    ML_SERVICE_API_KEY="real-ml-key-value",
-                    ML_WEBHOOK_SECRET="real-webhook-secret")
+        prod = dict(self.PRODUCTION_SHAPE)
+        prod["DATABASES"] = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}}
         # hardened (WAL + FK on) -> PASS; the sqlite branch is the only
         # cursor user, so mocking the pragma results is exact.
         with self.settings(**prod):

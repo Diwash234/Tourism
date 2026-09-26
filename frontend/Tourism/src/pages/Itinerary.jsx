@@ -214,8 +214,6 @@ const Itinerary = () => {
     planAbortRef.current?.abort()
     const controller = new AbortController()
     planAbortRef.current = controller
-
-
     setLoading(true)
 
     setError("")
@@ -239,7 +237,7 @@ const Itinerary = () => {
 
     }catch(err){
 
-      if (err?.name === "CanceledError" || err?.code === "ERR_CANCELED") return
+      if (err?.code === "ERR_CANCELED" || err?.name === "CanceledError" || err?.name === "AbortError") return
 
       if(requestId===lastRequestId.current){
 

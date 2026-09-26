@@ -90,6 +90,7 @@ const BudgetEstimator = () => {
   const { showToast } = useToast()
   const debounceRef = useRef(null)
   const requestRef = useRef(0)
+  const abortRef = useRef(null)
 
   const watched = useWatch({ control })
 
@@ -115,12 +116,15 @@ const BudgetEstimator = () => {
 
   async function calculate(data) {
     const requestId = ++requestRef.current
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
     setLoading(true)
     setError("")
     setEstimate(null)
 
     try {
-      const { data: result } = await budgetApi.estimate(data)
+      const { data: result } = await budgetApi.estimate(data, { signal: controller.signal })
 
       if (requestId !== requestRef.current) return
 
@@ -162,12 +166,16 @@ const BudgetEstimator = () => {
         nprEmergencyReserve: nprBreakdown.emergency_reserve ?? result.emergency_reserve_npr ?? null,
       })
     } catch (requestError) {
+      if (requestError?.code === "ERR_CANCELED" || requestError?.name === "CanceledError" || requestError?.name === "AbortError") return
       if (requestId !== requestRef.current) return
       const message = requestError.response?.data?.detail || requestError.response?.data?.error || "We could not calculate an estimate right now. Please try again."
       setError(message)
       showToast(message, "error")
     } finally {
-      if (requestId === requestRef.current) setLoading(false)
+      if (requestId === requestRef.current) {
+        setLoading(false)
+        if (abortRef.current === controller) abortRef.current = null
+      }
     }
   }
 
