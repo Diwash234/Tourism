@@ -17,6 +17,41 @@ from .models import User
 
 
 class PasswordHasherMigrationTests(TestCase):
+    def test_primary_hasher_library_is_installed(self):
+        """The primary hasher must be able to load its native library.
+
+        bcrypt is a hard dependency of the primary hasher. How Django reacts to
+        a missing hasher library is version-dependent: 5.x silently sets
+        ``library = None`` and only raises on the first
+        ``make_password``/``check_password`` call, so an unpinned dependency
+        shows up as "every auth endpoint is broken, for no visible reason",
+        while 6.x raises immediately. A real encode round trip fails under both
+        behaviours, so assert that rather than inspecting ``library``.
+        """
+        from django.conf import settings
+
+        from Tourism.hashers import PrimaryBCryptSHA256PasswordHasher
+
+        try:
+            hasher = PrimaryBCryptSHA256PasswordHasher()
+            encoded = hasher.encode("Str0ng!Pass123", hasher.salt())
+            self.assertTrue(hasher.verify("Str0ng!Pass123", encoded))
+        except Exception as exc:  # noqa: BLE001 - the point is to explain it
+            self.fail(
+                "the primary password hasher cannot hash anything "
+                f"({type(exc).__name__}: {exc}). Is bcrypt installed and pinned "
+                "in Tourism/requirements.txt?"
+            )
+        self.assertTrue(encoded.startswith("bcrypt_sha256$"))
+
+        requirements = (settings.BASE_DIR / "requirements.txt").read_text(encoding="utf-8")
+        self.assertIn(
+            "bcrypt",
+            requirements,
+            "bcrypt must be pinned in Tourism/requirements.txt because it is a "
+            "hard dependency of the primary password hasher",
+        )
+
     def test_new_passwords_use_the_bcrypt_primary(self):
         encoded = make_password("Str0ng!Pass123")
         self.assertTrue(encoded.startswith("bcrypt_sha256$"), encoded)

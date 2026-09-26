@@ -23,6 +23,38 @@ jobs:
       - name: Django system check
         working-directory: Tourism
         run: python manage.py check
+      - name: Verify password hasher is usable
+        working-directory: Tourism
+        run: |
+          set -euxo pipefail
+          # bcrypt is a hard dependency of the primary password hasher and must
+          # stay pinned in Tourism/requirements.txt. How Django reacts to a
+          # missing hasher library is version-dependent: 5.x silently sets
+          # library = None and only raises on the first make_password call
+          # (so CI burns 56s of unrelated auth errors before the cause is
+          # visible), while 6.x raises immediately. Probe a real encode so
+          # either behaviour fails here, in a second, with a clear message.
+          DJANGO_SETTINGS_MODULE=Tourism.settings python - <<'PY'
+          import django
+
+          django.setup()
+
+          from django.contrib.auth.hashers import get_hasher
+
+          try:
+              hasher = get_hasher()
+              assert hasher.library is not None, (
+                  f"primary hasher {hasher.algorithm} has no usable library"
+              )
+              encoded = hasher.encode("ci-probe", hasher.salt())
+              assert hasher.verify("ci-probe", encoded), "hasher round trip failed"
+          except Exception as exc:
+              raise SystemExit(
+                  f"FATAL: primary password hasher unusable - {type(exc).__name__}: {exc}\n"
+                  "If this mentions bcrypt, it is missing from Tourism/requirements.txt."
+              )
+          print(f"primary hasher ok: {hasher.algorithm} rounds={getattr(hasher, 'rounds', 'n/a')}")
+          PY
       - name: Verify published data artifact
         working-directory: Tourism
         run: |
