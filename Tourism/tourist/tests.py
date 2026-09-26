@@ -750,13 +750,50 @@ class CompatibilityRouteTests(APITestCase):
         self.assertTrue(notification.is_read)
 
     @patch("tourist.utils.requests.post", side_effect=requests.RequestException("down"))
-    def test_ml_budget_accepts_free_text_destination_and_style_field(self, _mock):
-        """Matches BudgetEstimator.jsx's exact payload: {destination: 'Rupa Lake', style: 'standard', ...}."""
+    def test_ml_budget_degrades_to_official_fees_when_cost_model_is_down(self, _mock):
+        """Matches BudgetEstimator.jsx's exact payload: {destination: 'Rupa Lake', style: 'standard', ...}.
+
+        The living-cost model is simulated down. The request must still be
+        accepted (name resolved, style mapped) rather than 400ing on bad input,
+        and the response must stay honest: official visa / park / permit fees
+        from the cited dataset are still returned, while living costs are
+        explicitly reported as unavailable and never invented.
+        """
         response = self.client.post(reverse("ml-budget"), {
             "destination": "Rupa Lake", "style": "standard", "days": 3, "travelers": 2,
         })
-        # ML service is simulated down, but the request itself must be
-        # accepted (name resolved, style mapped) rather than 400ing on bad input.
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        body = response.data
+
+        # Living costs must be declared missing, not fabricated.
+        self.assertFalse(body.get("living_costs_available"))
+        self.assertTrue(body.get("official_fees_only"))
+        self.assertIn("not included", body.get("living_costs_note", ""))
+        self.assertIsNone(body.get("known_cost_total_usd"))
+        self.assertIsNone(body.get("estimated_total"))
+        self.assertIsNone(body.get("total_budget_usd"))
+        self.assertEqual(body.get("breakdown") or {}, {})
+
+        # The matched place is echoed back so the UI can show what it priced.
+        self.assertEqual((body.get("matched_destination") or {}).get("name"), "Rupa Lake")
+
+        # Official fee lines must be sourced, and a contingency figure must be
+        # labelled as a suggestion rather than presented as a quoted cost.
+        fees = body.get("official_fees") or {}
+        self.assertTrue(fees.get("lines"), "official fee lines should still be returned")
+        for line in fees["lines"]:
+            self.assertTrue(line.get("source_key"), f"fee line is unsourced: {line}")
+            self.assertIn("estimate", line)
+        self.assertIn("suggestion", body.get("contingency_note", "").lower())
+
+    @patch("tourist.utils.requests.post", side_effect=requests.RequestException("down"))
+    def test_ml_budget_returns_503_when_no_place_could_be_resolved(self, _mock):
+        """With nothing resolvable in the catalogue there are no official fees
+        to return, so the endpoint must say the service is unavailable rather
+        than serve a guess."""
+        response = self.client.post(reverse("ml-budget"), {
+            "destination": "Nowhereatallxyz", "style": "standard", "days": 3, "travelers": 2,
+        })
         self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
 
     def test_destination_search_q_alias_actually_filters(self):

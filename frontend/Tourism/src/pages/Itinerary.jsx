@@ -24,6 +24,8 @@ import itineraryApi from "../api/itineraryApi"
 import axiosClient from "../api/axiosClient"
 import { formatDistance, formatDuration } from "../utils/formatDistance"
 import useToast from "../hooks/useToast"
+import TripReadinessPanel from "../components/itinerary/TripReadinessPanel"
+import { NATIONALITY_OPTIONS } from "../utils/currency"
 
 
 const NOTE_CATEGORIES = ["Hotel", "Transport", "Food", "Activity", "Other"]
@@ -84,6 +86,18 @@ const DEFAULT_FORM = {
   travel_type: "solo",
   interests: ["culture"],
   start_city: "",
+  nationality: "foreign",
+  travel_month: "",
+}
+
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+
+// Only the fields the planner uses -- compared to show "inputs changed".
+const planKey = (f) => JSON.stringify([f.days, f.travelers, f.budget_npr, f.budget_level, f.travel_style, f.travel_type, [...(f.interests || [])].sort(), (f.start_city || "").trim(), f.nationality, f.travel_month])
+
+function toPayload(f) {
+  const { travel_month: month, ...rest } = f
+  return { ...rest, start_city: (f.start_city || "").trim(), ...(month ? { travel_month: Number(month) } : {}) }
 }
 
 
@@ -119,9 +133,11 @@ const Itinerary = () => {
   // start city so every district can jump straight to its own itinerary.
   const [searchParams] = useSearchParams()
   const cityParam = (searchParams.get("city") || "").trim()
+  const linkedPlace = cityParam || (searchParams.get("dest") || "").replace(/[-_]/g, " ").trim()
   const [form, setForm] = useState(
-    () => (cityParam ? { ...DEFAULT_FORM, start_city: cityParam } : DEFAULT_FORM)
+    () => (linkedPlace ? { ...DEFAULT_FORM, start_city: linkedPlace } : DEFAULT_FORM)
   )
+  const [generatedKey, setGeneratedKey] = useState(null)
 
   const [plan, setPlan] = useState(null)
 
@@ -137,9 +153,6 @@ const Itinerary = () => {
   useEffect(() => () => planAbortRef.current?.abort(), [])
 
 
-  const debounceRef = useRef(null)
-
-  const firstRun = useRef(true)
 
 
   const { showToast } = useToast()
@@ -223,13 +236,14 @@ const Itinerary = () => {
     try{
 
 
-      const {data}=await itineraryApi.build(payload, { signal: controller.signal })
+      const {data}=await itineraryApi.build(toPayload(payload), { signal: controller.signal })
 
 
 
       if(requestId===lastRequestId.current){
 
-        setPlan(enrichPlanBudget(data, form))
+        setPlan(enrichPlanBudget(data, payload))
+        setGeneratedKey(planKey(payload))
 
       }
 
@@ -272,41 +286,22 @@ const Itinerary = () => {
 
   }
 
-  useEffect(()=>{
-
-    if(firstRun.current){
-      firstRun.current=false
-    }
-
-
-    if (focusDestination && !form.start_city?.trim()) {
-      const focusTimer = setTimeout(() => setForm((current) => ({ ...current, start_city: focusDestination })), 0)
-      return () => clearTimeout(focusTimer)
-    }
-
-    if(debounceRef.current){
-      clearTimeout(debounceRef.current)
-    }
-
-
-    debounceRef.current=setTimeout(()=>{
-
-      if (!form.start_city?.trim()) { lastRequestId.current += 1; setPlan(null); setError(""); setLoading(false); return }
-      fetchPlan(form)
-
-    },500)
-
-
-
-    return ()=>{
-
-      clearTimeout(debounceRef.current)
-
-    }
-
-
+  // Plans are generated only on an explicit request (the Generate button),
+  // never on every keystroke. The one exception is arriving from a link that
+  // names a place (?city= / ?dest=) -- that is itself an explicit request.
+  useEffect(() => {
+    if (!linkedPlace) return undefined
+    const timer = setTimeout(() => fetchPlan(form), 0)
+    return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[form, focusDestination])
+  }, [])
+
+  const generate = () => {
+    if (!form.start_city?.trim()) { setError("Enter a start city or district first."); return }
+    fetchPlan(form)
+  }
+  const cancelGenerate = () => { planAbortRef.current?.abort(); lastRequestId.current += 1; setLoading(false) }
+  const inputsChanged = Boolean(plan && generatedKey && generatedKey !== planKey(form))
 
 
 
@@ -420,8 +415,8 @@ const Itinerary = () => {
       )}
       <CMSPageIntro pageKey="itinerary" />
 
-      <PageHeader title="Itinerary Planner" subtitle={<>Tell us your days, budget and interests — your trip plan updates
-        automatically as you change anything.</>} icon={ FiCalendar } />
+      <PageHeader title="Itinerary Planner" subtitle={<>Tell us your days, budget and interests, then press Generate. Plans include
+        altitude checks, official permits & fees and a trip-readiness checklist.</>} icon={ FiCalendar } />
 
 
 
@@ -915,6 +910,28 @@ const Itinerary = () => {
 
 
 
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] lg:items-end" data-testid="itinerary-generate-row">
+        <div>
+          <label htmlFor="itin-nationality" className="block text-xs font-semibold text-gray-600 mb-1">Nationality (official fees)</label>
+          <select id="itin-nationality" className="input-field" value={form.nationality} onChange={(e) => setForm({ ...form, nationality: e.target.value })}>
+            {NATIONALITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="itin-month" className="block text-xs font-semibold text-gray-600 mb-1">Travel month</label>
+          <select id="itin-month" className="input-field" value={form.travel_month} onChange={(e) => setForm({ ...form, travel_month: e.target.value })}>
+            <option value="">Not decided</option>
+            {MONTH_NAMES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+          </select>
+        </div>
+        <button type="button" onClick={generate} disabled={loading || !form.start_city?.trim()} className="ny-btn ny-btn-primary min-h-11 sm:col-span-2 lg:col-span-1" data-testid="itinerary-generate">
+          {loading ? "Generating…" : plan ? "Regenerate itinerary" : "Generate itinerary"}
+        </button>
+        {inputsChanged && !loading && (
+          <p role="status" className="text-xs font-medium text-amber-800 sm:col-span-2 lg:col-span-3">Your inputs changed — press “Regenerate itinerary” to update the plan.</p>
+        )}
+      </div>
+
       {
         loading && (
 
@@ -922,7 +939,8 @@ const Itinerary = () => {
 
             <FiLoader className="animate-spin"/>
 
-            Rebuilding your itinerary…
+            Generating your itinerary…
+            <button type="button" onClick={cancelGenerate} className="ny-btn ny-btn-secondary min-h-9 px-3 text-xs">Cancel</button>
 
           </div>
 
@@ -936,11 +954,13 @@ const Itinerary = () => {
 
           <div role="alert" className="mb-4 flex flex-col gap-3 rounded-[var(--ny-radius-md)] border border-[#E9B9B9] bg-[var(--ny-soft-red)] px-4 py-3 text-sm text-[var(--ny-danger)] sm:flex-row sm:items-center sm:justify-between">
             <span>{error}</span>
-            <button type="button" onClick={() => fetchPlan(form)} className="ny-btn ny-btn-secondary min-h-11 shrink-0 text-xs">Try again</button>
+            <button type="button" onClick={generate} className="ny-btn ny-btn-secondary min-h-11 shrink-0 text-xs">Try again</button>
           </div>
 
         )
       }
+      {plan && !error && <TripReadinessPanel plan={plan} />}
+
             {/* AI Itinerary Refinement + Trip Cost Notepad (merged from TripPlanner) */}
       {
         plan && !error && (
@@ -1469,7 +1489,7 @@ const Itinerary = () => {
 
           <p className="text-sm text-gray-400 text-center py-10">
 
-            Your day-by-day plan will appear here.
+            Enter a start city or district and press “Generate itinerary” — your day-by-day plan will appear here.
 
           </p>
 

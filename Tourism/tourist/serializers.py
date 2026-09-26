@@ -500,6 +500,14 @@ class HospitalSerializer(serializers.ModelSerializer):
         model = Hospital
         fields = ["id", "name", "address", "phone", "latitude", "longitude", "district", "image_url", "opening_hours", "emergency_available", "source_name", "source_url", "is_verified", "verified_at", "updated_at"]
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        from .phone_quality import is_placeholder_phone
+
+        if is_placeholder_phone(data.get("phone")):
+            data["phone"] = ""  # templated dataset filler -- never shown as callable
+        return data
+
     def get_image_url(self, obj):
         if not obj.image:
             return None
@@ -966,7 +974,7 @@ class DestinationListSerializer(serializers.ModelSerializer):
             "id", "name", "slug", "category", "category_name", "short_description",
             "latitude", "longitude", "city", "display_city", "has_map_pin", "country",
             "district", "province", "municipality", "ward_number", "type",
-            "altitude", "recommended_days", "best_time_to_visit",
+            "altitude", "elevation_m", "elevation_source", "recommended_days", "best_time_to_visit",
             "average_rating", "ratings_count", "views_count", "entry_fee", "source",
             "cover_image_url", "distance_km", "status", "is_user_submitted", "is_active",
             "budget_estimate", "risk_level", "recommended_season", "gallery_preview", "created_at", "updated_at",
@@ -1127,6 +1135,7 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
             "id", "name", "slug", "aliases", "category", "category_name", "description", "short_description",
             "history", "cultural_significance", "religious_significance", "tourism_importance",
             "food_cuisine_info", "travel_safety_tips", "best_time_to_visit", "altitude",
+            "elevation_m", "elevation_source", "elevation_retrieved_at",
             "distance_from_kathmandu_km", "distance_from_nearest_city_km", "nearest_major_city",
             "distance_from_nearest_airport_km", "nearest_airport_name", "approx_travel_time", "recommended_days",
             "nearest_hospital_info", "nearest_hotel_info", "nearest_police_info", "district", "municipality",
@@ -1574,6 +1583,11 @@ class BudgetPredictionRequestSerializer(serializers.Serializer):
     # genuinely distance-aware instead of a flat per-city number.
     user_latitude = serializers.FloatField(required=False, allow_null=True)
     user_longitude = serializers.FloatField(required=False, allow_null=True)
+    # Official-fee context (visa / park / TIMS / permits use nationality-
+    # specific published rates; seasonal permits need the travel month).
+    nationality = serializers.ChoiceField(choices=["foreign", "saarc", "chinese", "nepali"], default="foreign")
+    travel_month = serializers.IntegerField(required=False, allow_null=True, min_value=1, max_value=12)
+    include_visa = serializers.BooleanField(default=True)
 
     def validate(self, attrs):
         destination = attrs.get("destination")
@@ -1608,12 +1622,13 @@ class BestRouteRequestSerializer(serializers.Serializer):
 
 class ItineraryRequestSerializer(serializers.Serializer):
     """
-    Rich, dataset-driven itinerary builder request. Every field feeds the
-    ML service's /itinerary/build endpoint so the plan (destinations,
-    budget in NPR, route legs from the road graph) updates continuously as
-    the user changes any input.
+    Rich, dataset-driven itinerary builder request. Sent when the
+    traveller presses "Generate"; nationality / travel_month drive the
+    official permit, fee and visa checks in the trip-readiness section.
     """
 
+    nationality = serializers.ChoiceField(choices=["foreign", "saarc", "chinese", "nepali"], default="foreign")
+    travel_month = serializers.IntegerField(required=False, allow_null=True, min_value=1, max_value=12)
     days = serializers.IntegerField(default=3, min_value=1, max_value=30)
     travelers = serializers.IntegerField(default=1, min_value=1, max_value=50)
     budget_npr = serializers.FloatField(required=False, allow_null=True, min_value=0)

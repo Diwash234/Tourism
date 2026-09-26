@@ -16,7 +16,7 @@ import { resolveNavbarFeatures } from "../../utils/navbarFeatures"
 
 const PUBLIC_NAV_PATHS = new Set([
   "/", "/destinations", "/recommendation", "/gallery", "/compare", "/explore-map", "/discover-nepal",
-  "/itinerary", "/budget-estimator", "/hotels/search", "/emergency", "/risk-alerts", "/navigation",
+  "/itinerary", "/budget-estimator", "/before-you-travel", "/hotels/search", "/emergency", "/risk-alerts", "/navigation",
   "/distances", "/language", "/translation", "/nearby-places", "/packages", "/guides", "/guide-portal",
   "/tourism-jobs", "/guide-bookings", "/collaborate", "/chatbot", "/travel", "/about", "/contact", "/support",
 ])

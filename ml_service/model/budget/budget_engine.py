@@ -11,16 +11,10 @@ Important:
 - Accommodation is calculated per night/day.
 - Taxi/local transport is calculated per day.
 - The ML model works with USD-based values.
-- The final response includes both USD and NPR.
-
-The exchange rate can be configured through the environment:
-
-    USD_TO_NPR_RATE=145
-
-If not provided, the default rate below is used.
-
-For production, consider getting the exchange rate from a
-reliable currency API instead of using a fixed rate.
+- NPR values are only filled when USD_TO_NPR_RATE is explicitly set.
+  In the product, the Django API converts USD -> NPR / EUR / GBP / INR ...
+  with the official Nepal Rastra Bank rate (tourist/fx.py) and shows the
+  rate date. There is intentionally no built-in default rate.
 """
 
 import os
@@ -39,19 +33,15 @@ MODEL_PATH = os.path.join(
     "budget_model.joblib",
 )
 
-# Default USD -> NPR exchange rate.
-# Change this according to the rate you want to use.
-DEFAULT_USD_TO_NPR = 145.0
-
+# No hard-coded exchange rate. The cost dataset is USD-based; the Django
+# API converts to NPR (and any other currency) with the official Nepal
+# Rastra Bank rate of the day (tourist/fx.py) and labels the rate date.
+# USD_TO_NPR_RATE may be set explicitly for standalone use of this service;
+# otherwise NPR fields are returned as None rather than guessed.
 try:
-    USD_TO_NPR = float(
-        os.getenv(
-            "USD_TO_NPR_RATE",
-            DEFAULT_USD_TO_NPR,
-        )
-    )
+    USD_TO_NPR = float(os.environ["USD_TO_NPR_RATE"]) if os.environ.get("USD_TO_NPR_RATE") else None
 except (TypeError, ValueError):
-    USD_TO_NPR = DEFAULT_USD_TO_NPR
+    USD_TO_NPR = None
 
 
 # ============================================================
@@ -74,9 +64,11 @@ def usd_to_npr(amount):
     Convert USD to Nepalese Rupees.
 
     Example:
-        100 USD -> 14500 NPR
+        Returns None when no explicit rate is configured.
     """
 
+    if USD_TO_NPR is None:
+        return None
     return round(
         float(amount) * USD_TO_NPR,
         2,

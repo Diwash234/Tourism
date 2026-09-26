@@ -2,6 +2,7 @@
 from django.db.models import Q
 
 from .models import Destination, EmergencyContact, Hospital, OSMEssentialService, PoliceStation
+from .phone_quality import is_placeholder_phone
 from .utils import bounding_box, haversine_distance
 
 NATIONAL_HOTLINES = [
@@ -19,6 +20,8 @@ def clean_phone(value, fallback):
         return fallback, bool(fallback)
     if value.endswith(".0"):
         value = value[:-2]
+    if is_placeholder_phone(value):  # templated dataset filler, not a real number
+        return fallback, bool(fallback)
     value = value.replace(" ", "")
     if value.startswith("9770"):
         value = "+977" + value[4:]

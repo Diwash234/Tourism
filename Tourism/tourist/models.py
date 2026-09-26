@@ -576,6 +576,17 @@ class Destination(TimeStampedModel):
         help_text="Altitude in meters (e.g. 1,400m / 5,364m)"
     )
 
+    # Numeric elevation used for altitude/acclimatization planning. Filled
+    # only from a cited source (e.g. Copernicus DEM via Open-Meteo, see
+    # tourist/elevation.py) -- never guessed. NULL means "not recorded".
+    elevation_m = models.IntegerField(
+        blank=True,
+        null=True,
+        help_text="Elevation in metres from a cited source; empty = not recorded",
+    )
+    elevation_source = models.CharField(max_length=160, blank=True, default="")
+    elevation_retrieved_at = models.DateField(blank=True, null=True)
+
     nearest_hospital_info = models.CharField(
         max_length=255,
         blank=True,
@@ -3895,3 +3906,27 @@ class District(TimeStampedModel):
 
     def __str__(self):
         return f"{self.name} ({self.province.name})"
+
+
+
+class ForexRateSnapshot(models.Model):
+    """One day of official Nepal Rastra Bank (NRB) exchange rates.
+
+    ``rates`` maps ISO-4217 code -> {"name", "unit", "buy", "sell"} where
+    buy/sell are NPR for ``unit`` units of the currency, exactly as NRB
+    publishes them. No fixed/fallback rate exists anywhere: if no snapshot
+    is available, conversion is reported as unavailable.
+    """
+
+    rate_date = models.DateField(unique=True)
+    published_on = models.CharField(max_length=40, blank=True, default="")
+    rates = models.JSONField(default=dict)
+    source_name = models.CharField(max_length=120, default="Nepal Rastra Bank")
+    source_url = models.URLField(max_length=300)
+    fetched_at = models.DateTimeField()
+
+    class Meta:
+        ordering = ["-rate_date"]
+
+    def __str__(self):
+        return f"NRB rates {self.rate_date}"

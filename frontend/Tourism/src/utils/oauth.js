@@ -1,6 +1,6 @@
 // Builds the provider's OAuth "authorize" URL client-side:
-// If real client IDs are configured in environment, redirects to provider's consent screen.
-// Otherwise, seamlessly completes social login via the backend callback handler.
+// Buttons are only rendered when a real client ID is configured
+// (SocialLoginButtons); without one there is no social login.
 
 let publicClientIds = { google: "", github: "" }
 
@@ -24,7 +24,7 @@ export function getRedirectUri(provider) {
 export function getGoogleAuthUrl() {
   const clientId = googleClientId()
   if (!looksConfigured(clientId)) {
-    return `${window.location.origin}/auth/callback/google?code=demo_google_oauth_user`
+    return ""
   }
   const params = new URLSearchParams({
     client_id: clientId,
@@ -40,7 +40,7 @@ export function getGoogleAuthUrl() {
 export function getGithubAuthUrl() {
   const clientId = githubClientId()
   if (!looksConfigured(clientId)) {
-    return `${window.location.origin}/auth/callback/github?code=demo_github_oauth_user`
+    return ""
   }
   const params = new URLSearchParams({
     client_id: clientId,

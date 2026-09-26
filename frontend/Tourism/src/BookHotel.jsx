@@ -39,8 +39,12 @@ const BookHotel = () => {
     <div className="ny-page container-app py-10 max-w-lg">
       <CMSPageIntro pageKey="hotel-booking" />
       <h1 className="section-title flex items-center gap-2">
-        <FiCalendar className="text-primary-500" /> Book This Hotel
+        <FiCalendar className="text-primary-500" /> Request a Booking
       </h1>
+      <p className="mt-2 text-sm text-gray-600" data-testid="booking-request-notice">
+        This sends a booking <b>request</b> to the property. It is not a confirmed reservation and no payment is taken here —
+        availability, final price and cancellation terms are confirmed by the property. Track the status in My Bookings.
+      </p>
 
       <form onSubmit={handleSubmit(onSubmit)} className="card-base p-6 space-y-4 mt-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -62,7 +66,7 @@ const BookHotel = () => {
           <textarea id="booking-special-requests" className="input-field mt-1" {...register("specialRequests")} />
         </div>
         <button type="submit" className="btn-primary w-full" disabled={isSubmitting}>
-          {isSubmitting ? "Booking..." : "Request Booking"}
+          {isSubmitting ? "Sending request…" : "Send booking request"}
         </button>
       </form>
     </div>

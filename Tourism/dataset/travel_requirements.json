@@ -1,0 +1,1701 @@
+{
+ "dataset": "nepal_travel_requirements",
+ "version": "2026-09-26",
+ "retrieved_at": "2026-09-26",
+ "disclaimer": "Official figures transcribed from Government of Nepal / Nepal Tourism Board pages on the retrieval date. Fees and rules change; always confirm with the linked official source before travel. Destination matching is by place name and district (no park boundary data), so every match is shown as 'likely applies — confirm'.",
+ "sources": {
+  "doi_visa": {
+   "publisher": "Department of Immigration, Government of Nepal",
+   "title": "Visa Information",
+   "url": "https://immigration.gov.np/visa-information",
+   "retrieved_at": "2026-09-26"
+  },
+  "doi_permits": {
+   "publisher": "Department of Immigration, Government of Nepal",
+   "title": "Trekking Route and Permit Fee",
+   "url": "https://immigration.gov.np/trekking-route-and-permit-fee",
+   "retrieved_at": "2026-09-26"
+  },
+  "ntb_tims": {
+   "publisher": "Nepal Tourism Board",
+   "title": "TIMS Card",
+   "url": "https://ntb.gov.np/plan-your-trip/before-you-come/tims-card",
+   "retrieved_at": "2026-09-26"
+  },
+  "ntb_parks": {
+   "publisher": "Nepal Tourism Board",
+   "title": "Park Entry Fees",
+   "url": "https://ntb.gov.np/plan-your-trip/before-you-come/park-entry-fees",
+   "retrieved_at": "2026-09-26"
+  },
+  "ntb_heritage": {
+   "publisher": "Nepal Tourism Board",
+   "title": "Heritage Site Entry Fees",
+   "url": "https://ntb.gov.np/plan-your-trip/before-you-come/heritage-site-entry-fees",
+   "retrieved_at": "2026-09-26"
+  },
+  "ntb_mountain_safety": {
+   "publisher": "Nepal Tourism Board",
+   "title": "Safety in the Mountains",
+   "url": "https://ntb.gov.np/plan-your-trip/before-you-come/safety-in-the-mountains",
+   "retrieved_at": "2026-09-26"
+  },
+  "ntb_tourist_police": {
+   "publisher": "Nepal Tourism Board",
+   "title": "Tourist Police",
+   "url": "https://ntb.gov.np/plan-your-trip/before-you-come/tourist-police",
+   "retrieved_at": "2026-09-26"
+  },
+  "ntb_faq": {
+   "publisher": "Nepal Tourism Board",
+   "title": "FAQ — Is travel insurance necessary to go trekking in Nepal?",
+   "url": "https://trade.ntb.gov.np/faq/",
+   "retrieved_at": "2026-09-26"
+  },
+  "ntb_emergency": {
+   "publisher": "Nepal Tourism Board",
+   "title": "Crisis & Emergency",
+   "url": "https://trade.ntb.gov.np/for-emergency/",
+   "retrieved_at": "2026-09-26"
+  }
+ },
+ "visa": {
+  "source": "doi_visa",
+  "tourist_visa_on_arrival": {
+   "summary": "Tribhuvan International Airport (TIA) facilitates tourists with Visa on Arrival. You may also obtain a visa from Nepali Diplomatic Missions abroad prior to arrival.",
+   "mission_visa_rule": "If you obtained a visa from a Nepalese Diplomatic Mission, you must enter Nepal within six months of the visa issue date. Your total stay is counted from the day you enter Nepal.",
+   "fees_usd": [
+    {
+     "days": 15,
+     "usd": 30
+    },
+    {
+     "days": 30,
+     "usd": 50
+    },
+    {
+     "days": 90,
+     "usd": 125
+    }
+   ],
+   "steps": [
+    "Fill in the Arrival Card and the Online Tourist Visa form (on the Department of Immigration website before arrival, or on kiosk machines at TIA). Print the submission receipt with barcode — valid for 15 days.",
+    "Pay the visa fee (15 / 30 / 90 days) at the bank counter. Multiple payment modes accepted; carrying some cash is advised.",
+    "Proceed to the immigration desk with your online form, payment receipt and passport."
+   ],
+   "apply_url": "https://nepaliport.immigration.gov.np/"
+  },
+  "gratis": [
+   "Children below 10 years",
+   "SAARC citizens (except Afghanistan) — up to 30 days on first visit in a given visa year",
+   "NRN card holders",
+   "Chinese Nationals"
+  ],
+  "contact": {
+   "phone": "+977-1-4529660",
+   "email": "info@immigration.gov.np",
+   "hours": "Mon–Fri 09:00–17:00 (Magh 16 – Kartik 15); 09:00–16:00 (Kartik 16 – Magh 15)"
+  },
+  "gratis_note": "Summary of the Department of Immigration's gratis-visa list; check the source for full conditions."
+ },
+ "tims": {
+  "source": "ntb_tims",
+  "rule": "As per the Revised TIMS Provision effective from March 31, 2023, specific Protected Areas of Nepal need trekkers to be accompanied by a licensed trekking guide and carry a trekking-agency-issued TIMS Card.",
+  "how": "Find out whether your route requires a trekking guide and TIMS Card. If yes, contact a Government-registered trekking agency to arrange the guide and TIMS Card.",
+  "fees_npr": {
+   "saarc": 1000,
+   "foreign": 2000,
+   "chinese": 2000,
+   "nepali": null
+  },
+  "fee_basis": "per trekker",
+  "regions": [
+   {
+    "region": "Kanchenjunga Region",
+    "treks": [
+     "Kanchenjunga Base Camp via Sele La Pass Trek",
+     "Kanchenjunga Basecamp Trek",
+     "Kanchenjunga Base Camp Nango Pass Trek",
+     "Lumba Sumba Pass Trek"
+    ],
+    "match": {
+     "districts": [
+      "Taplejung"
+     ],
+     "name_keywords": [
+      "kanchenjunga",
+      "kangchenjunga",
+      "pangpema",
+      "ghunsa",
+      "sele la",
+      "lumba sumba",
+      "nango"
+     ]
+    }
+   },
+   {
+    "region": "Makalu Barun Area",
+    "treks": [
+     "Makalu Basecamp Trek",
+     "Sherpeni Cole Pass Trek"
+    ],
+    "match": {
+     "districts": [
+      "Sankhuwasabha",
+      "Solukhumbu"
+     ],
+     "name_keywords": [
+      "makalu",
+      "barun",
+      "sherpeni"
+     ]
+    }
+   },
+   {
+    "region": "Everest Region",
+    "treks": [
+     "Everest Basecamp Trek",
+     "Gokyo Trek",
+     "Chho La Pass Trek",
+     "Gokyo Renjo La Pass Trek",
+     "Three Passes Trek",
+     "Everest View trek",
+     "Mera Peak Trek",
+     "Amphu Labtsha Pass"
+    ],
+    "match": {
+     "districts": [
+      "Solukhumbu"
+     ],
+     "name_keywords": [
+      "everest",
+      "ebc",
+      "gokyo",
+      "cho la",
+      "chho la",
+      "renjo",
+      "three passes",
+      "mera peak",
+      "amphu",
+      "namche",
+      "tengboche",
+      "dingboche",
+      "lobuche",
+      "gorak shep",
+      "gorakshep",
+      "kala patthar",
+      "kalapatthar",
+      "pheriche",
+      "khumjung",
+      "lukla",
+      "phakding",
+      "island peak",
+      "chhukung"
+     ]
+    }
+   },
+   {
+    "region": "Rolwaling Region",
+    "treks": [
+     "Rolwaling Trek",
+     "Tashi Labtsha Pass Trek"
+    ],
+    "match": {
+     "districts": [
+      "Dolakha"
+     ],
+     "name_keywords": [
+      "rolwaling",
+      "tashi lapcha",
+      "tashi labtsha",
+      "tsho rolpa",
+      "beding"
+     ]
+    }
+   },
+   {
+    "region": "Panchpokhari Bhairabkunda Area",
+    "treks": [
+     "Panchpokhari Trek"
+    ],
+    "match": {
+     "districts": [
+      "Sindhupalchok"
+     ],
+     "name_keywords": [
+      "panch pokhari",
+      "panchpokhari",
+      "bhairabkunda"
+     ]
+    }
+   },
+   {
+    "region": "Helambu Region",
+    "treks": [
+     "Helambu Trek",
+     "Goshaikunda Trek"
+    ],
+    "match": {
+     "districts": [
+      "Sindhupalchok",
+      "Nuwakot",
+      "Rasuwa"
+     ],
+     "name_keywords": [
+      "helambu",
+      "gosaikunda",
+      "gosainkunda",
+      "goshaikunda"
+     ]
+    }
+   },
+   {
+    "region": "Langtang Region",
+    "treks": [
+     "Langtang Trek",
+     "Langtang Gosaikund Trek",
+     "Tamang Heritage Trek",
+     "Tamang Heritage Langtang Trek",
+     "Ganja La pass Trek",
+     "Till Man Pass"
+    ],
+    "match": {
+     "districts": [
+      "Rasuwa",
+      "Sindhupalchok"
+     ],
+     "name_keywords": [
+      "langtang",
+      "kyanjin",
+      "tamang heritage",
+      "ganja la",
+      "tilman"
+     ]
+    }
+   },
+   {
+    "region": "Ganesh Himal-Ruby Valley Area",
+    "treks": [
+     "Ganesh Himal - Ruby Valley Trek"
+    ],
+    "match": {
+     "districts": [
+      "Dhading",
+      "Rasuwa",
+      "Gorkha"
+     ],
+     "name_keywords": [
+      "ruby valley",
+      "ganesh himal"
+     ]
+    }
+   },
+   {
+    "region": "Manaslu Region",
+    "treks": [
+     "Manaslu Circuit Trek",
+     "Manaslu - Tsum Valley Trek",
+     "Tsum Valley Trek"
+    ],
+    "match": {
+     "districts": [
+      "Gorkha"
+     ],
+     "name_keywords": [
+      "manaslu",
+      "tsum",
+      "samagaon",
+      "sama gaun",
+      "samdo",
+      "larkya"
+     ]
+    }
+   },
+   {
+    "region": "Annapurna Region",
+    "treks": [
+     "Annapurna Circuit Trek",
+     "Nar Phu Annapurna Circuit Trek",
+     "Mesokanto / Tilicho Pass Trek",
+     "Poon Hill-ABC Trek",
+     "Khopra Trek",
+     "Mardi Himal Trek",
+     "Sikles Tara Hill Trek"
+    ],
+    "match": {
+     "districts": [
+      "Kaski",
+      "Myagdi",
+      "Lamjung",
+      "Manang",
+      "Mustang",
+      "Parbat"
+     ],
+     "name_keywords": [
+      "annapurna",
+      "abc",
+      "poon hill",
+      "ghorepani",
+      "ghandruk",
+      "khopra",
+      "mardi himal",
+      "sikles",
+      "tilicho",
+      "mesokanto",
+      "thorong",
+      "nar phu",
+      "narphu",
+      "chhomrong",
+      "tadapani",
+      "manang"
+     ]
+    }
+   },
+   {
+    "region": "Mustang Region",
+    "treks": [
+     "Upper Mustang Trek",
+     "Sarebung Pass Trek"
+    ],
+    "match": {
+     "districts": [
+      "Mustang"
+     ],
+     "name_keywords": [
+      "upper mustang",
+      "lo manthang",
+      "lomanthang",
+      "saribung",
+      "sarebung"
+     ]
+    }
+   },
+   {
+    "region": "Dhaulagiri Region",
+    "treks": [
+     "Round Dhaulagiri"
+    ],
+    "match": {
+     "districts": [
+      "Myagdi",
+      "Mustang"
+     ],
+     "name_keywords": [
+      "dhaulagiri"
+     ]
+    }
+   },
+   {
+    "region": "Dolpo Region",
+    "treks": [
+     "Upper Dolpo - Jomsom Trek",
+     "Upper Dolpo Trek",
+     "Lower Dolpo Trek",
+     "Kagmara Pass Trek"
+    ],
+    "match": {
+     "districts": [
+      "Dolpa"
+     ],
+     "name_keywords": [
+      "dolpo",
+      "dolpa trek",
+      "kagmara",
+      "phoksundo"
+     ]
+    }
+   },
+   {
+    "region": "Humla Region",
+    "treks": [
+     "Humla Limi Valley Trek"
+    ],
+    "match": {
+     "districts": [
+      "Humla"
+     ],
+     "name_keywords": [
+      "limi"
+     ]
+    }
+   }
+  ]
+ },
+ "protected_areas": [
+  {
+   "name": "Chitwan National Park",
+   "type": "national_park",
+   "unesco_natural_site": true,
+   "fees_npr": {
+    "nepali": 150,
+    "saarc": 1000,
+    "foreign": 2000,
+    "chinese": 2000
+   },
+   "fee_basis": "per person per entry",
+   "child_policy": "Below 10 yrs free",
+   "note": "Paid when you enter the park (e.g. jungle safari). NTB's heritage-fee table lists this fee per day per entry + 13% VAT.",
+   "match": {
+    "districts": [
+     "Chitwan",
+     "Nawalpur",
+     "Makwanpur",
+     "Parsa"
+    ],
+    "name_keywords": [
+     "chitwan national park",
+     "sauraha",
+     "kasara",
+     "meghauli",
+     "jungle safari",
+     "chitwan jungle",
+     "chitwan sal forest",
+     "elephant breeding"
+    ],
+    "whole_districts": []
+   }
+  },
+  {
+   "name": "Sagarmatha National Park",
+   "type": "national_park",
+   "unesco_natural_site": true,
+   "fees_npr": {
+    "nepali": 100,
+    "saarc": 1500,
+    "foreign": 3000,
+    "chinese": 3000
+   },
+   "fee_basis": "per person per entry",
+   "child_policy": "Below 10 yrs free",
+   "note": "",
+   "match": {
+    "districts": [
+     "Solukhumbu"
+    ],
+    "name_keywords": [
+     "sagarmatha",
+     "everest",
+     "ebc",
+     "namche",
+     "khumjung",
+     "khunde",
+     "tengboche",
+     "dingboche",
+     "pheriche",
+     "lobuche",
+     "gorak shep",
+     "gorakshep",
+     "kala patthar",
+     "kalapatthar",
+     "gokyo",
+     "thame",
+     "pangboche",
+     "chhukung",
+     "island peak",
+     "monjo",
+     "phortse",
+     "machhermo",
+     "ama dablam"
+    ],
+    "whole_districts": []
+   }
+  },
+  {
+   "name": "Banke National Park",
+   "type": "national_park",
+   "unesco_natural_site": false,
+   "fees_npr": {
+    "nepali": 100,
+    "saarc": 750,
+    "foreign": 1500,
+    "chinese": 1500
+   },
+   "fee_basis": "per person per entry",
+   "child_policy": "Below 10 yrs free",
+   "note": "",
+   "match": {
+    "districts": [
+     "Banke"
+    ],
+    "name_keywords": [
+     "banke national park"
+    ],
+    "whole_districts": []
+   }
+  },
+  {
+   "name": "Bardia National Park",
+   "type": "national_park",
+   "unesco_natural_site": false,
+   "fees_npr": {
+    "nepali": 100,
+    "saarc": 750,
+    "foreign": 1500,
+    "chinese": 1500
+   },
+   "fee_basis": "per person per entry",
+   "child_policy": "Below 10 yrs free",
+   "note": "",
+   "match": {
+    "districts": [
+     "Bardiya",
+     "Bardia"
+    ],
+    "name_keywords": [
+     "bardia national park",
+     "bardiya national park",
+     "bardia jungle",
+     "thakurdwara"
+    ],
+    "whole_districts": []
+   }
+  },
+  {
+   "name": "Khaptad National Park",
+   "type": "national_park",
+   "unesco_natural_site": false,
+   "fees_npr": {
+    "nepali": 100,
+    "saarc": 1500,
+    "foreign": 3000,
+    "chinese": 3000
+   },
+   "fee_basis": "per person per entry",
+   "child_policy": "Below 10 yrs free",
+   "note": "",
+   "match": {
+    "districts": [
+     "Doti",
+     "Bajhang",
+     "Bajura",
+     "Achham"
+    ],
+    "name_keywords": [
+     "khaptad"
+    ],
+    "whole_districts": []
+   }
+  },
+  {
+   "name": "Langtang National Park",
+   "type": "national_park",
+   "unesco_natural_site": false,
+   "fees_npr": {
+    "nepali": 100,
+    "saarc": 1500,
+    "foreign": 3000,
+    "chinese": 3000
+   },
+   "fee_basis": "per person per entry",
+   "child_policy": "Below 10 yrs free",
+   "note": "",
+   "match": {
+    "districts": [
+     "Rasuwa",
+     "Sindhupalchok",
+     "Nuwakot"
+    ],
+    "name_keywords": [
+     "langtang",
+     "kyanjin",
+     "gosaikunda",
+     "gosainkunda",
+     "lauribina",
+     "tserko ri",
+     "lama hotel",
+     "sing gompa",
+     "cholangpati"
+    ],
+    "whole_districts": []
+   }
+  },
+  {
+   "name": "Makalu-Barun National Park",
+   "type": "national_park",
+   "unesco_natural_site": false,
+   "fees_npr": {
+    "nepali": 100,
+    "saarc": 1500,
+    "foreign": 3000,
+    "chinese": 3000
+   },
+   "fee_basis": "per person per entry",
+   "child_policy": "Below 10 yrs free",
+   "note": "",
+   "match": {
+    "districts": [
+     "Sankhuwasabha",
+     "Solukhumbu"
+    ],
+    "name_keywords": [
+     "makalu",
+     "barun"
+    ],
+    "whole_districts": []
+   }
+  },
+  {
+   "name": "Parsa National Park",
+   "type": "national_park",
+   "unesco_natural_site": false,
+   "fees_npr": {
+    "nepali": 100,
+    "saarc": 750,
+    "foreign": 1500,
+    "chinese": 1500
+   },
+   "fee_basis": "per person per entry",
+   "child_policy": "Below 10 yrs free",
+   "note": "",
+   "match": {
+    "districts": [
+     "Parsa",
+     "Bara",
+     "Makwanpur",
+     "Chitwan"
+    ],
+    "name_keywords": [
+     "parsa national park",
+     "parsa wildlife"
+    ],
+    "whole_districts": []
+   }
+  },
+  {
+   "name": "Rara National Park",
+   "type": "national_park",
+   "unesco_natural_site": false,
+   "fees_npr": {
+    "nepali": 100,
+    "saarc": 1500,
+    "foreign": 3000,
+    "chinese": 3000
+   },
+   "fee_basis": "per person per entry",
+   "child_policy": "Below 10 yrs free",
+   "note": "",
+   "match": {
+    "districts": [
+     "Mugu",
+     "Jumla"
+    ],
+    "name_keywords": [
+     "rara"
+    ],
+    "whole_districts": []
+   }
+  },
+  {
+   "name": "Shey-Phoksundo National Park",
+   "type": "national_park",
+   "unesco_natural_site": false,
+   "fees_npr": {
+    "nepali": 100,
+    "saarc": 1500,
+    "foreign": 3000,
+    "chinese": 3000
+   },
+   "fee_basis": "per person per entry",
+   "child_policy": "Below 10 yrs free",
+   "note": "",
+   "match": {
+    "districts": [
+     "Dolpa",
+     "Mugu"
+    ],
+    "name_keywords": [
+     "phoksundo",
+     "shey gompa",
+     "ringmo",
+     "dolpo"
+    ],
+    "whole_districts": []
+   }
+  },
+  {
+   "name": "Shivapuri-Nagarjun National Park",
+   "type": "national_park",
+   "unesco_natural_site": false,
+   "fees_npr": {
+    "nepali": 100,
+    "saarc": 600,
+    "foreign": 1000,
+    "chinese": 1000
+   },
+   "fee_basis": "per person per entry",
+   "child_policy": "Below 10 yrs free",
+   "note": "",
+   "match": {
+    "districts": [
+     "Kathmandu",
+     "Nuwakot",
+     "Sindhupalchok",
+     "Dhading"
+    ],
+    "name_keywords": [
+     "shivapuri",
+     "nagarjun",
+     "jamacho",
+     "chisapani"
+    ],
+    "whole_districts": []
+   }
+  },
+  {
+   "name": "Shuklaphanta National Park",
+   "type": "national_park",
+   "unesco_natural_site": false,
+   "fees_npr": {
+    "nepali": 100,
+    "saarc": 750,
+    "foreign": 1500,
+    "chinese": 1500
+   },
+   "fee_basis": "per person per entry",
+   "child_policy": "Below 10 yrs free",
+   "note": "",
+   "match": {
+    "districts": [
+     "Kanchanpur"
+    ],
+    "name_keywords": [
+     "shuklaphanta",
+     "suklaphanta"
+    ],
+    "whole_districts": []
+   }
+  },
+  {
+   "name": "Koshi Tappu Wildlife Reserve",
+   "type": "wildlife_reserve",
+   "unesco_natural_site": false,
+   "fees_npr": {
+    "nepali": 100,
+    "saarc": 750,
+    "foreign": 1500,
+    "chinese": 1500
+   },
+   "fee_basis": "per person per entry",
+   "child_policy": "Below 10 yrs free",
+   "note": "",
+   "match": {
+    "districts": [
+     "Sunsari",
+     "Saptari",
+     "Udayapur"
+    ],
+    "name_keywords": [
+     "koshi tappu",
+     "kosi tappu"
+    ],
+    "whole_districts": []
+   }
+  },
+  {
+   "name": "Api Nampa Conservation Area",
+   "type": "conservation_area",
+   "unesco_natural_site": false,
+   "fees_npr": {
+    "nepali": 100,
+    "saarc": 500,
+    "foreign": 2000,
+    "chinese": 2000
+   },
+   "fee_basis": "per person per entry",
+   "child_policy": "Below 10 yrs free",
+   "note": "",
+   "match": {
+    "districts": [
+     "Darchula"
+    ],
+    "name_keywords": [
+     "api nampa",
+     "api base camp",
+     "api himal"
+    ],
+    "whole_districts": []
+   }
+  },
+  {
+   "name": "Annapurna Conservation Area",
+   "type": "conservation_area",
+   "unesco_natural_site": false,
+   "fees_npr": {
+    "nepali": 100,
+    "saarc": 1000,
+    "foreign": 3000,
+    "chinese": 3000
+   },
+   "fee_basis": "per person per entry",
+   "child_policy": "Below 10 yrs free",
+   "note": "",
+   "match": {
+    "districts": [
+     "Kaski",
+     "Myagdi",
+     "Lamjung",
+     "Manang",
+     "Mustang"
+    ],
+    "name_keywords": [
+     "annapurna",
+     "ghandruk",
+     "ghorepani",
+     "poon hill",
+     "landruk",
+     "chhomrong",
+     "mardi himal",
+     "khopra",
+     "tilicho",
+     "thorong",
+     "muktinath",
+     "jomsom",
+     "kagbeni",
+     "marpha",
+     "tukuche",
+     "sikles",
+     "dhampus",
+     "australian camp",
+     "ulleri",
+     "tadapani",
+     "machhapuchhre",
+     "machapuchare",
+     "upper mustang",
+     "lo manthang",
+     "lomanthang",
+     "nar phu",
+     "narphu"
+    ],
+    "whole_districts": [
+     "Manang",
+     "Mustang"
+    ]
+   }
+  },
+  {
+   "name": "Blackbuck Conservation Area",
+   "type": "conservation_area",
+   "unesco_natural_site": false,
+   "fees_npr": {
+    "nepali": 100,
+    "saarc": 500,
+    "foreign": 2000,
+    "chinese": 2000
+   },
+   "fee_basis": "per person per entry",
+   "child_policy": "Below 10 yrs free",
+   "note": "",
+   "match": {
+    "districts": [
+     "Bardiya",
+     "Bardia"
+    ],
+    "name_keywords": [
+     "blackbuck",
+     "khairapur"
+    ],
+    "whole_districts": []
+   }
+  },
+  {
+   "name": "Gaurishanker Conservation Area",
+   "type": "conservation_area",
+   "unesco_natural_site": false,
+   "fees_npr": {
+    "nepali": 100,
+    "saarc": 1000,
+    "foreign": 3000,
+    "chinese": 3000
+   },
+   "fee_basis": "per person per entry",
+   "child_policy": "Below 10 yrs free",
+   "note": "",
+   "match": {
+    "districts": [
+     "Dolakha",
+     "Sindhupalchok",
+     "Ramechhap"
+    ],
+    "name_keywords": [
+     "gaurishankar",
+     "gaurishanker",
+     "rolwaling",
+     "tsho rolpa",
+     "beding",
+     "kalinchowk",
+     "kalinchok"
+    ],
+    "whole_districts": []
+   }
+  },
+  {
+   "name": "Kanchenjunga Conservation Area",
+   "type": "conservation_area",
+   "unesco_natural_site": false,
+   "fees_npr": {
+    "nepali": 100,
+    "saarc": 500,
+    "foreign": 2000,
+    "chinese": 2000
+   },
+   "fee_basis": "per person per entry",
+   "child_policy": "Below 10 yrs free",
+   "note": "",
+   "match": {
+    "districts": [
+     "Taplejung"
+    ],
+    "name_keywords": [
+     "kanchenjunga",
+     "kangchenjunga",
+     "pangpema",
+     "ghunsa"
+    ],
+    "whole_districts": []
+   }
+  },
+  {
+   "name": "Manaslu Conservation Area",
+   "type": "conservation_area",
+   "unesco_natural_site": false,
+   "fees_npr": {
+    "nepali": 100,
+    "saarc": 1000,
+    "foreign": 3000,
+    "chinese": 3000
+   },
+   "fee_basis": "per person per entry",
+   "child_policy": "Below 10 yrs free",
+   "note": "",
+   "match": {
+    "districts": [
+     "Gorkha"
+    ],
+    "name_keywords": [
+     "manaslu",
+     "samagaon",
+     "sama gaun",
+     "samdo",
+     "larkya",
+     "tsum"
+    ],
+    "whole_districts": []
+   }
+  },
+  {
+   "name": "Dhorpatan Hunting Reserve",
+   "type": "hunting_reserve",
+   "unesco_natural_site": false,
+   "fees_npr": {
+    "nepali": 100,
+    "saarc": 1500,
+    "foreign": 3000,
+    "chinese": 3000
+   },
+   "fee_basis": "per person per entry",
+   "child_policy": "Below 10 yrs free",
+   "note": "",
+   "match": {
+    "districts": [
+     "Baglung",
+     "Rukum East",
+     "Myagdi"
+    ],
+    "name_keywords": [
+     "dhorpatan"
+    ],
+    "whole_districts": []
+   }
+  }
+ ],
+ "restricted_areas": [
+  {
+   "name": "Upper Mustang",
+   "fee_text": "USD 50 / person / day",
+   "fee_rule": {
+    "type": "per_day",
+    "usd": 50
+   },
+   "covered_areas": "Lomanthang RM (ward 1-5), Lo-Ghekar Damodarkunda RM (ward 1-5), Baragung Muktichetra RM (ward 3 & Satang village, ward 5)",
+   "match": {
+    "districts": [
+     "Mustang"
+    ],
+    "name_keywords": [
+     "upper mustang",
+     "lo manthang",
+     "lomanthang",
+     "lo-manthang",
+     "tsarang",
+     "charang",
+     "ghami",
+     "ghemi",
+     "chhoser",
+     "damodar kunda",
+     "damodarkunda"
+    ]
+   }
+  },
+  {
+   "name": "Upper Dolpa",
+   "fee_text": "USD 500 / person for first 10 days; USD 50 / person / day beyond 10 days",
+   "fee_rule": {
+    "type": "first_days_then_daily",
+    "first_days": 10,
+    "first_usd": 500,
+    "daily_usd_after": 50
+   },
+   "covered_areas": "Dolpo Buddha RM (ward 4-6), Shey Phoksundo RM (ward 1-7), Charka Tangsong RM (ward 1-6)",
+   "match": {
+    "districts": [
+     "Dolpa"
+    ],
+    "name_keywords": [
+     "upper dolpo",
+     "upper dolpa",
+     "shey gompa",
+     "saldang",
+     "crystal mountain"
+    ]
+   }
+  },
+  {
+   "name": "Gorkha Manaslu",
+   "fee_text": "Sep–Nov USD 100 / week, USD 15 / day beyond 1 week; Dec–Aug USD 75 / week, USD 10 / day beyond 1 week",
+   "fee_rule": {
+    "type": "seasonal_weekly",
+    "peak_months": [
+     9,
+     10,
+     11
+    ],
+    "peak_week_usd": 100,
+    "peak_extra_day_usd": 15,
+    "off_week_usd": 75,
+    "off_extra_day_usd": 10
+   },
+   "covered_areas": "Chumnubri RM (ward 1, 2, 3, 4)",
+   "match": {
+    "districts": [
+     "Gorkha"
+    ],
+    "name_keywords": [
+     "manaslu",
+     "samagaon",
+     "sama gaun",
+     "samdo",
+     "larkya"
+    ]
+   }
+  },
+  {
+   "name": "Humla",
+   "fee_text": "USD 50 / person / week; USD 10 / day beyond 1 week",
+   "fee_rule": {
+    "type": "weekly",
+    "week_usd": 50,
+    "extra_day_usd": 10
+   },
+   "covered_areas": "Simikot RM (ward 1, 6, 7), Namkha RM (ward 1-6), Changkheli RM (ward 3-5)",
+   "match": {
+    "districts": [
+     "Humla"
+    ],
+    "name_keywords": [
+     "limi",
+     "hilsa",
+     "yari"
+    ]
+   }
+  },
+  {
+   "name": "Taplejung",
+   "fee_text": "USD 20 / week for first 4 weeks; USD 25 / week beyond 4 weeks",
+   "fee_rule": {
+    "type": "weekly_tiered",
+    "week_usd": 20,
+    "weeks_at_base": 4,
+    "week_usd_after": 25
+   },
+   "covered_areas": "Phantanglung RM (ward 6, 7), Mikwakhola RM (ward 5), Sirijunga RM (ward 8)",
+   "match": {
+    "districts": [
+     "Taplejung"
+    ],
+    "name_keywords": [
+     "kanchenjunga",
+     "kangchenjunga",
+     "pangpema",
+     "ghunsa",
+     "olangchung"
+    ]
+   }
+  },
+  {
+   "name": "Lower Dolpa",
+   "fee_text": "USD 20 / person / week; USD 5 / day beyond 1 week",
+   "fee_rule": {
+    "type": "weekly",
+    "week_usd": 20,
+    "extra_day_usd": 5
+   },
+   "covered_areas": "Thulibheri Municipality (ward 1-11), Tripurasundari Municipality (ward 1-11), Dolpo Buddha RM (ward 1-3), Shey Phoksundo RM (ward 8-9), Jagdulla RM (ward 1-6), Mudkechula RM (ward 1-9), Kaike RM (ward 1-7)",
+   "match": {
+    "districts": [
+     "Dolpa"
+    ],
+    "name_keywords": [
+     "lower dolpo",
+     "lower dolpa",
+     "phoksundo",
+     "ringmo"
+    ]
+   }
+  },
+  {
+   "name": "Dolakha",
+   "fee_text": "USD 20 / person / week",
+   "fee_rule": {
+    "type": "weekly",
+    "week_usd": 20,
+    "extra_day_usd": null
+   },
+   "covered_areas": "Gaurishankhar RM (ward 9), Bighu RM (ward 1)",
+   "match": {
+    "districts": [
+     "Dolakha"
+    ],
+    "name_keywords": [
+     "rolwaling",
+     "beding",
+     "tsho rolpa",
+     "na gaun"
+    ]
+   }
+  },
+  {
+   "name": "Gorkha Tsum Valley",
+   "fee_text": "Sep–Nov USD 40 / week, USD 7 / day beyond 1 week; Dec–Aug USD 30 / week, USD 7 / day beyond 1 week",
+   "fee_rule": {
+    "type": "seasonal_weekly",
+    "peak_months": [
+     9,
+     10,
+     11
+    ],
+    "peak_week_usd": 40,
+    "peak_extra_day_usd": 7,
+    "off_week_usd": 30,
+    "off_extra_day_usd": 7
+   },
+   "covered_areas": "Chumnubri RM (ward 3, 6, 7) — Sirdibas, Lokpa, Chumling, Chekampar, Nile, Chule",
+   "match": {
+    "districts": [
+     "Gorkha"
+    ],
+    "name_keywords": [
+     "tsum",
+     "chumling",
+     "chekampar",
+     "chhekampar",
+     "mu gompa",
+     "rachen gompa"
+    ]
+   }
+  },
+  {
+   "name": "Sankhuwasabha",
+   "fee_text": "USD 20 / week for first 4 weeks; USD 25 / week beyond 4 weeks",
+   "fee_rule": {
+    "type": "weekly_tiered",
+    "week_usd": 20,
+    "weeks_at_base": 4,
+    "week_usd_after": 25
+   },
+   "covered_areas": "Bhotkhola RM (ward 1-5), Makalu RM (ward 4)",
+   "match": {
+    "districts": [
+     "Sankhuwasabha"
+    ],
+    "name_keywords": [
+     "makalu base",
+     "makalu basecamp",
+     "barun",
+     "sherpeni"
+    ]
+   }
+  },
+  {
+   "name": "Solukhumbu",
+   "fee_text": "USD 20 / week for first 4 weeks; USD 25 / week beyond 4 weeks",
+   "fee_rule": {
+    "type": "weekly_tiered",
+    "week_usd": 20,
+    "weeks_at_base": 4,
+    "week_usd_after": 25
+   },
+   "covered_areas": "Khumbu Pasang Lahmu RM (ward 5)",
+   "match": {
+    "districts": [],
+    "name_keywords": []
+   }
+  },
+  {
+   "name": "Rasuwa",
+   "fee_text": "USD 20 / person / week",
+   "fee_rule": {
+    "type": "weekly",
+    "week_usd": 20,
+    "extra_day_usd": null
+   },
+   "covered_areas": "Gosaikunda RM (ward 1 and part of ward 2)",
+   "match": {
+    "districts": [],
+    "name_keywords": []
+   }
+  },
+  {
+   "name": "Manang",
+   "fee_text": "Sep–Nov USD 100 / week, USD 15 / day beyond 1 week; Dec–Aug USD 75 / week, USD 15 / day beyond 1 week",
+   "fee_rule": {
+    "type": "seasonal_weekly",
+    "peak_months": [
+     9,
+     10,
+     11
+    ],
+    "peak_week_usd": 100,
+    "peak_extra_day_usd": 15,
+    "off_week_usd": 75,
+    "off_extra_day_usd": 15
+   },
+   "covered_areas": "Narpa RM (ward 1-5), Nasho RM (ward 6, 7)",
+   "match": {
+    "districts": [
+     "Manang"
+    ],
+    "name_keywords": [
+     "nar phu",
+     "narphu",
+     "nar-phu",
+     "phu gaon",
+     "kang la"
+    ]
+   }
+  },
+  {
+   "name": "Bajhang",
+   "fee_text": "USD 90 / week for first week; USD 15 / day beyond 1 week",
+   "fee_rule": {
+    "type": "weekly",
+    "week_usd": 90,
+    "extra_day_usd": 15
+   },
+   "covered_areas": "Saipal RM (ward 1-5)",
+   "match": {
+    "districts": [
+     "Bajhang"
+    ],
+    "name_keywords": [
+     "saipal"
+    ]
+   }
+  },
+  {
+   "name": "Mugu",
+   "fee_text": "USD 100 / person / week; USD 15 / day beyond 1 week",
+   "fee_rule": {
+    "type": "weekly",
+    "week_usd": 100,
+    "extra_day_usd": 15
+   },
+   "covered_areas": "Mugumakarmarong RM (ward 1-9)",
+   "match": {
+    "districts": [],
+    "name_keywords": []
+   }
+  },
+  {
+   "name": "Darchula",
+   "fee_text": "USD 90 / person / week; USD 15 / day beyond 1 week",
+   "fee_rule": {
+    "type": "weekly",
+    "week_usd": 90,
+    "extra_day_usd": 15
+   },
+   "covered_areas": "Vyas RM (ward 1)",
+   "match": {
+    "districts": [
+     "Darchula"
+    ],
+    "name_keywords": [
+     "vyas",
+     "byas"
+    ]
+   }
+  }
+ ],
+ "restricted_area_note": "For Upper Mustang and Upper Dolpa, if the royalty paid for a mountain expedition is less than the trekking permit fee, the difference amount must be paid separately. Restricted-area permits are issued via the Department of Immigration (apply online at https://nepaliport.immigration.gov.np/trekking/login).",
+ "heritage_sites": [
+  {
+   "name": "Kathmandu Durbar Square (incl. Tribhuvan Museum)",
+   "fees_npr": {
+    "foreign": 1000,
+    "saarc": 500,
+    "chinese": 1000,
+    "nepali": 0
+   },
+   "notes": "SAARC rate listed for BIMSTEC. Below 10 years free.",
+   "match": {
+    "districts": [
+     "Kathmandu"
+    ],
+    "name_keywords": [
+     "kathmandu durbar",
+     "basantapur durbar",
+     "hanuman dhoka"
+    ]
+   }
+  },
+  {
+   "name": "Patan Durbar Square (incl. Patan Museum)",
+   "fees_npr": {
+    "foreign": 1000,
+    "saarc": 500,
+    "chinese": 500,
+    "nepali": null
+   },
+   "notes": "SAARC rate listed for BIMSTEC. Nepalese fees apply only to Patan Museum (students with school letter NPR 10; student card NPR 15; others NPR 30).",
+   "match": {
+    "districts": [
+     "Lalitpur"
+    ],
+    "name_keywords": [
+     "patan durbar",
+     "patan museum"
+    ]
+   }
+  },
+  {
+   "name": "Bhaktapur Durbar Square",
+   "fees_npr": {
+    "foreign": 1800,
+    "saarc": 500,
+    "chinese": 500,
+    "nepali": 0
+   },
+   "notes": "Foreign nationals: US$ 18 or NPR 1,800. Below 10 years free. For groups of 11-20, one tour leader can enter free.",
+   "match": {
+    "districts": [
+     "Bhaktapur"
+    ],
+    "name_keywords": [
+     "bhaktapur durbar",
+     "taumadhi",
+     "nyatapola"
+    ]
+   }
+  },
+  {
+   "name": "Swayambhu Stupa",
+   "fees_npr": {
+    "foreign": 200,
+    "saarc": 50,
+    "chinese": 200,
+    "nepali": 0
+   },
+   "notes": "Below 10 years free.",
+   "match": {
+    "districts": [
+     "Kathmandu"
+    ],
+    "name_keywords": [
+     "swayambhu",
+     "swoyambhu",
+     "monkey temple",
+     "swayambhunath",
+     "swoyambhunath"
+    ]
+   }
+  },
+  {
+   "name": "Boudha Stupa",
+   "fees_npr": {
+    "foreign": 400,
+    "saarc": 100,
+    "chinese": 400,
+    "nepali": 0
+   },
+   "notes": "Below 10 years free.",
+   "match": {
+    "districts": [
+     "Kathmandu"
+    ],
+    "name_keywords": [
+     "boudha",
+     "boudhanath",
+     "bouddha",
+     "bauddha",
+     "boudhanath stupa"
+    ]
+   }
+  },
+  {
+   "name": "Pashupatinath Temple",
+   "fees_npr": {
+    "foreign": 1000,
+    "saarc": 1000,
+    "chinese": 1000,
+    "nepali": 0
+   },
+   "notes": "NPR 1,000 per day per entry. Free for Indian nationals. Tourists can view the temple from the back premises.",
+   "match": {
+    "districts": [
+     "Kathmandu"
+    ],
+    "name_keywords": [
+     "pashupati",
+     "pashupatinath"
+    ]
+   }
+  },
+  {
+   "name": "Changunarayan Temple",
+   "fees_npr": {
+    "foreign": 300,
+    "saarc": 100,
+    "chinese": 300,
+    "nepali": 0
+   },
+   "notes": "",
+   "match": {
+    "districts": [
+     "Bhaktapur"
+    ],
+    "name_keywords": [
+     "changu",
+     "changunarayan",
+     "changu narayan"
+    ]
+   }
+  },
+  {
+   "name": "National Museum, Chauni, Kathmandu",
+   "fees_npr": {
+    "foreign": 150,
+    "saarc": 50,
+    "chinese": 150,
+    "nepali": 25
+   },
+   "notes": "Camera/video extra. Nepali students NPR 10. Closed on Tuesdays and Public Holidays; half day on Mondays (10:30 am to 2 pm).",
+   "match": {
+    "districts": [
+     "Kathmandu"
+    ],
+    "name_keywords": [
+     "national museum"
+    ]
+   }
+  },
+  {
+   "name": "Garden of Dreams, Kathmandu",
+   "fees_npr": {
+    "foreign": 400,
+    "saarc": 400,
+    "chinese": 400,
+    "nepali": 150
+   },
+   "notes": "Below 5 years free. NPR 50 for 5-11 years. 25% discount for a group of 10 pax.",
+   "match": {
+    "districts": [
+     "Kathmandu"
+    ],
+    "name_keywords": [
+     "garden of dreams"
+    ]
+   }
+  },
+  {
+   "name": "Central Zoo",
+   "fees_npr": {
+    "foreign": 1000,
+    "saarc": 500,
+    "chinese": 250,
+    "nepali": 200
+   },
+   "notes": "Children 4-12 years: Foreign NPR 250, SAARC NPR 250, Chinese NPR 150, Nepali NPR 75. Nepali students NPR 135.",
+   "match": {
+    "districts": [
+     "Lalitpur"
+    ],
+    "name_keywords": [
+     "central zoo"
+    ]
+   }
+  },
+  {
+   "name": "Godawari Park",
+   "fees_npr": {
+    "foreign": 500,
+    "saarc": 200,
+    "chinese": 100,
+    "nepali": 50
+   },
+   "notes": "Children below 10 years: Foreign NPR 200, SAARC NPR 100, Chinese NPR 50, Nepali NPR 20. Student 50% discount.",
+   "match": {
+    "districts": [
+     "Lalitpur"
+    ],
+    "name_keywords": [
+     "godawari botanical",
+     "godavari botanical",
+     "national botanical garden",
+     "godawari park"
+    ]
+   }
+  },
+  {
+   "name": "Lumbini",
+   "fees_npr": {
+    "foreign": 700,
+    "saarc": 400,
+    "chinese": 700,
+    "nepali": 20
+   },
+   "notes": "NTB lists NPR 16 for Indians.",
+   "match": {
+    "districts": [
+     "Rupandehi"
+    ],
+    "name_keywords": [
+     "lumbini",
+     "maya devi",
+     "mayadevi"
+    ]
+   }
+  }
+ ],
+ "heritage_note": "Different fees apply to Nepali (visitors and students), SAARC and third-country visitors. Paid at the entry point.",
+ "altitude": {
+  "source": "ntb_mountain_safety",
+  "threshold_m": 2500,
+  "headline": "If you are not feeling well above 2,500 m, it may be AMS until proven otherwise.",
+  "prevention": [
+   "Slow and gradual ascent.",
+   "Sleeping altitude should not be more than 300 to 500 m a day above 2,500 m from the previous night altitude.",
+   "Rest day after every 1,000 m of altitude gain.",
+   "Drink plenty of clean water."
+  ],
+  "max_daily_sleeping_gain_m": 500,
+  "rest_day_every_gain_m": 1000,
+  "early_symptoms": [
+   "Headache",
+   "Loss of appetite",
+   "Nausea",
+   "Fatigue on minimal exertion",
+   "Dizziness"
+  ],
+  "what_to_do": [
+   "Don't go higher, rest, drink fluids (not alcohol).",
+   "If symptoms get worse, descend with a friend.",
+   "If symptoms fully go away, go up.",
+   "Consider taking Acetazolamide (Diamox 250 mg twice a day)."
+  ],
+  "worsening_symptoms": [
+   "Severe headache",
+   "Vomiting",
+   "Walking like a drunk",
+   "Altered mental status",
+   "Severe fatigue",
+   "Shortness of breath at rest"
+  ],
+  "worsening_action": "Descend! Descend! Descend!",
+  "hra": {
+   "name": "Himalayan Rescue Association Nepal",
+   "address": "Dhobichaur, Lazimpat, Kathmandu",
+   "phone": "+977 1 4440292 / 4440293",
+   "email": "hra@himalayanrescue.org",
+   "website": "https://himalayanrescue.org.np",
+   "aid_posts": "Aid posts at Pheriche (4,250 m) on the way to Everest and Manang (3,550 m), just before Thorung-la pass on the Annapurna circuit; staffed by volunteer doctors during spring and autumn. HRA also runs the Everest ER clinic at Everest Base Camp (5,350 m)."
+  }
+ },
+ "insurance": {
+  "source": "ntb_faq",
+  "statement": "Helicopter services are available should you fall sick or meet with an accident while trekking. However, such rescue services are expensive. So comprehensive travel insurance is advised to cover emergencies like helicopter rescue and medical treatment.",
+  "checklist": [
+   "Emergency medical treatment",
+   "Helicopter rescue / evacuation",
+   "Trekking at the altitudes on your route",
+   "Adventure activities you plan (e.g. rafting, paragliding)",
+   "Trip cancellation / interruption",
+   "Baggage and documents"
+  ],
+  "checklist_note": "Checklist items derive from NTB's advice (medical treatment, helicopter rescue) plus the activities in your own plan. Nepal Yatra does not sell insurance."
+ },
+ "safety_advice": {
+  "source": "ntb_emergency",
+  "items": [
+   "Carry certified copies of passport, insurance papers and your other documents and keep the originals in the safe deposit of your hotel.",
+   "In case of loss, theft, cheating, robbery, contact the Tourist Police or the nearest Police Station.",
+   "Always use Government authorized travel, trekking and rafting agencies and transportation services.",
+   "Exchange money at authorized money exchange dealers and retain the slip.",
+   "Do not consume alcohol while trekking above 3,000 meters.",
+   "Use designated routes and do not deviate from normal trekking routes; trek in groups rather than alone.",
+   "For helicopter evacuation while trekking or mountaineering, contact your local agency."
+  ]
+ },
+ "tourist_police": {
+  "source": "ntb_tourist_police",
+  "summary": "Tourist Police, a special unit of Nepal Police, has 31 units across the country — 10 inside Kathmandu Valley and 21 outside the valley in 14 districts. Central Office: Nepal Tourism Board premises, Bhrikutimandap, Kathmandu."
+ },
+ "official_contacts": {
+  "source": "ntb_emergency",
+  "note": "As listed by Nepal Tourism Board (Crisis & Emergency page). Numbers can change; national hotlines are shown on the Emergency page.",
+  "contacts": [
+   {
+    "name": "Tourist Police, Bhrikutimandap",
+    "phone": "+977-1-4247041"
+   },
+   {
+    "name": "Tourist Police, Thamel",
+    "phone": "+977-1-4700750"
+   },
+   {
+    "name": "Tourist Police, Basantapur",
+    "phone": "+977-1-4268969"
+   },
+   {
+    "name": "Tourist Police, Pashupati",
+    "phone": "+977-1-4478126"
+   },
+   {
+    "name": "Tourist Police, Tribhuvan International Airport",
+    "phone": "+977-1-6227122"
+   },
+   {
+    "name": "Tourist Police, Pokhara",
+    "phone": "+977-61-462761"
+   },
+   {
+    "name": "Tourist Police, Belhiya",
+    "phone": "+977-71-520197"
+   },
+   {
+    "name": "Tourism Crisis Unit",
+    "phone": "+977-9751044088"
+   },
+   {
+    "name": "Nepal Tourism Board, Bhrikutimandap",
+    "phone": "+977-1-4256909"
+   },
+   {
+    "name": "Nepal Tourism Board, Pokhara",
+    "phone": "+977-61-465292"
+   },
+   {
+    "name": "Himalayan Rescue Association",
+    "phone": "+977-1-4440292"
+   }
+  ]
+ }
+}

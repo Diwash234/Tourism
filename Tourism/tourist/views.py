@@ -870,9 +870,9 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
 class DestinationResearchView(APIView):
     """
     POST /api/v1/destinations/research/ {"query": "Swargadwari"}
-    Researches any destination in Nepal, checks existing records to avoid duplication,
-    collects verified geocoding, descriptions, distances, transit routes,
-    budgets, and verified reusable imagery with full licenses.
+    Looks a place up in the catalogue (exact/alias/substring match) and returns
+    close suggestions otherwise. It never creates or approves records -- new
+    places go through the reviewed submission workflow with a real source.
     """
     permission_classes = [permissions.IsAuthenticated]
 

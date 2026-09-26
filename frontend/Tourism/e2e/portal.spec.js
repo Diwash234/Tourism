@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test"
 test.describe("Public portal surfaces", () => {
   test("landing shows verified destination copy", async ({ page }) => {
     await page.goto("/")
-    await expect(page).toHaveTitle(/Nepal Tourism Portal/i)
+    await expect(page).toHaveTitle(/Nepal Yatra/i)
     await expect(page.getByText("5,800+ Verified Destinations").first()).toBeVisible()
   })
 

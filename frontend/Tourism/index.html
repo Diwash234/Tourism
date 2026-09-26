@@ -12,8 +12,9 @@
     <meta name="author" content="Nepal Yatra" />
     <meta name="theme-color" content="#075B48" />
 
-    <!-- Canonical URL -->
-    <link rel="canonical" href="/" />
+    <!-- Canonical/og:url/JSON-LD: injected at build time from VITE_SITE_URL
+         (vite.config.js siteMetadata plugin) and set per page at runtime by
+         useSeo() from the real origin. Never hardcode a domain here. -->
 
     <!-- Favicon & App Icons -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -21,14 +22,12 @@
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="/" />
     <meta property="og:title" content="Nepal Yatra | Explore, plan and travel across Nepal" />
     <meta property="og:description" content="Discover destinations, compare places, build an itinerary and find practical travel and safety information for Nepal." />
     <meta property="og:site_name" content="Nepal Yatra" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="/" />
     <meta name="twitter:title" content="Nepal Yatra | Explore, plan and travel across Nepal" />
     <meta name="twitter:description" content="Discover destinations, compare places, build an itinerary and find practical travel and safety information for Nepal." />
 
@@ -40,8 +39,9 @@
       proxies, restricted CI runners, some mobile networks) the browser refuses
       to execute the module script, so the whole SPA paints nothing until the
       request times out. The media="print" + onload swap makes the stylesheet
-      non-blocking so the app always renders with the local font stack first and
-      upgrades to the webfonts when (and only when) they arrive.
+      non-blocking so the app always renders on the local font stack first and
+      upgrades to the webfonts when (and only when) they arrive. This is also
+      what made the Playwright layout suite time out on every route.
     -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,42 +52,6 @@
         href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,800;0,900;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Ubuntu:wght@400;500;700&display=swap">
     </noscript>
 
-    <!-- JSON-LD Structured Data Schema.
-
-        Every URL is site-relative on purpose. The project does not own
-        nepaltourism.gov.np, and hard-coding it made the site claim a canonical
-        identity and structured data it has no claim to. Relative references
-        resolve against the real deployment origin, so the schema stays correct
-        on whatever domain it is actually served from. Note the publisher @id
-        must match the Organization @id exactly, or the graph is disconnected. -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@graph": [
-          {
-            "@type": "Organization",
-            "@id": "/#organization",
-            "name": "Nepal Yatra",
-            "url": "/",
-            "logo": "/favicon.svg"
-          },
-          {
-            "@type": "WebSite",
-            "@id": "/#website",
-            "url": "/",
-            "name": "Nepal Yatra",
-            "publisher": {
-              "@id": "/#organization"
-            },
-            "potentialAction": {
-              "@type": "SearchAction",
-              "target": "/destinations?q={search_term_string}",
-              "query-input": "required name=search_term_string"
-            }
-          }
-        ]
-      }
-    </script>
   </head>
   <body class="bg-[var(--ny-bg)] text-gray-900 antialiased selection:bg-[var(--ny-green)] selection:text-white">
     <div id="root"></div>
