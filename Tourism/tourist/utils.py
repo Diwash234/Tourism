@@ -106,6 +106,14 @@ def resolve_str_image_url(value, request=None):
 
 # ---------------------------------------------------------------------------
 # Distance
+def has_valid_coordinates(lat, lon):
+    """Validate Nepal GPS coordinates before routing/distance calculations."""
+    try:
+        lat, lon = float(lat), float(lon)
+    except (TypeError, ValueError):
+        return False
+    return 26 <= lat <= 31 and 80 <= lon <= 89
+
 def haversine_distance(lat1, lon1, lat2, lon2):
     """
     Great-circle distance between two points in kilometers.
