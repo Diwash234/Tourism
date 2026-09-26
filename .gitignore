@@ -196,3 +196,7 @@ ml_service/model/destinations.csv
 
 # Runtime artifacts (never commit)
 *.sqlite3
+
+# Python bytecode anywhere (including renamed cache dirs)
+**/__pycache__*/
+*.py[cod]

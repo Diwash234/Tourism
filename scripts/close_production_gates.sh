@@ -80,7 +80,8 @@ fi
 echo ""
 echo "--- Always: API-level E2E + lint + build ---"
 gate "api e2e" bash -c "cd $FRONTEND && npm run test:e2e"
-gate "lint" bash -c "cd $FRONTEND && npx eslint src/ --max-warnings=9999 2>&1 | grep -qE '  error  ' && exit 1 || true"
+# eslint exits non-zero on any error (warnings are reported, not fatal).
+gate "lint" bash -c "cd $FRONTEND && npx eslint src/"
 gate "build" bash -c "cd $FRONTEND && npm run build"
 
 echo ""

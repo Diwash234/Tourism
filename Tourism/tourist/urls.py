@@ -21,6 +21,7 @@ from . import views_marketplace
 from . import views_emergency_admin
 from . import views_navigation
 from . import views_workforce
+from . import views_travel
 
 
 # NOTE (Round 21): login moved to views_auth.LoginView — SimpleJWT's stock
@@ -264,6 +265,9 @@ urlpatterns = [
 
     # Additional endpoints
     path("config/public/", views.PublicConfigView.as_view(), name="public-config"),
+    path("fx/rates/", views_travel.ForexRatesView.as_view(), name="fx-rates"),
+    path("travel-requirements/", views_travel.TravelRequirementsView.as_view(), name="travel-requirements"),
+    path("travel-requirements/destination/<int:pk>/", views_travel.DestinationRequirementsView.as_view(), name="travel-requirements-destination"),
     path("newsletter/subscribe/", views.NewsletterSubscribeView.as_view(), name="newsletter-subscribe"),
     path("discover-nepal/", views.DiscoverNepalView.as_view(), name="discover-nepal"),
     path("translate/", views.TranslateTextView.as_view(), name="translate-text"),

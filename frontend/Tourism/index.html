@@ -12,8 +12,9 @@
     <meta name="author" content="Nepal Yatra" />
     <meta name="theme-color" content="#075B48" />
 
-    <!-- Canonical URL -->
-    <link rel="canonical" href="https://nepaltourism.gov.np/" />
+    <!-- Canonical/og:url/JSON-LD: injected at build time from VITE_SITE_URL
+         (vite.config.js siteMetadata plugin) and set per page at runtime by
+         useSeo() from the real origin. Never hardcode a domain here. -->
 
     <!-- Favicon & App Icons -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -21,51 +22,20 @@
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://nepaltourism.gov.np/" />
     <meta property="og:title" content="Nepal Yatra | Explore, plan and travel across Nepal" />
     <meta property="og:description" content="Discover destinations, compare places, build an itinerary and find practical travel and safety information for Nepal." />
     <meta property="og:site_name" content="Nepal Yatra" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="https://nepaltourism.gov.np/" />
     <meta name="twitter:title" content="Nepal Yatra | Explore, plan and travel across Nepal" />
     <meta name="twitter:description" content="Discover destinations, compare places, build an itinerary and find practical travel and safety information for Nepal." />
 
-    <!-- Luxury Google Fonts -->
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,800;0,900;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet">
 
-    <!-- JSON-LD Structured Data Schema -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@graph": [
-          {
-            "@type": "Organization",
-            "@id": "https://nepaltourism.gov.np/#organization",
-            "name": "Nepal Yatra",
-            "url": "https://nepaltourism.gov.np/",
-            "logo": "https://nepaltourism.gov.np/favicon.svg"
-          },
-          {
-            "@type": "WebSite",
-            "@id": "https://nepaltourism.gov.np/#website",
-            "url": "https://nepaltourism.gov.np/",
-            "name": "Nepal Yatra",
-            "publisher": {
-              "@id": "https://nepaltourism.gov.np/#organization"
-            },
-            "potentialAction": {
-              "@type": "SearchAction",
-              "target": "https://nepaltourism.gov.np/destinations?q={search_term_string}",
-              "query-input": "required name=search_term_string"
-            }
-          }
-        ]
-      }
-    </script>
   </head>
   <body class="bg-[var(--ny-bg)] text-gray-900 antialiased selection:bg-[var(--ny-green)] selection:text-white">
     <div id="root"></div>

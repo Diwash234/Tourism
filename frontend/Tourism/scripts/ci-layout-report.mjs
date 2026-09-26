@@ -58,10 +58,16 @@ for (const line of failed) console.log(line)
 
 if (!process.env.GH_TOKEN) { console.log("GH_TOKEN not set — skipping PR comment"); process.exit(0) }
 
+// Only ever report to the PR whose head is *this* branch. Listing all open
+// PRs and taking the first one let other branches' CI overwrite this PR's
+// pinned report (e.g. another session's branch posting "0 passed" here).
+const branch = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || ""
 let prNumber = ""
-try {
-  prNumber = sh(["pr", "list", "--state", "open", "--json", "number", "-q", ".[0].number"])
-} catch { /* no PR for this branch */ }
+if (branch) {
+  try {
+    prNumber = sh(["pr", "list", "--state", "open", "--head", branch, "--json", "number", "-q", ".[0].number"])
+  } catch { /* no PR for this branch */ }
+}
 if (!prNumber) { console.log("No open PR for this branch — skipping comment"); process.exit(0) }
 
 const repo = sh(["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"])

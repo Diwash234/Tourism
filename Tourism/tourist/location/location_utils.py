@@ -1,5 +1,5 @@
 """
-Spatial & Geodetic Utility Helpers for Nepal Tourism Portal
+Spatial & Geodetic Utility Helpers for Nepal Yatra
 """
 from math import radians, sin, cos, sqrt, atan2
 from decimal import Decimal

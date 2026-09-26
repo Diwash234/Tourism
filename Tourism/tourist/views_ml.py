@@ -467,6 +467,73 @@ class SafetyPredictionView(APIView):
 
 
 
+def _official_budget_context(result, data, destination):
+    """NRB conversion + official fee lines for a USD-based ML estimate.
+
+    Nothing here is guessed: USD->NPR uses the NRB buying rate of the day
+    (or is reported unavailable), fee lines come from the cited
+    travel-requirements dataset, and the suggested contingency buffer is
+    explicitly labelled as a suggestion, not a cost.
+    """
+    from . import fx
+    from . import travel_requirements as tr
+
+    snap = fx.latest_snapshot()
+    rate = fx.npr_per_unit(snap, "USD") if snap else None
+    travelers = int(data.get("travelers") or 1)
+    days = int(data.get("days") or 1)
+    nationality = data.get("nationality") or "foreign"
+
+    def to_npr(usd):
+        if usd is None or rate is None:
+            return None
+        return round(float(usd) * float(rate), 2)
+
+    breakdown_usd = {k: v for k, v in (result.get("breakdown") or {}).items() if isinstance(v, (int, float))}
+    known_usd = result.get("known_cost_total_usd")
+    if known_usd is None and breakdown_usd:
+        known_usd = round(sum(breakdown_usd.values()), 2)
+
+    fee_lines = []
+    requirements = None
+    if destination is not None:
+        requirements = tr.destination_requirements(
+            destination, nationality=nationality, days=days, month=data.get("travel_month"), travelers=travelers)
+        fee_lines = list(requirements["fees"])
+    visa = tr.visa_summary(tr.normalize_nationality(nationality), days)
+    if data.get("include_visa", True) and visa.get("fee_usd_for_stay"):
+        tier = visa["fee_usd_for_stay"]
+        fee_lines.insert(0, {
+            "label": f"Nepal tourist visa on arrival ({tier['days']} days)", "currency": "USD",
+            "amount_per_person": tier["usd"], "basis": f"Trip of {days} day(s); Department of Immigration fee schedule.",
+            "source_key": "doi_visa", "estimate": False,
+        })
+    totals = tr.fee_totals(fee_lines, travelers, snap)
+    known_npr = to_npr(known_usd)
+    grand_npr = round(known_npr + totals["group_npr"], 2) if known_npr is not None else None
+
+    return {
+        "exchange_rate": fx.snapshot_meta(snap) | ({"usd_to_npr": float(rate)} if rate is not None else {}),
+        "known_cost_total_npr": known_npr,
+        "breakdown_npr": {k: to_npr(v) for k, v in breakdown_usd.items()},
+        "official_fees": {
+            "lines": totals["lines"],
+            "per_person_npr": totals["per_person_npr"],
+            "group_npr": totals["group_npr"],
+            "unconverted": totals["unconverted"],
+            "nationality": tr.normalize_nationality(nationality),
+            "sources": (requirements or {}).get("sources", []),
+            "matching_note": (requirements or {}).get("matching_note", ""),
+            "insurance": (requirements or {}).get("insurance"),
+        },
+        "trip_total_npr": grand_npr,
+        "per_person_npr": round(grand_npr / travelers, 2) if grand_npr is not None else None,
+        "per_day_npr": round(grand_npr / days, 2) if grand_npr is not None else None,
+        "contingency_suggested_npr": round(grand_npr * 0.10, 2) if grand_npr is not None else None,
+        "contingency_note": "Suggested 10% buffer for delays, weather days and rescue excess — a planning suggestion, not a quoted cost.",
+    }
+
+
 class BudgetPredictionView(APIView):
 
     permission_classes = [permissions.AllowAny]
@@ -572,6 +639,7 @@ class BudgetPredictionView(APIView):
 
 
         flattened = dict(result)
+        flattened.update(_official_budget_context(result, data, destination))
 
         flattened["total"] = result.get(
             "estimated_total"
@@ -773,6 +841,19 @@ def enrich_itinerary_with_services(payload):
     return payload
 
 
+def _with_readiness(payload, data):
+    """Attach altitude profile, acclimatization, permits/fees and readiness checklist."""
+    from .trip_readiness import enrich_with_trip_readiness
+
+    try:
+        return enrich_with_trip_readiness(
+            payload, nationality=data.get("nationality") or "foreign", month=data.get("travel_month"))
+    except Exception:  # readiness is additive -- never break the plan itself
+        logger.exception("Trip readiness enrichment failed")
+        payload["trip_readiness_error"] = "Readiness checks are temporarily unavailable."
+        return payload
+
+
 class ItineraryView(APIView):
     """
     POST /api/v1/ml/itinerary/
@@ -780,8 +861,8 @@ class ItineraryView(APIView):
     service's /itinerary/build endpoint, which plans day-by-day
     destinations (from the OSM dataset), budgets in NPR (scaled by
     travelers / travel type / style) and route legs from the graphml road
-    graph. Pure function of its inputs, so the frontend re-calls it on
-    every form change for continuous updates.
+    graph. The frontend calls it only when the traveller presses
+    "Generate" (explicit request, cancellable with AbortController).
     """
 
     permission_classes = [permissions.AllowAny]
@@ -819,7 +900,11 @@ class ItineraryView(APIView):
         requested_place = ((data.get("district") or data.get("start_city")) or "").strip()
         if ml_payload is not None:
             if _ml_plan_matches_place(ml_payload, requested_place):
-                return Response(enrich_itinerary_with_services(ml_payload))
+                ml_payload.setdefault("why_this_itinerary", [
+                    "Planned by the ML itinerary service from the OSM tourism dataset for your start city, days and interests.",
+                    "Budgets come from that service's cost model; permits, fees and altitude checks below come from official sources.",
+                ])
+                return Response(_with_readiness(enrich_itinerary_with_services(ml_payload), data))
             # The ML planner silently defaulted to another city (e.g. it does
             # not know the district name "Kaski" → Pokhara). Never serve a
             # plan for a different place than the traveller asked for.
@@ -884,6 +969,7 @@ class ItineraryView(APIView):
 
         def to_item(dest, day_trip=False):
             item = {
+                "id": dest.id,
                 "name": dest.name,
                 "city": dest.city or (dest.district or start_city),
                 "district": dest.district or "",
@@ -921,8 +1007,26 @@ class ItineraryView(APIView):
 
         itinerary_days = []
         per_day = max(1, -(-len(ordered) // days)) if ordered else 0
+        chunks = [ordered[i * per_day:(i + 1) * per_day] for i in range(days)] if per_day else [[] for _ in range(days)]
+        # Altitude-aware day order: when the plan reaches 2,500 m+, schedule
+        # the geographically-grouped days from low to high so sleeping
+        # altitude rises gradually (NTB acclimatization guidance). Uses
+        # sourced elevations only; days without data keep their place first.
+        from .elevation import ALTITUDE_THRESHOLD_M, best_elevation
+
+        def _chunk_alt(chunk):
+            vals = [best_elevation(d)["elevation_m"] for d in chunk]
+            vals = [v for v in vals if v is not None]
+            return max(vals) if vals else None
+
+        chunk_alts = [_chunk_alt(c) for c in chunks]
+        altitude_ordered = any((a or 0) >= ALTITUDE_THRESHOLD_M for a in chunk_alts)
+        if altitude_ordered:
+            order = sorted(range(len(chunks)), key=lambda i: (chunk_alts[i] is not None, chunk_alts[i] or 0, i))
+            nonempty = [chunks[i] for i in order if chunks[i]]
+            chunks = nonempty + [[] for _ in range(days - len(nonempty))]
         for day_idx in range(1, days + 1):
-            chunk = ordered[(day_idx - 1) * per_day: day_idx * per_day]
+            chunk = chunks[day_idx - 1]
             day_destinations = [to_item(dest) for dest in chunk]
 
             # Honest shortfall: when the requested area has fewer recorded
@@ -991,7 +1095,18 @@ class ItineraryView(APIView):
             ),
             "itinerary": itinerary_days,
         }
-        return Response(enrich_itinerary_with_services(fallback_payload), status=status.HTTP_200_OK)
+        matched_interests = sorted({t for d in ordered for t in interests if t and str(t).lower() in " ".join(
+            filter(None, [d.category.name if d.category_id else "", d.name, d.short_description or ""])).lower()})
+        fallback_payload["why_this_itinerary"] = [
+            (f"Only {scope_label} were considered." if scope_label else "No places are recorded for your area, so popular places nationwide were used."),
+            (f"Places matching your interests ({', '.join(matched_interests)}) were ranked first." if matched_interests
+             else "None of the recorded places matched your interests by category or description, so they are in name order."),
+            "Stops are ordered by nearest-neighbour distance so each day stays geographically compact.",
+            *(["Because the plan goes above 2,500 m, days are ordered from low to high altitude for gradual acclimatization."]
+              if altitude_ordered else []),
+            f"{len(ordered)} place(s) spread over {days} day(s); empty days are filled only with clearly-flagged day trips or return visits.",
+        ]
+        return Response(_with_readiness(enrich_itinerary_with_services(fallback_payload), data), status=status.HTTP_200_OK)
 
 
 
