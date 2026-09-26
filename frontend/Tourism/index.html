@@ -32,10 +32,25 @@
     <meta name="twitter:title" content="Nepal Yatra | Explore, plan and travel across Nepal" />
     <meta name="twitter:description" content="Discover destinations, compare places, build an itinerary and find practical travel and safety information for Nepal." />
 
-    <!-- Luxury Google Fonts -->
+    <!--
+      Luxury Google Fonts, loaded NON-BLOCKING on purpose.
+
+      A plain <link rel="stylesheet"> to a third-party host is render-blocking:
+      if fonts.googleapis.com is slow, firewalled, offline or blocked (corporate
+      proxies, restricted CI runners, some mobile networks) the browser refuses
+      to execute the module script, so the whole SPA paints nothing until the
+      request times out. The media="print" + onload swap makes the stylesheet
+      non-blocking so the app always renders with the local font stack first and
+      upgrades to the webfonts when (and only when) they arrive.
+    -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,800;0,900;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" media="print" onload="this.media='all';this.onload=null"
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,800;0,900;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Ubuntu:wght@400;500;700&display=swap">
+    <noscript>
+      <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,800;0,900;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Ubuntu:wght@400;500;700&display=swap">
+    </noscript>
 
     <!-- JSON-LD Structured Data Schema -->
     <script type="application/ld+json">

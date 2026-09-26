@@ -29,6 +29,22 @@ const ROUTES = [
 
 const WIDTHS = [320, 375, 414, 768, 1024, 1280]
 
+// Hermetic by design. These assertions are about *our* layout, so they must
+// never depend on a third-party host being reachable. Previously a blocked or
+// slow Google Fonts / CDN request stalled DOMContentLoaded, so every one of the
+// 102 route x viewport tests burned the full navigation timeout and the job took
+// over an hour and a half to fail. Only loopback traffic is allowed through.
+const isLoopback = (url) =>
+  /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:\d+)?([/?#]|$)/.test(url)
+
+test.beforeEach(async ({ page }) => {
+  // A dead page must fail fast instead of stalling the whole suite.
+  page.setDefaultNavigationTimeout(20_000)
+  await page.route("**/*", (route) =>
+    isLoopback(route.request().url()) ? route.continue() : route.abort()
+  )
+})
+
 // Returns the count of significantly-overlapping visible element pairs.
 async function countOverlaps(page) {
   return page.evaluate(() => {
