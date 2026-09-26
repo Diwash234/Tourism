@@ -27,7 +27,7 @@ const ROUTES = [
   "/trip",
 ]
 
-const WIDTHS = [320, 375, 414, 768, 1024, 1280]
+const WIDTHS = [320, 360, 375, 390, 414, 480, 600, 768, 820, 1024, 1280, 1440, 1600, 1920]
 
 // Returns the count of significantly-overlapping visible element pairs.
 async function countOverlaps(page) {
