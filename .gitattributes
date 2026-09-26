@@ -1,0 +1,42 @@
+# Normalize text handling so line endings can never corrupt published data.
+#
+# Why this file exists
+# --------------------
+# `dataset/verified_tourism_data.json` is the canonical public tourism catalog.
+# Its SHA-256 is published in `verified_tourism_data.json.sha256` and in
+# `verified_tourism_data.lock.json`, and CI asserts the two agree. With
+# `core.autocrlf=true` (the Windows default) Git rewrites LF -> CRLF on checkout
+# and CRLF -> LF on commit, which changes those bytes and silently invalidates
+# the published checksum. A contributor on Windows could therefore "fix" a
+# mismatch by re-committing the file and break every published download link
+# while the diff looks empty.
+#
+# Marking the release artifacts as binary (`-text`) makes Git store and check
+# out their exact bytes everywhere. Text normalization still applies to all
+# source code, which is what we want.
+
+# --- Verified data release: byte-exact, never normalized ---------------------
+Tourism/dataset/verified_tourism_data.json -text
+Tourism/dataset/verified_tourism_data.lock.json -text
+Tourism/dataset/verified_tourism_data.schema.json -text
+Tourism/dataset/verified_tourism_data.json.sha256 -text
+downloads/*.sqlite3.gz -text
+downloads/*.sha256 -text
+downloads/*.sqlite3 -text
+
+# --- Generated Python bytecode must never enter the repository ---------------
+*.pyc binary
+*.pyo binary
+__pycache__/ binary
+
+# --- Lock dependency graphs byte-exact as well -------------------------------
+Tourism/requirements.txt -text
+ml_service/requirements.txt -text
+Tourism/requirement.txt -text
+
+# --- Default: keep source line endings stable across platforms ---------------
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.sh text eol=lf
