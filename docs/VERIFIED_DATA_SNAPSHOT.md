@@ -6,6 +6,39 @@ the live `Tourism/db.sqlite3` is operational state and is not a release source.
 `verified_tourism_data.lock.json` binds the JSON, database, cutoff, counts, and
 checksums as one release.
 
+## Two tracked databases, two jobs
+
+| Artifact | Job |
+| --- | --- |
+| `downloads/nepal-tourism-database.sqlite3.gz` | canonical release: built from the JSON catalog under the data policy below, score-gated media, checksummed against the lock file |
+| `downloads/nepal-tourism-seed.sqlite3.gz` | working seed for a new clone: the full public catalogue, ready to run |
+
+The canonical release is the publication contract and is the artifact to verify
+or diff. The seed database answers a different question — "a collaborator just
+cloned this, how do they get data?" — so it is not built from the JSON catalog
+and is not part of the lock file. It carries the same public content with the
+media rows the app can actually display, and it is installed with one command:
+
+```bash
+git clone https://github.com/Diwash234/Tourism.git
+cd Tourism/Tourism
+python manage.py install_public_seed_db      # verifies checksum, then installs
+python manage.py createsuperuser             # the seed has no accounts
+python manage.py runserver
+```
+
+`install_public_seed_db` checks the archive SHA-256, SQLite integrity and
+foreign keys before writing anything, refuses to overwrite a database that
+already has users or destinations (`--force` keeps a timestamped backup), and
+prints the imported row counts. `--verify-only` inspects the archive without
+installing it. If you prefer to place the file by hand, the `gunzip` recipe in
+"Use the shared database locally" below still works.
+
+The seed database never contains accounts, password hashes, tokens, sessions,
+chats, bookings, notifications, audit logs, drafts or local media paths, and it
+never promotes a place to verified: unverified listings arrive unverified and
+stay hidden from the public API until staff verify them.
+
 ## One-way release flow
 
 ```text
