@@ -187,6 +187,19 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+# Password hashing: bcrypt for new passwords, everything else kept for
+# verification. Measured on the deployment machine, PBKDF2 cost 4.743s per
+# hash, which made registration take over 4 seconds; bcrypt cost 11 costs
+# 0.307s. Existing pbkdf2_sha256$ hashes keep verifying through the fallbacks
+# below. See Tourism/hashers.py for the work-factor rationale.
+PASSWORD_HASHERS = [
+    "Tourism.hashers.PrimaryBCryptSHA256PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.ScryptPasswordHasher",
+]
+
 # ------------------------------------------------------------------
 # I18N
 # ------------------------------------------------------------------
