@@ -107,6 +107,36 @@ def _recompute_destination_cover(destination):
     return new_url
 
 
+CMS_EXTRA_HTML_TAGS = frozenset({"b", "i", "span", "code", "pre", "hr", "figure", "figcaption", "caption"})
+CMS_HTML_KEYS = {"html", "body", "content", "rich_text", "text", "message", "description"}
+
+
+def sanitize_cms_html(value):
+    """Allowlist-sanitize admin-authored HTML before it is stored."""
+    from .verified_snapshot import sanitize_html_fragment
+    text = str(value or "")
+    if "<" not in text:
+        # Plain text: leave it byte-for-byte (no "&" -> "&amp;" rewriting of
+        # values React renders as text).
+        return text
+    return sanitize_html_fragment(text, extra_tags=CMS_EXTRA_HTML_TAGS)
+
+
+def sanitize_block_data(data):
+    """Sanitize every HTML-bearing string in a ContentBlock payload in place
+    (including nested cards/items). Plain text passes through unchanged."""
+    if isinstance(data, dict):
+        for key, value in list(data.items()):
+            if isinstance(value, str) and key in CMS_HTML_KEYS:
+                data[key] = sanitize_cms_html(value)
+            elif isinstance(value, (dict, list)):
+                sanitize_block_data(value)
+    elif isinstance(data, list):
+        for item in data:
+            sanitize_block_data(item)
+    return data
+
+
 def _media_public_url(image):
     """Public URL for a media record with cache-busting for local files.
 
@@ -2599,12 +2629,10 @@ class AdminCMSView(APIView):
             if image_url and not (image_url.startswith("https://") or image_url.startswith("/")):
                 raise ValueError("Media URLs must be HTTPS or an internal path")
         if resource == "sections" and "body" in payload:
-            payload["body"] = re.sub(r"(?is)<script.*?>.*?</script>", "", str(payload.get("body") or ""))
-            payload["body"] = re.sub(r"(?is)on\w+\s*=", "", payload["body"])
-            # Rich text editor hardening (§46): neutralize javascript: URLs in
-            # href/src server-side — the editor validates too, but storage is
-            # the source of truth and must never hold an executable URL.
-            payload["body"] = re.sub(r"(?is)(href|src)\s*=\s*([\"']?)\s*javascript:[^\"'>\s]*\2", r"\1=\2#\2", payload["body"])
+            # Allowlist sanitizer (was a set of regexes that missed e.g.
+            # <img src=x onerror=...> variants and <iframe>): storage is the
+            # source of truth and must never hold executable markup.
+            payload["body"] = sanitize_cms_html(payload.get("body"))
         if resource == "pages" and payload.get("og_image_url") and not str(payload["og_image_url"]).startswith("https://") and not str(payload["og_image_url"]).startswith("/"):
             raise ValueError("Social image must be an HTTPS URL or an internal path")
         if resource == "settings" and payload.get("key") == "branding":
@@ -3358,6 +3386,8 @@ class AdminContentBlockView(APIView):
 
     def _validate_block_data(self, block_type, data):
         data = data if isinstance(data, dict) else {}
+        # Rich-text / HTML payloads are sanitized in place before storage.
+        sanitize_block_data(data)
         if block_type == "video":
             url = str(data.get("url") or "").strip()
             if url and not url.startswith("https://"):
@@ -4081,6 +4111,12 @@ class AdminMediaLibraryView(APIView):
             if status_filter in PUBLIC_IMAGE_STATUSES: qs=qs.filter(verification_status__in=PUBLIC_IMAGE_STATUSES)
             else: qs=qs.filter(verification_status=status_filter)
         if source: qs=qs.filter(source=source)
+        # "Show one destination's photos" (exact id, so "Pokhara" does not also
+        # return every "Pokhara …" hotel's photos like the free-text q does).
+        destination_id=request.query_params.get("destination_id")
+        if destination_id:
+            if not str(destination_id).isdigit():return Response({"detail":"destination_id must be a number"},status=400)
+            qs=qs.filter(destination_id=int(destination_id))
         try:page=max(1,int(request.query_params.get("page",1)));size=min(100,max(12,int(request.query_params.get("page_size",30))))
         except ValueError:return Response({"detail":"Invalid pagination"},status=400)
         count=qs.count();items=[]

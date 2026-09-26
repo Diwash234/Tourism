@@ -27,7 +27,10 @@ Privacy boundary
 The public snapshot excludes users, password hashes, sessions, JWTs, email
 verification data, device tokens, chat, bookings, orders, location history,
 notifications, audit/log records, drafts, reviewer IDs, local media paths, and
-unverified service records.  Do not publish `Tourism/db.sqlite3`; it is
+service records located outside Nepal.  Since policy version 2, sourced
+hotels, restaurants, hospitals, police stations and essential services are
+included with their stored is_verified flag; unverified ones are labelled
+"Unverified listing" on the website and are never marked verified.  Do not publish `Tourism/db.sqlite3`; it is
 runtime state and is intentionally ignored by Git.
 
 A missing image is shown as unavailable.  The catalog does not substitute a

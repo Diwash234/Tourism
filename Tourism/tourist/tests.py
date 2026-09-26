@@ -853,6 +853,12 @@ class DestinationEssentialsTests(APITestCase):
 
 
 class OSMOverpassTests(APITestCase):
+    def setUp(self):
+        # Syncing writes OSM rows into the database and calls Overpass, so it
+        # is an admin operation (anonymous callers get 401).
+        self.assertEqual(self.client.post(reverse("osm-essential-sync"), {}).status_code, status.HTTP_401_UNAUTHORIZED)
+        self.client.force_authenticate(User.objects.create_superuser(email="osm-sync@example.com", password="StrongPass123!"))
+
     def test_essential_services_sync_requires_coords(self):
         response = self.client.post(reverse("osm-essential-sync"), {})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -956,8 +962,10 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["location"]["destination_id"], self.trek.id)
         self.assertEqual(response.data["hospitals"][0]["phone_number"], "061123456")
-        self.assertEqual(response.data["police"][0]["phone_number"], "100")
-        self.assertTrue(response.data["police"][0]["phone_is_national_fallback"])
+        # A station without its own number is not given the national "100"
+        # as if it were the station's phone; the hotline is listed separately.
+        self.assertEqual(response.data["police"][0]["phone_number"], "")
+        self.assertFalse(response.data["police"][0]["phone_is_national_fallback"])
         self.assertIn("risk", response.data)
         self.assertEqual(response.data["national_hotlines"][0]["phone_number"], "1144")
 
@@ -1212,6 +1220,11 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
             try:
                 staff.capability_profile.capabilities={"datasets":["view","add","change"]};staff.capability_profile.save()
                 with override_settings(BASE_DIR=root):
+                    # Dataset imports are platform-administrator only, even
+                    # for staff holding the datasets capability.
+                    still_denied=self.client.post(reverse("admin-datasets"),{"dataset":"risk","file":SimpleUploadedFile("risk.csv",b"place,risk\nNew,high\n",content_type="text/csv")},format="multipart")
+                    self.assertEqual(still_denied.status_code,status.HTTP_403_FORBIDDEN)
+                    self.client.force_authenticate(User.objects.create_superuser(email="dataset-admin@example.com",password="StrongPass123!"))
                     valid=self.client.post(reverse("admin-datasets"),{"dataset":"risk","file":SimpleUploadedFile("risk.csv",b"place,risk\nNew,high\n",content_type="text/csv")},format="multipart")
                     self.assertEqual(valid.status_code,status.HTTP_201_CREATED)
                     imported=self.client.put(reverse("admin-datasets"),{"dataset":"risk","token":valid.data["token"]},format="json")
@@ -1238,6 +1251,10 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         staff=User.objects.create_user(email="reports-staff@example.com",password="StrongPass123!",role="staff",is_staff=True,is_verified=True)
         StaffCapabilityProfile.objects.create(user=staff,capabilities={"audit":["view"]})
         self.client.force_authenticate(staff)
+        # Cross-module reports are platform-administrator only.
+        response=self.client.get(reverse("admin-reports"),{"from":"2026-01-01","to":"2026-12-31"})
+        self.assertEqual(response.status_code,status.HTTP_403_FORBIDDEN)
+        self.client.force_authenticate(User.objects.create_superuser(email="reports-admin@example.com",password="StrongPass123!"))
         response=self.client.get(reverse("admin-reports"),{"from":"2026-01-01","to":"2026-12-31"})
         self.assertEqual(response.status_code,status.HTTP_200_OK)
         self.assertIn("trends",response.data);self.assertIn("staff_activity",response.data)
@@ -1930,7 +1947,10 @@ class RetentionAndAnonymizationTests(APITestCase):
         staff = User.objects.create_user(email="retention-viewer@example.com", password="StrongPass123!", role="staff", is_staff=True)
         StaffCapabilityProfile.objects.create(user=staff, capabilities={"settings":["view"]})
         self.client.force_authenticate(staff)
-        self.assertEqual(self.client.post(reverse("admin-retention"), {"dry_run":True}, format="json").status_code, status.HTTP_200_OK)
+        # Retention (preview and apply) is restricted to platform
+        # administrators since the admin security audit; a settings viewer can
+        # do neither.
+        self.assertEqual(self.client.post(reverse("admin-retention"), {"dry_run":True}, format="json").status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(self.client.post(reverse("admin-retention"), {"dry_run":False}, format="json").status_code, status.HTTP_403_FORBIDDEN)
 
 
@@ -2925,8 +2945,10 @@ class RecordedPlaceHonestyTests(APITestCase):
         self.assertGreaterEqual(len(response.data), 1)
         self.assertNotIn("4412404", str(response.data))
         self.assertNotIn("unsplash.com", str(response.data).lower())
-        self.assertEqual(response.data[0]["phone_number"], "102")
-        self.assertTrue(response.data[0]["phone_is_national_fallback"])
+        # No hospital number on record: none is invented for the hospital (the
+        # national 102 ambulance line is listed separately as a hotline).
+        self.assertEqual(response.data[0]["phone_number"], "")
+        self.assertFalse(response.data[0]["phone_is_national_fallback"])
         self.assertIsNone(response.data[0]["image_url"])
 
     def test_nearby_places_include_destination_slug(self):
@@ -4441,7 +4463,7 @@ class AdminToPublicPropagationTests(APITestCase):
         # 6. admin adds an image; public detail must contain it
         r = self.client.post(f"/api/v1/admin/destinations/{dest_id}/images", {
             "image_url": "https://example.org/media/stupa-new.jpg",
-            "caption": "Admin-added photo"}, format="json")
+            "caption": "Admin-added photo", "approve": True}, format="json")
         self.assertIn(r.status_code, (200, 201), r.data)
         pub = self.anon.get(f"/api/v1/destinations/{slug}/")
         self.assertIn("stupa-new.jpg", _json.dumps(pub.data))

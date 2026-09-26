@@ -419,32 +419,34 @@ def get_chatbot_reply(
         budget_val = float(budget_match.group(1).replace(",", "")) if budget_match else None
         itinerary_card = generate_structured_itinerary(dest_for_plan, days=days, budget_npr=budget_val)
 
-    # Pack Emergency Cards only from verified records near an explicitly
+    # Pack Emergency Cards only from sourced records near an explicitly
     # supplied position. Without coordinates, the assistant points to the
     # location-aware directory instead of returning arbitrary national rows.
     if is_emergency_intent and latitude is not None and longitude is not None:
+        # Nearest records by a bounding-box query (the old loop read the first
+        # 100 rows in database order, so the actual nearest hospital could be
+        # missed). Sourced unverified records are included but flagged, and a
+        # card is only produced when the record has its own phone number — no
+        # national line is presented as the facility's number.
+        from tourist.emergency_service import _ranked_nearby, clean_phone
         nearby_records = []
-        for hospital in Hospital.objects.filter(is_archived=False, is_verified=True).select_related("destination")[:100]:
-            distance = haversine_distance_km(latitude, longitude, float(hospital.latitude), float(hospital.longitude))
-            phone = str(hospital.phone or "").strip()
-            if distance is not None and distance <= 50 and phone:
+        sources = (
+            (Hospital.objects.filter(is_archived=False).select_related("destination"), "Emergency Hospital"),
+            (PoliceStation.objects.filter(is_archived=False).select_related("destination"), "Tourist & Civil Police"),
+        )
+        for queryset, label in sources:
+            for distance, row in _ranked_nearby(queryset, float(latitude), float(longitude), 50, minimum=1):
+                phone, _ = clean_phone(row.phone, "")
+                if distance > 50 or not phone:
+                    continue
                 nearby_records.append((distance, {
-                    "name": hospital.name,
-                    "type": "Emergency Hospital",
+                    "name": row.name,
+                    "type": label,
                     "phone": phone,
-                    "district": hospital.district or "",
+                    "district": getattr(row, "district", "") or (row.destination.district if row.destination_id else ""),
                     "distance_km": round(distance, 1),
-                }))
-        for station in PoliceStation.objects.filter(is_archived=False, is_verified=True).select_related("destination")[:100]:
-            distance = haversine_distance_km(latitude, longitude, float(station.latitude), float(station.longitude))
-            phone = str(station.phone or "").strip()
-            if distance is not None and distance <= 50 and phone:
-                nearby_records.append((distance, {
-                    "name": station.name,
-                    "type": "Tourist & Civil Police",
-                    "phone": phone,
-                    "district": station.destination.district if station.destination_id else "",
-                    "distance_km": round(distance, 1),
+                    "verified": bool(row.is_verified),
+                    "source_name": row.source_name or "",
                 }))
         emergency_cards = [card for _, card in sorted(nearby_records, key=lambda item: item[0])[:5]]
 

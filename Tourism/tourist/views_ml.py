@@ -36,6 +36,7 @@ from .serializers import (
     BestRouteRequestSerializer,
     ItineraryRequestSerializer,
 )
+from .emergency_service import clean_phone
 from .utils import (
     get_ml_safety_prediction,
     get_ml_budget_prediction,
@@ -703,7 +704,30 @@ def _nearest_for_itinerary(rows, lat, lon, mapper, limit=2):
         distance = haversine_distance(lat, lon, row.latitude, row.longitude)
         ranked.append((distance, row))
     ranked.sort(key=lambda pair: pair[0])
-    return [mapper(row, round(distance, 2)) for distance, row in ranked[:limit]]
+    return [mapper(row, round(distance, 2)) for distance, row in dedupe_service_rows(ranked)[:limit]]
+
+
+def dedupe_service_rows(ranked):
+    """Drop repeated imports of the same listing from (distance, row) pairs.
+
+    The imported hotel data holds ~200 exact duplicates (same name, same
+    coordinates, e.g. two "Einstein House" rows), which made itinerary days
+    and nearby lists show one hotel twice. Distinct places that merely share
+    a generic name ("Police Station Kaski" at different coordinates) stay.
+    """
+    seen = set()
+    unique = []
+    for distance, row in ranked:
+        key = (
+            " ".join(str(getattr(row, "name", "") or "").lower().split()),
+            round(float(row.latitude), 4) if row.latitude is not None else None,
+            round(float(row.longitude), 4) if row.longitude is not None else None,
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append((distance, row))
+    return unique
 
 
 def enrich_itinerary_with_services(payload):
@@ -721,24 +745,28 @@ def enrich_itinerary_with_services(payload):
 
         day["nearby_services"] = {
             "hotels": _nearest_for_itinerary(
-                Hotel.objects.filter(is_active=True, is_verified=True), lat, lon,
+                Hotel.objects.filter(is_active=True), lat, lon,
                 lambda row, distance: {
                     "id": row.id, "name": row.name, "distance_km": distance,
+                    "is_verified": bool(row.is_verified), "source_name": row.get_source_display() if row.source else "",
                     "price_npr": float(row.price_per_night) if row.price_per_night is not None and row.currency == "NPR" else None,
                     "image_url": _safe_file_url(row.cover_image) or row.external_image_url or None,
                 },
             ),
             "hospitals": _nearest_for_itinerary(
-                Hospital.objects.filter(is_archived=False, is_verified=True), lat, lon,
-                lambda row, distance: {"id": row.id, "name": row.name, "phone": row.phone, "distance_km": distance},
+                Hospital.objects.filter(is_archived=False), lat, lon,
+                lambda row, distance: {"id": row.id, "name": row.name, "phone": clean_phone(row.phone, "")[0], "distance_km": distance,
+                                       "is_verified": bool(row.is_verified), "source_name": row.source_name or ""},
             ),
             "police": _nearest_for_itinerary(
-                PoliceStation.objects.filter(is_archived=False, is_verified=True), lat, lon,
-                lambda row, distance: {"id": row.id, "name": row.name, "phone": row.phone, "distance_km": distance},
+                PoliceStation.objects.filter(is_archived=False), lat, lon,
+                lambda row, distance: {"id": row.id, "name": row.name, "phone": clean_phone(row.phone, "")[0], "distance_km": distance,
+                                       "is_verified": bool(row.is_verified), "source_name": row.source_name or ""},
             ),
             "essentials": _nearest_for_itinerary(
-                OSMEssentialService.objects.filter(category__in=["bank", "pharmacy", "fire_station", "ambulance"], is_archived=False, is_verified=True), lat, lon,
-                lambda row, distance: {"id": row.id, "type": row.category, "name": row.name, "phone": row.phone, "distance_km": distance},
+                OSMEssentialService.objects.filter(category__in=["bank", "pharmacy", "fire_station", "ambulance"], is_archived=False), lat, lon,
+                lambda row, distance: {"id": row.id, "type": row.category, "name": row.name, "phone": clean_phone(row.phone, "")[0], "distance_km": distance,
+                                       "is_verified": bool(row.is_verified), "source_name": row.source_name or ""},
             ),
         }
     payload["service_data_source"] = "live_database_distance_ranking"
@@ -778,7 +806,10 @@ class ItineraryView(APIView):
                     "interests": data.get("interests", ["culture"]),
                     "start_city": (data.get("start_city") or "").strip() or "Kathmandu",
                 },
-                timeout=settings.ML_SERVICE_TIMEOUT * 3,
+                # (connect, read): a down ML service fails fast and the DB planner answers; a
+                # slow one gets 2x the normal budget, keeping the whole request well
+                # inside the frontend's 45 s itinerary timeout.
+                timeout=(min(3, settings.ML_SERVICE_TIMEOUT), settings.ML_SERVICE_TIMEOUT * 2),
             )
             response.raise_for_status()
             ml_payload = response.json()

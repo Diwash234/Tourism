@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import VerificationBadge from "../components/common/VerificationBadge"
 import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useNavigate, useSearchParams } from "react-router-dom"
@@ -132,6 +133,8 @@ const Itinerary = () => {
   // FIX:
   // Do not use state because request id is not UI data.
   const lastRequestId = useRef(0)
+  const planAbortRef = useRef(null)
+  useEffect(() => () => planAbortRef.current?.abort(), [])
 
 
   const debounceRef = useRef(null)
@@ -206,6 +209,11 @@ const Itinerary = () => {
 
 
     const requestId = ++lastRequestId.current
+    // Cancel the previous in-flight plan: the requestId guard only ignored its
+    // answer, the stale request still occupied the server and the network.
+    planAbortRef.current?.abort()
+    const controller = new AbortController()
+    planAbortRef.current = controller
 
 
     setLoading(true)
@@ -217,7 +225,7 @@ const Itinerary = () => {
     try{
 
 
-      const {data}=await itineraryApi.build(payload)
+      const {data}=await itineraryApi.build(payload, { signal: controller.signal })
 
 
 
@@ -231,7 +239,7 @@ const Itinerary = () => {
 
     }catch(err){
 
-
+      if (err?.name === "CanceledError" || err?.code === "ERR_CANCELED") return
 
       if(requestId===lastRequestId.current){
 
@@ -1427,9 +1435,10 @@ const Itinerary = () => {
                             {(services || []).length ? services.map((service) => (
                               <div key={`${label}-${service.id}`} className="mt-2 text-[11px] text-gray-600">
                                 <span className="font-semibold block truncate">{service.name}</span>
-                                <span>{service.distance_km} km{service.phone ? ` · ${service.phone}` : ""}</span>
+                                <span>{service.distance_km} km straight-line{service.phone ? ` · ${service.phone}` : ""}</span>
+                                <VerificationBadge record={service} compact className="mt-1" />
                               </div>
-                            )) : <p className="text-[11px] text-gray-400 mt-2">No verified record nearby</p>}
+                            )) : <p className="text-[11px] text-gray-500 mt-2">No record nearby in our database</p>}
                           </div>
                         ))}
                       </div>

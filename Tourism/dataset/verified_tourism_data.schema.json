@@ -19,7 +19,7 @@
   "properties": {
     "format": { "const": "nepal-yatra-public-data-snapshot" },
     "format_version": { "const": 1 },
-    "policy_version": { "const": 1 },
+    "policy_version": { "enum": [1, 2] },
     "minimum_tourist_migration": { "const": "0080_backfill_managed_page_snapshots" },
     "as_of": { "type": "string", "format": "date-time" },
     "identity_policy": {

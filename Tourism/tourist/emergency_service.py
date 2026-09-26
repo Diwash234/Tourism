@@ -2,7 +2,7 @@
 from django.db.models import Q
 
 from .models import Destination, EmergencyContact, Hospital, OSMEssentialService, PoliceStation
-from .utils import haversine_distance
+from .utils import bounding_box, haversine_distance
 
 NATIONAL_HOTLINES = [
     {"type": "tourist_police", "name": "Tourist Police Nepal", "phone_number": "1144", "alternate_phone": "+977-1-4247041", "description": "Toll-free tourist assistance across Nepal", "source_name": "Nepal Police / Nepal Tourism Board", "source_url": "https://cid.nepalpolice.gov.np/cid-wings/tourist-police/"},
@@ -46,18 +46,40 @@ def resolve_destination(reference):
     ).order_by("-average_rating", "name").first()
 
 
-def _nearest_rows(rows, latitude, longitude, limit, radius_km, mapper):
-    ranked = []
-    for row in rows:
-        distance = haversine_distance(latitude, longitude, float(row.latitude), float(row.longitude))
-        ranked.append((distance, row))
+def _ranked_nearby(rows, latitude, longitude, radius_km, minimum=1):
+    """(distance, row) pairs sorted by straight-line distance.
+
+    A SQL bounding box narrows the scan to rows around the point (hundreds
+    of rows instead of every hospital/police station/bank in Nepal on every
+    request). Only when the box holds fewer than ``minimum`` rows — a remote
+    location — does it fall back to the full table so the nearest facilities
+    can still be listed and flagged as outside the requested radius.
+    """
+    box = bounding_box(latitude, longitude, radius_km)
+    boxed = rows.filter(
+        latitude__gte=box["min_lat"], latitude__lte=box["max_lat"],
+        longitude__gte=box["min_lon"], longitude__lte=box["max_lon"],
+    )
+    candidates = list(boxed)
+    if len(candidates) < minimum:
+        candidates = list(rows)
+    ranked = [
+        (haversine_distance(latitude, longitude, float(row.latitude), float(row.longitude)), row)
+        for row in candidates
+        if row.latitude is not None and row.longitude is not None
+    ]
     ranked.sort(key=lambda pair: pair[0])
+    return ranked
+
+
+def _nearest_rows(rows, latitude, longitude, limit, radius_km, mapper):
+    ranked = _ranked_nearby(rows, latitude, longitude, radius_km, minimum=limit)
     within = [pair for pair in ranked if pair[0] <= radius_km]
     chosen = (within or ranked)[:limit]
     items = [mapper(row, round(distance, 2), distance > radius_km) for distance, row in chosen]
     for item in items:
         item["estimated_travel_time_min"] = max(1, round(item["distance_km"] / 30 * 60))
-        item["travel_time_basis"] = "Road estimate at 30 km/h; verify navigation conditions"
+        item["travel_time_basis"] = "Rough estimate: straight-line distance at 30 km/h — not a road route"
     return items
 
 
@@ -101,10 +123,10 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
         }
 
     hospitals = _nearest_rows(
-        Hospital.objects.filter(is_archived=False, is_verified=True), latitude, longitude, limit, radius_km, hospital_item,
+        Hospital.objects.filter(is_archived=False), latitude, longitude, limit, radius_km, hospital_item,
     )
     police = _nearest_rows(
-        PoliceStation.objects.filter(is_archived=False, is_verified=True), latitude, longitude, limit, radius_km, police_item,
+        PoliceStation.objects.filter(is_archived=False), latitude, longitude, limit, radius_km, police_item,
     )
 
     local_contacts = []
@@ -126,25 +148,29 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
             "latitude": float(contact.latitude), "longitude": float(contact.longitude),
             "distance_km": round(distance, 2), "outside_requested_radius": distance > radius_km,
             "estimated_travel_time_min": max(1, round(distance / 30 * 60)),
-            "travel_time_basis": "Road estimate at 30 km/h; verify navigation conditions",
+            "travel_time_basis": "Rough estimate: straight-line distance at 30 km/h — not a road route",
             "is_24_hours": contact.is_24_hours, "source_name": "Verified emergency directory", "source_url": "",
         })
 
     # Admin-approved and OpenStreetMap fire, ambulance, bank, pharmacy and
     # tourism-office records share the same accurate distance calculation.
     existing_ids = {item["id"] for item in specialized}
-    osm_ranked = []
-    for service in OSMEssentialService.objects.filter(is_archived=False, is_verified=True).exclude(category__in=["hospital", "police"]):
-        distance = haversine_distance(latitude, longitude, float(service.latitude), float(service.longitude))
-        osm_ranked.append((distance, service))
-    osm_ranked.sort(key=lambda pair: pair[0])
-    specialized_cap = max(limit * 3, 12)
+    osm_ranked = _ranked_nearby(
+        OSMEssentialService.objects.filter(is_archived=False).exclude(category__in=["hospital", "police"]),
+        latitude, longitude, radius_km, minimum=limit,
+    )
+    # Cap per category, not overall: banks and ATMs outnumber pharmacies
+    # roughly 3:1, so a single "nearest 24" cap filled up with banks and the
+    # pharmacy count near Pokhara was always 0 despite 351 pharmacy rows.
+    per_category = {}
     for distance, service in osm_ranked:
-        if len(specialized) >= specialized_cap:
-            break
+        category = "atm_bank" if service.category in {"atm", "bank"} else service.category
+        if per_category.get(category, 0) >= limit:
+            continue
         item_id = f"essential-{service.id}"
         if item_id in existing_ids:
             continue
+        per_category[category] = per_category.get(category, 0) + 1
         specialized.append({
             "id": item_id, "type": service.category, "name": service.name,
             "address": service.address, "district": service.raw_tags.get("district", ""),
@@ -152,7 +178,7 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
             "latitude": float(service.latitude), "longitude": float(service.longitude),
             "distance_km": round(distance, 2), "outside_requested_radius": distance > radius_km,
             "estimated_travel_time_min": max(1, round(distance / 30 * 60)),
-            "travel_time_basis": "Road estimate at 30 km/h; verify navigation conditions",
+            "travel_time_basis": "Rough estimate: straight-line distance at 30 km/h — not a road route",
             "is_24_hours": service.emergency_available,
             "opening_hours": service.opening_hours,
             "image_url": _image_url(service),
@@ -168,8 +194,8 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
         "pharmacy_within_radius": sum(1 for item in specialized if item["type"] == "pharmacy" and not item["outside_requested_radius"]),
         "atm_bank_within_radius": sum(1 for item in specialized if item["type"] in {"atm", "bank"} and not item["outside_requested_radius"]),
         "fire_within_radius": sum(1 for item in specialized if item["type"] == "fire_station" and not item["outside_requested_radius"]),
-        "database_hospitals": Hospital.objects.filter(is_archived=False, is_verified=True).count(),
-        "database_police_stations": PoliceStation.objects.filter(is_archived=False, is_verified=True).count(),
+        "database_hospitals": Hospital.objects.filter(is_archived=False).count(),
+        "database_police_stations": PoliceStation.objects.filter(is_archived=False).count(),
     }
     coverage_gap = (
         facility_counts["hospitals_within_radius"] == 0

@@ -6,6 +6,7 @@ import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
 import RichTextEditor from "./RichTextEditor"
 import CMSBlock, { CMSExtras } from "../cms/CMSBlock"
+import SafeHtml from "../cms/SafeHtml"
 
 const resources = ["pages", "sections", "navigation", "settings", "translations"]
 const RESOURCE_LABELS = { pages: "Pages", sections: "Sections", navigation: "Header, Navigation & Menus", settings: "Site Settings & Branding", translations: "Translations" }
@@ -34,9 +35,18 @@ const displayName = (row) => {
   return name
 }
 
-export default function CMSPanel() {
+// Dashboard sections that open this editor on a specific resource. Anything
+// unknown falls back to Pages instead of requesting a resource the CMS API
+// does not have (which used to render an empty, broken editor).
+const RESOURCE_ALIASES = { seo_metadata: "pages", publishing: "pages", global_content: "settings", announcements: "sections" }
+const resolveResource = (value) => {
+  const name = RESOURCE_ALIASES[value] || value
+  return resources.includes(name) ? name : "pages"
+}
+
+export default function CMSPanel({ defaultResource = "pages" }) {
   const { showToast } = useToast()
-  const [resource, setResource] = useState("pages")
+  const [resource, setResource] = useState(() => resolveResource(defaultResource))
   const [rows, setRows] = useState([])
   const [pageRows, setPageRows] = useState([])
   const [sectionPageId, setSectionPageId] = useState("")
@@ -353,7 +363,7 @@ export default function CMSPanel() {
             <button
               key={item}
               onClick={() => switchResource(item)}
-              className={`block w-full text-left capitalize px-3 py-2.5 rounded-xl mb-1 ${resource === item ? "bg-emerald-700 text-white font-black" : "text-slate-300 hover:bg-emerald-50"}`}
+              className={`block w-full text-left capitalize px-3 py-2.5 rounded-xl mb-1 ${resource === item ? "bg-emerald-700 text-white font-black" : "text-slate-700 hover:bg-emerald-50"}`}
             >
               {RESOURCE_LABELS[item]}
             </button>
@@ -543,7 +553,7 @@ export default function CMSPanel() {
                         <CMSExtras sections={preview.sections} />
                       </div>
                     )}
-                    {!preview.sections && <div className="prose prose-sm mt-5" dangerouslySetInnerHTML={{ __html: preview.body || "" }} />}
+                    {!preview.sections && <SafeHtml html={preview.body || ""} className="prose prose-sm mt-5" />}
                   </div>
                 )}
               </div>
@@ -1425,7 +1435,7 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
                 <h4 className="text-base font-black">{section.title}</h4>
                 <p className="text-slate-500">{section.subtitle}</p>
                 {section.image_url && <img src={section.image_url} alt="" className="mt-2 max-h-40 w-full rounded-lg object-cover" />}
-                <div className="prose prose-sm mt-2" dangerouslySetInnerHTML={{ __html: section.body || "" }} />
+                <SafeHtml html={section.body || ""} className="prose prose-sm mt-2" />
               </article>
             )}
             {openId === section.id && draft && (

@@ -109,6 +109,26 @@ class VerifiedSnapshotTests(TestCase):
             destination=self.destination,
             name="Unverified Snapshot Hotel",
             source="dataset",
+            latitude=28.21,
+            longitude=83.96,
+            is_active=True,
+        )
+        # Exact duplicate import of the unverified hotel (same name, coordinates
+        # and destination): published once.
+        Hotel.objects.create(
+            destination=self.destination,
+            name="Unverified  Snapshot Hotel",
+            source="dataset",
+            latitude=28.21,
+            longitude=83.96,
+            is_active=True,
+        )
+        Hotel.objects.create(
+            destination=self.destination,
+            name="Hotel Outside Nepal",
+            source="dataset",
+            latitude=51.5,
+            longitude=-0.12,
             is_active=True,
         )
 
@@ -137,13 +157,17 @@ class VerifiedSnapshotTests(TestCase):
         self.assertIn(self.image.pk, image_pks)
         self.assertEqual(len(image_pks), 1)
 
-        hotel_names = {
-            row["fields"]["name"]
-            for row in payload["records"]
-            if row["model"] == "tourist.hotel"
-        }
-        self.assertIn(self.hotel.name, hotel_names)
-        self.assertNotIn("Unverified Snapshot Hotel", hotel_names)
+        hotel_rows = [row for row in payload["records"] if row["model"] == "tourist.hotel"]
+        hotels = {row["fields"]["name"]: row["fields"] for row in hotel_rows}
+        self.assertEqual(
+            sum(1 for row in hotel_rows if " ".join(row["fields"]["name"].split()) == "Unverified Snapshot Hotel"), 1,
+        )
+        self.assertIn(self.hotel.name, hotels)
+        # Policy v2: a sourced but unverified listing is published with its
+        # flag intact (the UI labels it); it is never upgraded to verified.
+        self.assertIn("Unverified Snapshot Hotel", hotels)
+        self.assertIs(hotels["Unverified Snapshot Hotel"]["is_verified"], False)
+        self.assertNotIn("Hotel Outside Nepal", hotels)
 
     def test_snapshot_json_round_trip_and_digest(self):
         payload = build_snapshot_payload(as_of=self.fixed_cutoff)

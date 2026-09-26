@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from django.conf import settings
-from django.db.models import Count, F, Q
+from django.db.models import Count, F, Prefetch, Q
 from django.http import HttpResponse
 from django.views import View
 from django.shortcuts import get_object_or_404,render
@@ -38,6 +38,7 @@ from .serializers import (
     RestaurantSerializer, DestinationTransitRouteSerializer, TravelPlanSerializer, TravelPlanStopSerializer,
     TravelerDocumentSerializer,
 )
+from .utils import public_media_url
 from .utils import (
     haversine_distance, bounding_box, translate_text, notify_user,
     get_destination_photos, register_photo_view, get_current_weather, overpass_search_nearby,
@@ -521,7 +522,7 @@ def search_destination(request):
 
 
 class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewsets.ModelViewSet):
-    queryset = Destination.objects.select_related("category", "created_by").prefetch_related("gallery")
+    queryset = Destination.objects.select_related("category", "created_by").prefetch_related(Prefetch("gallery", queryset=DestinationImage.objects.select_related("uploaded_by")))
     permission_classes = [CanSubmitPlace]
     filterset_class = DestinationFilter
     search_fields = ["name", "description", "city", "country"]
@@ -576,6 +577,44 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
                 for hint in NON_ATTRACTION_NAME_HINTS:
                     qs = qs.exclude(name__icontains=hint)
         return qs
+
+    def filter_queryset(self, queryset):
+        """Rank text-search results by how well the *name* matches.
+
+        DRF's SearchFilter only filters, so a search for "pokhara" used to
+        return whatever matched first in the default order (a gorge that
+        mentions Pokhara in its description). When the caller searches without
+        choosing an explicit ordering, exact names come first, then names that
+        start with the term, then names that contain it, then city/district
+        matches, then description-only matches.
+        """
+        queryset = super().filter_queryset(queryset)
+        term = (self.request.query_params.get("search") or "").strip()
+        if not term or self.request.query_params.get("ordering"):
+            return queryset
+        from django.db.models import Case, IntegerField, Value, When
+        import re
+        from django.db import connection
+        from django.db.models.functions import Length
+        # Imported data files some lodgings as destinations ("Lumbini Boys
+        # Hostel" under Buddhist Sites). They stay searchable, but a search for
+        # a place should list the place and its sights before accommodation.
+        boundary = r"\y" if connection.vendor == "postgresql" else r"\b"
+        lodging = boundary + r"(hotel|hotwl|guest ?house|hostel|lodge|resort|homestay|home ?stay|apartment|inn|restaurant|cafe)s?" + boundary
+        return queryset.annotate(
+            _search_rank=Case(
+                When(name__iexact=term, then=Value(0)),
+                # "Pokhara Valley" (whole word) before "Pokharathok" (prefix).
+                When(name__iregex=r"^" + re.escape(term) + boundary, then=Value(1)),
+                When(name__istartswith=term, then=Value(2)),
+                When(name__icontains=term, then=Value(3)),
+                When(Q(city__icontains=term) | Q(district__icontains=term), then=Value(4)),
+                default=Value(5),
+                output_field=IntegerField(),
+            ),
+            _lodging=Case(When(name__iregex=lodging, then=Value(1)), default=Value(0), output_field=IntegerField()),
+            _name_len=Length("name"),
+        ).order_by("_search_rank", "_lodging", "-is_featured", "-average_rating", "_name_len", "name")
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -808,8 +847,8 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
         """
         destination = self.get_object()
 
-        hotels = HotelSerializer(destination.hotels.filter(is_active=True, is_verified=True).select_related("destination").prefetch_related("destination__gallery"), many=True, context={"request": request}).data
-        database_restaurants = RestaurantSerializer(destination.restaurants.filter(status="published", is_verified=True), many=True).data
+        hotels = HotelSerializer(destination.hotels.filter(is_active=True).select_related("destination").prefetch_related("destination__gallery"), many=True, context={"request": request}).data
+        database_restaurants = RestaurantSerializer(destination.restaurants.filter(status="published"), many=True).data
         external_restaurants = find_nearby_places(destination.latitude, destination.longitude, "restaurant")
         restaurants = database_restaurants or external_restaurants
         shops = find_nearby_places(destination.latitude, destination.longitude, "shop")
@@ -974,11 +1013,11 @@ class HotelViewSet(viewsets.ModelViewSet):
     search_fields = ["name", "address"]
 
     def get_queryset(self):
-        queryset=Hotel.objects.select_related("destination").prefetch_related("destination__gallery")
+        queryset=Hotel.objects.select_related("destination").prefetch_related("destination__gallery").order_by("-is_verified", "name", "id")
         user=self.request.user
         is_platform_admin = bool(user.is_authenticated and (user.is_superuser or user.role in {"admin","super_admin","tourism_admin"}))
         if self.request.method in permissions.SAFE_METHODS and not is_platform_admin:
-            queryset=queryset.filter(is_active=True, is_verified=True)
+            queryset=queryset.filter(is_active=True)
         if user.is_authenticated and user.is_staff and not is_platform_admin:
             from admin_panel.models import HotelAssignment
             assigned_ids = HotelAssignment.objects.filter(admin=user).values_list("hotel_id", flat=True)
@@ -1049,7 +1088,13 @@ class HotelViewSet(viewsets.ModelViewSet):
             distance = haversine_distance(lat, lon, hotel.latitude, hotel.longitude)
             if distance <= radius_km:
                 results.append((distance, hotel))
+        # Verified listings first, then nearest (label_unverified policy:
+        # sourced unverified hotels are still shown, with a badge). Exact
+        # duplicate imports (same name + coordinates) are listed once.
+        from .views_ml import dedupe_service_rows
         results.sort(key=lambda pair: pair[0])
+        results = dedupe_service_rows(results)
+        results.sort(key=lambda pair: (not pair[1].is_verified, pair[0]))
 
         page = results[:page_size]
         data = self.get_serializer([h for _, h in page], many=True, context={"request": request}).data
@@ -1066,11 +1111,11 @@ class RestaurantViewSet(viewsets.ModelViewSet):
     search_fields = ["name", "cuisine_types", "address"]
 
     def get_queryset(self):
-        queryset = Restaurant.objects.select_related("destination")
+        queryset = Restaurant.objects.select_related("destination").order_by("-is_verified", "name", "id")
         user = self.request.user
         is_platform_admin = bool(user.is_authenticated and (user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}))
         if self.request.method in permissions.SAFE_METHODS and not is_platform_admin:
-            queryset = queryset.filter(status="published", is_verified=True)
+            queryset = queryset.filter(status="published")
         if user.is_authenticated and user.is_staff and not is_platform_admin:
             profile = StaffCapabilityProfile.objects.filter(user=user).first()
             districts = list(getattr(profile, "managed_districts", []) or [])
@@ -1554,7 +1599,7 @@ class OSMEssentialServiceViewSet(viewsets.ReadOnlyModelViewSet):
     Returns emergency and essential services imported from OpenStreetMap.
     """
 
-    queryset = OSMEssentialService.objects.filter(is_archived=False, is_verified=True)
+    queryset = OSMEssentialService.objects.filter(is_archived=False)
     serializer_class = OSMEssentialServiceSerializer
     permission_classes = [permissions.AllowAny]
 
@@ -1878,7 +1923,7 @@ class HotelSearchView(generics.ListAPIView):
             return Hotel.objects.none()
 
         return (
-            Hotel.objects.filter(is_active=True, is_verified=True).filter(
+            Hotel.objects.filter(is_active=True).filter(
                 Q(name__icontains=query)
                 | Q(destination__name__icontains=query)
                 | Q(destination__city__icontains=query)
@@ -2104,12 +2149,12 @@ class DestinationNearbyPOIsView(APIView):
         # tier expansion never re-queries.
         hospital_rows = [
             (h.name, float(h.latitude), float(h.longitude), {"phone": h.phone})
-            for h in Hospital.objects.filter(is_archived=False, is_verified=True)
+            for h in Hospital.objects.filter(is_archived=False)
             if h.latitude is not None and h.longitude is not None
         ]
         police_rows = [
             (p.name, float(p.latitude), float(p.longitude), {"phone": p.phone})
-            for p in PoliceStation.objects.filter(is_archived=False, is_verified=True)
+            for p in PoliceStation.objects.filter(is_archived=False)
             if p.latitude is not None and p.longitude is not None
         ]
         dest_qs = Destination.objects.filter(
@@ -2121,14 +2166,14 @@ class DestinationNearbyPOIsView(APIView):
             stay_q |= Q(name__icontains=word)
         hotel_rows = [
             (h.name, float(h.latitude), float(h.longitude), {"phone": h.phone, "address": h.address, "price": str(h.price_per_night) if h.price_per_night else None})
-            for h in Hotel.objects.filter(is_active=True, is_verified=True).exclude(latitude=None).exclude(longitude=None)
+            for h in Hotel.objects.filter(is_active=True).exclude(latitude=None).exclude(longitude=None)
         ] + [
             (d.name, float(d.latitude), float(d.longitude), {"slug": d.slug})
             for d in dest_qs.filter(stay_q).exclude(latitude=None).exclude(longitude=None)
         ]
         restaurant_rows = [
             (r.name, float(r.latitude), float(r.longitude), {"phone": r.phone, "address": r.address, "cuisine": r.cuisine_types})
-            for r in Restaurant.objects.filter(status="published", is_verified=True).exclude(latitude=None).exclude(longitude=None)
+            for r in Restaurant.objects.filter(status="published").exclude(latitude=None).exclude(longitude=None)
         ] + [
             (d.name, float(d.latitude), float(d.longitude), {"slug": d.slug})
             for d in dest_qs.filter(category__slug__in=["food-culinary"]).exclude(latitude=None).exclude(longitude=None)
@@ -2154,7 +2199,7 @@ class DestinationNearbyPOIsView(APIView):
                 (s.name, float(s.latitude), float(s.longitude),
                  {"phone": s.phone or None, "address": s.address or None})
                 for s in OSMEssentialService.objects.filter(
-                    category__in=cats, is_archived=False, is_verified=True
+                    category__in=cats, is_archived=False
                 ).exclude(name__icontains="name not recorded")
                 if s.latitude is not None and s.longitude is not None
             ]
@@ -2600,7 +2645,7 @@ class DistrictGalleryView(APIView):
             elif photo.external_url:
                 url = photo.external_url
             elif photo.image:
-                url = request.build_absolute_uri(photo.image.url)
+                url = public_media_url(photo.image.url, request)
             else:
                 continue
             groups.setdefault(district, []).append({

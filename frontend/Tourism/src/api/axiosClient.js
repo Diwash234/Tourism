@@ -93,6 +93,11 @@ axiosClient.interceptors.response.use(
     // raw "Network Error" string, so pages often showed cryptic toasts.
     // Replace the message with an actionable explanation while keeping
     // the error object otherwise intact for logging/retry logic.
+    // A request the page cancelled itself (superseded search/plan) is not a
+    // connectivity problem — pass it through untouched.
+    if (error?.code === "ERR_CANCELED" || error?.name === "CanceledError") {
+      return Promise.reject(error)
+    }
     if (status === undefined) {
       error.apiUnreachable = true
       if (error.code === "ECONNABORTED" || /timeout/i.test(String(error.message || ""))) {

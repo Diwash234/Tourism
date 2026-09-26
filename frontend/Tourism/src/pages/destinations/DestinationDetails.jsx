@@ -24,6 +24,7 @@ import MapView from "../../components/map/MapView"
 import GettingThereCard from "../../components/destination/GettingThereCard"
 import WeatherCard from "../../components/cards/WeatherCard"
 import HotelCard from "../../components/cards/HotelCard"
+import VerificationBadge from "../../components/common/VerificationBadge"
 import MapillaryImages from "../../components/map/MapillaryImages"
 import Breadcrumbs from "../../components/common/Breadcrumbs"
 import Loader from "../../components/common/Loader"
@@ -787,6 +788,7 @@ export default function DestinationDetails() {
                       {h.stars || (h.rating != null ? `Rated ${h.rating}` : "Rating unavailable")}
                     </span>
                     <h4 className="font-extrabold text-sm text-white line-clamp-1">{h.name}</h4>
+                    <VerificationBadge record={h} compact />
                     <p className="text-[11px] text-slate-300">{destination.city || destination.district || "Location unavailable"}</p>
                   </div>
 

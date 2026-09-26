@@ -214,6 +214,11 @@ MEDIA_ROOT = BASE_DIR / "media"
 #   dev:   IMAGE_BASE_URL=http://localhost:8002  (python -m http.server in image-server/)
 #   prod:  IMAGE_BASE_URL=https://images.example.com  (Nginx serving image-server/images/)
 IMAGE_BASE_URL = config("IMAGE_BASE_URL", default="http://localhost:8002").rstrip("/")
+# Uploaded media (/media/...) is returned root-relative by default so it works
+# on whatever host the site is opened from (Vite proxies /media to Django).
+# Set this only when the SPA and the API are served from different domains,
+# e.g. PUBLIC_MEDIA_BASE_URL=https://api.example.com
+PUBLIC_MEDIA_BASE_URL = config("PUBLIC_MEDIA_BASE_URL", default="").rstrip("/")
 # Local root of the image dataset (used by the import_images management command).
 IMAGE_SERVER_ROOT = config(
     "IMAGE_SERVER_ROOT",

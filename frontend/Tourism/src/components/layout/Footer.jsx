@@ -53,7 +53,12 @@ const Footer = () => {
     .filter((item) => item.location === location && String(item.route || "").startsWith("/") && (isAuthenticated || PUBLIC_FOOTER_PATHS.has(item.route)))
     .map((item) => [item.label, item.route])
   const exploreLinks = managed("footer").length ? managed("footer") : DEFAULT_EXPLORE
-  const hasContact = Boolean(branding.contact_address || branding.contact_email || branding.contact_phone)
+  // Never publish a placeholder number such as "+977-000-0000" that an old
+  // settings row may still hold — show the honest "not published" text.
+  const contactPhone = isRealPhone(branding.contact_phone) ? branding.contact_phone : ""
+  const contactEmail = /@example\.(com|org)$/i.test(String(branding.contact_email || "")) ? "" : branding.contact_email
+  const hasContact = Boolean(branding.contact_address || contactEmail || contactPhone)
+  const footerText = branding.footer_text && branding.footer_text.trim() !== APP_NAME ? branding.footer_text : "All rights reserved."
 
   const subscribe = async (event) => {
     event.preventDefault()
@@ -136,8 +141,8 @@ const Footer = () => {
             {hasContact ? (
               <ul className="mt-4 space-y-3 text-sm text-[#C7D9D2]">
                 {branding.contact_address && <li className="flex gap-2"><FiMapPin size={16} className="mt-0.5 shrink-0 text-[#63E6BE]" aria-hidden="true" />{branding.contact_address}</li>}
-                {branding.contact_email && <li className="flex items-center gap-2"><FiMail size={16} className="shrink-0 text-[#63E6BE]" aria-hidden="true" /><a className="break-all hover:text-white" href={`mailto:${branding.contact_email}`}>{branding.contact_email}</a></li>}
-                {branding.contact_phone && <li className="flex items-center gap-2"><FiPhone size={16} className="shrink-0 text-[#63E6BE]" aria-hidden="true" /><a className="hover:text-white" href={`tel:${String(branding.contact_phone).replace(/[^+\d]/g, "")}`}>{branding.contact_phone}</a></li>}
+                {contactEmail && <li className="flex items-center gap-2"><FiMail size={16} className="shrink-0 text-[#63E6BE]" aria-hidden="true" /><a className="break-all hover:text-white" href={`mailto:${contactEmail}`}>{contactEmail}</a></li>}
+                {contactPhone && <li className="flex items-center gap-2"><FiPhone size={16} className="shrink-0 text-[#63E6BE]" aria-hidden="true" /><a className="hover:text-white" href={`tel:${String(contactPhone).replace(/[^+\d]/g, "")}`}>{contactPhone}</a></li>}
               </ul>
             ) : <p className="mt-4 text-sm text-[#AFC5BC]">Contact details are not currently published.</p>}
             <div className="mt-5 flex gap-4 text-[#C7D9D2]">
@@ -151,14 +156,24 @@ const Footer = () => {
       </div>
 
       {extras?.length > 0 && <div className="container-app border-t border-white/10 py-6 text-sm text-[#C7D9D2]"><CMSExtras sections={extras} /></div>}
-      <div className="border-t border-white/10 py-4">
-        <div className="container-app flex flex-col gap-3 text-xs text-[#AFC5BC] sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} {APP_NAME}. {branding.footer_text || "All rights reserved."}</p>
+      {/* Bottom padding / right gutter keep the floating chat button (fixed
+          bottom-right, higher on mobile above the bottom nav) from covering
+          the copyright row and the legal links. */}
+      <div className="border-t border-white/10 bg-black/20 pt-4 pb-28 sm:pb-5">
+        <div className="container-app flex flex-col gap-3 text-xs text-[#C7D9D2] sm:flex-row sm:items-center sm:justify-between sm:pr-20">
+          <p>© {new Date().getFullYear()} {APP_NAME}. {footerText}</p>
           <nav aria-label="Legal" className="flex flex-wrap gap-4"><Link to="/privacy" className="hover:text-white">Privacy</Link><Link to="/terms" className="hover:text-white">Terms</Link><Link to="/support" className="hover:text-white">Accessibility & support</Link><Link to="/how-it-works" className="hover:text-white">How it works</Link></nav>
         </div>
       </div>
     </footer>
   )
+}
+
+const isRealPhone = (value) => {
+  const digits = String(value || "").replace(/\D/g, "")
+  if (digits.length < 6) return false
+  // Placeholders: long runs of zeros ("+977-000-0000") or one repeated digit.
+  return !/0{6,}/.test(digits.replace(/^977/, "")) && !/^(\d)\1+$/.test(digits)
 }
 
 const FooterColumn = ({ title, links }) => (

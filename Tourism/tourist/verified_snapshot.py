@@ -79,7 +79,7 @@ from tourist.models import (
 
 SNAPSHOT_FORMAT = "nepal-yatra-public-data-snapshot"
 SNAPSHOT_VERSION = 1
-POLICY_VERSION = 1
+POLICY_VERSION = 2
 MINIMUM_TOURIST_MIGRATION = "0080_backfill_managed_page_snapshots"
 
 # Bounds are intentionally a coarse validity gate, not geocoding.  A value
@@ -392,8 +392,12 @@ def _safe_url_value(value: Any, key: str = "") -> Any:
     return text if _safe_external_url(text, image=lowered_key in URL_KEYS) else ""
 
 
-def sanitize_html_fragment(value: Any) -> str:
-    """Return a small, explicit HTML allowlist for snapshot rich text."""
+def sanitize_html_fragment(value: Any, extra_tags: frozenset = frozenset()) -> str:
+    """Return a small, explicit HTML allowlist for snapshot rich text.
+
+    ``extra_tags`` lets the CMS keep harmless inline formatting its rich-text
+    editor emits (b, i, span...) without changing the snapshot policy."""
+    allowed_tags = ALLOWED_HTML_TAGS | set(extra_tags)
     text = str(value or "")
     if "<" not in text and "&" not in text:
         return text
@@ -403,7 +407,7 @@ def sanitize_html_fragment(value: Any) -> str:
         if name in DANGEROUS_HTML_TAGS:
             tag.decompose()
             continue
-        if name not in ALLOWED_HTML_TAGS:
+        if name not in allowed_tags:
             tag.unwrap()
             continue
         for attr in list(tag.attrs):
@@ -626,6 +630,73 @@ def _exclude_synthetic_record(obj: models.Model, record: dict[str, Any]) -> dict
     return None
 
 
+# Old import runs wrote image notes into ``source_name`` ("Image: deterministic
+# postcard placeholder ...").  That text describes a picture, not where the
+# facility record came from, so it is stripped before publication.
+_IMAGE_NOTE = re.compile(r"\s*\|?\s*Image:[^|]*", re.IGNORECASE)
+UNVERIFIED_SERVICE_SOURCE = "Imported project dataset (not yet verified)"
+
+
+def _coordinate_absent_or_in_nepal(fields: dict[str, Any]) -> bool:
+    latitude, longitude = fields.get("latitude"), fields.get("longitude")
+    if latitude in (None, "") and longitude in (None, ""):
+        return True
+    return _valid_nepal_coordinate(latitude, longitude)
+
+
+def _public_service_record(obj: models.Model, record: dict[str, Any]) -> dict[str, Any] | None:
+    """Publish a sourced service record without upgrading its trust level.
+
+    ``is_verified`` is copied exactly as stored, so an imported listing stays
+    unverified and the public UI labels it as such. Records with coordinates
+    outside Nepal or synthetic/test markers are dropped.
+    """
+    record = _exclude_synthetic_record(obj, record)
+    if record is None:
+        return None
+    fields = record["fields"]
+    if not _coordinate_absent_or_in_nepal(fields):
+        return None
+    if "source_name" in fields:
+        cleaned = _IMAGE_NOTE.sub("", str(fields.get("source_name") or "")).strip(" |")
+        if not cleaned and not str(fields.get("source_url") or "").strip():
+            cleaned = UNVERIFIED_SERVICE_SOURCE
+        fields["source_name"] = cleaned
+    return record
+
+
+def _deduplicated_service_transform():
+    """``_public_service_record`` that also drops repeated imports.
+
+    The imported data holds exact duplicates — the same listing with the same
+    name, coordinates and destination imported twice (e.g. two "Einstein
+    House" hotel rows). Publishing both made itinerary days and nearby lists
+    show one place twice. The lowest primary key is kept; places that only
+    share a generic name ("Police Station Kaski") at different coordinates are
+    distinct and stay.
+    """
+    seen: set[tuple] = set()
+
+    def transform(obj: models.Model, record: dict[str, Any]) -> dict[str, Any] | None:
+        record = _public_service_record(obj, record)
+        if record is None:
+            return None
+        fields = record["fields"]
+        latitude, longitude = fields.get("latitude"), fields.get("longitude")
+        key = (
+            " ".join(str(fields.get("name") or "").lower().split()),
+            round(float(latitude), 5) if latitude not in (None, "") else None,
+            round(float(longitude), 5) if longitude not in (None, "") else None,
+            fields.get("destination"),
+        )
+        if key in seen:
+            return None
+        seen.add(key)
+        return record
+
+    return transform
+
+
 def _normalize_destination_record(obj: Destination, record: dict[str, Any]) -> dict[str, Any]:
     fields = record["fields"]
     for field_name in DESTINATION_NULL_FIELDS:
@@ -710,38 +781,37 @@ def build_snapshot_payload(*, as_of: datetime | None = None) -> dict[str, Any]:
                 verification_status="Verified",
             )
         ))
+        # Services: every active record with Nepal coordinates is published
+        # with its stored is_verified flag. Verified rows are never faked;
+        # unverified rows are labelled in the UI (policy v2).
         records.extend(_serialize(
             Hotel.objects.filter(
                 destination_id__in=destination_ids,
                 is_active=True,
-                is_verified=True,
                 archived_at__isnull=True,
-            ).exclude(source_url=""),
-            transform=_exclude_synthetic_record,
+            ),
+            transform=_deduplicated_service_transform(),
         ))
         records.extend(_serialize(
             Hospital.objects.filter(
                 destination_id__in=destination_ids,
                 is_archived=False,
-                is_verified=True,
-            ).exclude(source_name=""),
-            transform=_exclude_synthetic_record,
+            ),
+            transform=_deduplicated_service_transform(),
         ))
         records.extend(_serialize(
             PoliceStation.objects.filter(
                 destination_id__in=destination_ids,
                 is_archived=False,
-                is_verified=True,
-            ).exclude(source_name=""),
-            transform=_exclude_synthetic_record,
+            ),
+            transform=_deduplicated_service_transform(),
         ))
         records.extend(_serialize(
             Restaurant.objects.filter(
                 destination_id__in=destination_ids,
                 status=Restaurant.Status.PUBLISHED,
-                is_verified=True,
-            ).exclude(source_url=""),
-            transform=_exclude_synthetic_record,
+            ),
+            transform=_public_service_record,
         ))
         records.extend(_serialize(
             DestinationTransitRoute.objects.filter(
@@ -795,13 +865,12 @@ def build_snapshot_payload(*, as_of: datetime | None = None) -> dict[str, Any]:
     records.extend(_serialize(
         OSMEssentialService.objects.filter(
             is_archived=False,
-            is_verified=True,
             latitude__gte=NEPAL_LAT_MIN,
             latitude__lte=NEPAL_LAT_MAX,
             longitude__gte=NEPAL_LNG_MIN,
             longitude__lte=NEPAL_LNG_MAX,
-        ).exclude(source_url=""),
-        transform=_exclude_synthetic_record,
+        ),
+        transform=_public_service_record,
     ))
 
     # CMS is part of the public snapshot, but only published/active records.
@@ -877,7 +946,7 @@ def build_snapshot_payload(*, as_of: datetime | None = None) -> dict[str, Any]:
         },
         "policy": {
             "destinations": "active, approved, non-user-submitted, sourced records with valid Nepal coordinates",
-            "services": "only explicitly verified hotels, restaurants, hospitals, police, and essential services",
+            "services": "active hotels, restaurants, hospitals, police, and essential services (coordinates, when present, must be inside Nepal); is_verified is copied as stored and unverified listings are labelled publicly",
             "images": "approved external images with destination_match_score >= 0.85 and authenticity_score >= 0.85; AI/user uploads excluded",
             "privacy": "users, tokens, sessions, logs, bookings, feedback, drafts, and local media paths excluded",
             "synthetic_records": "E2E/demo/fixture/test markers rejected",
@@ -1036,8 +1105,11 @@ def validate_payload(payload: dict[str, Any]) -> None:
         elif model in {
             "tourist.hotel", "tourist.hospital", "tourist.policestation",
             "tourist.restaurant", "tourist.osmessentialservice",
-        } and fields.get("is_verified") is not True:
-            raise ValueError(f"Unverified service in snapshot: {model} pk={pk}")
+        }:
+            if not _coordinate_absent_or_in_nepal(fields):
+                raise ValueError(f"Service outside Nepal in snapshot: {model} pk={pk}")
+            if not isinstance(fields.get("is_verified"), bool):
+                raise ValueError(f"Service without an explicit verification flag: {model} pk={pk}")
 
     generic_targets = {
         "pages": pks_by_model.get("tourist.managedpage", set()),

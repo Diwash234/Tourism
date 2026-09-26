@@ -83,7 +83,9 @@ class ChatbotTests(APITestCase):
             summary="Hidden", price_npr="10000.00", duration_days=5, status="pending",
         )
         response = self.client.post(reverse("chatbot-message"), {
-            "message": "I want a 5-day trip to Nepal under $500",
+            # NPR budget: a "$500" budget is not converted (no dated exchange
+            # rate source), so it cannot filter NPR-priced packages.
+            "message": "I want a 5-day trip to Nepal under NPR 60000",
         })
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("Five Day Nepal Circuit", response.data["reply"])
@@ -113,7 +115,9 @@ class ChatbotTests(APITestCase):
             summary="Almost five", price_npr="45000.00", duration_days=6, status="published",
         )
         response = self.client.post(reverse("chatbot-message"), {
-            "message": "I want a 5-day trip to Nepal under $500",
+            # NPR budget: a "$500" budget is not converted (no dated exchange
+            # rate source), so it cannot filter NPR-priced packages.
+            "message": "I want a 5-day trip to Nepal under NPR 60000",
         })
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         cards = response.data.get("package_cards", [])
@@ -146,7 +150,9 @@ class ChatbotTests(APITestCase):
             duration_days=5, status="pending",
         )
         response = self.client.post(reverse("chatbot-message"), {
-            "message": "I want a 5-day trip to Nepal under $500",
+            # NPR budget: a "$500" budget is not converted (no dated exchange
+            # rate source), so it cannot filter NPR-priced packages.
+            "message": "I want a 5-day trip to Nepal under NPR 60000",
         })
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("I couldn't find a published package matching those requirements right now.", response.data["reply"])
@@ -166,18 +172,26 @@ class ChatbotTests(APITestCase):
             destination=dest, name="Silent Clinic", address="Ward 1",
             phone="", latitude=28.2, longitude=83.9, district="Kaski",
         )
-        response = self.client.post(reverse("chatbot-message"), {"message": "nearest hospital emergency"})
+        Hospital.objects.create(
+            destination=dest, name="Calling Clinic", address="Ward 2",
+            phone="061-520000", latitude=28.201, longitude=83.901, district="Kaski",
+        )
+        response = self.client.post(reverse("chatbot-message"), {
+            "message": "nearest hospital emergency", "latitude": 28.2, "longitude": 83.9,
+        }, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertNotIn("4412404", response.data["reply"])
         self.assertNotIn("4424111", response.data["reply"])
         cards = response.data.get("emergency_cards", [])
-        self.assertTrue(cards)
+        names = [card["name"] for card in cards]
+        self.assertIn("Calling Clinic", names)
+        # A hospital without its own number gets no card rather than a
+        # borrowed/national number presented as its phone.
+        self.assertNotIn("Silent Clinic", names)
         for card in cards:
             self.assertNotIn("4412404", card["phone"])
             self.assertNotIn("4424111", card["phone"])
-            if card["name"] == "Silent Clinic":
-                self.assertEqual(card["phone"], "102")
-                self.assertTrue(card["phone_is_national_fallback"])
+            self.assertFalse(card["verified"])
 
 class ChatWebSocketTests(APITestCase):
     """Master spec §30: live full-duplex socket push per conversation."""

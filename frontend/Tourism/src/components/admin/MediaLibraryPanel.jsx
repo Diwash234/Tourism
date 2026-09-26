@@ -2,11 +2,58 @@ import { useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import { FiArrowDown, FiArrowUp, FiPlus, FiUpload, FiX } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
+import destinationApi from "../../api/destinationApi"
 import PlaceholderImage from "../common/PlaceholderImage"
 import useToast from "../../hooks/useToast"
 import ImageCropper from "./ImageCropper"
 
 const emptyUpload = { destination_id: "", caption: "", alt_text: "", external_url: "", source_url: "", license: "" }
+
+/** Search destinations by name instead of typing a database id. */
+function DestinationPicker({ value, onChange }) {
+  const [query, setQuery] = useState("")
+  const [results, setResults] = useState([])
+  const [error, setError] = useState("")
+  useEffect(() => {
+    const term = query.trim()
+    if (term.length < 2) return undefined
+    let stale = false
+    const t = setTimeout(async () => {
+      try {
+        const { data } = await destinationApi.getAll({ search: term, page_size: 8 })
+        if (!stale) { setResults(data.results || data || []); setError("") }
+      } catch (err) {
+        if (!stale) setError(err.message || "Destination search failed")
+      }
+    }, 250)
+    return () => { stale = true; clearTimeout(t) }
+  }, [query])
+  if (value?.id) {
+    return (
+      <div className="mt-1 flex items-center justify-between rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm">
+        <span><b>{value.name}</b> <span className="text-slate-600">#{value.id}</span></span>
+        <button type="button" onClick={() => onChange(null)} className="text-xs font-bold text-emerald-800">Change</button>
+      </div>
+    )
+  }
+  return (
+    <div className="mt-1">
+      <input className="input-field" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Type a destination name, e.g. Phewa Lake" />
+      {error && <p className="mt-1 text-xs text-rose-700">{error}</p>}
+      {query.trim().length >= 2 && results.length > 0 && (
+        <ul className="mt-1 max-h-48 overflow-auto rounded-xl border border-slate-200 bg-white text-sm">
+          {results.map((d) => (
+            <li key={d.id}>
+              <button type="button" onClick={() => { onChange({ id: d.id, name: d.name }); setQuery("") }} className="block w-full px-3 py-2 text-left hover:bg-emerald-50">
+                <b>{d.name}</b> <span className="text-xs text-slate-600">{[d.city, d.district].filter(Boolean).join(", ")}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
 
 export default function MediaLibraryPanel() {
   const { showToast } = useToast()
@@ -14,6 +61,12 @@ export default function MediaLibraryPanel() {
   const [params] = useSearchParams()
   const [q, setQ] = useState("")
   const [status, setStatus] = useState(params.get("status") || "")
+  // Exact destination filter ("show this destination's photos").
+  const [destinationFilter, setDestinationFilter] = useState(() => (
+    params.get("destination_id") ? { id: params.get("destination_id"), name: params.get("destination") || `#${params.get("destination_id")}` } : null
+  ))
+  const [uploadDestination, setUploadDestination] = useState(null)
+  const [publishNow, setPublishNow] = useState(false)
   const [active, setActive] = useState(null)
   const [cropping, setCropping] = useState(null)
   const [selected, setSelected] = useState([])
@@ -85,7 +138,7 @@ export default function MediaLibraryPanel() {
 
   const load = async (page = 1) => {
     setBusy(true)
-    try { setData((await adminApi.getMediaLibrary({ q, status, page, page_size: 30 })).data) }
+    try { setData((await adminApi.getMediaLibrary({ q, status, page, page_size: 30, destination_id: destinationFilter?.id || undefined })).data) }
     catch (error) { showToast(error.response?.data?.detail || "Could not load media", "error") }
     finally { setBusy(false) }
   }
@@ -102,7 +155,7 @@ export default function MediaLibraryPanel() {
     // outside the effect flush (react-hooks/set-state-in-effect).
     const t = setTimeout(() => load(), 0)
     return () => clearTimeout(t)
-  }, [status])
+  }, [status, destinationFilter?.id])
 
   const update = async (image, patch) => {
     try {
@@ -122,16 +175,29 @@ export default function MediaLibraryPanel() {
 
   const submit = async (event) => {
     event.preventDefault()
+    if (!uploadDestination?.id) { showToast("Choose the destination this photo shows", "error"); return }
     const body = new FormData()
-    Object.entries(upload).forEach(([key, value]) => value && body.append(key, value))
+    Object.entries({ ...upload, destination_id: uploadDestination.id }).forEach(([key, value]) => value && body.append(key, value))
     if (file) body.append("file", file)
     setBusy(true)
     try {
-      await adminApi.uploadMediaLibrary(body)
-      showToast("Image added to moderation queue", "success")
+      const { data: created } = await adminApi.uploadMediaLibrary(body)
+      if (publishNow && created?.id) {
+        // Approve + make it the cover in one step, so the photo is on the
+        // public destination page immediately (otherwise it waits, pending,
+        // in the moderation queue and the public site keeps the old image).
+        await adminApi.updateMediaLibrary({ ids: [created.id], action: "approve" })
+        const { data: cover } = await adminApi.updateMediaLibrary({ id: created.id, action: "set_cover" })
+        showToast(cover?.message || "Photo approved and set as the cover", "success")
+      } else {
+        showToast("Image added to the moderation queue — approve it to publish", "success")
+      }
       setUpload(emptyUpload)
+      setUploadDestination(null)
+      setPublishNow(false)
       setFile(null)
       setShowUpload(false)
+      setDestinationFilter({ id: String(uploadDestination.id), name: uploadDestination.name })
       load(1)
     } catch (error) {
       showToast(error.response?.data?.detail || "Upload failed", "error")
@@ -179,6 +245,12 @@ export default function MediaLibraryPanel() {
         </select>
         <button onClick={() => load(1)} className="rounded-xl bg-emerald-700 px-5 py-2 font-black text-white">Search</button>
       </div>
+      {destinationFilter && (
+        <p className="flex items-center gap-2 text-sm text-slate-700">
+          Showing photos of <b>{destinationFilter.name}</b>
+          <button onClick={() => setDestinationFilter(null)} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700 hover:bg-slate-200"><FiX aria-hidden="true" />Show all</button>
+        </p>
+      )}
       <div className="flex justify-between">
         <p className="text-xs text-slate-500">Page {data.page} of {data.total_pages} · {selected.length} selected</p>
         {selected.length > 0 && (
@@ -201,9 +273,9 @@ export default function MediaLibraryPanel() {
             <button onClick={() => setActive(image)} className="w-full">
               <PlaceholderImage src={image.url} title={image.destination} alt={image.caption} cropBox={image.crop_box} className="h-40 w-full" />
             </button>
-            <div className="p-3 text-xs text-slate-300">
+            <div className="p-3 text-xs text-slate-600">
               <div className="flex justify-between gap-2">
-                <b className="block truncate text-emerald-950">{image.destination}</b>
+                <button type="button" title="Show only this destination's photos" onClick={() => setDestinationFilter({ id: String(image.destination_id), name: image.destination })} className="block truncate text-left font-bold text-emerald-950 hover:underline">{image.destination}</button>
                 {image.is_cover && <span className="rounded bg-amber-100 px-2 text-amber-800">Cover</span>}
               </div>
               <p className="truncate">{image.caption || "No caption"}</p>
@@ -256,9 +328,9 @@ export default function MediaLibraryPanel() {
               </div>
               <button type="button" onClick={() => setShowUpload(false)} aria-label="Close"><FiX /></button>
             </div>
-            <label className="block text-xs font-bold">Destination database ID
-              <input required type="number" className="input-field mt-1" value={upload.destination_id} onChange={(e) => setUpload({ ...upload, destination_id: e.target.value })} />
-            </label>
+            <div className="block text-xs font-bold">Destination
+              <DestinationPicker value={uploadDestination} onChange={setUploadDestination} />
+            </div>
             <label className="block cursor-pointer rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50 p-5 text-center">
               <FiUpload className="mx-auto mb-2" />Browse computer for JPEG, PNG or WebP
               <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
@@ -274,7 +346,11 @@ export default function MediaLibraryPanel() {
               <label className="text-xs font-bold">Original source page<input type="url" className="input-field mt-1" value={upload.source_url} onChange={(e) => setUpload({ ...upload, source_url: e.target.value })} /></label>
               <label className="text-xs font-bold">License / permission<input className="input-field mt-1" value={upload.license} onChange={(e) => setUpload({ ...upload, license: e.target.value })} /></label>
             </div>
-            <button disabled={busy || (!file && !upload.external_url)} className="w-full rounded-xl bg-emerald-700 py-3 font-black text-white disabled:opacity-40">Add to moderation queue</button>
+            <label className="flex items-start gap-2 text-xs text-slate-700">
+              <input type="checkbox" className="mt-0.5" checked={publishNow} onChange={(e) => setPublishNow(e.target.checked)} />
+              <span><b>Approve and set as cover now.</b> Only for photos that really show this destination and that you have permission to use. Needs image-approval rights.</span>
+            </label>
+            <button disabled={busy || !uploadDestination?.id || (!file && !upload.external_url)} className="w-full rounded-xl bg-emerald-700 py-3 font-black text-white disabled:opacity-40">{publishNow ? "Add, approve and set cover" : "Add to moderation queue"}</button>
           </form>
         </div>
       )}

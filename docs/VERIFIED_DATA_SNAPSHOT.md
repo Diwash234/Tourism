@@ -31,7 +31,8 @@ From `Tourism/`:
 
 ```bash
 python manage.py build_verified_snapshot \
-  --as-of 2026-09-25T23:59:59Z \
+  --source-db /path/to/source.sqlite3 \
+  --as-of 2026-09-26T00:00:00Z \
   --force
 ```
 
@@ -49,24 +50,78 @@ cutoff. Use a new cutoff for each release. The builder:
 The runtime database may continue serving requests while the online backup is
 taken, but a release should be built from a quiet database when possible.
 
-## Data policy
+## Data policy (policy version 2)
 
 Included records must be sourced and public:
 
 - active, approved, non-user-submitted destinations with a slug or external ID
   and valid Nepal coordinates;
 - published CMS records and active public navigation;
-- explicitly verified hotels, restaurants, hospitals, police stations, and
-  essential services (an unverified service is never promoted);
+- **services** — hotels, restaurants, hospitals, police stations and OSM
+  essential services (banks, ATMs, pharmacies…) — that come from a named
+  source, whether or not an administrator has verified them yet. Each record
+  keeps its stored `is_verified` flag exactly: an unverified listing is
+  published *as unverified* and the website labels it "Unverified listing ·
+  Source: …" and lists verified records first. Nothing is ever promoted to
+  verified by the snapshot. Coordinates are optional for a service, but when
+  present they must be inside Nepal (records located abroad are dropped).
+  Exact duplicate imports (same name, coordinates and destination) are
+  published once;
 - approved external images with HTTPS URLs, source/license metadata, and both
   `destination_match_score` and `authenticity_score` of at least `0.85`.
 
+Why v2: policy v1 published only verified services. No imported hotel had been
+verified, so the shared database contained no hotels at all and every
+"Hotels near…", distance and itinerary-stay panel reported that the service
+did not respond. Showing sourced listings with an honest label is more useful
+than an empty page, and it never presents unconfirmed data as confirmed.
+
+Service `source_name` values are cleaned: legacy image-credit notes that were
+stored in that column are removed, and a record with no source left is
+labelled "Imported project dataset (not yet verified)".
+
 Excluded records include credentials, users, sessions, tokens, chats, bookings,
 orders, location history, notifications, audit/log data, drafts, reviewer IDs,
-local media paths, synthetic E2E/demo/fixture records, and unverified services.
+local media paths, synthetic E2E/demo/fixture records, and services located
+outside Nepal.
 
 Missing data remains missing. The snapshot does not invent a hotel, hospital,
-restaurant, phone number, coordinate, or image.
+restaurant, phone number, coordinate, or image. Coverage gaps are real: for
+example the OSM pharmacy extract only covers the Kathmandu Valley, so the
+emergency page shows no pharmacies near Pokhara.
+
+## Current release
+
+| | |
+|---|---|
+| Policy version | 2 |
+| Cutoff (`--as-of`) | `2026-09-26T00:00:00Z` |
+| Source database | `git show f92c128^:Tourism/db.sqlite3` (the last committed runtime DB, read-only) |
+| JSON records | 12,933 |
+| Destinations | 6,075 |
+| Destination images | 723 (quality-scored) |
+| Hotels | 2,348 (all unverified, labelled) |
+| Restaurants | 265 |
+| Hospitals | 362 |
+| Police stations | 801 |
+| OSM essential services | 1,997 (banks 838, ATMs 346, hospitals 381, pharmacies 351, police 81) |
+| Districts / provinces | 77 / 7 |
+
+Checksums live in `verified_tourism_data.lock.json` and the `.sha256` files.
+
+## Use the shared database locally
+
+```bash
+cd Tourism
+rm -f db.sqlite3 db.sqlite3-wal db.sqlite3-shm   # stale WAL files corrupt a swapped DB
+gunzip -c ../downloads/nepal-tourism-database.sqlite3.gz > db.sqlite3
+python manage.py migrate
+DJANGO_SUPERUSER_PASSWORD='choose-one' python manage.py createsuperuser --noinput --email you@example.com
+python manage.py runserver 0.0.0.0:8000
+```
+
+The snapshot has no users, so create your own administrator. Restart the
+server after swapping the file.
 
 If the old raw SQLite file was ever cloned or deployed, deleting it from the
 current tree does not remove it from Git history or invalidate its sessions and

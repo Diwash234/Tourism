@@ -28,6 +28,7 @@ import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
 import DestinationCard from "../components/cards/DestinationCard"
 import HotelCard from "../components/cards/HotelCard"
+import VerificationBadge from "../components/common/VerificationBadge"
 import useGeolocation from "../hooks/useGeolocation"
 import useAuth from "../hooks/useAuth"
 import useToast from "../hooks/useToast"
@@ -88,6 +89,8 @@ const NearbyPlaces = () => {
 
   const [pickerOpen, setPickerOpen] = useState(false)
   const [query, setQuery] = useState("")
+  const [searchError, setSearchError] = useState("")
+  const [fetchError, setFetchError] = useState("")
   const [matches, setMatches] = useState([])
   const [searching, setSearching] = useState(false)
 
@@ -112,10 +115,19 @@ const NearbyPlaces = () => {
         setTotal(count)
         setFetchState("done")
       }
-      const fail = () => {
+      const fail = (error) => {
         if (id !== requestId.current) return
         setPlaces([])
         setTotal(0)
+        // Keep the real reason (connection refused, timeout, HTTP error) so
+        // the page says what actually went wrong instead of a generic line.
+        setFetchError(
+          error?.apiUnreachable
+            ? error.message
+            : error?.response?.status
+              ? `The server returned HTTP ${error.response.status}${error.response.data?.detail ? `: ${error.response.data.detail}` : ""}.`
+              : error?.message || ""
+        )
         setFetchState("error")
       }
 
@@ -211,6 +223,7 @@ const NearbyPlaces = () => {
     const t = setTimeout(() => {
       if (q.length < 2) {
         setMatches([])
+        setSearchError("")
         setSearching(false)
         return
       }
@@ -220,8 +233,14 @@ const NearbyPlaces = () => {
         .then(({ data }) => {
           const list = Array.isArray(data?.results) ? data.results : Array.isArray(data) ? data : []
           setMatches(list.filter((d) => d.latitude != null && d.longitude != null))
+          setSearchError("")
         })
-        .catch(() => setMatches([]))
+        .catch((error) => {
+          // A failed request is NOT "no match": say the server could not be
+          // reached so the user doesn't think the place doesn't exist.
+          setMatches([])
+          setSearchError(error?.apiUnreachable ? error.message : error?.response?.data?.detail || "Couldn't reach the destination search. Check your connection (or that the backend is running) and try again.")
+        })
         .finally(() => setSearching(false))
     }, 350)
     return () => clearTimeout(t)
@@ -419,7 +438,7 @@ const NearbyPlaces = () => {
           <EmptyState
             icon={FiRefreshCw}
             title={`${label} couldn't be loaded.`}
-            subtitle="The service didn't respond. Please retry — if it keeps failing, try again in a moment."
+            subtitle={fetchError || "The request failed. Please retry."}
             action={
               <button
                 type="button"
@@ -563,10 +582,10 @@ const NearbyPlaces = () => {
                   <div key={h.id} className="card-base p-4 flex items-start gap-3">
                     <FiActivity className="text-himalaya-500 mt-1 shrink-0" aria-hidden="true" />
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm text-emerald-900">{h.name}</p>
+                      <p className="font-semibold text-sm text-emerald-900 flex flex-wrap items-center gap-2">{h.name}<VerificationBadge record={h} compact /></p>
                       <p className="text-xs text-gray-500">
                         {[
-                          h.distance_km != null ? `${h.distance_km} km away` : null,
+                          h.distance_km != null ? `${h.distance_km} km straight-line` : null,
                           h.district,
                           h.address,
                         ]
@@ -642,7 +661,13 @@ const NearbyPlaces = () => {
 
             {searching && <p className="text-sm text-gray-400 py-4 text-center">Searching…</p>}
 
-            {!searching && query.trim().length >= 2 && matches.length === 0 && (
+            {!searching && searchError && (
+              <p role="alert" className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2 my-2 text-center">
+                {searchError}
+              </p>
+            )}
+
+            {!searching && !searchError && query.trim().length >= 2 && matches.length === 0 && (
               <p className="text-sm text-gray-400 py-4 text-center">
                 No destinations match “{query.trim()}”.
               </p>

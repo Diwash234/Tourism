@@ -270,66 +270,10 @@ const EXTRA_LOCAL_PHOTOS = {
 Object.assign(LOCAL_NEPAL_PHOTOS, EXTRA_LOCAL_PHOTOS)
 
 // ---------------------------------------------------------------------------
-// SEMANTIC PHOTO TYPES — every local landmark photo is tagged so we never
-// show a lake photo on a temple, a tiger photo on a temple, a rafting photo
-// on a highway, etc. Matching is NAME-ONLY (never city/district), so Pokhara
-// destinations no longer all show the same lakeside image and Lalitpur
-// places no longer all show the Patan photo.
+// BUNDLED PHOTOS ARE MATCHED BY EXACT NAME ONLY (see lookupLocalNepal), never
+// by city/district or substring, so "Hotel Pokhara View" does not get the
+// Pokhara lake photo and Lalitpur places do not all show the Patan photo.
 // ---------------------------------------------------------------------------
-const LOCAL_PHOTO_TYPES = {
-  "/images/destinations/nagarkot/sunrise-view.jpg": "viewpoint",
-  "/images/destinations/pokhara/fewatal.jpg": "lake",
-  "/images/destinations/everest/base-camp.jpg": "mountain",
-  "/images/destinations/kathmandu/durbar-square.jpg": "heritage",
-  "/images/destinations/pashupatinath/main-temple.jpg": "temple",
-  "/images/destinations/boudhanath/stupa.jpg": "buddhist",
-  "/images/destinations/swayambhunath/stupa.jpg": "buddhist",
-  "/images/destinations/dharahara/tower.jpg": "city",
-  "/images/destinations/bhaktapur/durbar.jpg": "heritage",
-  "/images/destinations/patan/durbar-square.jpg": "heritage",
-  "/images/destinations/chitwan/safari.jpg": "wildlife",
-  "/images/destinations/lumbini/garden.jpg": "buddhist",
-  "/images/destinations/annapurna/trek.jpg": "mountain",
-  "/images/destinations/ghandruk/village.jpg": "village",
-  "/images/destinations/sarangkot/view.jpg": "viewpoint",
-  "/images/destinations/mustang/lo-manthang.jpg": "heritage",
-  "/images/destinations/muktinath/temple.jpg": "temple",
-  "/images/destinations/ilam/tea-gardens.jpg": "tea",
-  "/images/destinations/kanyam/tea-garden.jpg": "tea",
-  "/images/destinations/janakpur/janaki-mandir.jpg": "temple",
-  "/images/destinations/bandipur/hilltop-village.jpg": "village",
-  "/images/destinations/gorkha/durbar.jpg": "heritage",
-  "/images/destinations/dhulikhel/town.jpg": "city",
-  "/images/destinations/rani-mahal/palace.jpg": "heritage",
-  "/images/destinations/bardiya/tiger-reserve.jpg": "wildlife",
-  "/images/destinations/dolpo/highland-village.jpg": "village",
-  "/images/destinations/phoksundo/lake.jpg": "lake",
-  "/images/destinations/gosaikunda/glacial-lake.jpg": "lake",
-  "/images/destinations/langtang/valley.jpg": "mountain",
-  "/images/destinations/koshi-tappu/wetlands.jpg": "wildlife",
-  "/images/destinations/manaslu/mountain-peak.jpg": "mountain",
-  "/images/destinations/rara/alpine-lake.jpg": "lake",
-  "/images/destinations/tilicho/himalayan-lake.jpg": "lake",
-  "/images/destinations/dhaulagiri/peak.jpg": "mountain",
-  "/images/destinations/kanchenjunga/peak.jpg": "mountain",
-  "/images/destinations/bhote-koshi/rafting.jpg": "rafting",
-  "/images/destinations/chandragiri/view.jpg": "viewpoint",
-  "/images/destinations/manakamana/temple.jpg": "temple",
-  "/images/destinations/mahendra-cave/interior.jpg": "cave",
-  "/images/destinations/davis-falls/waterfall.jpg": "waterfall",
-  // Round 23 — local food / festival / culture landmark images
-  "/images/destinations/food/momo.jpg": "food",
-  "/images/destinations/food/sel-roti.jpg": "food",
-  "/images/destinations/food/juju-dhau.jpg": "food",
-  "/images/destinations/food/masala-chiya.jpg": "food",
-  "/images/destinations/food/newari-bhoj.jpg": "food",
-  "/images/destinations/festivals/holi-kathmandu.jpg": "festival",
-  "/images/destinations/festivals/dashain-tika.jpg": "festival",
-  "/images/destinations/festivals/tihar-diya.jpg": "festival",
-  "/images/destinations/culture/tharu-dance.jpg": "culture",
-  "/images/destinations/khaptad/landscape.jpg": "mountain",
-  "/images/destinations/pathibhara/temple.jpg": "temple",
-}
 
 // Destination category -> acceptable photo types (preferred first).
 const CATEGORY_TYPES = {
@@ -410,26 +354,14 @@ const CATEGORY_TYPES = {
 
 const normalizeName = (s) => String(s || "").toLowerCase().trim().replace(/\s+/g, " ")
 
-const lookupLocalNepal = (name, categoryType) => {
+const lookupLocalNepal = (name) => {
   if (!name) return null
-  const n = normalizeName(name)
-  // 1. Exact full-name match always wins (e.g. "Pokhara", "Phewa Lake")
-  if (LOCAL_NEPAL_PHOTOS[n]) return LOCAL_NEPAL_PHOTOS[n]
-  // 2. Longest-key substring match — NAME ONLY — respecting photo type.
-  const allowed = CATEGORY_TYPES[categoryType] || null
-  let best = null
-  let bestLen = 0
-  for (const key of Object.keys(LOCAL_NEPAL_PHOTOS)) {
-    if (n.includes(key) && key.length > bestLen) {
-      const path = LOCAL_NEPAL_PHOTOS[key]
-      const ptype = LOCAL_PHOTO_TYPES[path] || "any"
-      if (!allowed || allowed.includes(ptype) || ptype === "any") {
-        best = path
-        bestLen = key.length
-      }
-    }
-  }
-  return best
+  // Exact full-name match only (e.g. "Pokhara", "Phewa Lake"). A substring
+  // match used to give "Hotel Pokhara View" the Pokhara city photo and
+  // "Changu Museum" a temple photo — an unrelated picture presented as the
+  // place itself. A place without its own photo now shows the honest
+  // "photo unavailable" placeholder instead.
+  return LOCAL_NEPAL_PHOTOS[normalizeName(name)] || null
 }
 
 // Map category slugs/keywords to postcard categories
@@ -507,7 +439,8 @@ const isUsable = (url) => {
 export const fallbackImageUrl = (seed, category) => {
   // A fallback is safe only when the place name matches a bundled landmark
   // mapping. Never hash an unknown name into an unrelated Nepal photograph.
-  return lookupLocalNepal(seed, category) || ""
+  void category
+  return lookupLocalNepal(seed) || ""
 }
 
 /** Derive the semantic category type key from a destination object. */
@@ -516,7 +449,7 @@ export const deriveImageCategory = (destination) => {
   const slug = destination.category?.slug || destination.category_slug || ""
   if (slug && CATEGORY_TYPES[slug]) return slug
   const catName = (destination.category_name || destination.category?.name || "").toLowerCase()
-  for (const [cat, types] of Object.entries(CATEGORY_TYPES)) {
+  for (const cat of Object.keys(CATEGORY_TYPES)) {
     if (catName.includes(cat)) return cat
   }
   return null
@@ -540,8 +473,6 @@ const CORRECTED_DESTINATION_MEDIA = {
  */
 export const getDestinationImageUrl = (destination) => {
   if (!destination) return ""
-  const corrected = CORRECTED_DESTINATION_MEDIA[normalizeName(destination.name)]
-  if (corrected) return corrected
   // The cover field is what the admin sets (set-cover / replace-cover flows
   // update it), so it MUST win over the gallery `images[]` array — otherwise
   // admin cover changes never appear because the first (oldest) gallery
@@ -559,9 +490,12 @@ export const getDestinationImageUrl = (destination) => {
       if (isUsable(url)) return url
     }
   }
-  // Restore the previously generated, bundled place-specific media for known
-  // Nepal landmarks.
-  const local = lookupLocalNepal(destination.name, deriveImageCategory(destination))
+  // Bundled corrections apply only when the API has no approved photo, so an
+  // admin's new cover (saved through the media library) always wins.
+  const corrected = CORRECTED_DESTINATION_MEDIA[normalizeName(destination.name)]
+  if (corrected) return corrected
+  // Bundled photo for a landmark whose exact name is known.
+  const local = lookupLocalNepal(destination.name)
   if (local) return local
   return fallbackImageUrl(destination.name || destination.title || "Nepal Landmark", deriveImageCategory(destination)) || ""
 }

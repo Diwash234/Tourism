@@ -1,5 +1,6 @@
 import { FiMapPin, FiStar, FiWifi, FiNavigation, FiImage, FiGlobe, FiPhoneCall } from "react-icons/fi"
 import HotelMedia from "./HotelMedia"
+import VerificationBadge from "../common/VerificationBadge"
 
 const STATUS_STYLE = {
   available: "badge-risk-low",
@@ -71,6 +72,7 @@ const HotelCard = ({ hotel, destinationName }) => {
 
       <div className="p-4">
         <h3 className="font-bold text-dark truncate">{name || "Hotel name unavailable"}</h3>
+        <VerificationBadge record={hotel} className="mt-1.5" />
         {address && (
           <p className="text-sm text-gray-500 flex items-center gap-1 mt-1 min-w-0">
             <FiMapPin size={14} className="shrink-0" />

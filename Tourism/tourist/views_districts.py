@@ -157,10 +157,10 @@ class DistrictDetailView(APIView):
                 )
 
         hospitals = Hospital.objects.filter(
-            destination__in=destinations, is_archived=False, is_verified=True
+            destination__in=destinations, is_archived=False
         ).select_related("destination")[:10]
         police = PoliceStation.objects.filter(
-            destination__in=destinations, is_archived=False, is_verified=True
+            destination__in=destinations, is_archived=False
         ).select_related("destination")[:10]
 
         nearby = []

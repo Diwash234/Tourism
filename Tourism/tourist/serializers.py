@@ -55,6 +55,7 @@ from .models import (
     UserRoute,
 )
 from .image_server import image_server_url
+from .utils import public_media_url
 from .utils import (
     haversine_distance,
     ensure_cover_photo,
@@ -242,7 +243,7 @@ class DestinationImageSerializer(serializers.ModelSerializer):
             return image_server_url(obj.image_path)
         if obj.image:
             request = self.context.get("request")
-            return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+            return public_media_url(obj.image.url, request)
         return obj.external_url or None
 
 
@@ -504,7 +505,7 @@ class HospitalSerializer(serializers.ModelSerializer):
             return None
         request = self.context.get("request")
         try:
-            return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+            return public_media_url(obj.image.url, request)
         except (ValueError, AttributeError):
             return None
 
@@ -521,7 +522,7 @@ class PoliceStationSerializer(serializers.ModelSerializer):
             return None
         request = self.context.get("request")
         try:
-            return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+            return public_media_url(obj.image.url, request)
         except (ValueError, AttributeError):
             return None
 
@@ -758,6 +759,22 @@ def is_destination_specific_image(destination, photo):
         return False
     # A locally uploaded/generated file is explicitly attached by destination_id.
     if (local_image or image_path) and not external_url:
+        return True
+    # An admin picked this photo for this destination (media library upload,
+    # "add external image", replace-cover) and approved it. The filename
+    # heuristics below exist to catch bulk-imported mismatches; they must not
+    # silently hide a deliberate admin choice such as
+    # https://cdn.example.com/IMG_2041.jpg — that was the "saved in the
+    # database but never shown on the public site" bug.
+    # ``source == ADMIN`` alone is not enough — it is the model default and
+    # automated image searches store it too — so the photo must also have
+    # been added by a staff account through the admin UI.
+    uploader = getattr(photo, "uploaded_by", None) if getattr(photo, "uploaded_by_id", None) else None
+    if (
+        getattr(photo, "source", "") == DestinationImage.Source.ADMIN
+        and uploader is not None
+        and (uploader.is_staff or uploader.is_superuser)
+    ):
         return True
     # Named external photos (e.g. Wikimedia titles) can be verified from the
     # URL: a title that shares no place token with this destination is strong
@@ -1176,19 +1193,19 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
         } for item in listings]
 
     def get_hospitals(self, obj):
-        return HospitalSerializer(obj.hospitals.filter(is_archived=False, is_verified=True), many=True, context=self.context).data
+        return HospitalSerializer(obj.hospitals.filter(is_archived=False), many=True, context=self.context).data
 
     def get_police_stations(self, obj):
-        return PoliceStationSerializer(obj.police_stations.filter(is_archived=False, is_verified=True), many=True, context=self.context).data
+        return PoliceStationSerializer(obj.police_stations.filter(is_archived=False), many=True, context=self.context).data
 
     def get_hotels(self, obj):
-        return HotelSerializer(obj.hotels.filter(is_active=True, is_verified=True), many=True, context=self.context).data
+        return HotelSerializer(obj.hotels.filter(is_active=True), many=True, context=self.context).data
 
     def get_transit_routes(self, obj):
         return DestinationTransitRouteSerializer(obj.transit_routes.filter(is_active=True, is_verified=True), many=True, context=self.context).data
 
     def get_restaurants(self, obj):
-        queryset = obj.restaurants.filter(status="published", is_verified=True)
+        queryset = obj.restaurants.filter(status="published")
         return RestaurantSerializer(queryset, many=True, context=self.context).data
 
     def get_reviews(self, obj):
@@ -1643,7 +1660,7 @@ class OSMEssentialServiceSerializer(serializers.ModelSerializer):
         if obj.image:
             request = self.context.get("request")
             try:
-                return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+                return public_media_url(obj.image.url, request)
             except (ValueError, AttributeError):
                 pass
         return None

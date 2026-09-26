@@ -2,14 +2,14 @@
   "artifacts": {
     "database": {
       "path": "downloads/nepal-tourism-database.sqlite3.gz",
-      "sha256": "0855d25b318c53e88f33d6f4590f943d0f1f184662708b01390901821b9a81d4"
+      "sha256": "843566511805ee36a9c4a4218ed85ec5e4507433ae4ecf88b928d7ea7b576cf5"
     },
     "json": {
       "path": "Tourism/dataset/verified_tourism_data.json",
-      "sha256": "f3b959e841a8b30ea62223f693a176571f19ede645688af0beec1796e9e4d825"
+      "sha256": "9be511a1a54a6461213b2ec8be4e98cb25b1059c302fb6164c2265b9d8a09a1d"
     }
   },
-  "as_of": "2026-09-25T23:59:59+00:00",
+  "as_of": "2026-09-26T00:00:00+00:00",
   "counts": {
     "tourist.category": 39,
     "tourist.contentsection": 82,
@@ -18,13 +18,18 @@
     "tourist.destinationimage": 723,
     "tourist.district": 77,
     "tourist.heroslide": 12,
+    "tourist.hospital": 362,
+    "tourist.hotel": 2348,
     "tourist.language": 13,
     "tourist.managednavigationitem": 59,
     "tourist.managedpage": 70,
-    "tourist.province": 7
+    "tourist.osmessentialservice": 1997,
+    "tourist.policestation": 801,
+    "tourist.province": 7,
+    "tourist.restaurant": 265
   },
   "format": "nepal-yatra-public-data-snapshot-lock",
   "format_version": 1,
   "minimum_tourist_migration": "0080_backfill_managed_page_snapshots",
-  "records_sha256": "60b3d6da8cbb81882618d657a8e44f7beb0e3798efb32b42a780e570c1f15761"
+  "records_sha256": "664efd9f108fbff3064f580a285374ee02ee3c1901173f6107a464f295729155"
 }

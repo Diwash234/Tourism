@@ -10,6 +10,7 @@ from rest_framework import generics, permissions, serializers, viewsets
 
 from .models import Restaurant
 from .permissions import IsAdminOrReadOnly
+from .utils import public_media_url
 
 
 class RestaurantSerializer(serializers.ModelSerializer):
@@ -29,7 +30,7 @@ class RestaurantSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
 
         if obj.cover_image:
-            return request.build_absolute_uri(obj.cover_image.url) if request else obj.cover_image.url
+            return public_media_url(obj.cover_image.url, request)
         if obj.external_image_url:
             return obj.external_image_url
 
@@ -70,5 +71,5 @@ class RestaurantSearchView(generics.ListAPIView):
             | Q(destination__city__icontains=query)
             | Q(cuisine_type__icontains=query)
             | Q(address__icontains=query),
-            status="published", is_verified=True,
+            status="published",
         ).select_related("destination")[:20]

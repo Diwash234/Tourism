@@ -2621,12 +2621,16 @@ class CMSAdminControlTests(TestCase):
     def test_admin_can_delete_section_and_page_with_cascade(self):
         resp = self.client.delete("/api/v1/admin/cms/", {"resource": "sections", "id": self.section.id}, format="json")
         self.assertEqual(resp.status_code, 200)
-        from tourist.models import ContentSection
-        self.assertFalse(ContentSection.objects.filter(pk=self.section.pk).exists())
+        # "Delete" is a recoverable unpublish (restorable from history):
+        # the record leaves the public site but is kept as a hidden draft.
+        self.section.refresh_from_db()
+        self.assertEqual(self.section.status, "draft")
+        self.assertFalse(self.section.is_visible)
         resp = self.client.delete("/api/v1/admin/cms/", {"resource": "pages", "id": self.page.id}, format="json")
         self.assertEqual(resp.status_code, 200)
-        from tourist.models import ManagedPage
-        self.assertFalse(ManagedPage.objects.filter(pk=self.page.pk).exists())
+        self.page.refresh_from_db()
+        self.assertEqual(self.page.status, "draft")
+        self.assertFalse(self.page.is_enabled)
 
     def test_homepage_delete_is_refused(self):
         from tourist.models import ManagedPage
@@ -2893,7 +2897,9 @@ class RichTextBodySanitizationTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.section.refresh_from_db()
         self.assertNotIn("javascript:", self.section.body.lower())
-        self.assertIn('href="#"', self.section.body)
+        # The allowlist sanitizer removes the unsafe URL attribute entirely
+        # (the link text stays) instead of rewriting it to "#".
+        self.assertIn("<a>click</a>", self.section.body)
         self.assertIn("<p>Hi</p>", self.section.body)
 
 
@@ -4272,13 +4278,79 @@ class MediaLibraryVerifiedStatusTests(TestCase):
         resp = self.client_admin.get("/api/v1/admin/media-library/", {"status": "pending"})
         self.assertEqual({row["id"] for row in resp.json()["results"]}, {self.pending.id})
 
-    def test_verified_photo_can_become_cover(self):
+    def test_legacy_verified_photo_needs_approval_before_cover(self):
+        # Legacy "verified" rows are listed for review but are not public
+        # (main's media policy): an admin approves them first, then they can
+        # become the cover.
+        resp = self.client_admin.patch(
+            "/api/v1/admin/media-library/", {"id": self.verified.id, "action": "set_cover"}, format="json",
+        )
+        self.assertEqual(resp.status_code, 400, resp.content)
+        self.client_admin.patch(
+            "/api/v1/admin/media-library/", {"ids": [self.verified.id], "action": "approve"}, format="json",
+        )
         resp = self.client_admin.patch(
             "/api/v1/admin/media-library/", {"id": self.verified.id, "action": "set_cover"}, format="json",
         )
         self.assertEqual(resp.status_code, 200, resp.content)
         self.verified.refresh_from_db()
         self.assertTrue(self.verified.is_cover)
+
+
+class AdminImageReachesPublicSiteTests(TestCase):
+    """An image an admin adds and approves must appear on the public
+    destination API, whatever its filename, and uploaded files must use a
+    host-independent URL."""
+
+    def setUp(self):
+        cat = Category.objects.create(name="Admin Image Flow", slug="admin-image-flow")
+        self.dest = Destination.objects.create(
+            name="Phewa Admin Fixture", slug="phewa-admin-fixture", category=cat,
+            latitude=28.21, longitude=83.95, city="Pokhara", district="Kaski",
+            status=Destination.SubmissionStatus.APPROVED, is_active=True,
+            description="Admin image flow fixture.",
+        )
+        self.admin = APIClient()
+        self.admin.force_authenticate(user=make_superuser())
+
+    def _add_and_approve(self, **payload):
+        resp = self.admin.post("/api/v1/admin/media-library/", {"destination_id": self.dest.id, **payload}, format="multipart")
+        self.assertEqual(resp.status_code, 201, resp.content)
+        image_id = resp.json()["id"]
+        resp = self.admin.patch("/api/v1/admin/media-library/", {"ids": [image_id], "action": "approve"}, format="json")
+        self.assertEqual(resp.status_code, 200, resp.content)
+        return image_id
+
+    def test_pending_upload_is_not_public_until_approved(self):
+        self.admin.post("/api/v1/admin/media-library/", {
+            "destination_id": self.dest.id, "external_url": "https://cdn.example.org/IMG_0001.jpg",
+        })
+        public = APIClient().get(f"/api/v1/destinations/{self.dest.slug}/").json()
+        self.assertEqual(public["images"], [])
+
+    def test_admin_external_image_with_unrelated_filename_is_public_and_cover(self):
+        # The filename mentions another city; the heuristics used to hide it.
+        url = "https://cdn.example.org/kathmandu_trip_IMG_2041.jpg"
+        image_id = self._add_and_approve(external_url=url)
+        resp = self.admin.patch("/api/v1/admin/media-library/", {"id": image_id, "action": "set_cover"}, format="json")
+        self.assertEqual(resp.status_code, 200, resp.content)
+        public = APIClient().get(f"/api/v1/destinations/{self.dest.slug}/").json()
+        self.assertEqual(public["cover_image_url"], url)
+        self.assertEqual(public["images"][0], url)
+        listing = APIClient().get("/api/v1/destinations/", {"search": "Phewa Admin Fixture"}).json()["results"]
+        self.assertEqual(listing[0]["cover_image_url"], url)
+
+    def test_uploaded_file_url_is_root_relative(self):
+        import io
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        buffer = io.BytesIO()
+        Image.new("RGB", (8, 8), (10, 120, 80)).save(buffer, format="JPEG")
+        upload = SimpleUploadedFile("lakeside.jpg", buffer.getvalue(), content_type="image/jpeg")
+        self._add_and_approve(file=upload)
+        public = APIClient().get(f"/api/v1/destinations/{self.dest.slug}/").json()
+        self.assertTrue(public["images"], public)
+        self.assertTrue(public["images"][0].startswith("/media/"), public["images"][0])
 
 
 @patch("tourist.views_ml._ITINERARY_BBOX_MIN_ROWS", 0)  # force the bounding-box path for tiny fixtures
@@ -4332,3 +4404,44 @@ class ItineraryNearestServicesBoundingBoxTests(TestCase):
         self._hospital("Remote A", 29.27, 82.18)
         with patch("tourist.views_ml._ITINERARY_BBOX_MIN_ROWS", 300):
             self.assertEqual(self._names(29.9667, 81.8167), ["Close", "Remote A"])
+
+
+class CMSHtmlSanitizationTests(TestCase):
+    """Admin-authored HTML is allowlist-sanitized server-side before storage."""
+
+    def test_block_html_is_sanitized(self):
+        from .views_admin import sanitize_block_data
+        data = {
+            "html": '<p onclick="x()">Hi <b>there</b><img src=x onerror=alert(1)><script>alert(1)</script>'
+                    '<iframe src="https://evil.example"></iframe><a href="javascript:alert(1)">go</a></p>',
+            "items": [{"title": "Card", "description": "<svg onload=alert(1)></svg>Safe"}],
+            "text": "Tom & Jerry",
+        }
+        sanitize_block_data(data)
+        html = data["html"]
+        for bad in ("onclick", "onerror", "<script", "<iframe", "javascript:"):
+            self.assertNotIn(bad, html)
+        self.assertIn("<b>there</b>", html)
+        self.assertEqual(data["items"][0]["description"], "Safe")
+        self.assertEqual(data["text"], "Tom & Jerry")
+
+
+class DestinationSearchRankingTests(TestCase):
+    """A search for a place lists that place and its sights before
+    description-only matches and before lodgings filed as destinations."""
+
+    def test_ranking(self):
+        cat = Category.objects.create(name="Rank", slug="rank")
+        def make(name, **kw):
+            return Destination.objects.create(
+                name=name, category=cat, latitude=28.2, longitude=83.9, is_active=True,
+                status=Destination.SubmissionStatus.APPROVED, description=kw.pop("description", "x"), **kw)
+        make("Seti Gorge", description="A gorge near Pokhara")
+        make("Pokhara Boys Hostel")
+        make("Pokharathok")
+        make("Pokhara Lakeside")
+        make("Pokhara")
+        names = [r["name"] for r in APIClient().get("/api/v1/destinations/", {"search": "pokhara"}).json()["results"]]
+        self.assertEqual(names[:2], ["Pokhara", "Pokhara Lakeside"])
+        self.assertLess(names.index("Pokhara Lakeside"), names.index("Pokhara Boys Hostel"))
+        self.assertLess(names.index("Pokharathok"), names.index("Seti Gorge"))

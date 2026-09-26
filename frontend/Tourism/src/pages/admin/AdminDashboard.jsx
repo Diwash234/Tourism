@@ -72,7 +72,11 @@ const AdminDashboard = () => {
   const { showToast } = useToast()
 
   const [searchParams, setSearchParams] = useSearchParams()
-  const activeTab = searchParams.get("section") || "overview"
+  // Old/bookmarked section names that never had their own panel: send them to
+  // the panel that actually manages that data instead of a blank editor.
+  const SECTION_ALIASES = { destinations: "places", travel_content: "places" }
+  const requestedSection = searchParams.get("section") || "overview"
+  const activeTab = SECTION_ALIASES[requestedSection] || requestedSection
   const setActiveTab = (section) => setSearchParams(section === "overview" ? {} : { section })
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -842,9 +846,6 @@ const AdminDashboard = () => {
         {activeTab === "cms" && <CMSPanel />}
         {activeTab === "cms_pages" && <CMSPanel defaultResource="pages" />}
         {activeTab === "cms_sections" && <CMSPanel defaultResource="sections" />}
-        {activeTab === "destinations" && <CMSPanel defaultResource="destinations" />}
-        {activeTab === "travel_content" && <CMSPanel defaultResource="travel_content" />}
-        {activeTab === "media_library" && <CMSPanel defaultResource="media_library" />}
         {activeTab === "seo_metadata" && <CMSPanel defaultResource="seo_metadata" />}
         {activeTab === "global_content" && <CMSPanel defaultResource="global_content" />}
         {activeTab === "announcements" && <CMSPanel defaultResource="announcements" />}
