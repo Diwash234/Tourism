@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 VENV="${TOURISM_E2E_VENV:-/tmp/tourism-venv}"
 PYTHON="${VENV}/bin/python"
-REQ="${ROOT}/Tourism/requirement.txt"
+REQ="${ROOT}/Tourism/requirements.txt"
 
 if [ ! -x "${PYTHON}" ]; then
   python3 -m venv "${VENV}"

@@ -68,6 +68,7 @@ export default function AdminLogin() {
           <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="password"
+            data-testid="login-password"
             placeholder="Password"
             className="input-field pl-11"
             {...register("password", { required: true })}

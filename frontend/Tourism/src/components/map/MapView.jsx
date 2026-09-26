@@ -6,6 +6,7 @@ import {
   Polyline,
   useMap,
   useMapEvents,
+  ZoomControl,
 } from "react-leaflet"
 
 import { useEffect, useState } from "react"
@@ -242,7 +243,7 @@ const MapView = ({
       </div>
 
       {measureMode && (
-        <div className="absolute top-14 left-3 z-[1000] bg-slate-950/90 text-white border border-amber-400/50 rounded-xl p-2.5 text-xs shadow-xl space-y-1">
+        <div className="absolute bottom-3 left-3 z-[1000] max-w-[calc(100%-5rem)] bg-slate-950/90 text-white border border-amber-400/50 rounded-xl p-2.5 text-xs shadow-xl space-y-1">
           <p className="font-bold text-amber-300">Click points on the map to measure geodesic distance</p>
           <p className="text-[11px] text-slate-200">
             Measured: <b className="text-white text-sm">{totalMeasuredKm.toFixed(2)} km</b> ({ (totalMeasuredKm * 0.621371).toFixed(2) } mi)
@@ -270,8 +271,12 @@ const MapView = ({
         center={[mapCenter.lat, mapCenter.lng]}
         zoom={13}
         scrollWheelZoom={true}
+        zoomControl={false}
         style={{ height: "100%", width: "100%" }}
       >
+        {/* The style/ruler toolbar spans the top edge and wraps on phones,
+            so the zoom buttons live bottom-right where nothing covers them. */}
+        <ZoomControl position="bottomright" />
         <TileLayer
           key={mapStyle}
           attribution={activeTile.attr}

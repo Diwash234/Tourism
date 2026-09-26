@@ -4445,3 +4445,50 @@ class DestinationSearchRankingTests(TestCase):
         self.assertEqual(names[:2], ["Pokhara", "Pokhara Lakeside"])
         self.assertLess(names.index("Pokhara Lakeside"), names.index("Pokhara Boys Hostel"))
         self.assertLess(names.index("Pokharathok"), names.index("Seti Gorge"))
+
+
+class SeededCmsPlaceholderTests(TestCase):
+    """0034 seeded admin instructions as *published* page content; 0081 must
+    keep that filler off public pages without touching admin-edited sections."""
+
+    PLACEHOLDERS = (
+        "This section is managed from the Admin Content Publishing Studio.",
+        "Configure featured cards, media and calls to action here.",
+    )
+
+    def test_public_config_serves_no_placeholder_copy(self):
+        from .models import ContentSection
+
+        self.assertFalse(
+            ContentSection.objects.filter(status="published", is_visible=True, body__in=self.PLACEHOLDERS).exists()
+        )
+        # Still editable in the studio as drafts.
+        self.assertTrue(ContentSection.objects.filter(status="draft", body__in=self.PLACEHOLDERS).exists())
+        response = APIClient().get("/api/v1/config/public/")
+        self.assertEqual(response.status_code, 200)
+        text = response.content.decode()
+        for placeholder in self.PLACEHOLDERS:
+            self.assertNotIn(placeholder, text)
+
+    def test_migration_leaves_admin_edited_sections_published(self):
+        import importlib
+
+        from django.apps import apps as django_apps
+
+        from .models import ContentSection, ManagedPage
+
+        migration = importlib.import_module("tourist.migrations.0081_unpublish_seeded_cms_placeholders")
+        page = ManagedPage.objects.create(route="/placeholder-check", key="placeholder-check", title="Check", status="published")
+        untouched = ContentSection.objects.create(
+            page=page, key="page-intro", title="Check",
+            subtitle="Explore check with verified tourism information.",
+            body=self.PLACEHOLDERS[0], status="published", is_visible=True,
+        )
+        edited_title = ContentSection.objects.create(
+            page=page, key="featured-content", title="Real featured treks",
+            body=self.PLACEHOLDERS[1], status="published", is_visible=True, display_order=10,
+        )
+        migration.unpublish_placeholders(django_apps, None)
+        untouched.refresh_from_db(); edited_title.refresh_from_db()
+        self.assertEqual((untouched.status, untouched.is_visible), ("draft", False))
+        self.assertEqual((edited_title.status, edited_title.is_visible), ("published", True))

@@ -6,9 +6,9 @@ test.describe("Emergency directory", () => {
     await page.goto("/emergency")
     await expect(page.getByTestId("emergency-page")).toBeVisible()
     await expect(page.getByText("Nearest Help for Every Destination")).toBeVisible()
-    await expect(page.getByText("1144").first()).toBeVisible()
-    await expect(page.getByText("100").first()).toBeVisible()
-    await expect(page.getByText("102").first()).toBeVisible()
+    await expect(page.getByText("1144", { exact: true }).first()).toBeVisible()
+    await expect(page.getByText("100", { exact: true }).first()).toBeVisible()
+    await expect(page.getByText("102", { exact: true }).first()).toBeVisible()
   })
 
   test("pharmacy tab does not invent pharmacies", async ({ page }) => {
