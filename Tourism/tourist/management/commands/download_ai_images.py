@@ -106,8 +106,8 @@ class Command(BaseCommand):
                 generation_seed=img["seed"],
                 generation_provider=img["provider"],
                 thumbnail_url=settings.MEDIA_URL + rel,
-                authenticity_score=0.9,
-                destination_match_score=0.9,
+                authenticity_score=None,  # never invented: a real media review must assign this score
+                destination_match_score=None,  # never invented: a real media review must assign this score
                 verification_status=DestinationImage.ImageStatus.APPROVED,
                 is_cover=is_cover,
             )

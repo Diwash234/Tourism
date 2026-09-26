@@ -159,7 +159,7 @@ class Command(BaseCommand):
                 copyright_status="web_search",
                 is_cover=is_cover,
                 destination_match_score=round(hit.match_score, 3),
-                authenticity_score=0.9 if hit.source == "wikimedia" else 0.75,
+                authenticity_score=None,  # never invented: a real media review must assign this score
                 verification_status=DestinationImage.ImageStatus.APPROVED,
                 is_verified=True,
             )

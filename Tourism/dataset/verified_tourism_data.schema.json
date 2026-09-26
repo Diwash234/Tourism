@@ -39,7 +39,10 @@
         "services": { "type": "string", "minLength": 1 },
         "images": { "type": "string", "minLength": 1 },
         "privacy": { "type": "string", "minLength": 1 },
-        "synthetic_records": { "type": "string", "minLength": 1 }
+        "synthetic_records": { "type": "string", "minLength": 1 },
+        "media_gate": { "type": "string", "enum": ["scored", "approval"] },
+        "media_gate_requires_provenance": { "type": "string", "enum": ["true", "false"] },
+        "media_gate_score_threshold": { "type": "number", "minimum": 0, "maximum": 1 }
       },
       "additionalProperties": false
     },

@@ -100,8 +100,26 @@ Included records must be sourced and public:
   present they must be inside Nepal (records located abroad are dropped).
   Exact duplicate imports (same name, coordinates and destination) are
   published once;
-- approved external images with HTTPS URLs, source/license metadata, and both
-  `destination_match_score` and `authenticity_score` of at least `0.85`.
+- approved external images with HTTPS URLs, source/license metadata, and,
+  **depending on the active media gate**, either both `destination_match_score`
+  and `authenticity_score` of at least `0.85` assigned by a named reviewer, or
+  simply the application's own rule (approved, verified, destination-specific).
+
+The media gate is explicit and configurable — see
+[MEDIA_REVIEW.md](MEDIA_REVIEW.md). Choose it per release:
+
+```bash
+# Match the release to the rule the running application already applies
+PUBLIC_SNAPSHOT_MEDIA_GATE=approval python manage.py build_verified_snapshot --as-of ... --force
+
+# Keep the scored rule and require a completed human media review
+PUBLIC_SNAPSHOT_MEDIA_GATE=scored python manage.py build_verified_snapshot --as-of ... --force
+```
+
+The active rule is recorded in every release as `policy.media_gate`, and
+`python manage.py snapshot_media_exclusions` reports why any record is excluded.
+No option invents a score: import paths leave scores `NULL` and the record
+reports as awaiting media review.
 
 Why v2: policy v1 published only verified services. No imported hotel had been
 verified, so the shared database contained no hotels at all and every

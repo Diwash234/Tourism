@@ -846,6 +846,28 @@ class DestinationImage(TimeStampedModel):
     duplicate_score = models.FloatField(null=True, blank=True)
     overall_score = models.FloatField(null=True, blank=True)
 
+    # --- Moderation score provenance ---
+    # A score is only meaningful when a named, authorised reviewer assigned it.
+    # These fields stay NULL for imported/automated values so a fabricated
+    # score can never be mistaken for a completed human review.  They are
+    # intentionally not backfilled: rewriting history would be worse than
+    # admitting the gap.
+    authenticity_score_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="authenticity_scores_assigned",
+    )
+    authenticity_score_at = models.DateTimeField(null=True, blank=True)
+    destination_match_score_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="destination_match_scores_assigned",
+    )
+    destination_match_score_at = models.DateTimeField(null=True, blank=True)
+    media_reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="media_reviews_performed",
+    )
+    media_reviewed_at = models.DateTimeField(null=True, blank=True)
+
     # pHash / dHash for duplicate detection
     phash = models.CharField(max_length=32, blank=True, db_index=True)
 
@@ -870,6 +892,15 @@ class DestinationImage(TimeStampedModel):
         indexes = [
             models.Index(fields=["destination", "ordering"], name="destimg_dest_order_idx"),
             models.Index(fields=["image_path"], name="destimg_path_idx"),
+        ]
+        # Media review is granted, never inferred from a role name or a
+        # username.  An admin/manager delegates these to a member; the member
+        # can then review only what was explicitly delegated.
+        permissions = [
+            ("review_destinationimage", "Can review destination media"),
+            ("assign_destinationimage_authenticity", "Can assign destination media authenticity score"),
+            ("assign_destinationimage_destination_match", "Can assign destination media destination-match score"),
+            ("approve_destinationimage_review", "Can approve or reject a destination media review"),
         ]
 
     def __str__(self):

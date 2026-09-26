@@ -39,6 +39,8 @@ from bs4 import BeautifulSoup
 from django.core import serializers
 from django.db import models
 from django.utils import timezone
+
+from .media_review import GATE_APPROVAL, GATE_SCORED
 from django.utils.dateparse import parse_datetime
 
 from tourist.models import (
@@ -134,6 +136,11 @@ PRIVATE_FIELDS = {
     },
     "tourist.destinationimage": {
         "view_count", "is_promoted", "generation_job", "image_path",
+        # Reviewer identity never ships. The publication policy excludes
+        # reviewer IDs, and a user foreign key would dangle because accounts are
+        # not in the snapshot. The *_at timestamps remain: they prove a review
+        # happened without naming a person.
+        "authenticity_score_by", "destination_match_score_by", "media_reviewed_by",
     },
 }
 
@@ -537,6 +544,14 @@ def _public_destinations(as_of: datetime) -> tuple[list[Destination], set[int]]:
 
 
 def _quality_scoped_images(destination_ids: set[int]) -> tuple[list[DestinationImage], set[int]]:
+    """Select publishable images under the active, configurable media gate.
+
+    The gate lives in :mod:`tourist.media_review` so the build, the verifier and
+    the admin API all agree, and so a release can state which rule produced it.
+    Exclusion reasons are reported rather than silently dropped.
+    """
+    from .media_review import image_gate_exclusion
+
     queryset = DestinationImage.objects.filter(
         destination_id__in=destination_ids,
         is_verified=True,
@@ -549,11 +564,9 @@ def _quality_scoped_images(destination_ids: set[int]) -> tuple[list[DestinationI
             continue
         if not _safe_external_url(image.source_url):
             continue
-        if image.destination_match_score is None or image.authenticity_score is None:
-            continue
-        if image.destination_match_score < 0.85 or image.authenticity_score < 0.85:
-            continue
         if not _has_no_synthetic_marker(image.alt_text, image.caption):
+            continue
+        if image_gate_exclusion(image) is not None:
             continue
         images.append(image)
     return images, {image.pk for image in images}
@@ -704,6 +717,41 @@ def _normalize_destination_record(obj: Destination, record: dict[str, Any]) -> d
     for field_name in DESTINATION_ZERO_FIELDS:
         fields[field_name] = 0
     return record
+
+
+def _active_media_gate_token() -> str:
+    """The active canonical media rule as a machine-readable token."""
+    from .media_review import resolve_media_gate
+
+    return resolve_media_gate()
+
+
+def _active_media_gate_requires_provenance() -> str:
+    from .media_review import requires_review_provenance
+
+    return "true" if requires_review_provenance() else "false"
+
+
+def _active_media_gate_threshold() -> float:
+    from .media_review import score_threshold
+
+    return score_threshold()
+
+
+def _image_policy_description() -> str:
+    from .media_review import GATE_APPROVAL, resolve_media_gate
+
+    if resolve_media_gate() == GATE_APPROVAL:
+        return (
+            "approved external images that are verified and destination-specific; "
+            "AI/user uploads excluded; moderation scores are not required and are "
+            "never invented"
+        )
+    return (
+        "approved external images with reviewed authenticity_score and "
+        "destination_match_score at or above the configured threshold; "
+        "AI/user uploads excluded"
+    )
 
 
 def build_snapshot_payload(*, as_of: datetime | None = None) -> dict[str, Any]:
@@ -947,7 +995,10 @@ def build_snapshot_payload(*, as_of: datetime | None = None) -> dict[str, Any]:
         "policy": {
             "destinations": "active, approved, non-user-submitted, sourced records with valid Nepal coordinates",
             "services": "active hotels, restaurants, hospitals, police, and essential services (coordinates, when present, must be inside Nepal); is_verified is copied as stored and unverified listings are labelled publicly",
-            "images": "approved external images with destination_match_score >= 0.85 and authenticity_score >= 0.85; AI/user uploads excluded",
+            "images": _image_policy_description(),
+            "media_gate": _active_media_gate_token(),
+            "media_gate_requires_provenance": _active_media_gate_requires_provenance(),
+            "media_gate_score_threshold": _active_media_gate_threshold(),
             "privacy": "users, tokens, sessions, logs, bookings, feedback, drafts, and local media paths excluded",
             "synthetic_records": "E2E/demo/fixture/test markers rejected",
         },
@@ -1098,10 +1149,36 @@ def validate_payload(payload: dict[str, Any]) -> None:
         elif model == "tourist.destinationimage":
             if fields.get("verification_status") != "approved" or fields.get("is_verified") is not True:
                 raise ValueError(f"Non-approved image in snapshot: pk={pk}")
-            if float(fields.get("destination_match_score") or 0) < 0.85:
-                raise ValueError(f"Low destination-match image in snapshot: pk={pk}")
-            if float(fields.get("authenticity_score") or 0) < 0.85:
-                raise ValueError(f"Low-authenticity image in snapshot: pk={pk}")
+            # Judge each release by the rule IT declared, not by whatever the
+            # ambient setting happens to be today. A release published before
+            # the configurable gate existed carries no media_gate key and is
+            # held to the historical scored rule without provenance, so older
+            # artifacts keep verifying.
+            policy = payload.get("policy") or {}
+            gate = policy.get("media_gate") or GATE_SCORED
+            provenance_required = str(
+                policy.get("media_gate_requires_provenance") or ""
+            ).strip().lower() in {"true", "1", "yes"}
+            if gate != GATE_APPROVAL:
+                if fields.get("destination_match_score") is None or fields.get("authenticity_score") is None:
+                    raise ValueError(f"Unscored image in snapshot: pk={pk}")
+                if provenance_required:
+                    # Timestamps only: the reviewer foreign key is stripped from
+                    # every release, so a recorded review time is what proves a
+                    # human stood behind the score.
+                    if not fields.get("destination_match_score_at"):
+                        raise ValueError(
+                            f"Image without a reviewed destination-match timestamp: pk={pk}"
+                        )
+                    if not fields.get("authenticity_score_at"):
+                        raise ValueError(
+                            f"Image without a reviewed authenticity timestamp: pk={pk}"
+                        )
+                threshold = float(policy.get("media_gate_score_threshold") or 0.85)
+                if float(fields.get("destination_match_score") or 0) < threshold:
+                    raise ValueError(f"Low destination-match image in snapshot: pk={pk}")
+                if float(fields.get("authenticity_score") or 0) < threshold:
+                    raise ValueError(f"Low-authenticity image in snapshot: pk={pk}")
         elif model in {
             "tourist.hotel", "tourist.hospital", "tourist.policestation",
             "tourist.restaurant", "tourist.osmessentialservice",

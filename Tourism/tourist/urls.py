@@ -10,6 +10,7 @@ from . import views_discovery
 from . import views_districts
 from . import views_family_safety
 from . import views_images
+from . import views_media_review
 from . import views_itinerary
 from .field_verification import FieldVerificationTaskViewSet
 from .trip_feedback import TripFeedbackViewSet, TripFeedbackMediaViewSet
@@ -260,6 +261,12 @@ urlpatterns = [
     path("admin/duplicates/compare/", views_admin.AdminDuplicateCompareView.as_view(), name="admin-duplicates-compare"),
     path("admin/duplicates/decision/", views_admin.AdminDuplicateDecisionView.as_view(), name="admin-duplicates-decision"),
     path("admin/destinations/<int:id>/images", views_admin.AdminDestinationImageView.as_view(), name="admin-destination-images"),
+    # --- Media review: permission-based moderation scores (never fabricated) ---
+    path("admin/media-review/capabilities", views_media_review.MediaReviewCapabilitiesView.as_view(), name="admin-media-review-capabilities"),
+    path("admin/media-review/queue", views_media_review.MediaReviewQueueView.as_view(), name="admin-media-review-queue"),
+    path("admin/media-review/delegation", views_media_review.MediaReviewDelegationView.as_view(), name="admin-media-review-delegation"),
+    path("admin/media-review/<int:image_id>", views_media_review.MediaReviewDetailView.as_view(), name="admin-media-review-detail"),
+    path("admin/media-review/<int:image_id>/score", views_media_review.MediaReviewScoreView.as_view(), name="admin-media-review-score"),
     path("admin/destinations/<int:id>/videos", views_admin.AdminDestinationVideoView.as_view(), name="admin-destination-videos"),
     path("admin/alerts", views_admin.AdminAlertsView.as_view(), name="admin-alerts"),
 

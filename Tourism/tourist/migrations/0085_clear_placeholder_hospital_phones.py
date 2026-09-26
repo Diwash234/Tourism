@@ -53,5 +53,5 @@ def clear(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [("tourist", "0083_load_forex_seed_and_elevations")]
+    dependencies = [("tourist", "0084_load_forex_seed_and_elevations")]
     operations = [migrations.RunPython(clear, migrations.RunPython.noop)]

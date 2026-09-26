@@ -69,5 +69,5 @@ def forwards(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [("tourist", "0082_elevation_and_forex")]
+    dependencies = [("tourist", "0083_elevation_and_forex")]
     operations = [migrations.RunPython(forwards, migrations.RunPython.noop)]

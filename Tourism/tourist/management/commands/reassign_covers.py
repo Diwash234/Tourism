@@ -65,12 +65,10 @@ def _photo_to_row(dest: Destination, photo: dict, *, is_cover: bool) -> Destinat
     # Covers are always approved so the site shows images.
     # Gallery images default to PENDING so they go through admin moderation.
     status = STATUS_APPROVED if is_cover else STATUS_PENDING
-    if is_bundled:
-        authenticity = 0.95  # curated AI landmark photos
-    elif is_postcard:
-        authenticity = 1.0  # generated, always "correct" for the name
-    else:
-        authenticity = 0.65
+    # Bundled, postcard and web images are not automatically authentic, and a
+    # fixed number here would let the canonical release gate pass on fiction.
+    # The score stays NULL until an authorised reviewer supplies one.
+    authenticity = None  # never invented: a real media review must assign this score
     return DestinationImage(
         destination=dest,
         external_url=url,

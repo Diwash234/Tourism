@@ -191,7 +191,7 @@ class Command(BaseCommand):
                     is_cover=True,
                     verification_status=DestinationImage.ImageStatus.APPROVED,
                     is_verified=True,
-                    authenticity_score=0.9,
+                    authenticity_score=None,  # never invented: a real media review must assign this score
                     attribution="AI-generated for Nepal Tourism",
                 )
                 self.stdout.write(self.style.SUCCESS(
@@ -239,7 +239,7 @@ class Command(BaseCommand):
                             is_cover=need_cover and added_this == 0,
                             verification_status=DestinationImage.ImageStatus.APPROVED,
                             is_verified=True,
-                            authenticity_score=0.6,
+                            authenticity_score=None,  # never invented: a real media review must assign this score
                             attribution=p.get("author", "Unsplash") if isinstance(p, dict) else "Unsplash",
                         )
                         seen.add(url)

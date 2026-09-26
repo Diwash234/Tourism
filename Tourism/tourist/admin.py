@@ -242,10 +242,12 @@ def _make_image(dest, photo, *, is_cover):
         return
     if "images.unsplash.com" in url:
         source = DestinationImage.Source.UNSPLASH
-        authenticity = 0.65
     else:
         source = DestinationImage.Source.ADMIN
-        authenticity = 0.5
+    # Stock-photo origin is not an authenticity judgement. Leave the score NULL
+    # so a human media review assigns it; a fixed value here would let the
+    # canonical release gate pass on an invented number.
+    authenticity = None
     DestinationImage.objects.get_or_create(
         destination=dest,
         external_url=url,
