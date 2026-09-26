@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions, viewsets
 
+from .geo_validation import distance_between, validate_fix
 from .models import (
     Destination, DestinationTransitRoute, RouteSegment, DataReport,
     DestinationAuditLog, UserRoute,
@@ -133,7 +134,45 @@ class UserRouteCalculateView(APIView):
             origin_name = resolved_origin["name"]
         olat, olng = origin
 
-        straight_line_km = haversine_distance_km(olat, olng, dlat, dlng)
+        # Validate both ends before any distance or routing call. A client that
+        # defaults to (0, 0) would otherwise receive a confident ~9000 km
+        # straight line and a route across the ocean, which is worse than an
+        # honest refusal.
+        origin_fix = validate_fix(olat, olng, source="route_origin")
+        if not origin_fix.usable:
+            return Response(
+                {
+                    "detail": "The origin coordinates are not a usable position.",
+                    "route_status": "ORIGIN_INVALID",
+                    "geo_validation": origin_fix.as_dict(),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        destination_fix = validate_fix(dlat, dlng, source="route_destination")
+        if not destination_fix.usable:
+            return Response(
+                {
+                    "detail": "The destination coordinates are not a usable position.",
+                    "route_status": "DESTINATION_INVALID",
+                    "geo_validation": destination_fix.as_dict(),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        straight_line_distance = distance_between(
+            olat, olng, dlat, dlng,
+            origin=origin_fix, destination=destination_fix,
+        )
+        if not straight_line_distance.available:
+            return Response(
+                {
+                    "detail": "Distance could not be measured from these coordinates.",
+                    "route_status": "DISTANCE_UNAVAILABLE",
+                    "geo_validation": straight_line_distance.as_dict(),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        straight_line_km = straight_line_distance.km
 
         provider_route = route_steps(olat, olng, dlat, dlng)
         if provider_route:

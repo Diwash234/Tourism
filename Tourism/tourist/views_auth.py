@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from .geo_validation import validate_fix
 from .models import EmailVerificationToken, PasswordResetOTP, PasswordResetToken, SMSVerificationToken
 from .serializers import (
     RegisterSerializer,
@@ -599,19 +600,73 @@ class UpdateLocationView(APIView):
         lat = serializer.validated_data.get("latitude")
         lon = serializer.validated_data.get("longitude")
 
-        location = resolve_location(request, gps_latitude=lat, gps_longitude=lon)
+        # Validate the fix before it is stored. A range check alone accepts
+        # null island (0, 0), a stale fix and a 2 km-accuracy fix, all of which
+        # produce confidently wrong map pins and distances.
+        fix = validate_fix(
+            lat,
+            lon,
+            source=(request.data or {}).get("source") or "gps",
+            accuracy_m=(request.data or {}).get("accuracy"),
+            recorded_at=(request.data or {}).get("recorded_at"),
+        )
         user = request.user
-        if location.get("latitude") is not None:
-            user.latitude = location["latitude"]
-        if location.get("longitude") is not None:
-            user.longitude = location["longitude"]
+
+        if not fix.usable:
+            # Record the verdict so the failure is visible and auditable, but do
+            # not overwrite a previously good position with a broken one.
+            user.gps_accuracy_m = fix.accuracy_m
+            user.gps_recorded_at = fix.recorded_at
+            user.gps_validated_at = timezone.now()
+            user.gps_validation_state = fix.quality
+            user.gps_validation_reasons = fix.reasons
+            user.save(
+                update_fields=[
+                    "gps_accuracy_m", "gps_recorded_at", "gps_validated_at",
+                    "gps_validation_state", "gps_validation_reasons",
+                ]
+            )
+            return Response(
+                {
+                    "detail": "Location could not be validated.",
+                    "geo_validation": fix.as_dict(),
+                    "position_unchanged": True,
+                },
+                status=400,
+            )
+
+        location = resolve_location(
+            request, gps_latitude=fix.latitude, gps_longitude=fix.longitude
+        )
+        # Never label a position "gps" when it did not come from GPS. The
+        # previous fallback wrote a GeoIP-derived city as if the device had
+        # supplied it, which made a desktop user look like a moving handset.
+        resolved_source = (location.get("source") or "").strip()
+        if not resolved_source:
+            resolved_source = fix.source or "gps"
+
+        user.latitude = location.get("latitude", fix.latitude)
+        user.longitude = location.get("longitude", fix.longitude)
         if location.get("country"):
             user.country = location["country"]
         if location.get("city"):
             user.city = location["city"]
-        user.location_source = location.get("source") or "gps"
-        user.save(update_fields=["latitude", "longitude", "country", "city", "location_source"])
-        return Response(UserProfileSerializer(user).data)
+        user.location_source = resolved_source
+        user.gps_accuracy_m = fix.accuracy_m
+        user.gps_recorded_at = fix.recorded_at
+        user.gps_validated_at = timezone.now()
+        user.gps_validation_state = fix.quality
+        user.gps_validation_reasons = fix.reasons + fix.warnings
+        user.save(
+            update_fields=[
+                "latitude", "longitude", "country", "city", "location_source",
+                "gps_accuracy_m", "gps_recorded_at", "gps_validated_at",
+                "gps_validation_state", "gps_validation_reasons",
+            ]
+        )
+        payload = UserProfileSerializer(user).data
+        payload["geo_validation"] = fix.as_dict()
+        return Response(payload)
 
     put = post
     patch = post

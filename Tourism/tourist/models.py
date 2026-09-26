@@ -96,6 +96,17 @@ class User(AbstractBaseUser, PermissionsMixin):
         blank=True,
     )
 
+    # --- GPS fix quality (see tourist/geo_validation.py) -------------------
+    # A coordinate pair is not automatically a position. These record how far a
+    # fix can be trusted, so navigation and distance measurement can refuse a
+    # stale, low-accuracy or null-island coordinate instead of returning a
+    # confidently wrong number.
+    gps_accuracy_m = models.FloatField(null=True, blank=True, help_text="Device-reported accuracy in metres")
+    gps_recorded_at = models.DateTimeField(null=True, blank=True, help_text="When the device took the fix")
+    gps_validated_at = models.DateTimeField(null=True, blank=True)
+    gps_validation_state = models.CharField(max_length=20, blank=True, help_text="precise / approximate / unusable")
+    gps_validation_reasons = models.JSONField(default=list, blank=True)
+
     is_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
