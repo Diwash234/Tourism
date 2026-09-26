@@ -478,6 +478,27 @@ class NavigationRouteView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # GPS coordinates supplied by the browser must pass strict validation
+        # before they can drive navigation or distance calculations.
+        if pick("start_latitude", "startLat", "start_lat", "originLat", "origin_lat", "lat", "latitude") is not None:
+            from .utils import has_valid_coordinates
+            if not has_valid_coordinates(start_lat, start_lon):
+                return Response(
+                    {"detail": "GPS coordinates are invalid or outside Nepal."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            accuracy_raw = pick("gps_accuracy_m", "accuracy", "gps_accuracy")
+            if accuracy_raw not in (None, ""):
+                try:
+                    accuracy_m = float(accuracy_raw)
+                except (TypeError, ValueError):
+                    return Response({"detail": "GPS accuracy is invalid."}, status=status.HTTP_400_BAD_REQUEST)
+                if accuracy_m <= 0 or accuracy_m > 100:
+                    return Response(
+                        {"detail": "GPS accuracy is too low for navigation. Retry until accuracy is within 100 metres."},
+                        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    )
+
         # Your Navigation.jsx sends `destination_name` (free text) rather
         # than raw coordinates — resolve it against real Destination rows
         # first. Match destination name, city, country or slug so queries like
