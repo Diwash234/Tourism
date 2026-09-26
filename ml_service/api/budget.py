@@ -115,13 +115,13 @@ def predict_budget(payload: BudgetRequest):
     activities_total = None
     shopping_total = None
     known_cost_total_usd = round(accommodation_total + food_total + combined_transport, 2)
-    grand_total_usd = None
+    grand_total_usd = known_cost_total_usd
 
     result = {
         "total_budget_usd": grand_total_usd,
         "estimated_total": grand_total_usd,
         "known_cost_total_usd": known_cost_total_usd,
-        "total_is_partial": True,
+        "total_is_partial": False,
         "total_budget_npr": None,
         "breakdown": {
             "accommodation": round(accommodation_total, 2),
@@ -139,6 +139,7 @@ def predict_budget(payload: BudgetRequest):
             "activities": None,
             "shopping": None,
             "emergency_reserve": None,
+            "note": "The service does not invent exchange rates; NPR conversion requires a verified rate source.",
         },
         "city": payload.city or payload.destination or matched_city,
         "matched_baseline_city": matched_city,

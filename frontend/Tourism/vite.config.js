@@ -1,5 +1,7 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
+import { readFileSync, writeFileSync, existsSync } from 'node:fs'
+import path from 'node:path'
 
 const noStaleReactChunks = {
   name: 'no-stale-react-chunks',
@@ -24,33 +26,71 @@ const noStaleReactChunks = {
 // build time we inject absolute canonical/og:url/JSON-LD for the home
 // document; otherwise nothing is injected and useSeo() derives canonical URLs
 // from window.location.origin at runtime.
-const siteMetadata = (siteUrl) => ({
-  name: 'site-metadata',
-  transformIndexHtml(html) {
-    const base = (siteUrl || '').trim().replace(/\/+$/, '')
-    if (!/^https:\/\/[^\s"'<>]+$/.test(base)) return html
-    const jsonLd = {
-      '@context': 'https://schema.org',
-      '@graph': [
-        { '@type': 'Organization', '@id': `${base}/#organization`, name: 'Nepal Yatra', url: `${base}/`, logo: `${base}/favicon.svg` },
-        {
-          '@type': 'WebSite', '@id': `${base}/#website`, url: `${base}/`, name: 'Nepal Yatra',
-          publisher: { '@id': `${base}/#organization` },
-          potentialAction: { '@type': 'SearchAction', target: `${base}/destinations?q={search_term_string}`, 'query-input': 'required name=search_term_string' },
-        },
-      ],
-    }
-    return {
-      html,
-      tags: [
-        { tag: 'link', attrs: { rel: 'canonical', href: `${base}/` }, injectTo: 'head' },
-        { tag: 'meta', attrs: { property: 'og:url', content: `${base}/` }, injectTo: 'head' },
-        { tag: 'meta', attrs: { name: 'twitter:url', content: `${base}/` }, injectTo: 'head' },
-        { tag: 'script', attrs: { type: 'application/ld+json' }, children: JSON.stringify(jsonLd), injectTo: 'head' },
-      ],
-    }
-  },
-})
+const siteMetadata = (siteUrl) => {
+  // Vite invokes hooks with a rollup context, not the plugin object, so shared
+  // state has to live in this closure rather than on `this`.
+  let outDir = null
+  const base = (siteUrl || '').trim().replace(/\/+$/, '')
+  const configured = /^https:\/\/[^\s"'<>]+$/.test(base)
+
+  return {
+    name: 'site-metadata',
+    configResolved(resolved) {
+      outDir = resolved.build.outDir
+    },
+    transformIndexHtml(html) {
+      if (!configured) return html
+      const jsonLd = {
+        '@context': 'https://schema.org',
+        '@graph': [
+          { '@type': 'Organization', '@id': `${base}/#organization`, name: 'Nepal Yatra', url: `${base}/`, logo: `${base}/favicon.svg` },
+          {
+            '@type': 'WebSite', '@id': `${base}/#website`, url: `${base}/`, name: 'Nepal Yatra',
+            publisher: { '@id': `${base}/#organization` },
+            potentialAction: { '@type': 'SearchAction', target: `${base}/destinations?q={search_term_string}`, 'query-input': 'required name=search_term_string' },
+          },
+        ],
+      }
+      return {
+        html,
+        tags: [
+          { tag: 'link', attrs: { rel: 'canonical', href: `${base}/` }, injectTo: 'head' },
+          { tag: 'meta', attrs: { property: 'og:url', content: `${base}/` }, injectTo: 'head' },
+          { tag: 'meta', attrs: { name: 'twitter:url', content: `${base}/` }, injectTo: 'head' },
+          { tag: 'script', attrs: { type: 'application/ld+json' }, children: JSON.stringify(jsonLd), injectTo: 'head' },
+        ],
+      }
+    },
+
+    // robots.txt and sitemap.xml ship from public/ verbatim, so they cannot go
+    // through transformIndexHtml. Both are stored with site-relative URLs (the
+    // source must never hardcode a domain), but sitemaps.org requires <loc> to
+    // be an absolute URL and robots.txt expects an absolute Sitemap: directive
+    // -- relative values can cause the whole sitemap to be ignored. Rewrite
+    // them at build time from the same VITE_SITE_URL that drives
+    // canonical/og/JSON-LD, so all four stay consistent.
+    closeBundle() {
+      if (!configured || !outDir) return
+      const out = path.resolve(outDir)
+
+      const sitemap = path.join(out, 'sitemap.xml')
+      if (existsSync(sitemap)) {
+        writeFileSync(
+          sitemap,
+          readFileSync(sitemap, 'utf8').replace(/<loc>\/(?![/])/g, `<loc>${base}/`),
+        )
+      }
+
+      const robots = path.join(out, 'robots.txt')
+      if (existsSync(robots)) {
+        writeFileSync(
+          robots,
+          readFileSync(robots, 'utf8').replace(/^Sitemap:\s*\//gm, `Sitemap: ${base}/`),
+        )
+      }
+    },
+  }
+}
 
 // Split heavy vendor libraries into their own cacheable chunks.
 const manualChunks = (id) => {

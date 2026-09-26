@@ -17,6 +17,20 @@ export function isRecorded(value) {
   return recordedText(value, "") !== ""
 }
 
+export function validateGpsPosition(position, maxAccuracyM = 100) {
+  if (!position || !hasValidCoords(position.lat, position.lng)) {
+    return { valid: false, reason: "GPS coordinates are invalid or outside Nepal." }
+  }
+  const accuracy = Number(position.accuracy)
+  if (!Number.isFinite(accuracy) || accuracy <= 0) {
+    return { valid: false, reason: "GPS accuracy is unavailable." }
+  }
+  if (accuracy > maxAccuracyM) {
+    return { valid: false, reason: `GPS accuracy is too low (±${Math.round(accuracy)} m). Move to an open area and retry.` }
+  }
+  return { valid: true, accuracyM: accuracy }
+}
+
 export function hasValidCoords(lat, lng) {
   const latitude = Number(lat)
   const longitude = Number(lng)

@@ -13,6 +13,14 @@ from .models import (User, Category, Destination, Hotel, Review, EmailVerificati
                      ContentProposal, DuplicateDecision, CMSRevision, DestinationAuditLog)
 
 
+class GPSNavigationValidationTests(TestCase):
+    def test_shared_gps_coordinate_validation(self):
+        from .utils import has_valid_coordinates
+        self.assertTrue(has_valid_coordinates(27.7172, 85.3240))
+        self.assertFalse(has_valid_coordinates(10, 85.3240))
+        self.assertFalse(has_valid_coordinates(27.7172, 95))
+
+
 class AuthTests(APITestCase):
     def setUp(self):
         # Django's test runner shares the locmem cache across the whole
@@ -3828,8 +3836,11 @@ class OpsLayerTests(TestCase):
         self.assertGreaterEqual(text.count("FAIL  "), 3)  # loud on the dev config
         self.assertNotIn(str(settings.SECRET_KEY)[:20], text)  # secret never printed
 
-    # A shape that counts as production: real email delivery and a real routing
-    # provider are part of that claim, so the validator now requires them.
+    # A shape that counts as production. The contract has tightened twice: real
+    # email delivery and a road-routing provider, then OAuth, a live weather
+    # key and the official hazard feeds. Each of those is a capability the site
+    # would otherwise advertise while being unable to deliver it, so a config
+    # missing any of them is not a production config.
     PRODUCTION_SHAPE = {
         "DEBUG": False,
         "SECRET_KEY": "p" * 64,
@@ -3841,7 +3852,12 @@ class OpsLayerTests(TestCase):
         "EMAIL_HOST_USER": "smtp-user",
         "EMAIL_HOST_PASSWORD": "smtp-password",
         "DEFAULT_FROM_EMAIL": "no-reply@tourism.example.org",
-        "ROUTING_API_URL": "https://router.example.org",
+        "ROUTING_BASE_URL": "https://router.example.org",
+        "GOOGLE_CLIENT_ID": "google-client-id",
+        "GITHUB_CLIENT_ID": "github-client-id",
+        "OPENWEATHER_API_KEY": "openweather-key",
+        "DHM_FEED_URL": "https://dhm.example.org/feed",
+        "BIPAD_FEED_URL": "https://bipad.example.org/feed",
     }
     POSTGRES = {"default": {"ENGINE": "django.db.backends.postgresql", "NAME": "tourism"}}
 
@@ -3879,14 +3895,46 @@ class OpsLayerTests(TestCase):
         import io
         from django.core.management import call_command
         out = io.StringIO()
-        shape = {**self.PRODUCTION_SHAPE, "ROUTING_API_URL": ""}
+        shape = {**self.PRODUCTION_SHAPE, "ROUTING_BASE_URL": "", "ROUTING_API_URL": ""}
         with self.settings(**shape, DATABASES=self.POSTGRES):
             with self.assertRaises(SystemExit):
                 call_command("validate_production_config", stdout=out)
         text = out.getvalue()
         self.assertIn("RESULT: FAIL", text)
-        self.assertIn("ROUTING_API_URL", text)
+        self.assertIn("ROUTING_BASE_URL", text)
         self.assertIn("verified road routing", text)
+
+    def test_config_validator_blocks_missing_oauth(self):
+        """Unconfigured social sign-in must not pass as a production config."""
+        import io
+        from django.core.management import call_command
+        out = io.StringIO()
+        shape = {**self.PRODUCTION_SHAPE, "GOOGLE_CLIENT_ID": "", "GITHUB_CLIENT_ID": ""}
+        with self.settings(**shape, DATABASES=self.POSTGRES):
+            with self.assertRaises(SystemExit):
+                call_command("validate_production_config", stdout=out)
+        text = out.getvalue()
+        self.assertIn("RESULT: FAIL", text)
+        self.assertIn("OAuth", text)
+
+    def test_config_validator_blocks_missing_weather_and_hazard_feeds(self):
+        """Live weather and the official hazard feeds back traveller-safety
+        claims, so an unconfigured instance must not be declared production."""
+        import io
+        from django.core.management import call_command
+
+        for missing, expected in (
+            ({"OPENWEATHER_API_KEY": ""}, "OPENWEATHER_API_KEY"),
+            ({"DHM_FEED_URL": "", "BIPAD_FEED_URL": ""}, "DHM_FEED_URL"),
+        ):
+            with self.subTest(missing=sorted(missing)):
+                out = io.StringIO()
+                with self.settings(**{**self.PRODUCTION_SHAPE, **missing}, DATABASES=self.POSTGRES):
+                    with self.assertRaises(SystemExit):
+                        call_command("validate_production_config", stdout=out)
+                text = out.getvalue()
+                self.assertIn("RESULT: FAIL", text)
+                self.assertIn(expected, text)
 
     def test_config_validator_passes_on_production_shape(self):
         import io

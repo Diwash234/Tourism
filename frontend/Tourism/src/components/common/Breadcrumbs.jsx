@@ -28,13 +28,13 @@ export default function Breadcrumbs({ items = [] }) {
         "@type": "ListItem",
         "position": 1,
         "name": "Home",
-        "item": "https://nepaltourism.gov.np/",
+        "item": "/",
       },
       ...breadcrumbs.map((b, i) => ({
         "@type": "ListItem",
         "position": i + 2,
         "name": b.label,
-        "item": `https://nepaltourism.gov.np${b.to}`,
+        "item": `${b.to}`,
       })),
     ],
   }
