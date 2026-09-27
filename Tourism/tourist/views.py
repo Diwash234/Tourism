@@ -2031,11 +2031,20 @@ class NearbyPOIsView(APIView):
         for dest in qs:
             distance = haversine_distance(lat, lon, dest.latitude, dest.longitude)
             if distance <= radius_km:
+                # A distance is only as precise as the pin it points at. A
+                # destination recorded to two decimals is a town centre good to
+                # about a kilometre, so publishing "0.34 km" without the
+                # uncertainty would state more precision than the data has.
+                from .coordinate_accuracy import classify_precision, resolution_km
+
                 db_rows.append({
                     "name": dest.name,
                     "latitude": float(dest.latitude),
                     "longitude": float(dest.longitude),
                     "distance_km": round(distance, 2),
+                    "coordinate_accuracy": dest.coordinate_accuracy
+                    or classify_precision(dest.latitude, dest.longitude),
+                    "distance_uncertainty_km": resolution_km(dest.latitude, dest.longitude),
                     "slug": dest.slug,
                     "source": "Tourism database (admin-verified)",
                     "source_url": f"/destinations/{dest.slug}",

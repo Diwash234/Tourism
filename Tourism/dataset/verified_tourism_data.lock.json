@@ -2,11 +2,11 @@
   "artifacts": {
     "database": {
       "path": "downloads/nepal-tourism-database.sqlite3.gz",
-      "sha256": "11e457bd5fd2a95dddffab0f5c0177847da2ac2e76c23f06fa5082d1b833edcc"
+      "sha256": "85f3e2316bf617d0e5940c142192e7c20dae455a4b3cd98b30c11ec457058376"
     },
     "json": {
       "path": "Tourism/dataset/verified_tourism_data.json",
-      "sha256": "8812a4e309c3738d8e9d29aeb109d202c12a636d25e56e69d1971aac18420524"
+      "sha256": "2c886a2053a6a4d6537a49fc1cfbd78c851fd994e7cc7d0e3f31cfc165eb37d4"
     }
   },
   "as_of": "2026-09-27T00:00:00+00:00",
@@ -31,5 +31,5 @@
   "format": "nepal-yatra-public-data-snapshot-lock",
   "format_version": 1,
   "minimum_tourist_migration": "0080_backfill_managed_page_snapshots",
-  "records_sha256": "36ba7e9955647af4a84aa76f9a5e690e8f79a692bfd30d538770c2328a312f41"
+  "records_sha256": "b7e73b640298ff3075529a23ebc901772fad2fde079bbe2d7702e5b1bc125dff"
 }
