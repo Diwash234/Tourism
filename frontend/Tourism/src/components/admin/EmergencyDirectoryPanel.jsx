@@ -15,7 +15,7 @@ const KINDS = [
 
 const empty = {
   kind: "hospital", name: "", phone: "", address: "", city: "",
-  district: "", province: "", latitude: "", longitude: "", source_url: "", opening_hours: "",
+  district: "", province: "", latitude: "", longitude: "", source_url: "", website: "", opening_hours: "",
 }
 
 export default function EmergencyDirectoryPanel() {
@@ -101,7 +101,7 @@ export default function EmergencyDirectoryPanel() {
     setEditForm({
       name: row.name || "", phone: row.phone || "", address: row.address || "",
       district: row.district || "", opening_hours: row.opening_hours || "",
-      source_name: row.source_name || "", source_url: row.source_url || "",
+      source_name: row.source_name || "", source_url: row.source_url || "", website: row.website || "",
       latitude: row.latitude ?? "", longitude: row.longitude ?? "",
     })
   }
@@ -212,7 +212,7 @@ export default function EmergencyDirectoryPanel() {
               <div key={`${row.kind}-${row.id}`} className="rounded-xl border border-slate-200 p-3">
                 <p className="font-bold text-slate-900">{row.name}</p>
                 <p className="text-xs text-slate-500">{row.kind} · {row.district || row.destination_name || "Nepal"} · {row.phone || "no phone"}{row.is_archived ? " · archived" : ""}{row.verified ? " · verified" : ""}</p>
-                <p className="text-xs text-slate-500">{row.latitude}, {row.longitude}</p>
+                <p className="text-xs text-slate-500">{row.latitude}, {row.longitude}</p>{row.website && <a href={row.website} target="_blank" rel="noreferrer" className="text-xs font-semibold text-blue-700 underline">Official website</a>}
                  <p className="text-[10px] text-slate-400">Source: {row.source_name || "Not recorded"} · Updated {row.updated_at ? new Date(row.updated_at).toLocaleString() : "unknown"}</p>
                  <div className="flex gap-2 mt-2">
                    <button type="button" onClick={() => openEdit(row)} className="inline-flex items-center gap-1 text-xs font-bold text-slate-700"><FiEdit3 /> Edit</button>
@@ -246,7 +246,7 @@ export default function EmergencyDirectoryPanel() {
               <label className="text-xs font-bold">District<input className="input-field mt-1" value={editForm.district} onChange={(e) => setEditForm({ ...editForm, district: e.target.value })} /></label>
               <label className="text-xs font-bold">Opening hours<input className="input-field mt-1" value={editForm.opening_hours} onChange={(e) => setEditForm({ ...editForm, opening_hours: e.target.value })} /></label>
               <label className="text-xs font-bold">Source name<input className="input-field mt-1" value={editForm.source_name} onChange={(e) => setEditForm({ ...editForm, source_name: e.target.value })} /></label>
-              <label className="text-xs font-bold">Source URL<input type="url" className="input-field mt-1" value={editForm.source_url} onChange={(e) => setEditForm({ ...editForm, source_url: e.target.value })} /></label>
+              <label className="text-xs font-bold">Official website<input type="url" className="input-field mt-1" value={editForm.website} onChange={(e) => setEditForm({ ...editForm, website: e.target.value })} placeholder="https://hospital.example.np" /></label><label className="text-xs font-bold">Source URL<input type="url" className="input-field mt-1" value={editForm.source_url} onChange={(e) => setEditForm({ ...editForm, source_url: e.target.value })} /></label>
               <label className="text-xs font-bold">Latitude<input required type="number" step="any" className="input-field mt-1" value={editForm.latitude} onChange={(e) => setEditForm({ ...editForm, latitude: e.target.value })} /></label>
               <label className="text-xs font-bold">Longitude<input required type="number" step="any" className="input-field mt-1" value={editForm.longitude} onChange={(e) => setEditForm({ ...editForm, longitude: e.target.value })} /></label>
             </div>
