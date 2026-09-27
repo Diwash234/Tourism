@@ -28,7 +28,7 @@ provenance) are listed there.
 
 | Check | Result |
 |---|---|
-| Backend CI job, reproduced step by step from `ci.yml` | `manage.py check` ✓ · published snapshot verification ✓ · fresh-clone seed install + `migrate --check` ✓ (seed archive rebuilt at migration `0093_archive_duplicate_baidam_police_station`) · **822 tests passed, 0 failed** (`manage.py test --parallel 1`, 2026-09-27, after migration conflict resolution). Live NRB fetches are switched off under `manage.py test` (`FX_AUTO_REFRESH`), so results never depend on the network or on today's rate. `ml_service/test_api_bounds.py`: 11 passed (unchanged since). |
+| Backend CI job, reproduced step by step from `ci.yml` | `manage.py check` ✓ · published snapshot verification ✓ · fresh-clone seed install + `migrate --check` ✓ (seed archive rebuilt at migration `0093_archive_duplicate_baidam_police_station`) · **823 tests passed, 0 failed** (`manage.py test --parallel 1`, 2026-09-27, after migration conflict resolution). Live NRB fetches are switched off under `manage.py test` (`FX_AUTO_REFRESH`), so results never depend on the network or on today's rate. `ml_service/test_api_bounds.py`: 11 passed (unchanged since). |
 | ESLint (`npm run lint`, i.e. `eslint .` as in CI) | **0 errors, 255 existing warnings** (2026-09-27). |
 | `npm run verify:charts` · `npm run build` | Both OK. Canonical/OG tags only appear when `VITE_SITE_URL` is an https origin. |
 | Layout e2e (`e2e/layout.spec.js`) | **266/266 passed** against the full 6,075-destination seeded dataset at 19 routes × 14 widths, Chromium, 2 workers (2026-09-27, 20.5 min). The overlap audit uses client-rect fragments so wrapped inline links are measured as rendered rather than as a false union box. |

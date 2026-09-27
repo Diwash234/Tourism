@@ -100,6 +100,30 @@ class Command(BaseCommand):
         else:
             warns.append(f"Email backend is {email_backend or 'unset'}: verify that it performs real delivery")
 
+        weather_key = str(getattr(settings, "OPENWEATHER_API_KEY", "") or "").strip()
+        if not weather_key or weather_key.lower() in PLACEHOLDERS or weather_key.lower().startswith("your_"):
+            fails.append("OPENWEATHER_API_KEY is missing: production weather must be unavailable rather than claimed live")
+        else:
+            oks.append("Weather provider credential present: value never printed")
+
+        alert_feeds = []
+        for prefix, label in (("DHM", "DHM"), ("BIPAD", "BIPAD")):
+            feed_url = str(getattr(settings, f"{prefix}_FEED_URL", "") or "").strip()
+            feed_key = str(getattr(settings, f"{prefix}_API_KEY", "") or "").strip()
+            if not feed_url and not feed_key:
+                continue
+            parsed_feed = urlparse(feed_url)
+            if parsed_feed.scheme != "https" or not parsed_feed.netloc:
+                fails.append(f"{label}_FEED_URL must be an HTTPS URL when enabled")
+            elif not feed_key:
+                fails.append(f"{label}_API_KEY is required when {label}_FEED_URL is enabled")
+            else:
+                alert_feeds.append(label)
+        if alert_feeds:
+            oks.append("Authoritative alert feed configured: " + ", ".join(alert_feeds))
+        else:
+            fails.append("No authoritative alert feed configured: set DHM_FEED_URL plus DHM_API_KEY or BIPAD_FEED_URL plus BIPAD_API_KEY")
+
         geoip_url = str(getattr(settings, "GEOIP_PROVIDER_URL", "") or "").strip()
         if geoip_url:
             parsed_geoip = urlparse(geoip_url)

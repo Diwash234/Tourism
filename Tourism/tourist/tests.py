@@ -3870,6 +3870,9 @@ class OpsLayerTests(TestCase):
         "EMAIL_HOST_USER": "smtp-user",
         "EMAIL_HOST_PASSWORD": "smtp-password",
         "DEFAULT_FROM_EMAIL": "no-reply@tourism.example.org",
+        "OPENWEATHER_API_KEY": "real-weather-key",
+        "DHM_FEED_URL": "https://alerts.example.org/feed",
+        "DHM_API_KEY": "real-alert-key",
         "ROUTING_BASE_URL": "https://router.example.org",
     }
     POSTGRES = {"default": {"ENGINE": "django.db.backends.postgresql", "NAME": "tourism"}}
@@ -3901,6 +3904,18 @@ class OpsLayerTests(TestCase):
         text = out.getvalue()
         self.assertIn("RESULT: FAIL", text)
         self.assertIn("SMTP", text)
+
+    def test_config_validator_blocks_missing_weather_and_alert_providers(self):
+        import io
+        from django.core.management import call_command
+        out = io.StringIO()
+        shape = {**self.PRODUCTION_SHAPE, "OPENWEATHER_API_KEY": "", "DHM_FEED_URL": "", "DHM_API_KEY": ""}
+        with self.settings(**shape, DATABASES=self.POSTGRES):
+            with self.assertRaises(SystemExit):
+                call_command("validate_production_config", stdout=out)
+        text = out.getvalue()
+        self.assertIn("OPENWEATHER_API_KEY is missing", text)
+        self.assertIn("No authoritative alert feed configured", text)
 
     def test_config_validator_blocks_plain_http_geoip_provider(self):
         import io
