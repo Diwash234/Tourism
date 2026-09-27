@@ -34,6 +34,7 @@ class ImageHit:
     thumbnail: str = ""
     source: str = "wikimedia"          # wikimedia | duckduckgo | openverse
     source_page: str = ""
+    source_page_url: str = ""
     author: str = ""
     license: str = ""
     title: str = ""
@@ -77,6 +78,7 @@ def search_wikimedia(query: str, limit: int = 15) -> List[ImageHit]:
                 thumbnail=ii.get("thumburl") or ii.get("url", ""),
                 source="wikimedia",
                 source_page=page.get("fullurl", ""),
+                source_page_url=ii.get("descriptionurl", ""),
                 author=_strip_html(meta.get("Artist", {}).get("value", "")),
                 license=meta.get("LicenseShortName", {}).get("value", "CC BY-SA"),
                 title=page.get("title", ""),
