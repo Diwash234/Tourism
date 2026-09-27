@@ -30,6 +30,7 @@ export default function EmergencyDirectoryPanel() {
   const [pages, setPages] = useState(1)
   const [editing, setEditing] = useState(null)
   const [editForm, setEditForm] = useState({})
+  const [editImage, setEditImage] = useState(null)
   const [loading, setLoading] = useState(true)
   const [lastUpdatedSec, setLastUpdatedSec] = useState(0)
 
@@ -101,7 +102,7 @@ export default function EmergencyDirectoryPanel() {
     setEditForm({
       name: row.name || "", phone: row.phone || "", address: row.address || "",
       district: row.district || "", opening_hours: row.opening_hours || "",
-      source_name: row.source_name || "", source_url: row.source_url || "", website: row.website || "",
+      source_name: row.source_name || "", source_url: row.source_url || "", website: row.website || "", image_url: row.image_url || "",
       latitude: row.latitude ?? "", longitude: row.longitude ?? "",
     })
   }
@@ -109,9 +110,10 @@ export default function EmergencyDirectoryPanel() {
   const saveEdit = async (event) => {
     event.preventDefault()
     try {
-      await adminApi.updateEmergencyDirectory({ kind: editing.kind, id: editing.id, ...editForm, action: "update" })
+      const payload = editImage ? (() => { const body = new FormData(); Object.entries({ kind: editing.kind, id: editing.id, ...editForm, action: "update" }).forEach(([key, value]) => { if (value !== "" && value != null && key !== "image_url") body.append(key, value) }); body.append("image", editImage); return body })() : { kind: editing.kind, id: editing.id, ...editForm, action: "update" }; await adminApi.updateEmergencyDirectory(payload)
       showToast("Emergency record updated", "success")
       setEditing(null)
+      setEditImage(null)
       load(page)
     } catch (error) {
       showToast(error.response?.data?.detail || "Could not update record", "error")
@@ -246,7 +248,7 @@ export default function EmergencyDirectoryPanel() {
               <label className="text-xs font-bold">District<input className="input-field mt-1" value={editForm.district} onChange={(e) => setEditForm({ ...editForm, district: e.target.value })} /></label>
               <label className="text-xs font-bold">Opening hours<input className="input-field mt-1" value={editForm.opening_hours} onChange={(e) => setEditForm({ ...editForm, opening_hours: e.target.value })} /></label>
               <label className="text-xs font-bold">Source name<input className="input-field mt-1" value={editForm.source_name} onChange={(e) => setEditForm({ ...editForm, source_name: e.target.value })} /></label>
-              <label className="text-xs font-bold">Official website<input type="url" className="input-field mt-1" value={editForm.website} onChange={(e) => setEditForm({ ...editForm, website: e.target.value })} placeholder="https://hospital.example.np" /></label><label className="text-xs font-bold">Source URL<input type="url" className="input-field mt-1" value={editForm.source_url} onChange={(e) => setEditForm({ ...editForm, source_url: e.target.value })} /></label>
+              <label className="text-xs font-bold">Facility image<input type="file" accept="image/jpeg,image/png,image/webp" className="input-field mt-1" onChange={(e) => setEditImage(e.target.files?.[0] || null)} /></label><label className="text-xs font-bold">Official website<input type="url" className="input-field mt-1" value={editForm.website} onChange={(e) => setEditForm({ ...editForm, website: e.target.value })} placeholder="https://hospital.example.np" /></label><label className="text-xs font-bold">Source URL<input type="url" className="input-field mt-1" value={editForm.source_url} onChange={(e) => setEditForm({ ...editForm, source_url: e.target.value })} /></label>
               <label className="text-xs font-bold">Latitude<input required type="number" step="any" className="input-field mt-1" value={editForm.latitude} onChange={(e) => setEditForm({ ...editForm, latitude: e.target.value })} /></label>
               <label className="text-xs font-bold">Longitude<input required type="number" step="any" className="input-field mt-1" value={editForm.longitude} onChange={(e) => setEditForm({ ...editForm, longitude: e.target.value })} /></label>
             </div>
