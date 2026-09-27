@@ -169,12 +169,13 @@ def run_all_checks() -> dict[str, Any]:
     ml = _ml_check()
     overpass = _http_check("https://overpass-api.de/api/interpreter?data=%5Bout:json%5D;node(1);out;", timeout=3.0)
     wikimedia = _http_check("https://commons.wikimedia.org/w/api.php?action=query&meta=siteinfo&siprop=general&format=json", timeout=3.0)
-    dhm = _http_check(settings.DHM_FEED_URL, timeout=3.0) if settings.DHM_FEED_URL else {"ok": True, "configured": False, "note": "DHM feed not configured"}
-    bipad = _http_check(settings.BIPAD_FEED_URL, timeout=3.0) if settings.BIPAD_FEED_URL else {"ok": True, "configured": False, "note": "BIPAD feed not configured"}
-    routing = _http_check(settings.ROUTING_API_URL, timeout=3.0) if settings.ROUTING_API_URL else {"ok": True, "configured": False, "note": "Road routing not configured"}
+    dhm = _http_check(settings.DHM_FEED_URL, timeout=3.0) if settings.DHM_FEED_URL else {"ok": False, "configured": False, "note": "DHM feed not configured"}
+    bipad = _http_check(settings.BIPAD_FEED_URL, timeout=3.0) if settings.BIPAD_FEED_URL else {"ok": False, "configured": False, "note": "BIPAD feed not configured"}
+    routing_url = (getattr(settings, "ROUTING_BASE_URL", "") or getattr(settings, "ROUTING_API_URL", "")).strip()
+    routing = _http_check(routing_url, timeout=3.0) if routing_url else {"ok": False, "configured": False, "note": "Road routing not configured"}
     backup = _backup_check()
 
-    overall_ok = db["ok"] and disk["ok"] and media["ok"] and backup["ok"]
+    overall_ok = db["ok"] and disk["ok"] and media["ok"] and backup["ok"] and dhm["ok"] and bipad["ok"] and routing["ok"]
     if errs.get("errors_per_minute", 0) > 10:
         overall_ok = False
 
