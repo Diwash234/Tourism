@@ -1,4 +1,4 @@
-import logging
+﻿import logging
 from datetime import timedelta
 
 import secrets
@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from .geo_validation import validate_fix
 from .models import EmailVerificationToken, PasswordResetOTP, PasswordResetToken, SMSVerificationToken
 from .serializers import (
     RegisterSerializer,
@@ -35,7 +36,7 @@ User = get_user_model()
 TOKEN_LIFETIME_HOURS = 24
 
 # Auth-audit logger. Logs WHICH account an action was denied for (email
-# only — never the password) so "my correct password is rejected" reports
+# only â€” never the password) so "my correct password is rejected" reports
 # can be diagnosed from the server log alone.
 logger = logging.getLogger("tourist.auth")
 
@@ -86,13 +87,13 @@ class LoginView(APIView):
 
     SimpleJWT's stock view lumps "unknown email", "wrong password" and
     "deactivated account" into one vague 401 ("No active account found
-    with the given credentials") — which made it look like login was
+    with the given credentials") â€” which made it look like login was
     broken for correct credentials too. This view reports exactly what
     is wrong and points at the fix:
 
-      404 email_not_found      → sign up first
-      403 account_deactivated  → contact support
-      401 wrong_password       → try again / forgot password
+      404 email_not_found      â†’ sign up first
+      403 account_deactivated  â†’ contact support
+      401 wrong_password       â†’ try again / forgot password
       200 (+verification_required when email unverified)
     """
 
@@ -196,7 +197,7 @@ class ResendVerificationByEmailView(APIView):
         if cache.get(key):
             return Response(
                 {
-                    "detail": "A verification email was sent recently — please wait a minute, "
+                    "detail": "A verification email was sent recently â€” please wait a minute, "
                               "then check your inbox (and spam folder)."
                 },
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -206,7 +207,7 @@ class ResendVerificationByEmailView(APIView):
         cache.set(key, 1, 60)
         return Response(
             {
-                "message": f"Verification link sent to {email} — check your inbox (and spam folder). "
+                "message": f"Verification link sent to {email} â€” check your inbox (and spam folder). "
                            f"It expires in {TOKEN_LIFETIME_HOURS} hours."
             }
         )
@@ -465,7 +466,7 @@ class ResetPasswordOtpRequestView(APIView):
                 f"Your one-time password reset code: {code}\n\n"
                 f"Enter it on the 'Forgot password' page. It expires in {RESET_OTP_TTL_MINUTES} minutes.\n\n"
                 "If you did not request this, you can ignore this message.\n"
-                "— Tourism Portal",
+                "â€” Tourism Portal",
             )
 
         otp = PasswordResetOTP.objects.create(
@@ -531,7 +532,7 @@ class ResetPasswordOtpVerifyView(APIView):
         otp.is_used = True
         otp.save(update_fields=["is_used"])
 
-        # Revoke all active sessions for this account — the whole point is
+        # Revoke all active sessions for this account â€” the whole point is
         # that after a reset only the NEW password works anywhere.
         try:
             from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
@@ -561,7 +562,7 @@ class ChangePasswordView(APIView):
         user.save(update_fields=["password"])
 
         # Revoke every session (this one included) so the user must log in
-        # again with the new password — the old password stops working
+        # again with the new password â€” the old password stops working
         # everywhere, immediately.
         try:
             from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
@@ -598,9 +599,52 @@ class UpdateLocationView(APIView):
         serializer.is_valid(raise_exception=True)
         lat = serializer.validated_data.get("latitude")
         lon = serializer.validated_data.get("longitude")
-
-        location = resolve_location(request, gps_latitude=lat, gps_longitude=lon)
         user = request.user
+
+        # Validate the fix before it is stored. A range check alone accepts
+        # null island (0, 0), a stale fix and a 2 km-accuracy fix, all of which
+        # produce confidently wrong map pins and distances.
+        fix = validate_fix(
+            lat,
+            lon,
+            source=(request.data or {}).get("source") or "gps",
+            accuracy_m=(request.data or {}).get("accuracy"),
+            recorded_at=(request.data or {}).get("recorded_at"),
+        )
+
+        if not fix.usable:
+            # Record the verdict so the failure is visible and auditable, but do
+            # not overwrite a previously good position with a broken one.
+            user.gps_accuracy_m = fix.accuracy_m
+            user.gps_recorded_at = fix.recorded_at
+            user.gps_validated_at = timezone.now()
+            user.gps_validation_state = fix.quality
+            user.gps_validation_reasons = fix.reasons
+            user.save(
+                update_fields=[
+                    "gps_accuracy_m", "gps_recorded_at", "gps_validated_at",
+                    "gps_validation_state", "gps_validation_reasons",
+                ]
+            )
+            return Response(
+                {
+                    "detail": "Location could not be validated.",
+                    "geo_validation": fix.as_dict(),
+                    "position_unchanged": True,
+                },
+                status=400,
+            )
+
+        location = resolve_location(
+            request, gps_latitude=fix.latitude, gps_longitude=fix.longitude
+        )
+        # Never label a position "gps" when it did not come from GPS. The
+        # previous fallback wrote a GeoIP-derived city as if the device had
+        # supplied it, which made a desktop user look like a moving handset.
+        resolved_source = (location.get("source") or "").strip()
+        if not resolved_source:
+            resolved_source = fix.source or "gps"
+
         if location.get("latitude") is not None:
             user.latitude = location["latitude"]
         if location.get("longitude") is not None:
@@ -609,9 +653,22 @@ class UpdateLocationView(APIView):
             user.country = location["country"]
         if location.get("city"):
             user.city = location["city"]
-        user.location_source = location.get("source") or "gps"
-        user.save(update_fields=["latitude", "longitude", "country", "city", "location_source"])
-        return Response(UserProfileSerializer(user).data)
+        user.location_source = resolved_source
+        user.gps_accuracy_m = fix.accuracy_m
+        user.gps_recorded_at = fix.recorded_at
+        user.gps_validated_at = timezone.now()
+        user.gps_validation_state = fix.quality
+        user.gps_validation_reasons = fix.reasons + fix.warnings
+        user.save(
+            update_fields=[
+                "latitude", "longitude", "country", "city", "location_source",
+                "gps_accuracy_m", "gps_recorded_at", "gps_validated_at",
+                "gps_validation_state", "gps_validation_reasons",
+            ]
+        )
+        payload = UserProfileSerializer(user).data
+        payload["geo_validation"] = fix.as_dict()
+        return Response(payload)
 
     put = post
     patch = post

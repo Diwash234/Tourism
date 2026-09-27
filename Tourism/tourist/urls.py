@@ -10,6 +10,7 @@ from . import views_discovery
 from . import views_districts
 from . import views_family_safety
 from . import views_images
+from . import views_weather
 from . import views_media_review
 from . import views_itinerary
 from .field_verification import FieldVerificationTaskViewSet
@@ -265,6 +266,9 @@ urlpatterns = [
     path("admin/media-review/capabilities", views_media_review.MediaReviewCapabilitiesView.as_view(), name="admin-media-review-capabilities"),
     path("admin/media-review/queue", views_media_review.MediaReviewQueueView.as_view(), name="admin-media-review-queue"),
     path("admin/media-review/delegation", views_media_review.MediaReviewDelegationView.as_view(), name="admin-media-review-delegation"),
+    # --- Live weather: real provider data, or an explicit "unavailable" ------
+    path("weather/provider", views_weather.WeatherProviderStatusView.as_view(), name="weather-provider-status"),
+    path("weather/", views_weather.PublicWeatherView.as_view(), name="public-weather"),
     path("admin/media-review/<int:image_id>", views_media_review.MediaReviewDetailView.as_view(), name="admin-media-review-detail"),
     path("admin/media-review/<int:image_id>/score", views_media_review.MediaReviewScoreView.as_view(), name="admin-media-review-score"),
     path("admin/destinations/<int:id>/videos", views_admin.AdminDestinationVideoView.as_view(), name="admin-destination-videos"),

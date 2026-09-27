@@ -28,6 +28,18 @@ export default defineConfig({
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     launchOptions,
+    // GPS: Playwright overrides the browser's geolocation at context
+    // creation, so navigator.geolocation resolves to a real fix instead of
+    // prompting (or silently timing out) in a headless runner. Kathmandu,
+    // ~8 m accuracy, which is a realistic handheld fix.
+    // This is emulation, not a physical device: a real handset pass is still
+    // required before launch. See docs/LAUNCH_CHECKLIST.md.
+    geolocation: {
+      latitude: Number(process.env.E2E_LAT || 27.7172),
+      longitude: Number(process.env.E2E_LON || 85.324),
+      accuracy: Number(process.env.E2E_ACCURACY || 8),
+    },
+    permissions: ["geolocation"],
   },
   projects: [
     {

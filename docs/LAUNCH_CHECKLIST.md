@@ -100,13 +100,31 @@ Not done, and not doable here: testing on physical devices. Playwright device
 profiles are emulation, not hardware. The validation layer such a test would
 exercise is in place, but a real handset run is still outstanding.
 
-## 6. Live weather / official alert feeds — not built
+## 6. Live weather — built; official alert feeds — deliberately not scraped
 
-No feed exists, and none was faked. Building one honestly needs a decision you
-have not made: which upstream source is authoritative, and what the app must
-show when that source is unreachable. The correct shape is the same one used
-for routing: a configured provider, a cache, a timeout, and an explicit
-"unavailable" state — never a synthesised reading.
+**Weather is implemented and verified against the live API.** `weather_service.py`
+uses Open-Meteo's `/v1/forecast`, which needs **no API key**, and was checked
+end to end: a real Kathmandu reading (22.8 °C, gusts 28.8 km/h, "Slight rain
+showers"), a 3-day forecast, caching, and refusals for null-island coordinates.
+19 tests cover the contract.
+
+Two constraints you must know before launch:
+
+- The free Open-Meteo tier is **non-commercial only** (~10,000 calls/day) and
+  carries **no uptime guarantee**. Commercial use needs a customer-prefixed URL
+  and an API key. Every provider failure returns `available: false` with a
+  reason; nothing is ever substituted or invented.
+- It is a **model forecast**, not a station observation, and the response says
+  so (`kind: "model_forecast"`). Do not present it as a local measurement.
+
+**Official alerts are not implemented, and that is deliberate.** The Department
+of Hydrology and Meteorology (dhm.gov.np) publishes forecasts and early
+warnings on its website and in its "Nepal Weather Official" app, but exposes
+**no documented public API or feed**. Scraping an undocumented government site
+would be fragile and would present scraped text as a verified official alert,
+which is exactly the claim this project refuses to make. When a permitted,
+documented feed exists, wire it through the same provider pattern
+(`weather_provider` SiteSetting, HTTPS-only, cached, honest unavailable state).
 
 ## 7. Media review — on `main`, needs a policy decision
 

@@ -1,4 +1,4 @@
-import logging
+﻿import logging
 import math
 from datetime import timedelta
 
@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions, viewsets
 
+from .geo_validation import distance_between, validate_fix
 from .models import (
     Destination, DestinationTransitRoute, RouteSegment, DataReport,
     DestinationAuditLog, UserRoute,
@@ -44,7 +45,7 @@ class UserRouteCalculateView(APIView):
     """
     Route calculation between a real origin and a real destination.
 
-    Origin and destination must both resolve to real coordinates — a
+    Origin and destination must both resolve to real coordinates â€” a
     coordinate pair, a Destination row, or a place the location search
     service can resolve. Geometry, distance, duration and turn-by-turn
     steps come from the configured routing provider or the bundled graph;
@@ -133,7 +134,45 @@ class UserRouteCalculateView(APIView):
             origin_name = resolved_origin["name"]
         olat, olng = origin
 
-        straight_line_km = haversine_distance_km(olat, olng, dlat, dlng)
+        # Validate both ends before any distance or routing call. A client that
+        # defaults to (0, 0) would otherwise receive a confident ~9000 km
+        # straight line and a route across the ocean, which is worse than an
+        # honest refusal.
+        origin_fix = validate_fix(olat, olng, source="route_origin")
+        if not origin_fix.usable:
+            return Response(
+                {
+                    "detail": "The origin coordinates are not a usable position.",
+                    "route_status": "ORIGIN_INVALID",
+                    "geo_validation": origin_fix.as_dict(),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        destination_fix = validate_fix(dlat, dlng, source="route_destination")
+        if not destination_fix.usable:
+            return Response(
+                {
+                    "detail": "The destination coordinates are not a usable position.",
+                    "route_status": "DESTINATION_INVALID",
+                    "geo_validation": destination_fix.as_dict(),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        straight_line_distance = distance_between(
+            olat, olng, dlat, dlng,
+            origin=origin_fix, destination=destination_fix,
+        )
+        if not straight_line_distance.available:
+            return Response(
+                {
+                    "detail": "Distance could not be measured from these coordinates.",
+                    "route_status": "DISTANCE_UNAVAILABLE",
+                    "geo_validation": straight_line_distance.as_dict(),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        straight_line_km = straight_line_distance.km
 
         provider_route = route_steps(olat, olng, dlat, dlng)
         if provider_route:
@@ -197,7 +236,7 @@ class UserRouteCalculateView(APIView):
         # Turn-by-turn steps: a live provider supplies real maneuvers when
         # configured; otherwise derive honest corridor steps from the bundled
         # graph geometry (labelled via routing_engine, not street-level).
-        # A straight-line fallback intentionally carries NO steps — never
+        # A straight-line fallback intentionally carries NO steps â€” never
         # invent directions nobody routed.
         if geometry_kind == "routed" and not steps and len(geometry_coordinates) >= 2:
             steps = []
@@ -214,7 +253,7 @@ class UserRouteCalculateView(APIView):
                     "point": [plat, plng],
                 })
             route_note = (f"{route_note or ''} Corridor steps are derived from the "
-                          "bundled coordinate-based graph — approximate, not street-level."
+                          "bundled coordinate-based graph â€” approximate, not street-level."
                           ).strip()
 
         return Response({
@@ -238,7 +277,7 @@ class UserRouteCalculateView(APIView):
             "fare_npr": fare_npr,
             "fare_currency": "NPR",
             "fare_status": "Estimated" if fare_npr is not None else "Unavailable",
-            "fare_source": "Estimated at NPR 25/km of route distance — not a verified operator fare.",
+            "fare_source": "Estimated at NPR 25/km of route distance â€” not a verified operator fare.",
             "confidence_level": confidence,
             "route_source": route_source,
             "routing_engine": routing_engine,
@@ -351,7 +390,7 @@ class UniversalPlaceNearbyView(APIView):
 class UserDataReportSubmitView(APIView):
     """User error reporting endpoint for submitting data corrections.
 
-    POST (public): file a report — the only write path.
+    POST (public): file a report â€” the only write path.
     GET (authenticated): the caller's own report history, newest first, so
     the Dashboard's "My reports" panel has a real endpoint instead of
     GETting a submit-only URL and swallowing a 405.
@@ -583,7 +622,7 @@ class AdminNavigationAnalyticsView(APIView):
 
     Summarises real UserRoute rows (history + saved routes): volume, distinct
     travellers, most-requested destinations, travel-mode split and saved-route
-    counts. No numbers are invented — every figure is a query over logged
+    counts. No numbers are invented â€” every figure is a query over logged
     route calculations.
     """
 
@@ -624,7 +663,7 @@ class AdminNavigationAnalyticsView(APIView):
 
 
 # ============================================================
-# NAVIGATION EXTENSIONS — route options, saved-route recalculation
+# NAVIGATION EXTENSIONS â€” route options, saved-route recalculation
 # and province navigation data. Every distance carries provenance;
 # alternatives are only reported when a real road-routing service
 # can compute them (never fabricated).
@@ -700,7 +739,7 @@ class RouteOptionsView(APIView):
                                          if alternatives else
                                          "The routing service found no distinct alternative route for this pair.")
                 except (requests.RequestException, IndexError, KeyError, TypeError, ValueError) as exc:
-                    alternatives_note = f"Alternatives unavailable — routing service error: {str(exc)[:120]}"
+                    alternatives_note = f"Alternatives unavailable â€” routing service error: {str(exc)[:120]}"
                 cache.set(cache_key, (alternatives, alternatives_note), timeout=1800)
 
         return Response({
@@ -748,7 +787,7 @@ class UserRouteRecalculateView(APIView):
 
 
 class ProvinceNavigationView(APIView):
-    """GET /api/v1/navigation/provinces/ — Nepal's provinces with destination counts
+    """GET /api/v1/navigation/provinces/ â€” Nepal's provinces with destination counts
     and a few navigable destinations each (province navigation data source)."""
 
     permission_classes = [permissions.AllowAny]
@@ -781,7 +820,7 @@ class ProvinceNavigationView(APIView):
 
 
 # ============================================================
-# TRAVEL PLANNER — real routes BETWEEN any two destinations
+# TRAVEL PLANNER â€” real routes BETWEEN any two destinations
 # (and "travel from X to every other destination" distances).
 # Both endpoints resolve names to REAL destination coordinates
 # and delegate routing to the single central engine
@@ -791,8 +830,8 @@ class ProvinceNavigationView(APIView):
 _PLANNER_MODES = ("driving", "walking", "cycling", "hiking", "motorcycle")
 
 # Honest per-mode estimates used ONLY when no street-level router serves
-# that mode. Each value is labelled "estimate" in the response — they are
-# straight-line distances × a road factor ÷ an average Nepal speed, never
+# that mode. Each value is labelled "estimate" in the response â€” they are
+# straight-line distances Ã— a road factor Ã· an average Nepal speed, never
 # presented as measured road data.
 _MODE_ESTIMATES = {
     "driving":    {"road_factor": 1.22, "avg_kmh": 32.0, "label": "drive"},
@@ -828,12 +867,12 @@ def _resolve_destination_param(value):
     """Resolve a planner endpoint spec to real coordinates.
 
     Accepted forms, in order:
-      dest:<slug>  — destination by slug
-      id:<pk>      — destination by id
-      <slug>       — destination by slug (bare)
-      <digits>     — destination by id (bare)
-      lat,lng      — explicit point
-      anything else — real place lookup (cities, landmarks)
+      dest:<slug>  â€” destination by slug
+      id:<pk>      â€” destination by id
+      <slug>       â€” destination by slug (bare)
+      <digits>     â€” destination by id (bare)
+      lat,lng      â€” explicit point
+      anything else â€” real place lookup (cities, landmarks)
 
     Returns (payload_dict, error_response_or_None).
     """
@@ -858,7 +897,7 @@ def _resolve_destination_param(value):
     if dest is not None:
         if dest.latitude is None or dest.longitude is None:
             return None, (Response({
-                "detail": f"Destination '{dest.name}' has no verified coordinates — "
+                "detail": f"Destination '{dest.name}' has no verified coordinates â€” "
                           "it cannot be used for routing.",
                 "error": "destination_missing_coordinates",
                 "destination_id": dest.id,
@@ -952,7 +991,7 @@ class TravelPlannerView(APIView):
                 return Response({
                     "detail": "No origin provided. Share your GPS position "
                               "(origin_lat/origin_lng) or name a starting "
-                              "destination/place (origin=…).",
+                              "destination/place (origin=â€¦).",
                     "error": "origin_required",
                 }, status=status.HTTP_400_BAD_REQUEST)
 
@@ -990,13 +1029,13 @@ class TravelPlannerView(APIView):
                 start, dest_pt, mode, request=request, want_alternatives=want_alts)
         except route_engine.RateLimited:
             return Response(
-                {"detail": "Too many route requests — try again in a minute.",
+                {"detail": "Too many route requests â€” try again in a minute.",
                  "error": "rate_limited"},
                 status=status.HTTP_429_TOO_MANY_REQUESTS)
         except Exception as exc:  # engine failure must never 500 silently
             logger.warning("travel-plan routing failed: %s", exc)
             return Response(
-                {"detail": "Route calculation failed — please try again.",
+                {"detail": "Route calculation failed â€” please try again.",
                  "error": "routing_error"},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
@@ -1010,7 +1049,7 @@ class TravelPlannerView(APIView):
             route_id = navigation_service.create_session(
                 dict(route), endpoints={
                     "start": list(start), "destination": list(dest_pt), "mode": mode})
-        except Exception:  # pragma: no cover — sessions must not break planning
+        except Exception:  # pragma: no cover â€” sessions must not break planning
             route_id = None
 
         # ---- per-mode comparison table (measured vs labelled estimates) --
@@ -1036,8 +1075,8 @@ class TravelPlannerView(APIView):
                     "duration_s": round(est_s, 1),
                     "source": "estimate",
                     "grade": "estimate",
-                    "estimate_note": (f"Straight-line ×{est['road_factor']} road factor at "
-                                      f"~{est['avg_kmh']:.0f} km/h — not a measured road route."),
+                    "estimate_note": (f"Straight-line Ã—{est['road_factor']} road factor at "
+                                      f"~{est['avg_kmh']:.0f} km/h â€” not a measured road route."),
                     "real_available": provider.supports(m),
                 })
 
@@ -1050,7 +1089,7 @@ class TravelPlannerView(APIView):
             "source": best_row["source"],
             "grade": best_row["grade"],
             "why": ("fastest measured road option" if real_rows
-                    else "no measured road router configured — best labelled estimate"),
+                    else "no measured road router configured â€” best labelled estimate"),
         }
 
         payload = {
@@ -1099,7 +1138,7 @@ class TravelBetweenDestinationsView(APIView):
     "Travel from X to every other destination": the nearest recorded
     destinations to X with honest straight-line distances, a rough
     drive-time estimate (labelled), province/district context and
-    category. Distances are straight-line by design — the response says
+    category. Distances are straight-line by design â€” the response says
     so; road-true figures come from travel-plan on demand.
     """
 
@@ -1155,13 +1194,13 @@ class TravelBetweenDestinationsView(APIView):
                 return alias_to_display[v]
             # Devanagari province names
             dev = {
-                "बागमती प्रदेश": "Bagmati Province",
-                "कोशी प्रदेश": "Koshi Province",
-                "मधेश प्रदेश": "Madhesh Province",
-                "गण्डकी प्रदेश": "Gandaki Province",
-                "लुम्बिनी प्रदेश": "Lumbini Province",
-                "कर्णाली प्रदेश": "Karnali Province",
-                "सुदूरपश्चिम प्रदेश": "Sudurpashchim Province",
+                "à¤¬à¤¾à¤—à¤®à¤¤à¥€ à¤ªà¥à¤°à¤¦à¥‡à¤¶": "Bagmati Province",
+                "à¤•à¥‹à¤¶à¥€ à¤ªà¥à¤°à¤¦à¥‡à¤¶": "Koshi Province",
+                "à¤®à¤§à¥‡à¤¶ à¤ªà¥à¤°à¤¦à¥‡à¤¶": "Madhesh Province",
+                "à¤—à¤£à¥à¤¡à¤•à¥€ à¤ªà¥à¤°à¤¦à¥‡à¤¶": "Gandaki Province",
+                "à¤²à¥à¤®à¥à¤¬à¤¿à¤¨à¥€ à¤ªà¥à¤°à¤¦à¥‡à¤¶": "Lumbini Province",
+                "à¤•à¤°à¥à¤£à¤¾à¤²à¥€ à¤ªà¥à¤°à¤¦à¥‡à¤¶": "Karnali Province",
+                "à¤¸à¥à¤¦à¥‚à¤°à¤ªà¤¶à¥à¤šà¤¿à¤® à¤ªà¥à¤°à¤¦à¥‡à¤¶": "Sudurpashchim Province",
             }
             return dev.get(v, v)
 
@@ -1343,7 +1382,7 @@ class TravelOptionsView(APIView):
             return Response({"detail": "Destination has no recorded coordinates."}, status=status.HTTP_404_NOT_FOUND)
 
         # Multi-stop parity (Phase 6+): the same waypoints contract as
-        # /navigation/route — names resolved through the place index, or
+        # /navigation/route â€” names resolved through the place index, or
         # explicit coordinates. Distances become leg sums, nothing invented.
         raw_waypoints = data.get("waypoints") or []
         if not isinstance(raw_waypoints, list):
@@ -1407,19 +1446,19 @@ class TravelOptionsView(APIView):
 
         distance_label = "road route" if road_km else "straight-line estimate (no live road routing)"
         options = [
-            {"mode": "taxi", "label": "Taxi / Car", "icon": "🚕", "duration_min": int(drive_min),
+            {"mode": "taxi", "label": "Taxi / Car", "icon": "ðŸš•", "duration_min": int(drive_min),
              "distance_km": km, "distance_label": distance_label,
              "cost_npr": taxi_cost, "cost_note": "Estimated from admin fare card" if taxi_cost else UNAVAILABLE,
              "source": drive.get("status")},
-            {"mode": "bus", "label": "Public Transport", "icon": "🚌", "duration_min": int(drive_min * 1.6),
+            {"mode": "bus", "label": "Public Transport", "icon": "ðŸšŒ", "duration_min": int(drive_min * 1.6),
              "distance_km": km, "distance_label": distance_label,
              "cost_npr": bus_cost, "cost_note": "Typical fare from admin fare card" if bus_cost else "No recorded fare data",
              "source": drive.get("status"),
              "available": bus_cost is not None},
-            {"mode": "walk", "label": "Walking", "icon": "🚶", "duration_min": walk_min,
+            {"mode": "walk", "label": "Walking", "icon": "ðŸš¶", "duration_min": walk_min,
              "distance_km": km, "distance_label": distance_label, "cost_npr": [0, 0],
              "cost_note": "Free", "source": "derived from distance"},
-            {"mode": "bicycle", "label": "Bicycle", "icon": "🚲", "duration_min": bike_min,
+            {"mode": "bicycle", "label": "Bicycle", "icon": "ðŸš²", "duration_min": bike_min,
              "distance_km": km, "distance_label": distance_label, "cost_npr": bike_cost,
              "cost_note": "Rental from admin fare card" if bike_cost else UNAVAILABLE,
              "source": "derived from distance"},
@@ -1469,7 +1508,7 @@ class TravelOptionsView(APIView):
         steps_payload = route_steps(start_lat, start_lon, end_lat, end_lon)
         if steps_payload is None and drive.get("status") == "graph_routed" and drive.get("directions"):
             # Honest second tier: coordinate-based turns derived from the
-            # bundled tourism graph geometry — clearly labelled as NOT
+            # bundled tourism graph geometry â€” clearly labelled as NOT
             # street-level directions (route_engine documents the same).
             steps_payload = {
                 "source": "bundled_nepal_graphml",
@@ -1495,7 +1534,7 @@ class TravelOptionsView(APIView):
         elif steps_payload is None:
             tbt_note = (
                 "Detailed turn-by-turn directions need a live road-routing provider "
-                "(admin → site setting 'routing_provider'). Distances above remain real."
+                "(admin â†’ site setting 'routing_provider'). Distances above remain real."
             )
         else:
             tbt_note = None
