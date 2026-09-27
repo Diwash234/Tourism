@@ -2772,6 +2772,84 @@ class AdminCMSView(APIView):
             sync_published_snapshot(obj)
 
     @staticmethod
+    def _publication_gate(resource, obj):
+        """Return publish blockers/warnings from the current persisted draft.
+
+        This is deliberately deterministic and local: publishing must never
+        depend on an external HTTP request succeeding. Hard blockers protect
+        the public site from structurally invalid CMS records; warnings are
+        surfaced to the editor but do not prevent an explicit publish.
+        """
+        blockers = []
+        warnings = []
+
+        def issue(code, message, severity="blocker", **extra):
+            item = {"code": code, "message": message, "severity": severity}
+            item.update(extra)
+            (blockers if severity == "blocker" else warnings).append(item)
+
+        if resource == "pages":
+            title = str(getattr(obj, "title", "") or "").strip()
+            route = str(getattr(obj, "route", "") or "").strip()
+            key = str(getattr(obj, "key", "") or "").strip()
+            meta = str(getattr(obj, "meta_description", "") or "").strip()
+            seo_title = str(getattr(obj, "seo_title", "") or "").strip()
+            if not title:
+                issue("missing_title", "Page title is required.")
+            if not key:
+                issue("missing_key", "Page key is required.")
+            if not route or not route.startswith("/"):
+                issue("invalid_route", "Page route must be an internal path beginning with '/'.")
+            if not meta:
+                issue("missing_seo_description", "Meta description is required before publishing.")
+            elif len(meta) > 160:
+                issue("seo_description_too_long", "Meta description is longer than 160 characters.", "warning")
+            if not seo_title:
+                issue("missing_seo_title", "SEO title is missing.", "warning")
+            elif len(seo_title) > 70:
+                issue("seo_title_too_long", "SEO title is longer than 70 characters.", "warning")
+            if not str(getattr(obj, "og_image_url", "") or "").strip():
+                issue("missing_og_image", "No social/OG image is configured.", "warning")
+            sections = list(obj.sections.all().order_by("display_order", "id"))
+            published = [section for section in sections if section.status == "published" and section.is_visible]
+            if not published:
+                issue("no_published_sections", "At least one visible published section is required.")
+            for section in sections:
+                if section.status != "published" or not section.is_visible:
+                    continue
+                section_title = str(section.title or "").strip()
+                body = str(section.body or "").strip()
+                image = str(section.image_url or "").strip()
+                if not section_title and not body and not image and not section.blocks.filter(is_visible=True).exists():
+                    issue("empty_section", f"Published section '{section.key}' has no visible content.", "blocker", section_id=section.id)
+                if section.cta_url and not str(section.cta_url).strip().startswith(("/", "https://", "mailto:", "tel:")):
+                    issue("invalid_cta_url", f"Section '{section.key}' has an invalid CTA URL.", "blocker", section_id=section.id)
+                for href in re.findall(r'href=["\\']([^"\\']*)["\\']', body, re.I):
+                    href = href.strip()
+                    if href in {"", "#"} or href.lower().startswith("javascript:"):
+                        issue("broken_link", f"Section '{section.key}' contains a dead link.", "blocker", section_id=section.id)
+                for url in re.findall(r'(?:src|href)=["\\']([^"\\']+)["\\']', body, re.I):
+                    if url.lower().startswith(("javascript:", "data:")):
+                        issue("unsafe_media_url", f"Section '{section.key}' contains an unsafe media URL.", "blocker", section_id=section.id)
+            if sections and any(section.status != "published" for section in sections):
+                issue("unpublished_sections", "Some page sections are still draft/unpublished; they will not appear publicly.", "warning")
+        elif resource == "sections":
+            page = getattr(obj, "page", None)
+            if not page:
+                issue("missing_parent_page", "Section must belong to a page.")
+            else:
+                if page.status != "published" or not page.is_enabled:
+                    issue("parent_page_unpublished", "Parent page is not currently published; this section will remain unavailable publicly.", "warning")
+            if not str(obj.title or "").strip() and not str(obj.body or "").strip() and not str(obj.image_url or "").strip() and not obj.blocks.filter(is_visible=True).exists():
+                issue("empty_section", "Section needs a title, body, image, or visible content block.")
+            if obj.cta_url and not str(obj.cta_url).strip().startswith(("/", "https://", "mailto:", "tel:")):
+                issue("invalid_cta_url", "CTA URL must be an internal path, HTTPS URL, mailto, or tel link.")
+            for href in re.findall(r'href=["\\']([^"\\']*)["\\']', str(obj.body or ""), re.I):
+                if href.strip() in {"", "#"} or href.lower().startswith("javascript:"):
+                    issue("broken_link", "Section contains a dead or unsafe link.")
+        return {"ok": not blockers, "blockers": blockers, "warnings": warnings}
+
+    @staticmethod
     def _validate_publication_request(resource, payload, action):
         publication_fields = {"status", "scheduled_publish_at", "published_at", "is_enabled", "is_active"}
         if resource in {"pages", "sections"} and action == "update":
@@ -3377,6 +3455,12 @@ class AdminCMSView(APIView):
                     return Response({"detail": "Choose a valid future publication time"}, status=400)
                 payload = {"status": "scheduled", "scheduled_publish_at": scheduled, "published_at": None}
             elif action == "publish":
+                gate = self._publication_gate(resource, obj)
+                if not gate["ok"]:
+                    return Response({
+                        "detail": "Publishing is blocked until the required CMS checks pass.",
+                        "publication_gate": gate,
+                    }, status=409)
                 payload = {"status": "published", "published_at": timezone.now(), "scheduled_publish_at": None}
                 if resource == "pages":
                     payload["is_enabled"] = True
