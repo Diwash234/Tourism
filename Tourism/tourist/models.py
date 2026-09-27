@@ -1285,6 +1285,7 @@ class Hotel(TimeStampedModel):
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     source = models.CharField(max_length=20, choices=Source.choices, default=Source.DATASET)
     source_url = models.URLField(max_length=600, blank=True)
+    website = models.URLField(max_length=600, blank=True)
     is_verified = models.BooleanField(default=False)
     verified_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
