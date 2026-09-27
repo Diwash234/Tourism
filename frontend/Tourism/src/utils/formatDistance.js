@@ -18,8 +18,9 @@ export function formatDistance(km) {
  * Format a duration in minutes as "3 hr 20 min" or "45 min".
  */
 export function formatDuration(min) {
+  if (min === null || min === undefined || min === "") return "—"
   const m = Number(min)
-  if (m === null || m === undefined || Number.isNaN(m)) return "—"
+  if (!Number.isFinite(m)) return "—"
   if (m < 60) return `${Math.round(m)} min`
   const h = Math.floor(m / 60)
   const rem = Math.round(m % 60)

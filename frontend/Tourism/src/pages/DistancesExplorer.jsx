@@ -11,6 +11,7 @@ import {
   haversineKmPrecise, compassPoint, compassArrow, formatDistanceKm,
   hasValidCoords,
 } from "../utils/placeUtils"
+import { formatDuration } from "../utils/formatDistance"
 import { userIcon, destinationIcon } from "../components/map/icons"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 
@@ -491,7 +492,7 @@ export default function DistancesExplorer() {
                 <div className="rounded-2xl bg-gray-50 border border-gray-100 p-3">
                   <p className="text-[10px] font-extrabold uppercase text-gray-400">{t("dx.eta")}</p>
                   <p className="text-lg font-black text-gray-900">
-                    {Math.floor((primary.duration_min ?? 0) / 60)}h {Math.round((primary.duration_min ?? 0) % 60)}m
+                    {primary.duration_min == null ? "Unavailable" : formatDuration(primary.duration_min)}
                   </p>
                 </div>
                 <div className="rounded-2xl bg-gray-50 border border-gray-100 p-3 col-span-2 sm:col-span-1">

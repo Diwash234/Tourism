@@ -1964,7 +1964,11 @@ class NearbyEmergencyServicesView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         from .emergency_service import build_emergency_directory
-        return Response(build_emergency_directory(latitude, longitude, radius_km=radius_km, limit=limit))
+        try:
+            payload = build_emergency_directory(latitude, longitude, radius_km=radius_km, limit=limit)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(payload)
 
 
 class NationalEmergencyHotlinesView(APIView):
@@ -1973,8 +1977,8 @@ class NationalEmergencyHotlinesView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        from .emergency_service import NATIONAL_HOTLINES
-        return Response({"national_hotlines": NATIONAL_HOTLINES})
+        from .emergency_service import national_hotlines
+        return Response({"national_hotlines": national_hotlines(), "source": "Admin-managed records with required Nepal emergency fallbacks"})
 
 
 def _hours_rows(rows, open_only=False):

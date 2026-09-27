@@ -414,3 +414,44 @@ class SecureExternalConfigurationTests(TestCase):
                 result = geoip_lookup("8.8.4.4", blocking=True)
         self.assertEqual(result["city"], "Kathmandu")
         request.assert_called_once_with("https://geo.example.test/8.8.4.4", timeout=3)
+
+
+class EmergencyCoverageAndHotlineTests(TestCase):
+    def test_any_valid_nepal_coordinate_returns_protected_hotlines(self):
+        response = APIClient().get("/api/v1/emergency/nearby/", {"latitude": 26.5, "longitude": 80.5, "radius_km": 10})
+        self.assertEqual(response.status_code, 200)
+        rows = {row["phone_number"] for row in response.json()["national_hotlines"]}
+        self.assertTrue({"1144", "100", "102", "101", "103"}.issubset(rows))
+        self.assertEqual(response.json()["location"]["source"], "coordinates")
+
+    def test_coordinates_outside_nepal_are_rejected(self):
+        response = APIClient().get("/api/v1/emergency/nearby/", {"latitude": 40, "longitude": -74})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("inside Nepal", response.json()["detail"])
+
+    def test_admin_can_add_update_and_delete_noncritical_hotline(self):
+        admin = User.objects.create_superuser(email="hotline-admin@example.com", password="Admin!Pass123")
+        client = APIClient()
+        client.force_authenticate(admin)
+        payload = {
+            "type": "mountain_rescue",
+            "name": "Mountain rescue desk",
+            "phone_number": "+977-1-5550000",
+            "description": "Owner-supplied rescue desk",
+            "source_name": "Owner verified directory",
+            "source_url": "https://example.org/rescue",
+        }
+        created = client.post("/api/v1/admin/national-hotlines/", payload, format="json")
+        self.assertEqual(created.status_code, 201, created.content)
+        changed = client.patch("/api/v1/admin/national-hotlines/", {**payload, "name": "Updated rescue desk"}, format="json")
+        self.assertEqual(changed.status_code, 200, changed.content)
+        deleted = client.delete("/api/v1/admin/national-hotlines/", {"type": "mountain_rescue"}, format="json")
+        self.assertEqual(deleted.status_code, 200, deleted.content)
+
+    def test_admin_cannot_delete_protected_hotline(self):
+        admin = User.objects.create_superuser(email="hotline-protected@example.com", password="Admin!Pass123")
+        client = APIClient()
+        client.force_authenticate(admin)
+        response = client.delete("/api/v1/admin/national-hotlines/", {"type": "police"}, format="json")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("cannot be deleted", response.json()["detail"])

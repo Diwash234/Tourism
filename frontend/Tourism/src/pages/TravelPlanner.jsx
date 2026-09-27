@@ -390,7 +390,7 @@ export default function TravelPlanner() {
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-card p-5 md:p-6">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-lg font-black text-slate-900 dark:text-white">{t("tp.best_route")}</h2>
-                {gradeBadge(displayed.isAlt ? "estimate" : results.primary.grade, t)}
+                {gradeBadge(displayed.grade || results.primary.grade, t)}
                 {displayed.isAlt && (
                   <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">({t("tp.alternative_selected")})</span>
                 )}

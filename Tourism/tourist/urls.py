@@ -238,6 +238,7 @@ urlpatterns = [
     path("marketplace/partner/desk/", views_marketplace.PartnerDeskView.as_view(), name="marketplace-partner-desk"),
     path("marketplace/orders/", views_marketplace.MarketplaceOrderLookupView.as_view(), name="marketplace-orders"),
     path("admin/emergency-directory/", views_emergency_admin.AdminEmergencyDirectoryView.as_view(), name="admin-emergency-directory"),
+    path("admin/national-hotlines/", views_emergency_admin.AdminNationalHotlinesView.as_view(), name="admin-national-hotlines"),
     path("admin/datasets/", views_admin.AdminDatasetManagerView.as_view(), name="admin-datasets"),
     path("admin/travel-services/", views_admin.AdminTravelServicesView.as_view(), name="admin-travel-services"),
     path("admin/retention/", views_admin.AdminRetentionPolicyView.as_view(), name="admin-retention"),

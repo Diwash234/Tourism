@@ -1,7 +1,7 @@
 """Location-aware emergency directory built from the SQLite source of truth."""
 from django.db.models import Q
 
-from .models import Destination, EmergencyContact, Hospital, OSMEssentialService, PoliceStation
+from .models import Destination, EmergencyContact, Hospital, OSMEssentialService, PoliceStation, SiteSetting
 from .phone_quality import is_placeholder_phone
 from .utils import bounding_box, haversine_distance
 
@@ -12,6 +12,92 @@ NATIONAL_HOTLINES = [
     {"type": "fire_station", "name": "Fire Brigade", "phone_number": "101", "alternate_phone": "", "description": "National fire emergency line", "source_name": "Nepal emergency short code", "source_url": "https://mohp.gov.np/"},
     {"type": "traffic_police", "name": "Traffic Police", "phone_number": "103", "alternate_phone": "", "description": "Road accidents, closures and traffic assistance", "source_name": "Nepal Police", "source_url": "https://cid.nepalpolice.gov.np/cid-wings/tourist-police/"},
 ]
+
+
+HOTLINE_SETTING_KEY = "national_emergency_hotlines"
+# These five safety-critical national services must remain visible. An admin
+# can edit their verified wording/source or add/remove non-critical entries,
+# but the application will not allow a bad CMS value to make dispatch numbers
+# disappear.
+REQUIRED_HOTLINE_TYPES = {"tourist_police", "police", "ambulance", "fire_station", "traffic_police"}
+
+
+def _hotline_row(value):
+    if not isinstance(value, dict):
+        return None
+    hotline_type = str(value.get("type") or "").strip().lower()[:40]
+    name = str(value.get("name") or "").strip()[:200]
+    phone = str(value.get("phone_number") or "").strip()[:60]
+    source_name = str(value.get("source_name") or "").strip()[:160]
+    source_url = str(value.get("source_url") or "").strip()[:600]
+    if not hotline_type or not name or not phone or not source_name:
+        return None
+    if source_url and not source_url.startswith("https://"):
+        return None
+    return {
+        "type": hotline_type,
+        "name": name,
+        "phone_number": phone,
+        "alternate_phone": str(value.get("alternate_phone") or "").strip()[:60],
+        "description": str(value.get("description") or "").strip()[:500],
+        "source_name": source_name,
+        "source_url": source_url,
+    }
+
+
+def national_hotlines():
+    """Return admin-managed hotlines with immutable safety fallbacks.
+
+    The initial values are the sourced records already shipped by the app.
+    Admin edits are stored as a public SiteSetting so no provider or number is
+    invented. Missing/invalid CMS rows are ignored and required national
+    services are restored from that known source instead of disappearing.
+    """
+    baseline = {row["type"]: dict(row) for row in NATIONAL_HOTLINES}
+    setting = SiteSetting.objects.filter(key=HOTLINE_SETTING_KEY, is_public=True).first()
+    rows = []
+    if setting and isinstance(setting.value, list):
+        for value in setting.value:
+            row = _hotline_row(value)
+            if row and value.get("is_active", True):
+                rows.append(row)
+    by_type = {row["type"]: row for row in rows}
+    for hotline_type in REQUIRED_HOTLINE_TYPES:
+        if hotline_type not in by_type and hotline_type in baseline:
+            by_type[hotline_type] = baseline[hotline_type]
+    ordered = []
+    for row in NATIONAL_HOTLINES:
+        if row["type"] in by_type:
+            ordered.append(by_type.pop(row["type"]))
+    ordered.extend(by_type.values())
+    return ordered
+
+
+def save_national_hotlines(rows, user=None):
+    cleaned = []
+    for value in rows:
+        row = _hotline_row(value)
+        if row:
+            row["is_active"] = bool(value.get("is_active", True))
+            cleaned.append(row)
+    setting, _ = SiteSetting.objects.update_or_create(
+        key=HOTLINE_SETTING_KEY,
+        defaults={
+            "value": cleaned,
+            "description": "Admin-managed national emergency hotlines; required dispatch services are protected.",
+            "is_public": True,
+            "updated_by": user,
+        },
+    )
+    return setting
+
+
+def is_nepal_coordinate(latitude, longitude):
+    try:
+        latitude, longitude = float(latitude), float(longitude)
+    except (TypeError, ValueError):
+        return False
+    return 26 <= latitude <= 31 and 80 <= longitude <= 89
 
 
 
@@ -93,6 +179,8 @@ def _nearest_rows(rows, latitude, longitude, limit, radius_km, mapper):
 
 def build_emergency_directory(latitude, longitude, destination=None, radius_km=50, limit=8):
     latitude, longitude = float(latitude), float(longitude)
+    if not is_nepal_coordinate(latitude, longitude):
+        raise ValueError("Coordinates must be inside Nepal (latitude 26–31, longitude 80–89).")
 
     def _image_url(row):
         try:
@@ -233,7 +321,12 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
     return {
         "location": location, "radius_km": radius_km, "counts": facility_counts,
         "hospitals": hospitals, "police": police, "specialized_contacts": specialized,
-        "national_hotlines": NATIONAL_HOTLINES,
+        "national_hotlines": national_hotlines(),
+        "national_hotlines_source": "Admin-managed records with required Nepal emergency fallbacks",
         "coverage_gap": coverage_gap,
+        "local_coverage_note": (
+            "Local facilities are returned only when a sourced coordinate record exists. "
+            "National hotlines remain available for every valid Nepal coordinate."
+        ),
         "notice": notice,
     }
