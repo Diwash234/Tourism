@@ -32,11 +32,12 @@ const OAuthCallback = () => {
     // flush (react-hooks/set-state-in-effect) without changing behavior.
     const t = setTimeout(() => {
     const code = searchParams.get("code")
-    const oauthError = searchParams.get("error")
+    const oauthError = searchParams.get("error") || searchParams.get("oauth_error")
 
     // User clicked "Cancel" on the provider's consent screen
     if (oauthError) {
-      setStatus("cancelled")
+      setStatus(oauthError === "not_configured" ? "error" : "cancelled")
+      if (oauthError === "not_configured") setErrorMessage(`${provider === "google" ? "Google" : "GitHub"} sign-in is not configured on this deployment.`)
       return
     }
 
