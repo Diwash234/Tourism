@@ -72,6 +72,12 @@ def check(place, days):
     if no_coords:
         problems.append(f"{len(no_coords)} stops without coordinates")
     total_stops = sum(len(d.get("destinations", [])) for d in itin)
+    if not all(isinstance(d.get("nearby_services"), dict) for d in itin):
+        problems.append("missing nearby-services section on one or more days")
+    for day in itin:
+        for stop in day.get("destinations", []):
+            if not stop.get("name"):
+                problems.append(f"unnamed stop on day {day.get('day')}")
     return {
         "place": place, "ok": not problems, "days": len(itin),
         "stops": total_stops, "problems": problems,
@@ -86,8 +92,14 @@ def main():
     for place in CITIES:
         results.append(check(place, 3))
         time.sleep(0.4)
-    # the owner's explicit 20-day requirement on a sample of places
-    for place in ("Kathmandu", "Pokhara", "Jumla", "Humla", "Mustang", "Dhangadhi"):
+    # Explicit 20-day acceptance coverage for every configured major city.
+    for place in CITIES:
+        r = check(place, 20)
+        r["twenty_day"] = True
+        results.append(r)
+        time.sleep(0.4)
+    # Remote district acceptance checks.
+    for place in ("Jumla", "Humla", "Mustang", "Dhangadhi"):
         r = check(place, 20)
         r["twenty_day"] = True
         results.append(r)
