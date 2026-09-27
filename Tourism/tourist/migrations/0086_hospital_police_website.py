@@ -15,4 +15,9 @@ class Migration(migrations.Migration):
             name="website",
             field=models.URLField(blank=True, max_length=600),
         ),
+        migrations.AddField(
+            model_name="osmessentialservice",
+            name="website",
+            field=models.URLField(blank=True, max_length=600),
+        ),
     ]
