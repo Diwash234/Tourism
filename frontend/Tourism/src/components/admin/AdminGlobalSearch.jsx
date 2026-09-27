@@ -4,7 +4,7 @@ import { FiSearch, FiX } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 
 const ROUTES = {
-  destination: () => "/admin?section=places",
+  destination: (row) => `/admin?section=data_explorer&resource=destinations&open=${encodeURIComponent(row.id)}`,
   user: () => "/admin?section=users",
   hotel: () => "/admin?section=hotel_bookings",
   feedback: () => "/admin?section=feedback_workspace",
