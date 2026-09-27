@@ -281,12 +281,17 @@ export default function useTurnByTurn({ destination, mode = "driving", voice = f
       ? await new Promise((resolve) => {
         setState(NAV_STATES.GETTING_LOCATION)
         navigator.geolocation.getCurrentPosition(
-          (p) => resolve({ latitude: p.coords.latitude, longitude: p.coords.longitude, accuracy: p.coords.accuracy }),
+          (p) => resolve(p.coords.accuracy != null && p.coords.accuracy > 100 ? null : { latitude: p.coords.latitude, longitude: p.coords.longitude, accuracy: p.coords.accuracy }),
           () => resolve(null),
           { enableHighAccuracy: true, timeout: 8000 },
         )
       })
       : null)
+    if (!from && !position) {
+      setError("GPS accuracy is too low or location permission was denied. Try again in an open area.")
+      setState(NAV_STATES.ERROR)
+      return null
+    }
     if (from) setPosition((prev) => prev || from)
     return loadRoute(from, false)
   }, [loadRoute, position, hasStops, loadItinerary])
