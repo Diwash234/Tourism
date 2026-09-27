@@ -309,7 +309,31 @@ class DataReportSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "user", "created_at", "updated_at", "resolved_by", "resolved_at"]
 
 
-class RestaurantSerializer(serializers.ModelSerializer):
+class UsablePhoneMixin:
+    """Guarantee that a serialized ``phone`` is either real or empty.
+
+    The imported service data has shipped three kinds of unusable phone value
+    (see tourist/phone_quality.py): templated filler, the literal string
+    "nan" from a stringified null, and float-mangled real numbers. The first
+    two must never be shown as callable, and the third should be repaired
+    rather than displayed with its ".0".
+
+    Migration 0086 cleans the stored values. This mixin is the read-path
+    guarantee: a row imported later, or typed by hand, still cannot put "nan"
+    in a traveller's hands.
+    """
+
+    def to_representation(self, instance):
+        from .phone_quality import is_unusable_phone, normalize_phone_artifact
+
+        data = super().to_representation(instance)
+        if "phone" in data:
+            phone = data["phone"]
+            data["phone"] = "" if is_unusable_phone(phone) else normalize_phone_artifact(phone)
+        return data
+
+
+class RestaurantSerializer(UsablePhoneMixin, serializers.ModelSerializer):
     destination_name = serializers.CharField(source="destination.name", read_only=True)
 
     class Meta:
@@ -493,20 +517,12 @@ class VisitHistorySerializer(serializers.ModelSerializer):
         return DestinationListSerializer(obj.destination, context=self.context).data
 
 
-class HospitalSerializer(serializers.ModelSerializer):
+class HospitalSerializer(UsablePhoneMixin, serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Hospital
         fields = ["id", "name", "address", "phone", "latitude", "longitude", "district", "image_url", "opening_hours", "emergency_available", "source_name", "source_url", "is_verified", "verified_at", "updated_at"]
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        from .phone_quality import is_placeholder_phone
-
-        if is_placeholder_phone(data.get("phone")):
-            data["phone"] = ""  # templated dataset filler -- never shown as callable
-        return data
 
     def get_image_url(self, obj):
         if not obj.image:
@@ -518,7 +534,7 @@ class HospitalSerializer(serializers.ModelSerializer):
             return None
 
 
-class PoliceStationSerializer(serializers.ModelSerializer):
+class PoliceStationSerializer(UsablePhoneMixin, serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
 
     class Meta:
