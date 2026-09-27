@@ -106,13 +106,13 @@ class Command(BaseCommand):
                 hits = search_destination_images(
                     d, per_source=max(20, n * 4),
                     min_score=0.50,
-                    sources=("wikimedia", "openverse"),
+                    sources=("wikimedia", "duckduckgo", "openverse"),
                 )
                 accepted = []
                 seen = set()
                 for hit in hits:
                     score = _place_score(hit, d)
-                    if score < 0.85 or hit.source not in ("wikimedia", "openverse"):
+                    if score < 0.85 or hit.source not in ("wikimedia", "duckduckgo", "openverse"):
                         continue
                     if hit.url in seen or not _is_live_image(hit.url):
                         continue
@@ -144,8 +144,8 @@ class Command(BaseCommand):
                 })()
                 hits = search_destination_images(
                     shim, per_source=max(20, n * 5),
-                    min_score=0.50,
-                    sources=("wikimedia", "openverse"),
+                    min_score=0.85,
+                    sources=("wikimedia", "duckduckgo", "openverse"),
                 )
                 accepted = []
                 seen = set()
