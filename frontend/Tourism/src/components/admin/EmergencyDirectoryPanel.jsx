@@ -21,6 +21,7 @@ const empty = {
 export default function EmergencyDirectoryPanel() {
   const { showToast } = useToast()
   const [form, setForm] = useState(empty)
+  const [formImage, setFormImage] = useState(null)
   const [rows, setRows] = useState([])
   const [pending, setPending] = useState([])
   const [coverage, setCoverage] = useState({})
@@ -84,9 +85,11 @@ export default function EmergencyDirectoryPanel() {
   const save = async (event) => {
     event.preventDefault()
     try {
-      const { data } = await adminApi.createEmergencyDirectory(form)
+      const payload = formImage ? (() => { const body = new FormData(); Object.entries(form).forEach(([key, value]) => { if (value !== "" && value != null) body.append(key, value) }); body.append("image", formImage); return body })() : form
+      const { data } = await adminApi.createEmergencyDirectory(payload)
       showToast(data.message || "Saved", "success")
       setForm(empty)
+      setFormImage(null)
       load()
     } catch (error) {
       if (error.response?.status === 409) {
@@ -201,6 +204,7 @@ export default function EmergencyDirectoryPanel() {
             <input className="input-field" required placeholder="Latitude" value={form.latitude} onChange={(e) => setForm({ ...form, latitude: e.target.value })} />
             <input className="input-field" required placeholder="Longitude" value={form.longitude} onChange={(e) => setForm({ ...form, longitude: e.target.value })} />
           </div>
+          <input type="file" accept="image/jpeg,image/png,image/webp" className="input-field" onChange={(e) => setFormImage(e.target.files?.[0] || null)} />
           <input className="input-field" placeholder="Official website (https://…)" value={form.website || ""} onChange={(e) => setForm({ ...form, website: e.target.value })} />
           <input className="input-field" placeholder="HTTPS source URL (optional)" value={form.source_url} onChange={(e) => setForm({ ...form, source_url: e.target.value })} />
           <button type="submit" className="w-full rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black py-2 flex items-center justify-center gap-2">
