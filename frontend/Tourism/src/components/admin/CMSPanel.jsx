@@ -123,6 +123,45 @@ export default function CMSPanel() {
   const [cloneSource, setCloneSource] = useState("")
   const [builderTick, setBuilderTick] = useState(0)
   const [layoutUrl, setLayoutUrl] = useState("")
+  const autosaveKey = selected?.id ? `tourism-cms-draft:${resource}:${selected.id}` : null
+  const [autosaveAt, setAutosaveAt] = useState(null)
+  const [autosaveEnabled, setAutosaveEnabled] = useState(true)
+  const [bulkSelected, setBulkSelected] = useState([])
+  const [focusMode, setFocusMode] = useState(false)
+
+  useEffect(() => {
+    if (!autosaveEnabled || !autosaveKey || !dirty) return
+    const timer = window.setTimeout(() => {
+      try {
+        localStorage.setItem(autosaveKey, json)
+        setAutosaveAt(new Date().toISOString())
+      } catch {}
+    }, 1200)
+    return () => window.clearTimeout(timer)
+  }, [json, dirty, autosaveEnabled, autosaveKey])
+
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault()
+        if (dirty) save()
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "enter") {
+        event.preventDefault()
+        if (selected?.id && supportsWorkflow) workflow("publish")
+      }
+      if (event.key === "Escape") setFocusMode(false)
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [dirty, selected?.id, resource])
+
+  const toggleBulk = (id) => setBulkSelected((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])
+  const toggleAllVisible = () => {
+    const ids = visibleRows.map((row) => row.id).filter(Boolean)
+    setBulkSelected((prev) => ids.every((id) => prev.includes(id)) ? prev.filter((id) => !ids.includes(id)) : Array.from(new Set([...prev, ...ids])))
+  }
+
   const dirty = Boolean(selected) && json !== savedJson
   const dirtyRef = useRef(false)
   // Refs must not be written during render (react-hooks/refs); mirror the
@@ -132,6 +171,18 @@ export default function CMSPanel() {
   const confirmLeave = () => !dirtyRef.current || window.confirm("You have unsaved changes.\n\nStay on this record or discard the changes?")
 
   const applyRow = (row) => {
+    const draftKey = row?.id ? `tourism-cms-draft:${resource}:${row.id}` : null
+    if (draftKey) {
+      try {
+        const localDraft = localStorage.getItem(draftKey)
+        if (localDraft && localDraft !== JSON.stringify(clean(row), null, 2) && window.confirm("A newer local autosave exists for this record. Restore it?")) {
+          setSelected(row)
+          setJson(localDraft)
+          setSavedJson(JSON.stringify(clean(row), null, 2))
+          return
+        }
+      } catch {}
+    }
     const next = JSON.stringify(clean(row), null, 2)
     // Loading a different record starts a fresh undo history.
     pastRef.current = []
@@ -367,6 +418,14 @@ export default function CMSPanel() {
 
   return (
     <div className="space-y-5 text-slate-900">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-black text-slate-700">Editor controls</span>
+          <label className="flex items-center gap-1.5"><input type="checkbox" checked={autosaveEnabled} onChange={(e) => setAutosaveEnabled(e.target.checked)} /> Autosave local draft</label>
+          <button type="button" onClick={() => setFocusMode((v) => !v)} className="rounded-lg border px-2 py-1 font-bold hover:bg-slate-50">{focusMode ? "Exit focus mode" : "Focus mode"}</button>
+        </div>
+        <span className="text-slate-400">{autosaveAt ? `Autosaved ${new Date(autosaveAt).toLocaleTimeString()}` : "Autosave waiting for edits"} · Ctrl/Cmd+S save · Ctrl/Cmd+Enter publish</span>
+      </div>
       {workflowBar(dirty ? 0 : 1)}
       <header>
         <h2 className="text-2xl font-black">Advanced CMS Workspace</h2>
