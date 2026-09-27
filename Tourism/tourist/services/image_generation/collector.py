@@ -98,19 +98,54 @@ def collect_for_destination(destination, num: int = 15,
 
 
 def collect_for_hotel(hotel, num: int = 8) -> List[dict]:
-    """Collect images for a Hotel row (uses its destination + name)."""
+    """Collect hotel-specific images; never reuse destination gallery images."""
     dest = hotel.destination
     if not dest:
         return []
-    # Reuse destination collection but bias the prompt/caption toward the hotel
-    images = collect_for_destination(dest, num=num, use_ai=True, use_search=True)
-    name = hotel.name
-    for img in images:
-        img["caption"] = f"{name}, {dest.name}"
-        if img["source"] == "ai_generated":
-            # tweak the stored prompt to mention the hotel for traceability
-            img["prompt"] = f"{name}, accommodation in {dest.name}, Nepal. " + (img["prompt"] or "")
-    return images
+
+    # Hotel images require hotel-name evidence. A destination landmark is not
+    # a hotel image, even when it is in the same city.
+    class _HotelPlace:
+        name = hotel.name
+        aliases = ""
+        locality = getattr(hotel, "address", "") or ""
+        municipality = getattr(dest, "municipality", "") or ""
+        city = getattr(dest, "city", "") or ""
+        district = getattr(dest, "district", "") or ""
+        province = getattr(dest, "province", "") or ""
+        category_id = getattr(dest, "category_id", None)
+        category = getattr(dest, "category", None)
+
+    out: List[dict] = []
+    try:
+        hits = search_destination_images(
+            _HotelPlace(), per_source=max(20, num * 4), min_score=0.85,
+            sources=("wikimedia", "duckduckgo", "openverse"),
+        )
+        seen = set()
+        for hit in hits:
+            if hit.url in seen:
+                continue
+            seen.add(hit.url)
+            out.append({
+                "url": hit.url,
+                "thumbnail": hit.thumbnail or hit.url,
+                "source": "wikimedia" if hit.source == "wikimedia" else "web",
+                "source_platform": hit.source,
+                "photographer": hit.author[:150],
+                "license": hit.license[:100],
+                "prompt": "",
+                "seed": None,
+                "style": hit.source,
+                "caption": f"{hotel.name}, {dest.name}",
+                "match_score": hit.match_score,
+            })
+            if len(out) >= num:
+                break
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("hotel image search failed for %s: %s", hotel.name, exc)
+
+    return out
 
 
 def collect_for_hospital(hospital, num: int = 6) -> List[dict]:
