@@ -580,7 +580,7 @@ def publish_official_emergency(data, reviewer=None, verified=False):
                 destination=destination, name=name[:200], address=address or district or "Nepal",
                 phone=phone, latitude=latitude, longitude=longitude,
                 opening_hours=opening_hours, source_name="Admin Control Center",
-                source_url=source_url, is_verified=verified, verified_at=now if verified else None, is_archived=False,
+                source_url=source_url, website=website[:600], is_verified=verified, verified_at=now if verified else None, is_archived=False,
             )
         police_path = ROOT / "Tourism" / "dataset" / "police_station_cleaned.csv"
         police_fields = [
