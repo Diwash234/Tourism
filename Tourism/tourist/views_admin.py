@@ -2605,6 +2605,17 @@ class AdminCMSView(APIView):
         "translations": CMSContentTranslation,
         "destinations": Destination,
         "announcements": VisitorNotice,
+        # Operational records are editable through the same CMS control plane.
+        # They remain subject to their dedicated module capabilities and are
+        # never treated as arbitrary frontend JSON.
+        "hotels": Hotel,
+        "hospitals": Hospital,
+        "police_stations": PoliceStation,
+    }
+    RESOURCE_CAPABILITIES = {
+        "hotels": ("hotels", "view"),
+        "hospitals": ("safety", "view"),
+        "police_stations": ("safety", "view"),
     }
     FIELDS = {
         "settings": {"key", "value", "description", "is_public"},
@@ -2614,12 +2625,31 @@ class AdminCMSView(APIView):
         "translations": {"target_resource", "object_id", "language_code", "content"},
         "destinations": {"name", "slug", "description", "short_description", "district", "province", "city_english", "latitude", "longitude", "status", "seo_title", "meta_description", "og_image_url"},
         "announcements": {"title", "message", "level", "is_active"},
+        "hotels": {"destination_id", "name", "phone", "price_per_night", "currency", "rating", "booking_status", "booking_url", "external_image_url", "facilities", "address", "latitude", "longitude", "source", "source_url", "website", "is_verified", "is_active"},
+        "hospitals": {"destination_id", "name", "address", "phone", "latitude", "longitude", "district", "opening_hours", "emergency_available", "source_name", "source_url", "website", "is_verified", "is_archived"},
+        "police_stations": {"destination_id", "name", "address", "phone", "latitude", "longitude", "opening_hours", "emergency_available", "source_name", "source_url", "website", "is_verified", "is_archived"},
     }
     PUBLICATION_FIELDS = {"status", "scheduled_publish_at", "published_at", "is_enabled", "is_visible", "is_active", "route", "key"}
     WORKFLOW_ACTIONS = {"publish", "unpublish", "schedule", "approve", "request_changes", "rollback"}
 
     def _validate_payload(self, resource, payload):
         import re
+        if resource in self.RESOURCE_CAPABILITIES:
+            # Resource-specific validation prevents the generic CMS editor from
+            # becoming an unrestricted database JSON endpoint.
+            if payload.get("destination_id") is not None and not Destination.objects.filter(pk=payload["destination_id"]).exists():
+                raise ValueError("destination_id does not reference an existing destination")
+            for field in ("latitude", "longitude"):
+                if field in payload and payload[field] not in (None, ""):
+                    try:
+                        value = float(payload[field])
+                    except (TypeError, ValueError):
+                        raise ValueError(f"{field} must be numeric")
+                    if not (-90 <= value <= 90 if field == "latitude" else -180 <= value <= 180):
+                        raise ValueError(f"{field} is outside the valid coordinate range")
+            for field in ("source_url", "website", "booking_url", "external_image_url"):
+                if field in payload and payload[field] and not str(payload[field]).startswith(("https://", "/")):
+                    raise ValueError(f"{field} must be an HTTPS URL or an internal path")
         if resource in {"pages", "navigation"} and payload.get("route") and not str(payload["route"]).startswith("/"):
             raise ValueError("Only validated internal routes beginning with / are allowed")
         if resource == "sections" and payload.get("cta_url") and not str(payload["cta_url"]).startswith("/"):
@@ -2677,6 +2707,18 @@ class AdminCMSView(APIView):
             row["category_name"] = cat.name if cat else None
             slug_val = getattr(obj, "slug", None) or obj.pk
             row["route"] = f"/destinations/{slug_val}"
+        if resource in {"hotels", "hospitals", "police_stations"}:
+            destination = getattr(obj, "destination", None)
+            row["destination_id"] = getattr(obj, "destination_id", None)
+            row["destination_name"] = getattr(destination, "name", None)
+            image_field = getattr(obj, "cover_image", None) or getattr(obj, "image", None)
+            if image_field:
+                try:
+                    row["image_url"] = image_field.url
+                except Exception:
+                    row["image_url"] = ""
+            elif resource == "hotels":
+                row["image_url"] = getattr(obj, "external_image_url", "") or ""
         if resource == "sections":
             page = getattr(obj, "page", None)
             row["published_snapshot"] = obj.published_snapshot
@@ -2777,7 +2819,7 @@ class AdminCMSView(APIView):
                 return Response({"detail": "Page not found"}, status=404)
         url_re = _re.compile(r'href=["\']([^"\']*)["\']', _re.I)
         reports = []
-        for page in pages[:60]:
+        for page in pages:
             warnings = []
             sections = list(ContentSection.objects.filter(page=page).order_by("display_order", "id"))
             drafts = [s for s in sections if s.status != "published"]
@@ -2816,7 +2858,7 @@ class AdminCMSView(APIView):
             })
         if page_id:
             return Response(reports[0])
-        return Response({"results": reports, "count": len(reports)})
+        return Response({"results": reports, "count": len(reports), "scanned_pages": len(reports)})
 
     def get(self, request):
         _require_capability(request, "content", "view")
@@ -2827,6 +2869,8 @@ class AdminCMSView(APIView):
             queryset = ContentSection.objects.filter(is_reusable=True).select_related("page")
             return Response({"resource": "sections", "results": [self._row("sections", obj) for obj in queryset[:200]]})
         resource = request.query_params.get("resource", "pages")
+        if resource in self.RESOURCE_CAPABILITIES:
+            _require_capability(request, *self.RESOURCE_CAPABILITIES[resource])
         if resource == "health":
             return self._health_report(request)
         model = self.MODELS.get(resource)
@@ -2848,6 +2892,10 @@ class AdminCMSView(APIView):
                 data["sections"] = [self._row("sections", section) for section in obj.sections.all()]
             return Response({"preview": data, "notice": "Administrative preview; draft content is not public."})
         queryset = model.objects.all()
+        if resource == "hotels":
+            queryset = queryset.select_related("destination")
+        elif resource in {"hospitals", "police_stations"}:
+            queryset = queryset.select_related("destination")
         if resource == "sections" and request.query_params.get("page_id"):
             queryset = queryset.filter(page_id=request.query_params["page_id"])
         if resource == "sections":
@@ -2855,8 +2903,11 @@ class AdminCMSView(APIView):
         return Response({"resource": resource, "results": [self._row(resource, obj) for obj in queryset[:2000]]})
 
     def post(self, request):
-        _require_capability(request, "content", "add")
         resource = request.data.get("resource")
+        if resource in self.RESOURCE_CAPABILITIES:
+            _require_capability(request, self.RESOURCE_CAPABILITIES[resource][0], "add")
+        else:
+            _require_capability(request, "content", "add")
         model = self.MODELS.get(resource)
         if not model:
             return Response({"detail": "Unknown CMS resource"}, status=400)
@@ -3205,12 +3256,19 @@ class AdminCMSView(APIView):
         return Response({"message": f"Archived “{label}”" + (f" and its {cascade} section(s)" if cascade else ""), "record": self._row(resource, obj)})
 
     def patch(self, request):
-        _require_capability(request, "content", "change")
+        resource = request.data.get("resource")
+        if resource in self.RESOURCE_CAPABILITIES:
+            _require_capability(request, self.RESOURCE_CAPABILITIES[resource][0], "change")
+        else:
+            _require_capability(request, "content", "change")
         # Role-differentiated workflow (spec §11): editing and submitting for
         # review need content.change; approving/publishing/rollback need the
         # stronger content.publish capability (admins always pass).
         if request.data.get("action") in {"publish", "unpublish", "approve", "schedule", "rollback"}:
-            _require_capability(request, "content", "publish")
+            if resource in self.RESOURCE_CAPABILITIES:
+                _require_capability(request, self.RESOURCE_CAPABILITIES[resource][0], "approve")
+            else:
+                _require_capability(request, "content", "publish")
         resource = request.data.get("resource")
         model = self.MODELS.get(resource)
         obj = model.objects.filter(pk=request.data.get("id")).first() if model else None
