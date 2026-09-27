@@ -28,7 +28,23 @@ const ROUTES = [
   "/trip",
 ]
 
-const WIDTHS = [320, 375, 414, 768, 1024, 1280]
+const WIDTHS = [320, 360, 375, 390, 414, 480, 600, 768, 820, 1024, 1280, 1440, 1600, 1920]
+
+// Hermetic by design. These assertions are about *our* layout, so they must
+// never depend on a third-party host being reachable. Previously a blocked or
+// slow Google Fonts / CDN request stalled DOMContentLoaded, so every one of the
+// 102 route x viewport tests burned the full navigation timeout and the job took
+// over an hour and a half to fail. Only loopback traffic is allowed through.
+const isLoopback = (url) =>
+  /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:\d+)?([/?#]|$)/.test(url)
+
+test.beforeEach(async ({ page }) => {
+  // A dead page must fail fast instead of stalling the whole suite.
+  page.setDefaultNavigationTimeout(20_000)
+  await page.route("**/*", (route) =>
+    isLoopback(route.request().url()) ? route.continue() : route.abort()
+  )
+})
 
 // Returns the count of significantly-overlapping visible element pairs.
 async function countOverlaps(page) {
@@ -50,34 +66,44 @@ async function countOverlaps(page) {
     // layout position — e.g. welcome-message cards pushed above the chat
     // viewport by auto-scroll-to-bottom. Return the rect actually visible
     // after intersecting every clipping ancestor, or null if fully clipped.
-    const clippedRect = (el) => {
-      let r = el.getBoundingClientRect()
-      const fullArea = r.width * r.height
-      let node = el.parentElement
-      while (node && node !== document.documentElement) {
-        const st = getComputedStyle(node)
-        if (st.overflow !== "visible" || st.overflowX !== "visible" || st.overflowY !== "visible") {
-          const nr = node.getBoundingClientRect()
-          r = {
-            left: Math.max(r.left, nr.left), top: Math.max(r.top, nr.top),
-            right: Math.min(r.right, nr.right), bottom: Math.min(r.bottom, nr.bottom),
-            get width() { return Math.max(0, this.right - this.left) },
-            get height() { return Math.max(0, this.bottom - this.top) },
-          }
-          if (r.width <= 1 || r.height <= 1) return null
+    // Use each client-rect fragment rather than getBoundingClientRect's union:
+    // an inline link that wraps across two lines otherwise appears to occupy
+    // the entire paragraph and creates a false overlap with its neighbour.
+    const clippedRects = (el) => {
+      const sourceRects = [...el.getClientRects()]
+      return sourceRects.map((source) => {
+        let r = {
+          left: source.left, top: source.top, right: source.right, bottom: source.bottom,
+          get width() { return Math.max(0, this.right - this.left) },
+          get height() { return Math.max(0, this.bottom - this.top) },
         }
-        node = node.parentElement
-      }
-      return r.width * r.height > fullArea * 0.5 ? r : null
+        const fullArea = r.width * r.height
+        let node = el.parentElement
+        while (node && node !== document.documentElement) {
+          const st = getComputedStyle(node)
+          if (st.overflow !== "visible" || st.overflowX !== "visible" || st.overflowY !== "visible") {
+            const nr = node.getBoundingClientRect()
+            r = {
+              left: Math.max(r.left, nr.left), top: Math.max(r.top, nr.top),
+              right: Math.min(r.right, nr.right), bottom: Math.min(r.bottom, nr.bottom),
+              get width() { return Math.max(0, this.right - this.left) },
+              get height() { return Math.max(0, this.bottom - this.top) },
+            }
+            if (r.width <= 1 || r.height <= 1) return null
+          }
+          node = node.parentElement
+        }
+        return r.width * r.height > fullArea * 0.5 ? r : null
+      }).filter(Boolean)
     }
     // Only sample leaf-ish textual elements to keep the pair count tractable.
     const candidates = Array.from(document.querySelectorAll("h1,h2,h3,h4,p,span,button,a,label"))
       .filter(isTextual)
       .filter(visible)
       .filter((el) => !el.querySelector("h1,h2,h3,h4,p,button")) // skip wrappers
-    const els = []
+    const entries = []
     for (const el of candidates) {
-      if (clippedRect(el)) els.push(el) // drop elements clipped out of view
+      for (const rect of clippedRects(el)) entries.push({ el, rect })
     }
     // Overlap is only a layout bug WITHIN one stacking layer. Fixed chrome
     // (cookie banner, mobile bottom nav, floating SOS/chat button) floats
@@ -95,7 +121,6 @@ async function countOverlaps(page) {
       layerCache.set(el, layer)
       return layer
     }
-    const rects = els.map((el) => clippedRect(el))
     let overlaps = 0
     const samples = []
     const inter = (a, b) => {
@@ -108,11 +133,11 @@ async function countOverlaps(page) {
       const cls = (el.className && String(el.className).split(/\s+/)[0]) || ""
       return `${el.tagName.toLowerCase()}${cls ? "." + cls : ""}["${(el.innerText || "").trim().slice(0, 24).replace(/\n/g, " ")}"]`
     }
-    for (let i = 0; i < rects.length; i++) {
-      for (let j = i + 1; j < rects.length; j++) {
-        const a = rects[i], b = rects[j]
-        const elA = els[i], elB = els[j]
-        if (elA.contains(elB) || elB.contains(elA)) continue // nested is fine
+    for (let i = 0; i < entries.length; i++) {
+      for (let j = i + 1; j < entries.length; j++) {
+        const { el: elA, rect: a } = entries[i]
+        const { el: elB, rect: b } = entries[j]
+        if (elA === elB || elA.contains(elB) || elB.contains(elA)) continue // nested/fragments are fine
         if (layerOf(elA) !== layerOf(elB)) continue // different stacking layers (fixed overlay vs content) is by design
         const o = inter(a, b)
         if (o <= 0) continue
@@ -127,13 +152,31 @@ async function countOverlaps(page) {
   })
 }
 
+async function waitForStableLayout(page, { interval = 250, maxTries = 16 } = {}) {
+  const signature = () => page.evaluate(() => {
+    const cards = [...document.querySelectorAll("main a, main button, main h2, main img")].slice(0, 400)
+    return `${document.documentElement.scrollHeight}|${cards.length}|` +
+      cards.map((el) => { const r = el.getBoundingClientRect(); return `${Math.round(r.top)},${Math.round(r.height)}` }).join(";")
+  })
+  let previous = await signature()
+  for (let i = 0; i < maxTries; i++) {
+    await page.waitForTimeout(interval)
+    const current = await signature()
+    if (current === previous) return
+    previous = current
+  }
+}
+
 for (const route of ROUTES) {
   for (const width of WIDTHS) {
     test(`no horizontal overflow + no text overlap ${route} @${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 })
       await page.goto(route, { waitUntil: "domcontentloaded" })
-      // Give lazy images / data a moment to settle.
-      await page.waitForTimeout(1200)
+      // Measure a settled layout, not a mid-load frame: wait for data
+      // requests to finish, then for the page geometry to stop changing.
+      // (A real overlap persists after settling, so the check stays strict.)
+      await page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => {})
+      await waitForStableLayout(page)
 
       const overflow = await page.evaluate(
         () => document.documentElement.scrollWidth - window.innerWidth

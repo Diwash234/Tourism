@@ -45,7 +45,7 @@ export default function StaffLogin() {
 
   return (
     <AuthShell portal="staff" title="Staff Sign In">
-      <CMSPageIntro pageKey="staff-login" />
+      <CMSPageIntro pageKey="staff-login" compact />
       <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 mb-5">
         <FiAlertCircle className="mt-0.5 shrink-0" />
         <span>

@@ -1,5 +1,6 @@
+import { openCookieSettings } from "../utils/cookieConsent"
 import { useForm } from "react-hook-form"
-import { useNavigate } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useEffect, useState } from "react"
@@ -627,6 +628,16 @@ const Settings = () => {
       </motion.section>
 
       <ChangePasswordCard />
+
+      <section aria-labelledby="privacy-data-title" className="ny-card p-5">
+        <h2 id="privacy-data-title" className="text-lg font-bold text-[var(--ny-text)]">Privacy and your data</h2>
+        <p className="mt-1 text-sm text-[var(--ny-text-secondary)]">See what we store, change your video cookie choice, or delete your account and data.</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link to="/privacy-policy" className="ny-btn ny-btn-secondary min-h-11 px-4 text-sm">Privacy Policy</Link>
+          <button type="button" onClick={openCookieSettings} className="ny-btn ny-btn-secondary min-h-11 px-4 text-sm">Cookie settings</button>
+          <Link to="/data-deletion" className="ny-btn ny-btn-danger min-h-11 px-4 text-sm">Delete account</Link>
+        </div>
+      </section>
 
     </motion.div>
 

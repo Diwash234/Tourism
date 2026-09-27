@@ -2,15 +2,12 @@ import { useForm } from "react-hook-form"
 import CMSPageIntro from "../../components/cms/CMSPageIntro"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { useState } from "react"
-import { FiUser, FiMail, FiPhone, FiLock, FiCheckCircle } from "react-icons/fi"
-import { motion } from "framer-motion"
+import { FiUser, FiMail, FiPhone, FiLock } from "react-icons/fi"
 import authApi from "../../api/authApi"
 import useToast from "../../hooks/useToast"
 import AuthShell from "../../components/auth/AuthShell"
 import SocialLoginButtons from "./SocialLoginButtons"
 import PasswordStrengthField from "../../components/ui/PasswordStrengthField"
-import CrazyButton from "../../components/ui/CrazyButton"
-import LightRays from "../../components/ui/LightRays"
 import safeNextPath from "../../utils/safeNextPath"
 
 const Register = () => {
@@ -77,109 +74,125 @@ const Register = () => {
   }
 
   return (
-    <AuthShell portal="tourist" title="Join Nepal Tourism">
-      <CMSPageIntro pageKey="auth-register" />
-      <div className="absolute inset-0 -z-0 overflow-hidden rounded-[2rem]">
-        <LightRays color="#1f6b4d" accent="#c2603a" intensity={0.25} speed={28} />
-      </div>
-
-      <form onSubmit={handleSubmit(onSubmit)} className="relative z-10 space-y-4">
-        <div className="relative">
-          <FiUser className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
-          <input
-            placeholder="Full name"
-            autoComplete="name"
-            className="input-field pl-11"
-            {...register("name", { required: "Name is required" })}
-          />
-          {errors.name && <p className="text-xs text-rose-600 mt-1">{errors.name.message}</p>}
+    <AuthShell portal="tourist" title="Create your Nepal Yatra account">
+      <CMSPageIntro pageKey="auth-register" compact />
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+        <div>
+          <label htmlFor="reg-name" className="ny-field-label">Full name</label>
+          <div className="relative">
+            <FiUser aria-hidden="true" className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
+            <input
+              id="reg-name"
+              autoComplete="name"
+              className="input-field pl-11"
+              aria-invalid={errors.name ? true : undefined}
+              aria-describedby={errors.name ? "reg-name-error" : undefined}
+              {...register("name", { required: "Name is required" })}
+            />
+          </div>
+          {errors.name && <p id="reg-name-error" role="alert" className="ny-field-error">{errors.name.message}</p>}
         </div>
 
-        <div className="relative">
-          <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
-          <input
-            type="email"
-            placeholder="Email address"
-            autoComplete="email"
-            className="input-field pl-11"
-            {...register("email", {
-              required: "Email is required",
-              pattern: { value: /^\S+@\S+\.\S+$/, message: "Enter a valid email" },
-            })}
-          />
-          {errors.email && <p className="text-xs text-rose-600 mt-1">{errors.email.message}</p>}
-        </div>
-
-        <div className="relative">
-          <FiPhone className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
-          <input
-            type="tel"
-            placeholder="Phone (optional)"
-            autoComplete="tel"
-            className="input-field pl-11"
-            {...register("phone_number", {
-              pattern: { value: /^\+?[0-9\s-]{7,15}$/, message: "Enter a valid phone number" },
-            })}
-          />
-          {errors.phone_number && <p className="text-xs text-rose-600 mt-1">{errors.phone_number.message}</p>}
-        </div>
-
-        <div className="relative">
-          <FiLock className="absolute left-4 top-4 text-stone-400 pointer-events-none" />
-          <div className="pl-0">
-            <PasswordStrengthField
-              label=""
-              placeholder="Create a strong password"
-              id="reg-password"
-              autoComplete="new-password"
-              className="!mb-0"
-              value={password || ""}
-              name="password"
-              onChange={(e) => setValue("password", e.target.value, { shouldValidate: true })}
-              {...register("password", {
-                required: "Password is required",
-                minLength: { value: 8, message: "Minimum 8 characters" },
+        <div>
+          <label htmlFor="reg-email" className="ny-field-label">Email address</label>
+          <div className="relative">
+            <FiMail aria-hidden="true" className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
+            <input
+              id="reg-email"
+              type="email"
+              autoComplete="email"
+              className="input-field pl-11"
+              aria-invalid={errors.email ? true : undefined}
+              aria-describedby={errors.email ? "reg-email-error" : undefined}
+              {...register("email", {
+                required: "Email is required",
+                pattern: { value: /^\S+@\S+\.\S+$/, message: "Enter a valid email" },
               })}
             />
           </div>
-          {errors.password && <p className="text-xs text-rose-600 mt-1">{errors.password.message}</p>}
+          {errors.email && <p id="reg-email-error" role="alert" className="ny-field-error">{errors.email.message}</p>}
         </div>
 
-        <div className="relative">
-          <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
-          <input
-            type="password"
-            placeholder="Confirm password"
+        <div>
+          <label htmlFor="reg-phone" className="ny-field-label">Phone <span className="font-normal text-[var(--ny-text-secondary)]">(optional)</span></label>
+          <div className="relative">
+            <FiPhone aria-hidden="true" className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
+            <input
+              id="reg-phone"
+              type="tel"
+              autoComplete="tel"
+              className="input-field pl-11"
+              aria-invalid={errors.phone_number ? true : undefined}
+              aria-describedby={errors.phone_number ? "reg-phone-hint reg-phone-error" : "reg-phone-hint"}
+              {...register("phone_number", {
+                pattern: { value: /^\+?[0-9\s-]{7,15}$/, message: "Enter a valid phone number" },
+              })}
+            />
+          </div>
+          <p id="reg-phone-hint" className="mt-1 text-xs text-[var(--ny-text-secondary)]">Only used to verify your number by SMS and for your safety contacts.</p>
+          {errors.phone_number && <p id="reg-phone-error" role="alert" className="ny-field-error">{errors.phone_number.message}</p>}
+        </div>
+
+        <div>
+          <PasswordStrengthField
+            label="Password"
+            placeholder=""
+            id="reg-password"
             autoComplete="new-password"
-            className="input-field pl-11"
-            {...register("password_confirm", {
-              required: "Please confirm your password",
-              validate: (value) => value === password || "Passwords do not match",
+            className="!mb-0"
+            value={password || ""}
+            name="password"
+            onChange={(e) => setValue("password", e.target.value, { shouldValidate: true })}
+            {...register("password", {
+              required: "Password is required",
+              minLength: { value: 8, message: "Minimum 8 characters" },
             })}
           />
-          {errors.password_confirm && <p className="text-xs text-rose-600 mt-1 font-medium">{errors.password_confirm.message}</p>}
-          {liveMismatch && <p className="text-xs text-rose-600 mt-1 font-medium">Passwords do not match</p>}
+          {errors.password && <p role="alert" className="ny-field-error">{errors.password.message}</p>}
         </div>
 
-        <motion.div whileTap={{ scale: 0.98 }}>
-          <CrazyButton type="submit" disabled={loading} className="w-full py-3 text-base">
-            {loading ? "Creating account..." : "Create Account"}
-            {!loading && <FiCheckCircle />}
-          </CrazyButton>
-        </motion.div>
+        <div>
+          <label htmlFor="reg-password-confirm" className="ny-field-label">Confirm password</label>
+          <div className="relative">
+            <FiLock aria-hidden="true" className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
+            <input
+              id="reg-password-confirm"
+              type="password"
+              autoComplete="new-password"
+              className="input-field pl-11"
+              aria-invalid={errors.password_confirm || liveMismatch ? true : undefined}
+              aria-describedby={errors.password_confirm || liveMismatch ? "reg-password-confirm-error" : undefined}
+              {...register("password_confirm", {
+                required: "Please confirm your password",
+                validate: (value) => value === password || "Passwords do not match",
+              })}
+            />
+          </div>
+          {(errors.password_confirm || liveMismatch) && (
+            <p id="reg-password-confirm-error" role="alert" className="ny-field-error">{errors.password_confirm?.message || "Passwords do not match"}</p>
+          )}
+        </div>
+
+        <p className="text-xs leading-5 text-[var(--ny-text-secondary)]">
+          By creating an account you agree to the <Link to="/terms-of-service" className="font-semibold text-[var(--ny-green)] underline">Terms of Service</Link>. The <Link to="/privacy-policy" className="font-semibold text-[var(--ny-green)] underline">Privacy Policy</Link> explains what we store and how to delete it.
+        </p>
+
+        <button type="submit" disabled={loading} className="ny-btn ny-btn-primary min-h-12 w-full text-base">
+          {loading ? "Creating account…" : "Create account"}
+        </button>
       </form>
 
-      <div className="my-5 flex items-center gap-3 text-xs text-stone-400 relative z-10">
+      <div className="my-5 flex items-center gap-3 text-xs text-stone-400 ">
         <div className="flex-1 h-px bg-stone-200" /> or continue with{" "}
         <div className="flex-1 h-px bg-stone-200" />
       </div>
       {/* this page has its own divider above → hide the component's */}
-      <div className="relative z-10"><SocialLoginButtons showDivider={false} /></div>
+      <SocialLoginButtons showDivider={false} />
 
-      <p className="text-sm text-center text-stone-600 font-medium mt-6 relative z-10">
+      <p className="text-sm text-center text-stone-600 font-medium mt-6">
         Already have an account?{" "}
         <Link to="/login" className="text-primary-700 font-extrabold hover:underline">
-          Sign In (Login)
+          Sign in
         </Link>
       </p>
     </AuthShell>

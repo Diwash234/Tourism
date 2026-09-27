@@ -2768,14 +2768,24 @@ class AdminCMSView(APIView):
                 return Response({"detail": "Page not found"}, status=404)
         url_re = _re.compile(r'href=["\']([^"\']*)["\']', _re.I)
         reports = []
-        for page in pages[:60]:
+        # Every page is checked (there was a 60-page cap, which silently left
+        # later pages out once the site had more CMS pages than that).
+        for page in pages.prefetch_related("sections"):
             warnings = []
-            sections = list(ContentSection.objects.filter(page=page).order_by("display_order", "id"))
+            sections = sorted(page.sections.all(), key=lambda s: (s.display_order, s.id))
             drafts = [s for s in sections if s.status != "published"]
             if page.status != "published" or not page.is_enabled:
                 warnings.append({"code": "page_not_published", "message": f"Page status is '{page.status}'" + ("" if page.is_enabled else " and the page is disabled")})
             if not (page.meta_description or "").strip():
                 warnings.append({"code": "missing_seo_description", "message": "No meta description (SEO)"})
+            # The public site serves the published snapshot, not the live
+            # fields: say so when they differ, or edits look "lost".
+            snap = page.published_snapshot if isinstance(page.published_snapshot, dict) else {}
+            stale = [f for f in ("route", "title", "meta_description", "seo_title", "og_image_url", "search_visible")
+                     if f in snap and snap.get(f) != getattr(page, f)]
+            if stale:
+                warnings.append({"code": "unpublished_changes",
+                                 "message": "Not yet public: " + ", ".join(stale) + " differ from the published version. Publish the page to apply them."})
             if not (page.og_image_url or "").strip():
                 warnings.append({"code": "missing_og_image", "message": "No social share (OG) image"})
             for s in sections:
@@ -2798,7 +2808,7 @@ class AdminCMSView(APIView):
                 "links": "warn" if any(w["code"] == "broken_link" for w in warnings) else "ok",
                 "seo": "warn" if any(w["code"] == "missing_seo_description" for w in warnings) else "ok",
                 "sections": "ok" if sections else "warn",
-                "published": "warn" if drafts or any(w["code"] == "page_not_published" for w in warnings) else "ok",
+                "published": "warn" if drafts or any(w["code"] in {"page_not_published", "unpublished_changes"} for w in warnings) else "ok",
             }
             reports.append({
                 "page_id": page.id, "key": page.key, "route": page.route, "title": page.title,
@@ -3384,6 +3394,88 @@ class AdminContentBlockView(APIView):
     """
     permission_classes = [IsAdminOrStaff]
 
+    # ------------------------------------------------------------------
+    # Block writes used to bypass the guarantees every other CMS write
+    # path has. Section writes go through AdminCMSView, which freezes a
+    # CMSRevision, writes an AuditLog row and invalidates the public
+    # config cache. Block writes did none of that, so:
+    #   * a block edit never invalidated the /config/public/ cache,
+    #   * block edits were invisible to the rollback history and to the
+    #     admin audit log (undeletable-without-a-trace edits),
+    #   * reorder accepted any id from any section, plus negative or
+    #     absurd positions, via a raw queryset .update().
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _ensure_published_snapshot(section):
+        """Freeze a never-published section BEFORE it is edited.
+
+        PublicConfigView falls back to live rows when published_snapshot is
+        empty. Without this, the very first block edit on a legacy section
+        would publish itself to production with no publish step at all.
+        Must be called before the mutation, not after.
+        """
+        if section.status == "published" and not section.published_snapshot:
+            from .cms_publishing import sync_published_snapshot
+            sync_published_snapshot(section)
+
+    @staticmethod
+    def _section_snapshot(section):
+        """Freeze the section and its blocks into the revision history."""
+        return {
+            "id": section.pk,
+            "page_id": section.page_id,
+            "key": section.key,
+            "title": section.title,
+            "subtitle": section.subtitle,
+            "body": section.body,
+            "status": section.status,
+            "is_visible": section.is_visible,
+            "display_order": section.display_order,
+            "blocks": [
+                {
+                    "id": block.pk,
+                    "block_type": block.block_type,
+                    "title": block.title,
+                    "position": block.position,
+                    "is_visible": block.is_visible,
+                    "data": block.data,
+                }
+                for block in section.blocks.all().order_by("position", "id")
+            ],
+        }
+
+    def _record_change(self, request, section, action, message, object_id=None, extra=None):
+        from django.db.models import Max
+        from audit.models import AuditLog
+
+        AdminCMSView._invalidate_public_caches()
+
+        number = (
+            CMSRevision.objects.filter(resource="sections", object_id=section.pk)
+            .aggregate(n=Max("revision_number"))["n"] or 0
+        ) + 1
+        CMSRevision.objects.create(
+            resource="sections",
+            object_id=section.pk,
+            revision_number=number,
+            snapshot=self._section_snapshot(section),
+            action=action,
+            created_by=request.user if request.user.is_authenticated else None,
+        )
+        AuditLog.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            user_email=getattr(request.user, "email", "") or "",
+            category="content",
+            severity="info",
+            source="backend",
+            action=f"cms.blocks.{action}",
+            message=message,
+            object_type="ContentBlock",
+            object_id=str(object_id) if object_id is not None else "",
+            extra={"section_id": section.pk, "section_key": section.key, **(extra or {})},
+        )
+        return number
+
     def _validate_block_data(self, block_type, data):
         data = data if isinstance(data, dict) else {}
         # Rich-text / HTML payloads are sanitized in place before storage.
@@ -3428,10 +3520,43 @@ class AdminContentBlockView(APIView):
                 return False, "Package grid limit must be a whole number between 1 and 12."
         elif block_type == "map":
             try:
-                if "latitude" in data and data["latitude"] is not None: float(data["latitude"])
-                if "longitude" in data and data["longitude"] is not None: float(data["longitude"])
+                lat = float(data["latitude"]) if data.get("latitude") not in (None, "") else None
+                lng = float(data["longitude"]) if data.get("longitude") not in (None, "") else None
             except (ValueError, TypeError):
                 return False, "Map coordinates must be numeric latitude and longitude."
+            if (lat is not None and not -90 <= lat <= 90) or (lng is not None and not -180 <= lng <= 180):
+                return False, "Map coordinates are out of range (latitude -90..90, longitude -180..180)."
+            zoom = data.get("zoom")
+            if zoom not in (None, "") and (not isinstance(zoom, int) or not 1 <= zoom <= 19):
+                return False, "Map zoom must be a whole number between 1 and 19."
+        elif block_type == "gallery":
+            images = data.get("images")
+            if images is not None and not isinstance(images, list):
+                return False, "Gallery images must be a list."
+            for img in images or []:
+                url = str((img.get("url") if isinstance(img, dict) else img) or "").strip()
+                if not url:
+                    return False, "Every gallery image needs a URL."
+                if not (url.startswith("https://") or url.startswith("/")):
+                    return False, "Gallery images must be HTTPS URLs or site paths beginning with /."
+        elif block_type in {"destination_grid", "hotel_grid", "restaurant_grid"}:
+            limit = data.get("limit", 6)
+            if not isinstance(limit, int) or not 1 <= limit <= 12:
+                return False, "Grid limit must be a whole number between 1 and 12."
+            for key in ("district", "search", "category"):
+                if data.get(key) is not None and not isinstance(data.get(key), str):
+                    return False, f"Grid filter '{key}' must be text."
+        elif block_type == "statistics":
+            items = data.get("items")
+            if items is not None and not isinstance(items, list):
+                return False, "Statistics must be a list of items."
+            for item in items or []:
+                if not isinstance(item, dict) or not str(item.get("label") or "").strip() or not str(item.get("number") or "").strip():
+                    return False, "Every statistic needs a number and a label."
+        elif block_type == "list":
+            items = data.get("items")
+            if items is not None and not isinstance(items, list):
+                return False, "List items must be a list."
         return True, None
 
     def get(self, request, section_id=None):
@@ -3452,11 +3577,15 @@ class AdminContentBlockView(APIView):
     def post(self, request, section_id=None):
         _require_capability(request, "content", "add")
         if request.path.endswith("reorder/") or request.data.get("action") == "reorder":
-            return self._reorder(request)
+            return self._reorder(request, section_id)
 
         section = ContentSection.objects.filter(pk=section_id).first()
         if not section:
             return Response({"detail": "Section not found"}, status=404)
+
+        # Freeze the pre-edit state so this block does not self-publish on a
+        # section that predates snapshot isolation.
+        self._ensure_published_snapshot(section)
 
         block_type = request.data.get("block_type", "rich_text")
         valid, err = self._validate_block_data(block_type, request.data.get("data"))
@@ -3466,14 +3595,23 @@ class AdminContentBlockView(APIView):
         from django.db.models import Max
         max_pos = (section.blocks.aggregate(m=Max("position"))["m"] or 0) + 1
 
+        position = request.data.get("position", max_pos)
+        if isinstance(position, bool) or not isinstance(position, int) or not 0 <= position <= 100000:
+            return Response({"detail": "position must be a whole number between 0 and 100000."}, status=400)
+
         block = ContentBlock.objects.create(
             section=section,
             block_type=block_type,
             title=(request.data.get("title") or "")[:240],
-            position=int(request.data.get("position", max_pos)),
+            position=position,
             data=request.data.get("data") if isinstance(request.data.get("data"), dict) else {},
             is_visible=bool(request.data.get("is_visible", True)),
             updated_by=request.user if request.user.is_authenticated else None,
+        )
+        self._record_change(
+            request, section, "create",
+            f"Content block #{block.pk} ({block.block_type}) created in section #{section.pk}",
+            object_id=block.pk, extra={"block_type": block.block_type},
         )
         return Response({
             "message": "Content block created",
@@ -3492,19 +3630,35 @@ class AdminContentBlockView(APIView):
         if not block:
             return Response({"detail": "Content block not found"}, status=404)
 
+        section = block.section
+        self._ensure_published_snapshot(section)
+
         block_type = request.data.get("block_type", block.block_type)
         data = request.data.get("data", block.data)
         valid, err = self._validate_block_data(block_type, data)
         if not valid:
             return Response({"detail": err}, status=400)
 
+        if "position" in request.data:
+            position = request.data["position"]
+            if isinstance(position, bool) or not isinstance(position, int) or not 0 <= position <= 100000:
+                return Response({"detail": "position must be a whole number between 0 and 100000."}, status=400)
+
+        before = {"block_type": block.block_type, "title": block.title, "position": block.position, "data": block.data, "is_visible": block.is_visible}
+
         block.block_type = block_type
         if "title" in request.data: block.title = str(request.data["title"])[:240]
-        if "position" in request.data: block.position = int(request.data["position"])
+        if "position" in request.data: block.position = request.data["position"]
         if "data" in request.data: block.data = data if isinstance(data, dict) else {}
         if "is_visible" in request.data: block.is_visible = bool(request.data["is_visible"])
         block.updated_by = request.user if request.user.is_authenticated else None
         block.save()
+
+        self._record_change(
+            request, section, "update",
+            f"Content block #{block.pk} ({block.block_type}) updated in section #{section.pk}",
+            object_id=block.pk, extra={"block_type": block.block_type, "before": before},
+        )
 
         return Response({
             "message": "Content block updated",
@@ -3521,17 +3675,70 @@ class AdminContentBlockView(APIView):
         block = ContentBlock.objects.filter(pk=block_id).first()
         if not block:
             return Response({"detail": "Content block not found"}, status=404)
+        section = block.section
+        self._ensure_published_snapshot(section)
         block_id_val = block.id
+        block_type = block.block_type
         block.delete()
+        self._record_change(
+            request, section, "update",
+            f"Content block #{block_id_val} ({block_type}) deleted from section #{section.pk}",
+            object_id=block_id_val, extra={"block_type": block_type, "deleted": True},
+        )
         return Response({"message": "Content block deleted", "id": block_id_val})
 
-    def _reorder(self, request):
-        items = request.data.get("items") or []
+    def _reorder(self, request, section_id=None):
+        """Reorder blocks.
+
+        Previously a raw ``.filter(pk=b_id).update(position=pos)`` accepted any
+        block id from any section plus negative or absurd positions, with no
+        existence check and no audit trail. Now every item is validated and the
+        change is recorded like any other CMS write.
+        """
+        items = request.data.get("items")
+        if not isinstance(items, list) or len(items) > 500:
+            return Response({"detail": "items must be a list of at most 500 block positions."}, status=400)
+
+        section = ContentSection.objects.filter(pk=section_id).first() if section_id else None
+        if section_id and not section:
+            return Response({"detail": "Section not found"}, status=404)
+
+        resolved = []
         for idx, item in enumerate(items):
-            b_id = item.get("id") if isinstance(item, dict) else item
-            pos = item.get("position", idx) if isinstance(item, dict) else idx
-            ContentBlock.objects.filter(pk=b_id).update(position=pos)
-        return Response({"message": "Block positions updated"})
+            block_id = item.get("id") if isinstance(item, dict) else item
+            position = item.get("position", idx) if isinstance(item, dict) else idx
+            if isinstance(block_id, bool) or not isinstance(block_id, int):
+                return Response({"detail": f"items[{idx}].id must be a block id."}, status=400)
+            if isinstance(position, bool) or not isinstance(position, int) or not 0 <= position <= 100000:
+                return Response({"detail": f"items[{idx}].position must be a whole number between 0 and 100000."}, status=400)
+            block = ContentBlock.objects.filter(pk=block_id).select_related("section").first()
+            if not block:
+                return Response({"detail": f"items[{idx}]: block {block_id} does not exist."}, status=400)
+            if section is not None and block.section_id != section.pk:
+                return Response({"detail": f"items[{idx}]: block {block_id} does not belong to section {section.pk}."}, status=400)
+            resolved.append((block, position))
+
+        if not resolved:
+            return Response({"message": "Block positions updated", "updated": 0})
+
+        # Group by section so each one is frozen and audited exactly once.
+        by_section = {}
+        for block, position in resolved:
+            by_section.setdefault(block.section_id, []).append((block, position))
+
+        for target_section_id, entries in by_section.items():
+            target = section if (section is not None and section.pk == target_section_id) else entries[0][0].section
+            self._ensure_published_snapshot(target)
+            for block, position in entries:
+                block.position = position
+                block.updated_by = request.user if request.user.is_authenticated else None
+                block.save(update_fields=["position", "updated_by", "updated_at"])
+            self._record_change(
+                request, target, "update",
+                f"Reordered {len(entries)} content block(s) in section #{target_section_id}",
+                object_id=entries[0][0].pk, extra={"reordered": [b.pk for b, _ in entries]},
+            )
+        return Response({"message": "Block positions updated", "updated": len(resolved)})
 
 
 class AdminReviewModerationView(APIView):
@@ -4084,6 +4291,11 @@ class AdminMediaLibraryView(APIView):
                 check=Image.open(uploaded);check.verify();uploaded.seek(0)
                 if check.format not in {"JPEG","PNG","WEBP"}:raise ValueError()
             except Exception:return Response({"detail":"Upload a valid JPEG, PNG or WebP image"},status=400)
+        optimisation=None
+        if uploaded:
+            from .image_optimize import optimise_image_upload, wants_optimisation
+            if wants_optimisation(request.data.get("optimize")):
+                uploaded,optimisation=optimise_image_upload(uploaded)
         ordering=(destination.gallery.aggregate(value=Max("ordering"))["value"] or 0)+1
         image=DestinationImage.objects.create(destination=destination,image=uploaded if uploaded else None,
             external_url=external_url,caption=(request.data.get("caption") or "")[:200],alt_text=(request.data.get("alt_text") or "")[:255],
@@ -4092,7 +4304,9 @@ class AdminMediaLibraryView(APIView):
             ordering=ordering,verification_status=DestinationImage.ImageStatus.PENDING,is_verified=False,uploaded_by=request.user)
         from audit.models import AuditLog
         AuditLog.objects.create(user=request.user,user_email=request.user.email,actor_role=request.user.role,category="media",severity="info",source="backend",action="media.upload",message=f"Added media to {destination.name}",object_type="DestinationImage",object_id=str(image.id),extra={"destination_id":destination.id,"external":bool(external_url)})
-        return Response({"message":"Image added to the moderation queue","id":image.id},status=201)
+        body={"message":"Image added to the moderation queue","id":image.id}
+        if optimisation is not None:body["optimisation"]=optimisation
+        return Response(body,status=201)
 
     def get(self, request):
         _require_capability(request,"images","view")
@@ -4589,7 +4803,7 @@ class FetchWebImagesView(APIView):
                 copyright_status="web_search",
                 is_cover=is_cover,
                 destination_match_score=round(hit.match_score, 3),
-                authenticity_score=0.9 if hit.source == "wikimedia" else 0.75,
+                authenticity_score=None,  # never invented: a real media review must assign this score
                 verification_status=DestinationImage.ImageStatus.APPROVED,
             )
             if is_cover:
@@ -4729,7 +4943,7 @@ class DownloadAIImagesView(APIView):
                 generation_seed=img["seed"],
                 generation_provider=img["provider"],
                 thumbnail_url=str(request.build_absolute_uri(settings.MEDIA_URL + img["file_path"])),
-                authenticity_score=0.9,
+                authenticity_score=None,  # never invented: a real media review must assign this score
                 verification_status=DestinationImage.ImageStatus.APPROVED,
             )
             if saved == 0 and not dest.cover_image:

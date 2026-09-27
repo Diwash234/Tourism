@@ -89,7 +89,7 @@ export default function ChatBot() {
           city: recordedCity(dest) || dest.district || NOT_RECORDED,
           image: dest.cover_image_url || "",
           slug: dest.slug,
-          rating: dest.average_rating != null ? dest.average_rating : NOT_RECORDED,
+          rating: Number(dest.average_rating) > 0 ? dest.average_rating : NOT_RECORDED,
           budget: dest.entry_fee ? `NPR ${dest.entry_fee}` : NOT_RECORDED,
           altitude: dest.altitude || NOT_RECORDED,
           category: dest.category_name || dest.type || "Destination",

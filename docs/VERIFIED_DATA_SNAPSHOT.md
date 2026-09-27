@@ -6,6 +6,40 @@ the live `Tourism/db.sqlite3` is operational state and is not a release source.
 `verified_tourism_data.lock.json` binds the JSON, database, cutoff, counts, and
 checksums as one release.
 
+## Two tracked databases, two jobs
+
+| Artifact | Job |
+| --- | --- |
+| `downloads/nepal-tourism-database.sqlite3.gz` | canonical release: built from the JSON catalog under the data policy below, score-gated media, checksummed against the lock file |
+| `downloads/nepal-tourism-seed.sqlite3.gz` | working seed for a new clone: the full public catalogue, ready to run |
+
+The canonical release is the publication contract and is the artifact to verify
+or diff. The seed database answers a different question — "a collaborator just
+cloned this, how do they get data?" — so it is not built from the JSON catalog
+and is not part of the lock file. It carries the same public content with the
+media rows the app can actually display, and it is installed with one command:
+
+```bash
+git clone https://github.com/Diwash234/Tourism.git
+cd Tourism/Tourism
+python manage.py install_public_seed_db      # verifies checksum, then installs
+python manage.py createsuperuser             # the seed has no accounts
+python manage.py runserver
+```
+
+`install_public_seed_db` checks the archive SHA-256, SQLite integrity and
+foreign keys before writing anything, refuses to overwrite a database that
+already has users or destinations (`--force` keeps a timestamped backup), and
+prints the imported row counts. `--verify-only` inspects the archive without
+installing it. If you prefer to place the file by hand, the `gunzip` recipe in
+"Use the shared database locally" below still works.
+
+The seed database never contains accounts, password hashes, tokens, sessions,
+chats, bookings, notifications, audit logs, drafts or local media paths, and it
+never promotes a place to verified: unverified listings arrive unverified and
+are shown publicly only with an "Unverified listing" badge and their source,
+ranked after verified records, until staff verify them in the admin.
+
 ## One-way release flow
 
 ```text
@@ -67,8 +101,7 @@ Included records must be sourced and public:
   present they must be inside Nepal (records located abroad are dropped).
   Exact duplicate imports (same name, coordinates and destination) are
   published once;
-- approved external images with HTTPS URLs, source/license metadata, and both
-  `destination_match_score` and `authenticity_score` of at least `0.85`.
+- approved external images under the explicit `approval` media gate: verified, approved, HTTPS external URLs with destination-specific matching; moderation scores are not invented. The release records the active gate in its policy.
 
 Why v2: policy v1 published only verified services. No imported hotel had been
 verified, so the shared database contained no hotels at all and every
@@ -96,17 +129,17 @@ emergency page shows no pharmacies near Pokhara.
 |---|---|
 | Policy version | 2 |
 | Cutoff (`--as-of`) | `2026-09-26T00:00:00Z` |
-| Source database | local runtime DB migrated through `0084` (online SQLite backup, read-only) |
-| JSON records | 12,873 |
+| Source database | local runtime DB migrated through `0092_merge_main_handoff` (online SQLite backup, read-only) |
+| JSON records | 12,586 |
 | Destinations | 6,075 |
-| Destination images | 723 (quality-scored) |
-| Hotels | 2,322 (all unverified, labelled; 26 hospitals misfiled as hotels archived by migration 0084) |
+| Destination images | 409 (eligible under the explicit approval media gate) |
+| Hotels | 2,322 (all unverified, labelled; 26 hospitals misfiled as hotels archived by migration 0085) |
 | Restaurants | 265 |
-| Hospitals | 362 (111 templated placeholder phone numbers such as `…-520123` blanked by migration 0084 — shown as "Phone unavailable") |
-| Police stations | 801 |
+| Hospitals | 362 (111 templated placeholder phone numbers such as `…-520123` blanked by migration 0085 — shown as "Phone unavailable") |
+| Police stations | 801 (788 "nan" phone markers blanked by migration 0085_handoff_clear_missing_marker_phones; 8 have a recorded number) |
 | OSM essential services | 1,997 (banks 838, ATMs 346, hospitals 381, pharmacies 351, police 81) |
 | Districts / provinces | 77 / 7 |
-| CMS | 34 seeded placeholder sections hidden (migration 0081) |
+| CMS | 97 page records; 27 new route records added by migration 0091; 34 seeded placeholder sections hidden (migration 0081) |
 
 Checksums live in `verified_tourism_data.lock.json` and the `.sha256` files.
 

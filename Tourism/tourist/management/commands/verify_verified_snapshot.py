@@ -59,7 +59,28 @@ class Command(BaseCommand):
                 return
 
         payload = read_payload(input_path)
-        actual = build_snapshot_payload(as_of=as_of_from_payload(payload))
+        # Rebuild the candidate under the rule recorded by the artifact, not
+        # whatever gate happens to be configured in the verifier's environment.
+        # Otherwise an approval-gated release would fail verification on a
+        # machine whose default is the stricter scored gate.
+        policy = payload.get("policy") or {}
+        release_settings = {
+            "PUBLIC_SNAPSHOT_MEDIA_GATE": policy.get("media_gate"),
+            "PUBLIC_SNAPSHOT_SCORE_THRESHOLD": policy.get("media_gate_score_threshold"),
+            "PUBLIC_SNAPSHOT_REQUIRE_REVIEW_PROVENANCE": policy.get("media_gate_requires_provenance"),
+        }
+        previous_settings = {key: os.environ.get(key) for key in release_settings}
+        try:
+            for key, value in release_settings.items():
+                if value not in (None, ""):
+                    os.environ[key] = str(value)
+            actual = build_snapshot_payload(as_of=as_of_from_payload(payload))
+        finally:
+            for key, value in previous_settings.items():
+                if value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = value
         if actual["records_sha256"] != payload["records_sha256"]:
             # Normalize Python Decimal/date values through Django's JSON
             # encoder before producing a useful field-level diff.  A freshly

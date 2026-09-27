@@ -234,7 +234,7 @@ export default function DiscoverNepal() {
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
                         {s.image ? (
-                          <img src={s.image} alt={s.title} className="w-12 h-12 rounded-full object-cover border-2 border-amber-500 shadow" />
+                          <img loading="lazy" decoding="async" src={s.image} alt={s.title} className="w-12 h-12 rounded-full object-cover border-2 border-amber-500 shadow" />
                         ) : (
                           <span className="text-2xl">{s.icon}</span>
                         )}

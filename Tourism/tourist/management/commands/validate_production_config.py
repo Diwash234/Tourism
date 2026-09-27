@@ -88,6 +88,17 @@ class Command(BaseCommand):
             else:
                 oks.append(f"{name} set to a non-default value: value never printed")
 
+        email_backend = str(getattr(settings, "EMAIL_BACKEND", ""))
+        if "console.EmailBackend" in email_backend:
+            fails.append("EMAIL_BACKEND is console: real email delivery is not enabled for production")
+        elif "smtp.EmailBackend" in email_backend:
+            if not getattr(settings, "EMAIL_HOST_USER", "") or not getattr(settings, "EMAIL_HOST_PASSWORD", "") or not getattr(settings, "DEFAULT_FROM_EMAIL", ""):
+                fails.append("SMTP email backend selected but SMTP credentials/sender are incomplete")
+            else:
+                oks.append("SMTP email configuration present: values never printed")
+        else:
+            warns.append(f"Email backend is {email_backend or 'unset'}: verify that it performs real delivery")
+
         for provider, cid in (("Google", getattr(settings, "GOOGLE_CLIENT_ID", "")),
                               ("GitHub", getattr(settings, "GITHUB_CLIENT_ID", ""))):
             if not cid:
@@ -95,7 +106,10 @@ class Command(BaseCommand):
             else:
                 oks.append(f"{provider} OAuth credentials present")
 
-        oks.append("Routing uses the bundled GraphML graph with honest approximation notes (no street-level provider claimed)")
+        if getattr(settings, "ROUTING_API_URL", ""):
+            oks.append("Production road-routing provider configured")
+        else:
+            fails.append("ROUTING_API_URL is empty: production navigation cannot claim verified road routing")
 
         backups_dir = Path(str(settings.BASE_DIR)) / "backups"
         if not backups_dir.exists() or not any(backups_dir.glob("*.gz")):

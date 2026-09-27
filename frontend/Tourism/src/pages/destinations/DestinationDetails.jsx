@@ -40,6 +40,7 @@ import VisitorNoticeBanner from "../../components/common/VisitorNoticeBanner"
 
 import DestinationHero from "../../components/destinations/DestinationHero"
 import DestinationRequirementsPanel from "../../components/destinations/DestinationRequirementsPanel"
+import DestinationInsights from "../../components/destinations/DestinationInsights"
 
 // Real icon per nearby-POI category (Twemoji — Mozilla, CC-BY 4.0).
 const POI_CATEGORY_ICONS = {
@@ -93,8 +94,8 @@ export default function DestinationDetails() {
     : ""
   useSeo({
     title: destination
-      ? destination.seo_title || `${destination.name} | Nepal Tourism Guide`
-      : "Destination | Nepal Tourism",
+      ? destination.seo_title || `${destination.name}${destination.district ? `, ${destination.district}` : ""}`
+      : "Destination",
     description: seoDescription,
     path: slug ? `/destinations/${slug}` : undefined,
     image: destination ? destination.og_image_url || destination.cover_image_url || undefined : undefined,
@@ -649,6 +650,9 @@ export default function DestinationDetails() {
           {/* Official permits, fees & altitude (immigration.gov.np / ntb.gov.np) */}
           {destination.id ? <DestinationRequirementsPanel destinationId={destination.id} /> : null}
 
+          {/* When to go (NTB) + traveller sentiment and reviews */}
+          <DestinationInsights destination={destination} />
+
           {/* Section 5: Food, Cuisine & Safety Tips */}
           {(destination.food_cuisine_info || destination.travel_safety_tips) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -1023,14 +1027,15 @@ export default function DestinationDetails() {
                 </button>
               ))}
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {/* grid-cols-1 = minmax(0,1fr): without it the implicit mobile column grows to the untruncated text width. */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {(pois.categories?.[poiTab]?.results || []).map((row) => (
                 <a
                   key={`${row.osm_id || row.slug || row.name}-${row.name}`}
                   href={`https://www.openstreetmap.org/?mlat=${row.latitude}&mlon=${row.longitude}#map=17/${row.latitude}/${row.longitude}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center justify-between gap-3 rounded-2xl border border-primary-100 bg-white px-4 py-3 shadow-sm hover:shadow-md transition-all"
+                  className="flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-primary-100 bg-white px-4 py-3 shadow-sm hover:shadow-md transition-all"
                 >
                   <img
                     src={LOCATION_ICON_URL(POI_CATEGORY_ICONS[poiTab] || "pin")}
@@ -1287,7 +1292,7 @@ export default function DestinationDetails() {
                     activeImageIdx === i ? "border-amber-400 scale-110" : "border-transparent opacity-50"
                   }`}
                 >
-                  <img src={img.url} alt={`Thumb ${i}`} className="w-full h-full object-cover" />
+                  <img loading="lazy" decoding="async" src={img.url} alt={`Thumb ${i}`} className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>

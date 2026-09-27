@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react"
+import ConsentVideo from "../common/ConsentVideo"
+import { privacyEmbedUrl } from "../../utils/cookieConsent"
 import { Link } from "react-router-dom"
 import axiosClient from "../../api/axiosClient"
 import SafeHtml from "./SafeHtml"
+import VerificationBadge from "../common/VerificationBadge"
 
 const safeHttpUrl = (value) => {
   const raw = String(value || "").trim()
@@ -15,12 +18,6 @@ const safeHttpUrl = (value) => {
   }
 }
 
-const embedUrl = (url = "") => {
-  if (/youtube\.com\/watch\?v=/.test(url)) return url.replace("watch?v=", "embed/")
-  if (/youtu\.be\//.test(url)) return url.replace("youtu.be/", "www.youtube.com/embed/")
-  if (/vimeo\.com\/\d+/.test(url)) return url.replace("vimeo.com/", "player.vimeo.com/video/")
-  return url
-}
 
 const effectClass = (effect) => ({
   marquee: "animate-pulse",
@@ -83,7 +80,75 @@ function PackagesGridBlock({ data = {} }) {
   )
 }
 
-export function ContentBlockItem({ block }) {
+// Live record grids. Always real rows from the public API, filtered by the
+// block's settings; nothing is shown when nothing matches (the admin preview
+// says so instead). Hotels/restaurants carry the shared verification badge.
+const LIVE_GRID = {
+  destination_grid: {
+    url: "/destinations/",
+    params: (d) => ({ district: d.district || undefined, search: d.search || undefined, category: d.category || undefined }),
+    to: (r) => `/destinations/${r.slug}`,
+    image: (r) => r.cover_image_url || null,
+    meta: (r) => [r.category_name, r.district].filter(Boolean).join(" · "),
+  },
+  hotel_grid: {
+    url: "/hotels/",
+    params: (d) => ({ search: d.search || d.district || undefined }),
+    to: (r) => `/hotels/search?q=${encodeURIComponent(r.name)}`,
+    image: (r) => r.image_url || r.cover_image_url || null,
+    meta: (r) => [r.destination_name, r.address].filter(Boolean).join(" · "),
+    badge: true,
+  },
+  restaurant_grid: {
+    url: "/restaurants/",
+    params: (d) => ({ search: d.search || d.district || undefined }),
+    to: (r) => `/search?q=${encodeURIComponent(r.name)}`,
+    image: () => null,
+    meta: (r) => [Array.isArray(r.cuisine_types) ? r.cuisine_types.join(", ") : r.cuisine_types, r.destination_name || r.address].filter(Boolean).join(" · "),
+    badge: true,
+  },
+}
+
+export function LiveGridBlock({ type, data = {}, showEmpty = false }) {
+  const spec = LIVE_GRID[type]
+  const limit = Math.min(12, Math.max(1, Number(data.limit) || 6))
+  const paramsKey = JSON.stringify(spec ? spec.params(data) : {})
+  const [state, setState] = useState({ status: "loading", rows: [] })
+  useEffect(() => {
+    if (!spec) return undefined
+    let cancelled = false
+    const t = setTimeout(() => {
+      axiosClient.get(spec.url, { params: { ...JSON.parse(paramsKey), page_size: limit } })
+        .then(({ data: d }) => { if (!cancelled) setState({ status: "done", rows: (Array.isArray(d) ? d : d.results || []).slice(0, limit) }) })
+        .catch(() => { if (!cancelled) setState({ status: "error", rows: [] }) })
+    }, 0)
+    return () => { cancelled = true; clearTimeout(t) }
+  }, [spec, paramsKey, limit])
+  if (!spec) return null
+  if (!state.rows.length) {
+    if (!showEmpty || state.status === "loading") return null
+    return <p className="mt-3 rounded-xl border border-dashed border-slate-300 p-3 text-xs text-slate-500">{state.status === "error" ? "Could not load records for this grid." : "No published records match these filters, so travellers will see nothing here."}</p>
+  }
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-4">
+      {state.rows.map((row) => {
+        const img = spec.image(row)
+        return (
+          <Link key={row.id} to={spec.to(row)} className="group rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition text-left">
+            {img && <div className="h-36 bg-slate-100 overflow-hidden"><img src={img} alt={row.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform" /></div>}
+            <div className="p-4 space-y-1">
+              <h4 className="font-black text-slate-900 text-sm">{row.name}</h4>
+              {spec.meta(row) && <p className="text-xs text-slate-500 line-clamp-2">{spec.meta(row)}</p>}
+              {spec.badge && <VerificationBadge record={row} compact />}
+            </div>
+          </Link>
+        )
+      })}
+    </div>
+  )
+}
+
+export function ContentBlockItem({ block, showEmpty = false }) {
   if (!block || block.is_visible === false) return null
   const { block_type, title, data = {} } = block
 
@@ -111,10 +176,10 @@ export function ContentBlockItem({ block }) {
         <figure className={`mt-4 my-3 flex flex-col items-${data.align === "center" ? "center" : "start"}`}>
           {data.link ? (
             <a href={safeHttpUrl(data.link) || "#"} target="_blank" rel="noopener noreferrer">
-              <img src={url} alt={data.alt || title || ""} className="rounded-2xl object-cover max-h-96 shadow-md" style={{ width: data.width || "100%" }} />
+              <img loading="lazy" decoding="async" src={url} alt={data.alt || title || ""} className="rounded-2xl object-cover max-h-96 shadow-md" style={{ width: data.width || "100%" }} />
             </a>
           ) : (
-            <img src={url} alt={data.alt || title || ""} className="rounded-2xl object-cover max-h-96 shadow-md" style={{ width: data.width || "100%" }} />
+            <img loading="lazy" decoding="async" src={url} alt={data.alt || title || ""} className="rounded-2xl object-cover max-h-96 shadow-md" style={{ width: data.width || "100%" }} />
           )}
           {data.caption && <figcaption className="text-xs text-slate-500 mt-1 italic">{data.caption}</figcaption>}
         </figure>
@@ -128,7 +193,7 @@ export function ContentBlockItem({ block }) {
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
           {imgs.map((img, i) => (
             <div key={i} className="overflow-hidden rounded-2xl bg-slate-100">
-              <img src={typeof img === "string" ? img : img.url} alt={img.alt || ""} className="w-full h-36 object-cover hover:scale-105 transition-transform" />
+              <img loading="lazy" decoding="async" src={typeof img === "string" ? img : img.url} alt={img.alt || ""} className="w-full h-36 object-cover hover:scale-105 transition-transform" />
               {img.caption && <p className="p-1.5 text-[10px] text-slate-600 truncate">{img.caption}</p>}
             </div>
           ))}
@@ -189,17 +254,10 @@ export function ContentBlockItem({ block }) {
     case "video": {
       const url = safeHttpUrl(data.url)
       if (!url) return null
-      const src = embedUrl(url)
       return (
         <div className="mt-4 overflow-hidden rounded-2xl bg-black shadow-lg">
-          {src.includes("youtube") || src.includes("vimeo") ? (
-            <iframe
-              title={title || "Video"}
-              src={src}
-              className="w-full aspect-video border-0"
-              allow="accelerometer; autoplay; encrypted-media; picture-in-picture"
-              allowFullScreen
-            />
+          {privacyEmbedUrl(url) ? (
+            <ConsentVideo url={url} title={title} />
           ) : (
             <video src={url} controls className="w-full aspect-video" />
           )}
@@ -302,6 +360,11 @@ export function ContentBlockItem({ block }) {
     case "packages":
       return <PackagesGridBlock data={data} />
 
+    case "destination_grid":
+    case "hotel_grid":
+    case "restaurant_grid":
+      return <LiveGridBlock type={block_type} data={data} showEmpty={showEmpty} />
+
     case "divider":
       return <hr className="my-6 border-slate-200" />
 
@@ -313,7 +376,7 @@ export function ContentBlockItem({ block }) {
   }
 }
 
-export default function CMSBlock({ section }) {
+export default function CMSBlock({ section, preview = false }) {
   const [sent, setSent] = useState("")
   // Re-evaluate device-visibility rules on resize (date/role rules are
   // already enforced server-side by the public config API).
@@ -362,7 +425,7 @@ export default function CMSBlock({ section }) {
       {blocks.length > 0 ? (
         <div className="space-y-3 mt-3">
           {blocks.map((block) => (
-            <ContentBlockItem key={block.id || block.position} block={block} />
+            <ContentBlockItem key={block.id || block.position} block={block} showEmpty={preview} />
           ))}
         </div>
       ) : (
@@ -376,17 +439,17 @@ export default function CMSBlock({ section }) {
           {["text", "animation", "cards", "faq", "testimonials", "contact"].includes(type) && section.body && (
             <SafeHtml html={section.body} className="prose prose-sm mt-3 max-w-none" />
           )}
-          {type === "image" && media && <img src={media} alt="" className="mt-4 max-h-80 w-full rounded-2xl object-cover" />}
-          {type === "gallery" && media && <img src={media} alt="" className="mt-4 max-h-64 w-full rounded-2xl object-cover" />}
+          {type === "image" && media && <img loading="lazy" decoding="async" src={media} alt="" className="mt-4 max-h-80 w-full rounded-2xl object-cover" />}
+          {type === "gallery" && media && <img loading="lazy" decoding="async" src={media} alt="" className="mt-4 max-h-64 w-full rounded-2xl object-cover" />}
           {type === "figure" && media && (
             <figure className="mt-4">
-              <img src={media} alt="" className="max-h-80 w-full rounded-2xl object-cover" />
+              <img loading="lazy" decoding="async" src={media} alt="" className="max-h-80 w-full rounded-2xl object-cover" />
               {section.body && <figcaption className="mt-2 text-xs text-slate-500">{section.body}</figcaption>}
             </figure>
           )}
           {type === "video" && media && (
-            media.includes("youtube") || media.includes("vimeo") || media.includes("youtu.be")
-              ? <iframe title={section.title || "Video"} src={embedUrl(media)} className="mt-4 aspect-video w-full rounded-2xl" allow="accelerometer; autoplay; encrypted-media; picture-in-picture" allowFullScreen />
+            privacyEmbedUrl(media)
+              ? <ConsentVideo url={media} title={section.title} className="mt-4 rounded-2xl" />
               : <video src={media} controls className="mt-4 w-full rounded-2xl" />
           )}
           {type === "audio" && media && <audio src={media} controls className="mt-4 w-full" />}
@@ -395,11 +458,11 @@ export default function CMSBlock({ section }) {
               ? <audio src={media} controls className="mt-4 w-full" />
               : config.media_kind === "video"
                 ? <video src={media} controls className="mt-4 w-full rounded-2xl" />
-                : <img src={media} alt="" className="mt-4 max-h-80 w-full rounded-2xl object-cover" />
+                : <img loading="lazy" decoding="async" src={media} alt="" className="mt-4 max-h-80 w-full rounded-2xl object-cover" />
           )}
           {type === "search" && (
             <form action="/destinations" className="mt-4 flex gap-2">
-              <input name="q" className="input-field" placeholder={section.body || "Search destinations"} />
+              <input name="q" type="search" aria-label={section.body || "Search destinations"} className="input-field" placeholder={section.body || "Search destinations"} />
               <button className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white">Search</button>
             </form>
           )}

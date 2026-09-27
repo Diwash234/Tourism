@@ -73,9 +73,13 @@ class VerifiedSnapshotTests(TestCase):
         )
         self.image = DestinationImage.objects.create(
             destination=self.destination,
-            external_url="https://upload.wikimedia.org/wikipedia/commons/3/3a/Example.jpg",
-            thumbnail_url="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Example.jpg/960px-Example.jpg",
-            source_url="https://commons.wikimedia.org/wiki/File:Example.jpg",
+            # The filename must name the place: the release now applies the same
+            # destination-specificity rule the website does, so a generic
+            # "Example.jpg" would (correctly) be treated as another place's
+            # photo and excluded.
+            external_url="https://upload.wikimedia.org/wikipedia/commons/3/3a/Snapshot_Verified_Place.jpg",
+            thumbnail_url="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Snapshot_Verified_Place.jpg/960px-Snapshot_Verified_Place.jpg",
+            source_url="https://commons.wikimedia.org/wiki/File:Snapshot_Verified_Place.jpg",
             source="wikimedia",
             source_platform="Wikimedia Commons",
             license_type="CC BY-SA 4.0",
@@ -86,6 +90,19 @@ class VerifiedSnapshotTests(TestCase):
             destination_match_score=0.95,
             authenticity_score=0.96,
         )
+        # A score only counts once a named reviewer assigned it, so this fixture
+        # records provenance. The reviewer foreign key itself never ships; the
+        # timestamps are what a release can actually verify.
+        self.reviewer = User.objects.create_user(
+            email="snapshot-reviewer@example.com", password="ReviewerPass123!",
+        )
+        self.image.authenticity_score_by = self.reviewer
+        self.image.authenticity_score_at = self.fixed_cutoff
+        self.image.destination_match_score_by = self.reviewer
+        self.image.destination_match_score_at = self.fixed_cutoff
+        self.image.media_reviewed_by = self.reviewer
+        self.image.media_reviewed_at = self.fixed_cutoff
+        self.image.save()
         DestinationImage.objects.create(
             destination=self.destination,
             external_url="https://upload.wikimedia.org/wikipedia/commons/3/3b/Wrong.jpg",

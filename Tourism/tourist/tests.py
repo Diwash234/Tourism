@@ -750,13 +750,50 @@ class CompatibilityRouteTests(APITestCase):
         self.assertTrue(notification.is_read)
 
     @patch("tourist.utils.requests.post", side_effect=requests.RequestException("down"))
-    def test_ml_budget_accepts_free_text_destination_and_style_field(self, _mock):
-        """Matches BudgetEstimator.jsx's exact payload: {destination: 'Rupa Lake', style: 'standard', ...}."""
+    def test_ml_budget_degrades_to_official_fees_when_cost_model_is_down(self, _mock):
+        """Matches BudgetEstimator.jsx's exact payload: {destination: 'Rupa Lake', style: 'standard', ...}.
+
+        The living-cost model is simulated down. The request must still be
+        accepted (name resolved, style mapped) rather than 400ing on bad input,
+        and the response must stay honest: official visa / park / permit fees
+        from the cited dataset are still returned, while living costs are
+        explicitly reported as unavailable and never invented.
+        """
         response = self.client.post(reverse("ml-budget"), {
             "destination": "Rupa Lake", "style": "standard", "days": 3, "travelers": 2,
         })
-        # ML service is simulated down, but the request itself must be
-        # accepted (name resolved, style mapped) rather than 400ing on bad input.
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        body = response.data
+
+        # Living costs must be declared missing, not fabricated.
+        self.assertFalse(body.get("living_costs_available"))
+        self.assertTrue(body.get("official_fees_only"))
+        self.assertIn("not included", body.get("living_costs_note", ""))
+        self.assertIsNone(body.get("known_cost_total_usd"))
+        self.assertIsNone(body.get("estimated_total"))
+        self.assertIsNone(body.get("total_budget_usd"))
+        self.assertEqual(body.get("breakdown") or {}, {})
+
+        # The matched place is echoed back so the UI can show what it priced.
+        self.assertEqual((body.get("matched_destination") or {}).get("name"), "Rupa Lake")
+
+        # Official fee lines must be sourced, and a contingency figure must be
+        # labelled as a suggestion rather than presented as a quoted cost.
+        fees = body.get("official_fees") or {}
+        self.assertTrue(fees.get("lines"), "official fee lines should still be returned")
+        for line in fees["lines"]:
+            self.assertTrue(line.get("source_key"), f"fee line is unsourced: {line}")
+            self.assertIn("estimate", line)
+        self.assertIn("suggestion", body.get("contingency_note", "").lower())
+
+    @patch("tourist.utils.requests.post", side_effect=requests.RequestException("down"))
+    def test_ml_budget_returns_503_when_no_place_could_be_resolved(self, _mock):
+        """With nothing resolvable in the catalogue there are no official fees
+        to return, so the endpoint must say the service is unavailable rather
+        than serve a guess."""
+        response = self.client.post(reverse("ml-budget"), {
+            "destination": "Nowhereatallxyz", "style": "standard", "days": 3, "travelers": 2,
+        })
         self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
 
     def test_destination_search_q_alias_actually_filters(self):
@@ -917,7 +954,11 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         self.assertEqual(response.data["source"], "live_database_content_model")
         result = next(row for row in response.data["results"] if row["id"] == self.trek.id)
         self.assertTrue(result["why_recommended"])
-        self.assertEqual(result["difficulty"], "hard")
+        # Difficulty is derived from recorded facts (elevation), never echoed
+        # from the request: this trek has no measured elevation, so it stays
+        # unknown and explains why.
+        self.assertIsNone(result["difficulty"])
+        self.assertIn("elevation", result["difficulty_basis"].lower())
         self.assertIn("risk_summary", result)
 
     def test_risk_response_separates_history_current_and_prediction(self):
@@ -2063,6 +2104,30 @@ class AdminNavigationCMSAndMediaRegressionTests(APITestCase):
         self.assertEqual(response.status_code,status.HTTP_403_FORBIDDEN)
 
 
+
+    def test_media_upload_optimise_option_resizes_and_strips_metadata(self):
+        import io
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from .models import DestinationImage
+        noise=Image.effect_noise((3200,2000),60).convert("RGB")
+        exif=Image.Exif();exif[0x010F]="TestCam"
+        output=io.BytesIO();noise.save(output,format="JPEG",quality=95,exif=exif.tobytes())
+        upload=SimpleUploadedFile("big.jpg",output.getvalue(),content_type="image/jpeg")
+        response=self.client.post(reverse("admin-media-library"),{"destination_id":self.destination.id,"file":upload,"optimize":"1"},format="multipart")
+        self.assertEqual(response.status_code,status.HTTP_201_CREATED)
+        report=response.data["optimisation"]
+        self.assertTrue(report["optimised"]);self.assertEqual(max(report["width"],report["height"]),2560)
+        self.assertLess(report["stored_bytes"],report["original_bytes"])
+        stored=DestinationImage.objects.get(pk=response.data["id"]).image
+        self.assertTrue(stored.name.endswith(".webp"))
+        with stored.open("rb") as fh, Image.open(fh) as saved:
+            self.assertEqual(saved.format,"WEBP");self.assertEqual(len(saved.getexif()),0)
+        plain=io.BytesIO();Image.new("RGB",(80,60),"green").save(plain,format="JPEG")
+        untouched=self.client.post(reverse("admin-media-library"),{"destination_id":self.destination.id,"file":SimpleUploadedFile("small.jpg",plain.getvalue(),content_type="image/jpeg")},format="multipart")
+        self.assertNotIn("optimisation",untouched.data)
+        self.assertTrue(DestinationImage.objects.get(pk=untouched.data["id"]).image.name.endswith(".jpg"))
+
 class CMSStudioExtensionTests(APITestCase):
     def setUp(self):
         from .models import ManagedPage, ContentSection, DestinationImage
@@ -3098,7 +3163,8 @@ class RecordedPlaceHonestyTests(APITestCase):
         self.assertTrue(response.data["results"])
         for row in response.data["results"]:
             self.assertNotIn("estimated_daily_cost", row)
-            self.assertTrue(row.get("budget_level_is_ranking_tag"))
+            # No recorded cost data, so no budget tier is published either.
+            self.assertIsNone(row.get("budget_level"))
 
     @patch("tourist.views_ml.requests.post", side_effect=requests.RequestException("down"))
     def test_itinerary_fallback_does_not_invent_thirty_five_dollar_budget(self, _mock):
@@ -3791,18 +3857,71 @@ class OpsLayerTests(TestCase):
         self.assertGreaterEqual(text.count("FAIL  "), 3)  # loud on the dev config
         self.assertNotIn(str(settings.SECRET_KEY)[:20], text)  # secret never printed
 
+    # A shape that counts as production: real email delivery and a real routing
+    # provider are part of that claim, so the validator now requires them.
+    PRODUCTION_SHAPE = {
+        "DEBUG": False,
+        "SECRET_KEY": "p" * 64,
+        "ALLOWED_HOSTS": ["tourism.example.org"],
+        "CORS_ALLOW_ALL_ORIGINS": False,
+        "ML_SERVICE_API_KEY": "real-ml-key-value",
+        "ML_WEBHOOK_SECRET": "real-webhook-secret",
+        "EMAIL_BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+        "EMAIL_HOST_USER": "smtp-user",
+        "EMAIL_HOST_PASSWORD": "smtp-password",
+        "DEFAULT_FROM_EMAIL": "no-reply@tourism.example.org",
+        "ROUTING_API_URL": "https://router.example.org",
+    }
+    POSTGRES = {"default": {"ENGINE": "django.db.backends.postgresql", "NAME": "tourism"}}
+
+    def test_config_validator_blocks_console_email_backend(self):
+        """Console email means verification and password-reset mail never leave
+        the box, which is not something production can ship."""
+        import io
+        from django.core.management import call_command
+        out = io.StringIO()
+        shape = {**self.PRODUCTION_SHAPE,
+                 "EMAIL_BACKEND": "django.core.mail.backends.console.EmailBackend"}
+        with self.settings(**shape, DATABASES=self.POSTGRES):
+            with self.assertRaises(SystemExit):
+                call_command("validate_production_config", stdout=out)
+        text = out.getvalue()
+        self.assertIn("RESULT: FAIL", text)
+        self.assertIn("console", text)
+        self.assertIn("real email delivery", text)
+
+    def test_config_validator_blocks_incomplete_smtp_credentials(self):
+        import io
+        from django.core.management import call_command
+        out = io.StringIO()
+        shape = {**self.PRODUCTION_SHAPE, "EMAIL_HOST_PASSWORD": ""}
+        with self.settings(**shape, DATABASES=self.POSTGRES):
+            with self.assertRaises(SystemExit):
+                call_command("validate_production_config", stdout=out)
+        text = out.getvalue()
+        self.assertIn("RESULT: FAIL", text)
+        self.assertIn("SMTP", text)
+
+    def test_config_validator_blocks_missing_routing_provider(self):
+        """Without a road-routing provider the site must not be allowed to claim
+        verified street-level routing."""
+        import io
+        from django.core.management import call_command
+        out = io.StringIO()
+        shape = {**self.PRODUCTION_SHAPE, "ROUTING_API_URL": ""}
+        with self.settings(**shape, DATABASES=self.POSTGRES):
+            with self.assertRaises(SystemExit):
+                call_command("validate_production_config", stdout=out)
+        text = out.getvalue()
+        self.assertIn("RESULT: FAIL", text)
+        self.assertIn("ROUTING_API_URL", text)
+        self.assertIn("verified road routing", text)
+
     def test_config_validator_passes_on_production_shape(self):
         import io
         from django.core.management import call_command
         out = io.StringIO()
-        with self.settings(DEBUG=False,
-                           SECRET_KEY="p" * 64,
-                           ALLOWED_HOSTS=["tourism.example.org"],
-                           CORS_ALLOW_ALL_ORIGINS=False,
-                           DATABASES={"default": {"ENGINE": "django.db.backends.postgresql",
-                                                  "NAME": "tourism"}},
-                           ML_SERVICE_API_KEY="real-ml-key-value",
-                           ML_WEBHOOK_SECRET="real-webhook-secret"):
+        with self.settings(**self.PRODUCTION_SHAPE, DATABASES=self.POSTGRES):
             call_command("validate_production_config", stdout=out)  # no SystemExit
         self.assertIn("RESULT: PASS", out.getvalue())
 
@@ -3811,13 +3930,8 @@ class OpsLayerTests(TestCase):
         from unittest.mock import MagicMock
         from django.core.management import call_command
         out = io.StringIO()
-        prod = dict(DEBUG=False, SECRET_KEY="p" * 64,
-                    ALLOWED_HOSTS=["tourism.example.org"],
-                    CORS_ALLOW_ALL_ORIGINS=False,
-                    DATABASES={"default": {"ENGINE": "django.db.backends.sqlite3",
-                                           "NAME": ":memory:"}},
-                    ML_SERVICE_API_KEY="real-ml-key-value",
-                    ML_WEBHOOK_SECRET="real-webhook-secret")
+        prod = dict(self.PRODUCTION_SHAPE)
+        prod["DATABASES"] = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}}
         # hardened (WAL + FK on) -> PASS; the sqlite branch is the only
         # cursor user, so mocking the pragma results is exact.
         with self.settings(**prod):
@@ -4857,7 +4971,24 @@ class AsyncVerificationEmailTest(TestCase):
             resp = client.post(reverse("auth-register"), payload, format="json")
             elapsed = time.monotonic() - t0
             self.assertEqual(resp.status_code, 201, resp.content)
-            self.assertLess(elapsed, 1.0, f"register blocked {elapsed:.2f}s on mail send")
+            # The invariant this test exists to protect: the response came back
+            # BEFORE the slow send finished. `delivered` is still empty at this
+            # point, which proves it directly instead of inferring it from a
+            # tight wall-clock threshold. The old assertion was `elapsed < 1.0`,
+            # a proxy that a loaded machine could blow for reasons that have
+            # nothing to do with the mail path (request setup, one bcrypt hash,
+            # DB writes) — it failed at 4.1s under PBKDF2, which was a genuine
+            # regression, but it also failed at 1.04s once hashing was fixed.
+            # Blocking on SMTP is caught below by `delivered` being non-empty.
+            self.assertFalse(
+                delivered,
+                f"register waited for the mail send to finish: {elapsed:.2f}s "
+                f"elapsed while a {SLOW_SECONDS}s send was in flight",
+            )
+            self.assertLess(
+                elapsed, SLOW_SECONDS,
+                f"register blocked {elapsed:.2f}s on a {SLOW_SECONDS}s mail send",
+            )
             # the email is still delivered in the background
             deadline = time.monotonic() + 6
             while not delivered and time.monotonic() < deadline:

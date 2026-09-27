@@ -9,7 +9,7 @@ from decimal import Decimal
 from unittest.mock import Mock, patch
 
 from django.core.cache import cache
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from . import elevation, fx, travel_requirements as tr
@@ -60,6 +60,7 @@ class ForexTests(TestCase):
             meta = fx.snapshot_meta(None)
         self.assertFalse(meta["available"])
 
+    @override_settings(FX_AUTO_REFRESH=True)
     def test_failed_fetch_backs_off(self):
         ForexRateSnapshot.objects.all().delete()
         with no_network() as fetch:
@@ -333,3 +334,46 @@ class PlaceholderPhoneTests(TestCase):
         self.assertEqual(HospitalSerializer(h).data["phone"], "")
         h.phone = "+977-01-4221119"
         self.assertEqual(HospitalSerializer(h).data["phone"], "+977-01-4221119")
+
+
+class ForexAutoRefreshSettingTests(TestCase):
+    def test_tests_never_fetch_live_rates(self):
+        cache.clear()
+        ForexRateSnapshot.objects.all().delete()
+        with patch("tourist.fx.fetch_from_nrb") as fetch:
+            self.assertIsNone(fx.latest_snapshot())
+        fetch.assert_not_called()
+
+
+class MissingPhoneMarkerTests(TestCase):
+    def test_usable_phone(self):
+        from .phone_quality import usable_phone
+
+        for marker in ("nan", "NaN", " nan ", "None", "null", "N/A", "-", "", None):
+            self.assertEqual(usable_phone(marker), "", marker)
+        self.assertEqual(usable_phone("+977-037-520123"), "")  # templated filler
+        self.assertEqual(usable_phone(" +977-01-4221119 "), "+977-01-4221119")
+        self.assertEqual(usable_phone("100"), "100")
+
+    def test_police_serializer_and_save_drop_nan(self):
+        from .models import PoliceStation
+        from .serializers import PoliceStationSerializer
+
+        station = PoliceStation(name="Police Station Kathmandu", phone="nan", latitude=27.7, longitude=85.3)
+        self.assertEqual(PoliceStationSerializer(station).data["phone"], "")
+        cat = Category.objects.create(name="Test category")
+        user = User.objects.create_user(email="phone-owner@example.com", password="x-Pass-123")
+        dest = Destination.objects.create(name="Phone test place", category=cat, description="x",
+                                          latitude=27.7, longitude=85.3, created_by=user)
+        station.destination = dest
+        station.save()
+        station.refresh_from_db()
+        self.assertEqual(station.phone, "")
+
+
+class SuperuserRoleTests(TestCase):
+    def test_create_superuser_gets_admin_role(self):
+        admin = User.objects.create_superuser(email="root@example.com", password="x-Pass-123")
+        self.assertEqual(admin.role, "super_admin")
+        regular = User.objects.create_user(email="walker@example.com", password="x-Pass-123")
+        self.assertEqual(regular.role, "tourist")

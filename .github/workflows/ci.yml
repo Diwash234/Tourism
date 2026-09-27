@@ -9,6 +9,7 @@ jobs:
   backend:
     name: Django checks + tests
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -22,6 +23,38 @@ jobs:
       - name: Django system check
         working-directory: Tourism
         run: python manage.py check
+      - name: Verify password hasher is usable
+        working-directory: Tourism
+        run: |
+          set -euxo pipefail
+          # bcrypt is a hard dependency of the primary password hasher and must
+          # stay pinned in Tourism/requirements.txt. How Django reacts to a
+          # missing hasher library is version-dependent: 5.x silently sets
+          # library = None and only raises on the first make_password call
+          # (so CI burns 56s of unrelated auth errors before the cause is
+          # visible), while 6.x raises immediately. Probe a real encode so
+          # either behaviour fails here, in a second, with a clear message.
+          DJANGO_SETTINGS_MODULE=Tourism.settings python - <<'PY'
+          import django
+
+          django.setup()
+
+          from django.contrib.auth.hashers import get_hasher
+
+          try:
+              hasher = get_hasher()
+              assert hasher.library is not None, (
+                  f"primary hasher {hasher.algorithm} has no usable library"
+              )
+              encoded = hasher.encode("ci-probe", hasher.salt())
+              assert hasher.verify("ci-probe", encoded), "hasher round trip failed"
+          except Exception as exc:
+              raise SystemExit(
+                  f"FATAL: primary password hasher unusable - {type(exc).__name__}: {exc}\n"
+                  "If this mentions bcrypt, it is missing from Tourism/requirements.txt."
+              )
+          print(f"primary hasher ok: {hasher.algorithm} rounds={getattr(hasher, 'rounds', 'n/a')}")
+          PY
       - name: Verify published data artifact
         working-directory: Tourism
         run: |
@@ -39,6 +72,7 @@ jobs:
 
           check(Path("dataset/verified_tourism_data.json"), Path("dataset/verified_tourism_data.json.sha256"))
           check(Path("../downloads/nepal-tourism-database.sqlite3.gz"), Path("../downloads/nepal-tourism-database.sqlite3.gz.sha256"))
+          check(Path("../downloads/nepal-tourism-seed.sqlite3.gz"), Path("../downloads/nepal-tourism-seed.sqlite3.gz.sha256"))
           with gzip.open("../downloads/nepal-tourism-database.sqlite3.gz", "rb") as source:
               Path("/tmp/nepal-yatra-public.sqlite3").write_bytes(source.read())
           PY
@@ -46,6 +80,32 @@ jobs:
             python manage.py verify_verified_snapshot \
               dataset/verified_tourism_data.json \
               --database /tmp/nepal-yatra-public.sqlite3
+      - name: Verify public seed database is installable
+        working-directory: Tourism
+        run: |
+          set -euxo pipefail
+          # Fresh-clone path: a collaborator must be able to install the
+          # published seed database and land on a clean, populated database.
+          python manage.py install_public_seed_db --verify-only
+          python manage.py install_public_seed_db
+          python manage.py migrate --check
+          python - <<'PY'
+          import sqlite3
+
+          connection = sqlite3.connect("db.sqlite3")
+          try:
+              assert connection.execute("pragma integrity_check").fetchone()[0] == "ok"
+              assert not connection.execute("pragma foreign_key_check").fetchall()
+              users = connection.execute("select count(*) from tourist_user").fetchone()[0]
+              assert users == 0, f"seed database must not ship accounts, found {users}"
+              destinations = connection.execute(
+                  "select count(*) from tourist_destination"
+              ).fetchone()[0]
+              assert destinations > 1000, f"seed database looks empty: {destinations}"
+              print(f"seed ok: {destinations} destinations, {users} accounts")
+          finally:
+              connection.close()
+          PY
       - name: Run backend tests
         working-directory: Tourism
         run: python manage.py test --parallel 1
@@ -53,6 +113,10 @@ jobs:
   frontend:
     name: Frontend build + e2e layout tests
     runs-on: ubuntu-latest
+    # Hard ceiling. This job builds the app and runs 266 layout checks; the
+    # measured run is ~7 minutes, so 30 leaves generous headroom while still
+    # bounding a genuine hang.
+    timeout-minutes: 30
     permissions:
       contents: read
       pull-requests: write
@@ -73,15 +137,48 @@ jobs:
       - name: Install Playwright browser
         working-directory: frontend/Tourism
         run: npx playwright install chromium
-      - name: Run e2e layout/overlap tests
+      - name: Run responsive layout/overlap tests
         working-directory: frontend/Tourism
-        continue-on-error: true
-        run: npx playwright test e2e/layout.spec.js --reporter=list,json
+        # 266 route x viewport checks on the chromium project. The mobile and
+        # tablet projects are deliberately not run for this spec: it force-sets
+        # the viewport per test and already covers 375px and 768px, so they
+        # would triple the runtime without measuring anything new. With
+        # fullyParallel and 2 CI workers this lands near 7 minutes; the earlier
+        # serial, three-project run was killed at 1475s.
+        run: npx playwright test e2e/layout.spec.js --project=chromium --reporter=list,json
         env:
           CI: true
           PLAYWRIGHT_JSON_OUTPUT_NAME: test-results.json
       # GitHub's raw-log CDN is unreachable from some networks; publish the
       # results as a pinned PR comment so they are always retrievable.
+      - name: Run frontend lint
+        working-directory: frontend/Tourism
+        # Gates on lint *errors* (0 today), so a syntax error, a bad import or
+        # an undefined identifier fails the build. The 261 outstanding warnings
+        # are dominated by 115 unused lucide icon imports in imageUtils.js and
+        # 51 react-hooks/exhaustive-deps spread across components; the hook
+        # warnings are not safe to silence or auto-fix, because adding the
+        # "missing" dependencies is a common source of render loops.
+        #
+        # MAX_LINT_WARNINGS is therefore a ratchet at the measured current
+        # value, not a claim of cleanliness: it fails if the count grows, and
+        # must be lowered as the debt is paid down. The count is printed every
+        # run so a regression is visible in the log even when it passes.
+        run: |
+          set -o pipefail
+          MAX_LINT_WARNINGS=261
+          npm run lint 2>&1 | tee lint-output.txt || true
+          count=$(grep -cE '^[[:space:]]*[0-9]+:[0-9]+[[:space:]]+warning' lint-output.txt || true)
+          errors=$(grep -cE '^[[:space:]]*[0-9]+:[0-9]+[[:space:]]+error' lint-output.txt || true)
+          echo "lint: ${errors:-0} errors, ${count:-0} warnings (ratchet ceiling $MAX_LINT_WARNINGS)"
+          if [ "${errors:-0}" -ne 0 ]; then
+            echo "FATAL: lint reported errors"
+            exit 1
+          fi
+          if [ "${count:-0}" -gt "$MAX_LINT_WARNINGS" ]; then
+            echo "FATAL: lint warnings ${count} exceed the ratchet ceiling $MAX_LINT_WARNINGS"
+            exit 1
+          fi
       - name: Report layout results to PR
         if: always()
         working-directory: frontend/Tourism

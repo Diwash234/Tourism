@@ -39,7 +39,7 @@ function FacilityCard({ facility }) {
   return (
     <article className="ny-card flex h-full flex-col p-5">
       <div className="flex items-start justify-between gap-3"><span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${meta.color}`}><Icon size={13} aria-hidden="true" />{meta.label}</span>{facility.distance_km != null && <span className="shrink-0 text-xs font-semibold text-[var(--ny-text-secondary)]">{facility.distance_km} km{facility.estimated_travel_time_min != null ? ` · ~${facility.estimated_travel_time_min} min` : ""}</span>}</div>
-      {facility.image_url && <img src={facility.image_url} alt="" className="mt-4 h-32 w-full rounded-[var(--ny-radius-md)] object-cover" />}
+      {facility.image_url && <img loading="lazy" decoding="async" src={facility.image_url} alt="" className="mt-4 h-32 w-full rounded-[var(--ny-radius-md)] object-cover" />}
       <div className="mt-4 flex-1"><h3 className="text-base font-bold">{facility.name || "Facility name unavailable"}</h3><p className="mt-1 flex gap-1.5 text-sm text-[var(--ny-text-secondary)]"><FiMapPin size={14} className="mt-0.5 shrink-0 text-[var(--ny-green)]" aria-hidden="true" />{facility.address || facility.district || "Address unavailable"}</p></div>
       {facility.outside_requested_radius && <p className="mt-3 rounded-[var(--ny-radius-sm)] bg-[var(--ny-soft-gold)] px-3 py-2 text-xs text-[var(--ny-warning)]">No service was found inside the selected radius; the nearest known result is shown.</p>}
       {facility.phone_is_national_fallback && <p className="mt-2 text-xs text-[var(--ny-text-secondary)]">The local phone number is not recorded; use the verified national contacts panel for national assistance.</p>}
@@ -47,6 +47,16 @@ function FacilityCard({ facility }) {
       <div className="mt-3 flex flex-wrap gap-2 text-xs text-[var(--ny-text-muted)]"><VerificationBadge record={facility} />{facility.source_name && <span>· Source: {facility.source_name}</span>}{facility.opening_hours && <span>· {facility.opening_hours}</span>}{facility.updated_at && <span>· Updated {new Date(facility.updated_at).toLocaleDateString()}</span>}</div>
     </article>
   )
+}
+
+// Last successful national-hotline response, kept on this device so the
+// numbers still show without signal. Always labelled with when it was saved.
+const HOTLINE_STORE_KEY = "ny.emergency.national_hotlines.v1"
+const saveHotlines = (rows) => {
+  try { localStorage.setItem(HOTLINE_STORE_KEY, JSON.stringify({ rows, saved_at: new Date().toLocaleString() })) } catch { /* storage full or disabled */ }
+}
+const readSavedHotlines = () => {
+  try { return JSON.parse(localStorage.getItem(HOTLINE_STORE_KEY) || "null") } catch { return null }
 }
 
 export default function Emergency() {
@@ -70,12 +80,31 @@ export default function Emergency() {
   const sosRequestRef = useRef(0)
   const selectedReference = params.get("destination")
 
+  const [savedCopyAt, setSavedCopyAt] = useState("")
   const loadNationalHotlines = useCallback(() => {
     setNationalLoading(true)
     setNationalError("")
+    setSavedCopyAt("")
     return emergencyApi.nationalHotlines()
-      .then(({ data }) => setNationalHotlines(Array.isArray(data?.national_hotlines) ? data.national_hotlines : []))
-      .catch(() => setNationalError("Verified national contacts could not be loaded. Try again or use the emergency services available to you locally."))
+      .then(({ data, headers }) => {
+        const rows = Array.isArray(data?.national_hotlines) ? data.national_hotlines : []
+        setNationalHotlines(rows)
+        if (headers?.["x-ny-offline"]) {
+          setSavedCopyAt(readSavedHotlines()?.saved_at || "an earlier visit")
+        } else if (rows.length) {
+          saveHotlines(rows)
+        }
+      })
+      .catch(() => {
+        // Offline or server down: fall back to the last copy this device saw.
+        const saved = readSavedHotlines()
+        if (saved?.rows?.length) {
+          setNationalHotlines(saved.rows)
+          setSavedCopyAt(saved.saved_at)
+        } else {
+          setNationalError("Verified national contacts could not be loaded. Try again or use the emergency services available to you locally.")
+        }
+      })
       .finally(() => setNationalLoading(false))
   }, [])
 
@@ -250,7 +279,7 @@ export default function Emergency() {
             </div>
             {nationalError && <button type="button" onClick={loadNationalHotlines} className="ny-btn ny-btn-secondary min-h-11 text-sm">Retry contacts</button>}
           </div>
-          {nationalLoading ? <p className="mt-4 text-sm text-[var(--ny-text-secondary)]">Loading verified contacts…</p> : nationalError ? <p role="alert" className="mt-4 rounded-[var(--ny-radius-md)] border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{nationalError}</p> : hotlines.length > 0 ? <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{hotlines.map((item) => item.phone_number ? <a key={item.type || item.phone_number} href={phoneHref(item.phone_number)} className="ny-card flex flex-col p-4 transition hover:-translate-y-0.5"><span className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--ny-text-secondary)]">{item.name}</span><strong className="mt-2 text-2xl text-[var(--ny-green)]">{item.phone_number}</strong><span className="mt-1 text-xs text-[var(--ny-text-secondary)]">{item.description || "Contact record"}</span></a> : <div key={item.type || item.name} className="ny-card flex flex-col p-4"><span className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--ny-text-secondary)]">{item.name}</span><strong className="mt-2 text-lg text-[var(--ny-text-secondary)]">Phone unavailable</strong><span className="mt-1 text-xs text-[var(--ny-text-secondary)]">No verified number is listed.</span></div>)}</div> : <p className="mt-4 text-sm text-[var(--ny-text-secondary)]">No national contact records are currently available from the directory.</p>}
+          {savedCopyAt && !nationalLoading && <p role="status" className="mt-4 rounded-[var(--ny-radius-md)] border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">You appear to be offline. Showing the copy saved on this device ({savedCopyAt}).</p>}{nationalLoading ? <p className="mt-4 text-sm text-[var(--ny-text-secondary)]">Loading verified contacts…</p> : nationalError ? <p role="alert" className="mt-4 rounded-[var(--ny-radius-md)] border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{nationalError}</p> : hotlines.length > 0 ? <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{hotlines.map((item) => item.phone_number ? <a key={item.type || item.phone_number} href={phoneHref(item.phone_number)} className="ny-card flex flex-col p-4 transition hover:-translate-y-0.5"><span className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--ny-text-secondary)]">{item.name}</span><strong className="mt-2 text-2xl text-[var(--ny-green)]">{item.phone_number}</strong><span className="mt-1 text-xs text-[var(--ny-text-secondary)]">{item.description || "Contact record"}</span></a> : <div key={item.type || item.name} className="ny-card flex flex-col p-4"><span className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--ny-text-secondary)]">{item.name}</span><strong className="mt-2 text-lg text-[var(--ny-text-secondary)]">Phone unavailable</strong><span className="mt-1 text-xs text-[var(--ny-text-secondary)]">No verified number is listed.</span></div>)}</div> : <p className="mt-4 text-sm text-[var(--ny-text-secondary)]">No national contact records are currently available from the directory.</p>}
         </section>
       )}
 

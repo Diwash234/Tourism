@@ -12,6 +12,7 @@ import {
   hasValidCoords,
 } from "../utils/placeUtils"
 import { userIcon, destinationIcon } from "../components/map/icons"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 const NEPAL_BOUNDS = L.latLngBounds([26.35, 80.0], [30.55, 88.25])
 const LIST_CHUNK = 300
@@ -284,6 +285,7 @@ export default function DistancesExplorer() {
           </span>
         }
       />
+      <CMSPageIntro pageKey="distances" />
 
       {/* Origin + search controls */}
       <div className="card-base rounded-3xl border border-[#E5E0D5] p-4 sm:p-5 space-y-4">
@@ -310,7 +312,7 @@ export default function DistancesExplorer() {
               {locating ? "…" : t("dx.use_my_location")}
             </button>
             <div className="relative">
-              <input
+              <input aria-label="Or start from a place"
                 type="text"
                 value={originQuery}
                 onChange={(e) => { setOriginQuery(e.target.value); setShowOriginSuggest(true) }}
@@ -350,7 +352,8 @@ export default function DistancesExplorer() {
           <img src="/icons/ui/distance.svg" alt="" aria-hidden="true" className="w-7 h-7" />
           <div className="relative flex-1">
             <input
-              type="text"
+              type="search"
+              aria-label={t("dx.search_placeholder")}
               value={query}
               onChange={(e) => { setQuery(e.target.value); setVisible(LIST_CHUNK) }}
               placeholder={t("dx.search_placeholder")}

@@ -17,12 +17,13 @@
     "test:nav": "esbuild tests-nav/nav-test-entry.jsx --bundle --outfile=tests-nav/nav-test-bundle.cjs --format=cjs --platform=node --jsx=automatic --loader:.css=empty --loader:.svg=dataurl --loader:.png=dataurl --loader:.jpg=dataurl --loader:.jpeg=dataurl --loader:.webp=dataurl --loader:.gif=dataurl --define:import.meta.env='{\"VITE_API_BASE_URL\":\"/api/v1\",\"MODE\":\"test\",\"DEV\":false,\"PROD\":true}' --log-level=error && node scripts/nav-behavior-test.cjs"
   },
   "dependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource-variable/noto-sans-devanagari": "^5.3.0",
     "axios": "^1.7.9",
     "chart.js": "^4.4.7",
     "clsx": "^2.1.1",
     "dompurify": "^3.4.16",
     "framer-motion": "^11.15.0",
-    "gsap": "^3.15.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.31.0",
     "react": "^18.3.1",

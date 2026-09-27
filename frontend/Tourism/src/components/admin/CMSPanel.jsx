@@ -7,6 +7,7 @@ import useToast from "../../hooks/useToast"
 import RichTextEditor from "./RichTextEditor"
 import CMSBlock, { CMSExtras } from "../cms/CMSBlock"
 import SafeHtml from "../cms/SafeHtml"
+import BlockFieldsEditor, { blockIssues } from "./cms/BlockFieldsEditor"
 
 const resources = ["pages", "sections", "navigation", "settings", "translations"]
 const RESOURCE_LABELS = { pages: "Pages", sections: "Sections", navigation: "Header, Navigation & Menus", settings: "Site Settings & Branding", translations: "Translations" }
@@ -961,7 +962,37 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
   return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">{field("key", "Setting key")}{field("description", "Description")}{field("is_public", "Public setting", "checkbox")}<label className="text-xs font-semibold text-slate-700">Structured value<textarea rows="6" className="input-field mt-1 font-mono" value={JSON.stringify(value.value || {}, null, 2)} onChange={e => { try { set("value", JSON.parse(e.target.value)) } catch { /* keep until valid */ } }} /></label></div>
 }
 
-export function ContentBlocksBuilder({ sectionId, onToast }) {
+// Exact preview: the parent section rendered by the same CMSBlock component the
+// public pages use, with the unsaved block swapped in, on the public page
+// surface (light theme, real container width or a 390 px phone frame).
+function BlockExactPreview({ section, blocks, editingBlock }) {
+  const [device, setDevice] = useState("desktop")
+  const merged = blocks
+    .map((b) => (b.id === editingBlock.id ? editingBlock : b))
+    .filter((b) => b.is_visible !== false)
+  const previewSection = { ...(section || {}), blocks: merged }
+  return (
+    <div className="space-y-2 rounded-xl border border-slate-700 p-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-[10px] font-black uppercase text-amber-400">Exact preview (unsaved changes, as travellers will see it)</span>
+        <span className="flex gap-1" role="group" aria-label="Preview width">
+          {["desktop", "mobile"].map((d) => (
+            <button key={d} type="button" aria-pressed={device === d} onClick={() => setDevice(d)}
+              className={`rounded px-2 py-0.5 text-[11px] font-bold ${device === d ? "bg-amber-400 text-slate-950" : "bg-slate-800 text-slate-300"}`}>{d}</button>
+          ))}
+        </span>
+      </div>
+      {editingBlock.is_visible === false && <p className="text-[11px] text-amber-300">This block is hidden, so it is not shown in the preview.</p>}
+      <div className="overflow-x-auto rounded-lg bg-[var(--ny-bg,#f8fafc)] p-3 text-slate-900">
+        <div className="mx-auto" style={{ maxWidth: device === "mobile" ? 390 : 1152 }}>
+          <CMSBlock section={previewSection} preview />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function ContentBlocksBuilder({ sectionId, section = null, onToast }) {
   const [blocks, setBlocks] = useState([])
   const [loading, setLoading] = useState(true)
   const [editingBlock, setEditingBlock] = useState(null)
@@ -1220,34 +1251,6 @@ export function ContentBlocksBuilder({ sectionId, onToast }) {
                     </div>
                   )}
 
-                  {editingBlock.block_type === "table" && (
-                    <div className="space-y-2">
-                      <p className="font-bold text-amber-300">Table Data Builder</p>
-                      <label className="block font-semibold text-slate-300">Columns (comma separated)
-                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={(editingBlock.data?.columns || []).join(", ")} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, columns: e.target.value.split(",").map(x => x.trim()).filter(Boolean) } })} />
-                      </label>
-                      <label className="block font-semibold text-slate-300">Rows JSON (array of arrays)
-                        <textarea rows="4" className="input-field mt-1 font-mono bg-slate-900 text-white border-slate-700" value={JSON.stringify(editingBlock.data?.rows || [], null, 2)} onChange={(e) => { try { setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, rows: JSON.parse(e.target.value) } }) } catch { /* keep */ } }} />
-                      </label>
-                    </div>
-                  )}
-
-                  {editingBlock.block_type === "card_grid" && (
-                    <div className="space-y-2">
-                      <label className="block font-semibold text-slate-300">Cards JSON (array of {"{ emoji, title, description, url, image }"} — url must start with /, image must be HTTPS)
-                        <textarea rows="6" className="input-field mt-1 font-mono bg-slate-900 text-white border-slate-700" value={JSON.stringify(editingBlock.data?.items || [], null, 2)} onChange={(e) => { try { setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, items: JSON.parse(e.target.value) } }) } catch { /* keep until valid */ } }} />
-                      </label>
-                      <label className="block font-semibold text-slate-300">Columns on desktop
-                        <select className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.columns || 4} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, columns: Number(e.target.value) } })}>
-                          <option value={1}>1 column</option>
-                          <option value={2}>2 columns</option>
-                          <option value={3}>3 columns</option>
-                          <option value={4}>4 columns</option>
-                        </select>
-                      </label>
-                    </div>
-                  )}
-
                   {editingBlock.block_type === "packages" && (
                     <div className="grid sm:grid-cols-2 gap-2">
                       <label className="block font-semibold text-slate-300">Max packages (1-12)
@@ -1288,6 +1291,16 @@ export function ContentBlocksBuilder({ sectionId, onToast }) {
                       </label>
                     </div>
                   )}
+
+                  <BlockFieldsEditor block={editingBlock} onChange={setEditingBlock} />
+
+                  {blockIssues(editingBlock).length > 0 && (
+                    <ul className="space-y-1 rounded-lg border border-amber-500/40 bg-amber-950/40 p-2 text-amber-200" aria-live="polite">
+                      {blockIssues(editingBlock).map((msg) => <li key={msg}>⚠ {msg}</li>)}
+                    </ul>
+                  )}
+
+                  <BlockExactPreview section={section} blocks={blocks} editingBlock={editingBlock} />
 
                   <div className="flex gap-2 justify-end pt-2 border-t border-slate-800">
                     <button type="button" onClick={() => setEditingBlock(null)} className="px-3 py-1.5 rounded bg-slate-800 text-slate-300 font-bold">Cancel</button>
@@ -1477,7 +1490,7 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
                   <RichTextEditor value={draft.body || ""} onChange={(html) => setDraft({ ...draft, body: html })} />
                 </label>
                 <div className="sm:col-span-2 mt-2">
-                  <ContentBlocksBuilder sectionId={draft.id} onToast={onToast} />
+                  <ContentBlocksBuilder sectionId={draft.id} section={draft} onToast={onToast} />
                 </div>
                 <label className="flex items-center gap-2 font-semibold text-slate-300"><input type="checkbox" checked={Boolean(draft.is_visible)} onChange={(e) => setDraft({ ...draft, is_visible: e.target.checked })} /> Visible on traveller page</label>
                 <div className="flex gap-2 self-end">

@@ -718,7 +718,7 @@ return (
 <div className="flex justify-between items-center mb-3">
 
 
-<PageHeader title={<>🌎 AI Language Translator</>} />
+<PageHeader title="Language translator" />
 
 
 
@@ -802,7 +802,7 @@ y:0
 <div className="flex justify-between items-center">
 
 
-<label className="font-medium">
+<label htmlFor="tr-source" className="font-medium">
 
 Enter Text
 
@@ -863,7 +863,7 @@ isListening
 
 
 
-<textarea
+<textarea id="tr-source"
 
 
 rows="6"
@@ -1137,7 +1137,7 @@ gap-4
 
 <button
 
-type="button"
+type="button" aria-label="Copy translation"
 
 onClick={copyText}
 
@@ -1153,7 +1153,7 @@ onClick={copyText}
 
 <button
 
-type="button"
+type="button" aria-label="Listen to the translation"
 
 onClick={()=>
 speak(
@@ -1206,6 +1206,9 @@ justify-between
 
 
 <button
+
+
+type="button" aria-label="Listen to the translation"
 
 
 onClick={()=>
@@ -1335,6 +1338,8 @@ items-center
 
 <button
 
+type="button" aria-label={`Listen: ${phrase.english}`}
+
 onClick={()=>
 speak(
 phrase.english,
@@ -1379,6 +1384,8 @@ text-himalaya-600
 
 
 <button
+
+type="button" aria-label={`Listen to the translation of ${phrase.english}`}
 
 onClick={()=>
 speak(
@@ -1433,6 +1440,9 @@ justify-end
 
 
 <button
+
+
+type="button" aria-label={`Save ${phrase.english} to favourites`} aria-pressed={favorites.some((item) => item.id === phrase.id)}
 
 
 onClick={()=>

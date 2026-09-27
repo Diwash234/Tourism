@@ -7,6 +7,7 @@ import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
 import useToast from "../hooks/useToast"
 import workforceApi from "../api/workforceApi"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 const STATUS_STYLE = {
   requested: "bg-sky-100 text-sky-700",
@@ -83,6 +84,7 @@ export default function GuideBookings() {
          title="My Guide Requests"
         subtitle="Track booking requests to verified guides — cancel anytime before the trip, review it after."
       />
+      <CMSPageIntro pageKey="guide-bookings" />
       <div className="container-app max-w-5xl space-y-4 pb-10">
         <p className="text-sm text-slate-600">
           <Link to="/guides" className="font-bold text-[#1D5146] hover:underline">← Browse verified guides</Link>

@@ -42,7 +42,7 @@ export default function AdminLogin() {
 
   return (
     <AuthShell portal="admin" title="Administrator Sign In">
-      <CMSPageIntro pageKey="admin-login" />
+      <CMSPageIntro pageKey="admin-login" compact />
       <div className="flex items-start gap-2 p-3 rounded-xl bg-slate-900 text-slate-200 text-xs mb-5">
         <FiShield className="mt-0.5 shrink-0 text-nepalred-400" />
         <span>

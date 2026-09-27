@@ -1,14 +1,17 @@
 NEPAL YATRA — PUBLIC DATABASE DOWNLOADS
 ======================================
 
-This directory contains the shareable, privacy-safe database artifact.  It is
+This directory contains the shareable, privacy-safe database artifacts.  It is
 not a copy of the live operational database.
 
 Files
 -----
 
 * nepal-tourism-database.sqlite3.gz — deterministic compressed SQLite snapshot
+  (the canonical release; built from the JSON catalog below)
 * nepal-tourism-database.sqlite3.gz.sha256 — checksum for the archive
+* nepal-tourism-seed.sqlite3.gz — ready-to-run seed database for a new clone
+* nepal-tourism-seed.sqlite3.gz.sha256 — checksum for the seed archive
 * ../Tourism/dataset/verified_tourism_data.json — canonical JSON catalog used
   to build the archive
 * ../Tourism/dataset/verified_tourism_data.json.sha256 — checksum for the JSON
@@ -20,6 +23,28 @@ is built into a fresh migrated database from the JSON, then both artifacts are
 compared record-for-record before publication.  A database row count or image
 count printed in an old report is not a source of truth; use the JSON metadata
 and checksums for the current release.
+
+New clone: get the data in one command
+---------------------------------------
+
+A clone receives the code, not a database.  To install the published seed
+database (destinations, galleries, hotels, hospitals, police stations,
+restaurants, OSM services, transit routes and published CMS pages):
+
+    git clone https://github.com/Diwash234/Tourism.git
+    cd Tourism/Tourism
+    python manage.py install_public_seed_db
+
+The command verifies the archive checksum, SQLite integrity and foreign keys,
+refuses to overwrite a database that already has users or destinations, and
+then prints the imported row counts.  It contains no accounts, so create your
+own login afterwards:
+
+    python manage.py createsuperuser
+
+Hotels, hospitals, police stations and restaurants arrive as sourced but
+unverified listings and stay labelled as unverified until a staff member
+verifies them in the admin.
 
 Privacy boundary
 ----------------

@@ -1,3 +1,5 @@
+import "@fontsource-variable/inter"
+import "@fontsource-variable/noto-sans-devanagari"
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
@@ -10,6 +12,7 @@ import './i18n'
 import 'leaflet/dist/leaflet.css'
 import './index.css'
 import './styles/animations.css'
+import { registerServiceWorker } from './pwa'
 
 if (typeof window !== "undefined") {
   if ("scrollRestoration" in window.history) {
@@ -35,3 +38,5 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </BrowserRouter>
   </React.StrictMode>,
 )
+
+registerServiceWorker()

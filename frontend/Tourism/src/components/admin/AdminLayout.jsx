@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { Link, Outlet, useLocation } from "react-router-dom"
 import { FiActivity, FiChevronDown, FiChevronRight, FiMenu, FiShield, FiUsers, FiX } from "react-icons/fi"
 import TourismLogo from "../branding/TourismLogo"
@@ -7,6 +7,7 @@ import ProfileMenu from "../layout/ProfileMenu"
 import useMediaQuery from "../../hooks/useMediaQuery"
 import { ADMIN_NAV_GROUPS, ADMIN_PRIMARY_NAV, adminSectionHref, canAccessAdminSection, findAdminSection } from "./adminNavigation"
 import useAuth from "../../hooks/useAuth"
+import useRouteSeo from "../../hooks/useRouteSeo"
 
 export default function AdminLayout() {
   const { isAdmin, can } = useAuth()
@@ -34,6 +35,7 @@ export default function AdminLayout() {
   // active section opens itself (brief §16/§17).
   const [expanded, setExpanded] = useState({})
   const location = useLocation()
+  useRouteSeo()
   const activeSection = new URLSearchParams(location.search).get("section") || "overview"
   const drawerHidden = !open && !isDesktop
   const closeMobile = () => {
@@ -205,7 +207,7 @@ export default function AdminLayout() {
       )}
       <main id="admin-main" tabIndex="-1" className={`min-h-screen bg-gradient-to-br from-white via-emerald-50 to-green-100 pt-16 transition-[padding] duration-300 ${collapsed ? "lg:pl-16" : "lg:pl-72"}`}>
         <div className="mx-auto w-full max-w-[1600px] p-3 pb-24 sm:p-6 lg:pb-6">
-          <Outlet />
+          <Suspense fallback={<div className="container-app flex min-h-[320px] items-center justify-center py-12" role="status" aria-live="polite"><span className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--ny-border)] border-t-[var(--ny-green)]" aria-hidden="true" /><span className="sr-only">Loading page</span></div>}><Outlet /></Suspense>
         </div>
       </main>
     </div>

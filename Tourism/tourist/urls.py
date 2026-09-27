@@ -10,6 +10,7 @@ from . import views_discovery
 from . import views_districts
 from . import views_family_safety
 from . import views_images
+from . import views_media_review
 from . import views_itinerary
 from .field_verification import FieldVerificationTaskViewSet
 from .trip_feedback import TripFeedbackViewSet, TripFeedbackMediaViewSet
@@ -18,7 +19,9 @@ from . import views_ml
 from . import views_oauth
 from . import views_osm
 from . import views_marketplace
+from . import views_explore
 from . import views_emergency_admin
+from . import views_account
 from . import views_navigation
 from . import views_workforce
 from . import views_travel
@@ -76,6 +79,15 @@ router.register("trip-feedback", TripFeedbackViewSet, basename="trip-feedback")
 router.register("trip-feedback-media", TripFeedbackMediaViewSet, basename="trip-feedback-media")
 
 urlpatterns = [
+    # Traveller discovery: universal search, filters, decisions, sentiment, sharing
+    path("search/", views_explore.UniversalSearchView.as_view(), name="universal-search"),
+    path("discover/", views_explore.DiscoverView.as_view(), name="discover"),
+    path("discover/options/", views_explore.DiscoverOptionsView.as_view(), name="discover-options"),
+    path("season-guide/", views_explore.SeasonGuideView.as_view(), name="season-guide"),
+    path("decide/", views_explore.DecisionView.as_view(), name="decide"),
+    path("destinations/<str:key>/sentiment/", views_explore.DestinationSentimentView.as_view(), name="destination-sentiment"),
+    path("travel-plans/<int:pk>/share/", views_explore.TravelPlanShareView.as_view(), name="travel-plan-share"),
+    path("shared-plans/<uuid:token>/", views_explore.SharedTravelPlanView.as_view(), name="shared-travel-plan"),
     path("notification-preferences/", views.NotificationPreferenceView.as_view(), name="notification-preferences"),
     # Auth endpoints
     path("auth/register/", views_auth.RegisterView.as_view(), name="auth-register"),
@@ -92,6 +104,7 @@ urlpatterns = [
     path("auth/reset-password/", views_auth.ResetPasswordView.as_view(), name="auth-reset-password"),
     path("auth/reset-password/otp/request/", views_auth.ResetPasswordOtpRequestView.as_view(), name="auth-reset-password-otp-request"),
     path("auth/reset-password/otp/verify/", views_auth.ResetPasswordOtpVerifyView.as_view(), name="auth-reset-password-otp-verify"),
+    path("auth/account/delete/", views_account.AccountDeletionView.as_view(), name="auth-account-delete"),
     path("auth/change-password/", views_auth.ChangePasswordView.as_view(), name="auth-change-password"),
     path("auth/update-location/", views_auth.UpdateLocationView.as_view(), name="auth-update-location"),
     path("auth/detect-location/", views_auth.DetectLocationView.as_view(), name="auth-detect-location"),
@@ -260,6 +273,12 @@ urlpatterns = [
     path("admin/duplicates/compare/", views_admin.AdminDuplicateCompareView.as_view(), name="admin-duplicates-compare"),
     path("admin/duplicates/decision/", views_admin.AdminDuplicateDecisionView.as_view(), name="admin-duplicates-decision"),
     path("admin/destinations/<int:id>/images", views_admin.AdminDestinationImageView.as_view(), name="admin-destination-images"),
+    # --- Media review: permission-based moderation scores (never fabricated) ---
+    path("admin/media-review/capabilities", views_media_review.MediaReviewCapabilitiesView.as_view(), name="admin-media-review-capabilities"),
+    path("admin/media-review/queue", views_media_review.MediaReviewQueueView.as_view(), name="admin-media-review-queue"),
+    path("admin/media-review/delegation", views_media_review.MediaReviewDelegationView.as_view(), name="admin-media-review-delegation"),
+    path("admin/media-review/<int:image_id>", views_media_review.MediaReviewDetailView.as_view(), name="admin-media-review-detail"),
+    path("admin/media-review/<int:image_id>/score", views_media_review.MediaReviewScoreView.as_view(), name="admin-media-review-score"),
     path("admin/destinations/<int:id>/videos", views_admin.AdminDestinationVideoView.as_view(), name="admin-destination-videos"),
     path("admin/alerts", views_admin.AdminAlertsView.as_view(), name="admin-alerts"),
 
@@ -269,6 +288,8 @@ urlpatterns = [
     path("travel-requirements/", views_travel.TravelRequirementsView.as_view(), name="travel-requirements"),
     path("travel-requirements/destination/<int:pk>/", views_travel.DestinationRequirementsView.as_view(), name="travel-requirements-destination"),
     path("newsletter/subscribe/", views.NewsletterSubscribeView.as_view(), name="newsletter-subscribe"),
+    path("newsletter/unsubscribe/", views_account.NewsletterUnsubscribeView.as_view(), name="newsletter-unsubscribe"),
+    path("admin/newsletter/export.csv", views_account.NewsletterExportView.as_view(), name="admin-newsletter-export"),
     path("discover-nepal/", views.DiscoverNepalView.as_view(), name="discover-nepal"),
     path("translate/", views.TranslateTextView.as_view(), name="translate-text"),
     path("images/resolve/", views_images.ImageResolveView.as_view(), name="images-resolve"),

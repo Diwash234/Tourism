@@ -1,3 +1,7 @@
+import ipaddress
+
+from django.utils.functional import SimpleLazyObject
+
 from .utils import get_client_ip, geoip_lookup
 
 
@@ -16,8 +20,20 @@ class GeoIPMiddleware:
         request.geo_location = None
         if request.path.startswith("/api/"):
             ip = get_client_ip(request)
-            # Non-blocking: a cold-cache miss must never delay the request
-            # waiting on an external provider. The lookup warms the cache
-            # in a background thread; the next request gets the value.
-            request.geo_location = geoip_lookup(ip, blocking=False)
+            # Lazy: the visitor's IP is sent to the GeoIP provider only when a
+            # view actually reads request.geo_location (a nearby search with
+            # no GPS coordinates), never on every request. Non-blocking: a
+            # cold-cache miss returns None and warms the cache in the
+            # background. Private/loopback addresses are never looked up.
+            request.geo_location = SimpleLazyObject(lambda: _lookup_public(ip))
         return self.get_response(request)
+
+
+def _lookup_public(ip):
+    try:
+        addr = ipaddress.ip_address(str(ip or "").strip())
+    except ValueError:
+        return None
+    if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved:
+        return None
+    return geoip_lookup(str(addr), blocking=False)

@@ -71,10 +71,7 @@ export default function Gallery() {
             existingNames.add(dest.name.toLowerCase())
             const preview = Array.isArray(dest.gallery_preview) ? dest.gallery_preview : []
             const fallback = getDestinationImageUrl(dest)
-            const manuallyCorrected = fallback && ["hot-air-balloon-pokhara", "ultralight-flight-pokhara", "zipflyer-pokhara", "chhoser-sky-caves", "gupteswor-gupha"].some((folder) => fallback.includes(`/${folder}/`))
-            const images = manuallyCorrected
-              ? [{ url: fallback, caption: dest.name, category: normalizeGalleryCategory(dest.category_name), source: "manual_correction" }]
-              : preview.length ? preview.map((media) => ({
+            const images = preview.length ? preview.map((media) => ({
                   url: media.url,
                   caption: media.caption || dest.name,
                   category: normalizeGalleryCategory(dest.category_name),
@@ -381,7 +378,7 @@ export default function Gallery() {
                     activePhotoIndex === i ? "border-amber-400 scale-110 shadow-lg" : "border-transparent opacity-40 hover:opacity-80"
                   }`}
                 >
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={p.url}
                     alt={`Thumb ${i}`}
                     onError={(e) => {

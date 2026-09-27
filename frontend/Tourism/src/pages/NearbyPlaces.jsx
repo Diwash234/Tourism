@@ -11,6 +11,8 @@
 // GPS denial can never masquerade as "No nearby places found".
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useSearchParams } from "react-router-dom"
+import { OpenNowBadge } from "../components/explore/FactBits"
 import {
   FiMapPin,
   FiSearch,
@@ -54,6 +56,15 @@ const RADIUS_OPTIONS_KM = [5, 10, 25, 50, 100, 250]
 const DEFAULT_RADIUS_KM = 25
 const PAGE_SIZE = 24
 
+// /nearby-places?category=<OSM service category> (linked from site search)
+// opens the matching tab; POI categories map onto the backend's groups.
+const POI_DEFAULT_CATEGORIES = ["hotels", "hospitals", "police", "temples", "viewpoints", "restaurants", "banks"]
+const CATEGORY_LINKS = {
+  hospital: { type: "hospitals" }, clinic: { type: "hospitals" }, ambulance: { type: "hospitals" }, blood_bank: { type: "hospitals" },
+  bank: { type: "pois", poi: "banks" }, atm: { type: "pois", poi: "atms" }, pharmacy: { type: "pois", poi: "pharmacies" },
+  police: { type: "pois", poi: "police" }, hotel: { type: "hotels" },
+}
+
 const RESULT_TYPES = [
   { key: "destinations", label: "Destinations", noun: "destinations" },
   { key: "pois", label: "Real-world places", noun: "places" },
@@ -75,7 +86,10 @@ const NearbyPlaces = () => {
     [manualOrigin, position]
   )
 
-  const [activeType, setActiveType] = useState("destinations")
+  const [searchParams] = useSearchParams()
+  const categoryLink = CATEGORY_LINKS[(searchParams.get("category") || "").toLowerCase()] || null
+  const poiFocus = categoryLink?.poi || ""
+  const [activeType, setActiveType] = useState(categoryLink?.type || "destinations")
   const activeMeta = RESULT_TYPES.find((t) => t.key === activeType)
 
   const [radiusKm, setRadiusKm] = useState(DEFAULT_RADIUS_KM)
@@ -98,6 +112,7 @@ const NearbyPlaces = () => {
   // Real-world POIs (OpenStreetMap) — structured payload for the pois tab
   const [poiData, setPoiData] = useState(null)
   const [poiCat, setPoiCat] = useState("")
+  const [openNow, setOpenNow] = useState(false)
 
   // --- data fetch: frontend sends coordinates, backend runs the distance query
   useEffect(() => {
@@ -143,11 +158,12 @@ const NearbyPlaces = () => {
       }
       if (activeType === "pois") {
         destinationApi
-          .getPOIsByCoords({ latitude: origin.lat, longitude: origin.lng, radius_km: Math.min(radiusKm, 25) })
+          .getPOIsByCoords({ latitude: origin.lat, longitude: origin.lng, radius_km: Math.min(radiusKm, 25), ...(openNow ? { open_now: 1 } : {}),
+            ...(poiFocus ? { categories: [...new Set([...POI_DEFAULT_CATEGORIES, poiFocus])].join(",") } : {}) })
           .then(({ data }) => {
             const all = Object.values(data?.categories || {}).flatMap((group) => group.results || [])
             setPoiData(data)
-            setPoiCat((prev) => (prev && data?.categories?.[prev] ? prev : Object.keys(data?.categories || {})[0] || ""))
+            setPoiCat((prev) => (prev && data?.categories?.[prev] ? prev : (poiFocus && data?.categories?.[poiFocus] ? poiFocus : Object.keys(data?.categories || {})[0] || "")))
             settle([...all, ...(data?.verified_database_places || [])], all.length + (data?.verified_database_places || []).length)
           })
           .catch(fail)
@@ -173,7 +189,7 @@ const NearbyPlaces = () => {
         })
         .catch(fail)
     })
-  }, [origin, radiusKm, activeType, reloadNonce])
+  }, [origin, radiusKm, activeType, reloadNonce, openNow, poiFocus])
 
   // --- favorites (same contract as DestinationList; destinations tab only)
   useEffect(() => {
@@ -503,6 +519,13 @@ const NearbyPlaces = () => {
                     </div>
                   </div>
                 )}
+                <div className="flex flex-wrap items-center gap-3">
+                  <label className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-900">
+                    <input type="checkbox" checked={openNow} onChange={(e) => setOpenNow(e.target.checked)} className="h-4 w-4 accent-emerald-700" />
+                    Open now only
+                  </label>
+                  {poiData.hours_note && <span className="text-xs text-gray-500">{poiData.hours_note}</span>}
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(poiData.categories || {}).map(([key, group]) => (
                     <button
@@ -525,7 +548,7 @@ const NearbyPlaces = () => {
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs">
                         {row.phone && <a className="inline-flex items-center gap-1 text-emerald-700 hover:underline" href={`tel:${row.phone}`}><FiPhone className="w-3 h-3" /> {row.phone}</a>}
                         {row.website && <a className="text-emerald-700 hover:underline" href={row.website} target="_blank" rel="noopener noreferrer">Website</a>}
-                        {row.opening_hours && <span className="text-gray-500">{row.opening_hours}</span>}
+                        {row.hours ? <OpenNowBadge hours={row.hours} /> : row.opening_hours && <span className="text-gray-500">{row.opening_hours}</span>}
                         <a className="text-emerald-700 hover:underline" href={row.source_url} target="_blank" rel="noopener noreferrer">OpenStreetMap ↗</a>
                         <a className="text-emerald-700 hover:underline" href={directionsHref(row)} target="_blank" rel="noopener noreferrer"><FiNavigation className="w-3 h-3 inline" /> Directions</a>
                       </div>

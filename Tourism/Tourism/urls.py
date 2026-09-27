@@ -1,7 +1,8 @@
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 
 from tourist import views_seo
+from Tourism.spa import spa_index
 from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import (
@@ -38,3 +39,8 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Client-side routes of the built SPA (Docker image). Registered last and only
+# when a build is installed, so API 404s and tests are unaffected.
+if (settings.FRONTEND_DIST_DIR / "index.html").is_file():
+    urlpatterns += [re_path(r"^(?!api/|admin/|static/|media/|ws/)(?P<path>.*)$", spa_index, name="spa-index")]

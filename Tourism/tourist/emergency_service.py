@@ -14,6 +14,11 @@ NATIONAL_HOTLINES = [
 ]
 
 
+
+def _hours(value):
+    from .opening_hours import status as hours_status
+    return hours_status(value or "")
+
 def clean_phone(value, fallback):
     value = str(value or "").strip()
     if not value or value.lower() in {"nan", "none", "null"}:
@@ -104,7 +109,7 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
             "latitude": float(row.latitude), "longitude": float(row.longitude),
             "distance_km": distance, "outside_requested_radius": outside_radius,
             "image_url": _image_url(row),
-            "opening_hours": row.opening_hours, "emergency_available": row.emergency_available,
+            "opening_hours": row.opening_hours, "hours": _hours(row.opening_hours), "emergency_available": row.emergency_available,
             "verified": row.is_verified, "verified_at": row.verified_at, "updated_at": row.updated_at,
             "source_name": row.source_name or "",
             "source_url": row.source_url or "",
@@ -119,7 +124,7 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
             "latitude": float(row.latitude), "longitude": float(row.longitude),
             "distance_km": distance, "outside_requested_radius": outside_radius,
             "image_url": _image_url(row),
-            "opening_hours": row.opening_hours, "emergency_available": row.emergency_available,
+            "opening_hours": row.opening_hours, "hours": _hours(row.opening_hours), "emergency_available": row.emergency_available,
             "verified": row.is_verified, "verified_at": row.verified_at, "updated_at": row.updated_at,
             "source_name": row.source_name or "",
             "source_url": row.source_url or "",
@@ -183,7 +188,7 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
             "estimated_travel_time_min": max(1, round(distance / 30 * 60)),
             "travel_time_basis": "Rough estimate: straight-line distance at 30 km/h — not a road route",
             "is_24_hours": service.emergency_available,
-            "opening_hours": service.opening_hours,
+            "opening_hours": service.opening_hours, "hours": _hours(service.opening_hours),
             "image_url": _image_url(service),
             "verified": service.is_verified, "verified_at": service.verified_at, "updated_at": service.updated_at,
             "source_name": service.source_name or "",

@@ -1,6 +1,7 @@
-import { useEffect } from "react"
+import { useEffect, Suspense } from "react"
 import useSidebarState from "../../hooks/useSidebarState"
 import { Outlet, useLocation } from "react-router-dom"
+import useRouteSeo from "../../hooks/useRouteSeo"
 import Navbar from "./Navbar"
 import Sidebar from "./Sidebar"
 import Footer from "./Footer"
@@ -8,18 +9,7 @@ import FloatingChatbot from "../common/FloatingChatbot"
 import CookieConsentBanner from "../common/CookieConsentBanner"
 import MobileBottomNav from "./MobileBottomNav"
 import { ElevationScrollProgress } from "../common/MotionSystem"
-import usePublicConfig from "../../hooks/usePublicConfig"
 
-const setMeta = (attr, key, value) => {
-  if (!value) return
-  let element = document.querySelector(`meta[${attr}="${key}"]`)
-  if (!element) {
-    element = document.createElement("meta")
-    element.setAttribute(attr, key)
-    document.head.appendChild(element)
-  }
-  element.setAttribute("content", value)
-}
 
 const MainLayout = () => {
   const [sidebarOpen] = useSidebarState()
@@ -27,17 +17,9 @@ const MainLayout = () => {
   // so content padding must always match the visible rail width (brief §12/§24).
   const desktopPad = sidebarOpen ? "lg:pl-64" : "lg:pl-16"
   const location = useLocation()
-  const { pages, branding } = usePublicConfig()
 
-  useEffect(() => {
-    const page = (pages || []).find(item => item.route === location.pathname)
-    const title = page?.seo_title || page?.title || branding?.site_title
-    if (title) document.title = title
-    if (page?.meta_description) setMeta("name", "description", page.meta_description)
-    if (page?.og_image_url) setMeta("property", "og:image", page.og_image_url)
-    if (page?.search_visible === false) setMeta("name", "robots", "noindex,nofollow")
-    else document.querySelector('meta[name="robots"]')?.remove()
-  }, [location.pathname, pages, branding])
+
+  useRouteSeo()
 
   return (
     <div className="ny-app-shell flex min-h-screen w-full flex-col overflow-x-hidden bg-[var(--ny-bg)] text-[var(--ny-text)] dark:bg-[#0B1714] dark:text-[#EAF2EF]">
@@ -50,9 +32,9 @@ const MainLayout = () => {
         key={location.pathname}
         className={`ny-app-main ny-page flex-1 w-full pt-16 transition-[padding] duration-300 ${desktopPad}`}
       >
-        <Outlet />
+        <Suspense fallback={<div className="container-app flex min-h-[320px] items-center justify-center py-12" role="status" aria-live="polite"><span className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--ny-border)] border-t-[var(--ny-green)]" aria-hidden="true" /><span className="sr-only">Loading page</span></div>}><Outlet /></Suspense>
       </main>
-      <div className={`pb-28 transition-[padding] duration-300 lg:pb-0 ${desktopPad}`}>
+      <div className={`ny-footer-wrap pb-28 transition-[padding] duration-300 lg:pb-0 ${desktopPad}`}>
         <Footer />
       </div>
       <MobileBottomNav />

@@ -112,8 +112,8 @@ body { background-color: var(--brand-background); }
   --radius: var(--ny-radius-lg);
   --radius-sm: var(--ny-radius-sm);
   --radius-lg: var(--ny-radius-xl);
-  --sans: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
-  --heading: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
+  --sans: "Inter Variable", "Inter", "Noto Sans Devanagari Variable", system-ui, "Segoe UI", Roboto, sans-serif;
+  --heading: "Inter Variable", "Inter", "Noto Sans Devanagari Variable", system-ui, "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
   font: 16px/1.6 var(--sans);
@@ -338,6 +338,18 @@ code {
   border: 1.5px solid #cbd5e1;
 }
 .input-field::placeholder { color: #64748b; }
+/* `.input-field` is declared after Tailwind's utilities, so its px-4 would
+   silently override pl-N and pr-N on inputs that have a leading/trailing icon and
+   draw the icon on top of the typed text. Honour the explicit padding. */
+.input-field.pl-8 { padding-left: 2rem; }
+.input-field.pl-9 { padding-left: 2.25rem; }
+.input-field.pl-10 { padding-left: 2.5rem; }
+.input-field.pl-11 { padding-left: 2.75rem; }
+.input-field.pl-12 { padding-left: 3rem; }
+.input-field.pr-8 { padding-right: 2rem; }
+.input-field.pr-10 { padding-right: 2.5rem; }
+.input-field.pr-11 { padding-right: 2.75rem; }
+.input-field.pr-12 { padding-right: 3rem; }
 .input-field:focus {
   border-color: #059669;
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
@@ -1211,6 +1223,11 @@ textarea { resize: vertical; }
   bottom: calc(1.5rem + env(safe-area-inset-bottom));
   background-color: var(--ny-green-deepest);
 }
+/* Desktop: the banner floats bottom-left; reserve its height under the footer
+   so the last footer links can be scrolled clear of it. */
+body.ny-cookie-visible .ny-footer-wrap {
+  padding-bottom: calc(var(--ny-cookie-h, 8rem) + 2.5rem + env(safe-area-inset-bottom));
+}
 .ny-session-notice { z-index: 120; }
 .ny-modal-layer { z-index: 100; }
 .ny-header nav { height: auto; min-height: var(--ny-header-height); padding-top: env(safe-area-inset-top); }
@@ -1249,8 +1266,9 @@ textarea { resize: vertical; }
     visibility: hidden;
     pointer-events: none;
   }
-  body.ny-cookie-visible .ny-app-main {
-    padding-bottom: 12rem;
+  /* Bottom nav (4.5rem) + gap + the measured cookie banner. */
+  body.ny-cookie-visible .ny-footer-wrap {
+    padding-bottom: calc(var(--ny-cookie-h, 10rem) + 6.5rem + env(safe-area-inset-bottom));
   }
   .ny-session-notice {
     top: calc(var(--ny-header-height) + 0.75rem);
@@ -1271,3 +1289,31 @@ textarea { resize: vertical; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+
+/* Policy pages (components/legal/LegalPage.jsx). Tables become stacked
+   label/value rows on phones so long text never forces sideways scrolling. */
+.ny-legal-link { color: var(--ny-green); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+.ny-legal-link:hover { color: var(--ny-green-deepest, #064e3b); }
+.ny-legal-table { border-collapse: collapse; }
+.ny-legal-table th, .ny-legal-table td { border-top: 1px solid var(--ny-border); padding: 0.6rem 0.75rem 0.6rem 0; vertical-align: top; overflow-wrap: anywhere; }
+.ny-legal-table thead th { border-top: 0; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ny-text); }
+.ny-legal-table tbody th { color: var(--ny-text); font-weight: 700; }
+@media (max-width: 640px) {
+  .ny-legal-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ny-legal-table tr { display: block; border-top: 1px solid var(--ny-border); padding: 0.6rem 0; }
+  .ny-legal-table th, .ny-legal-table td { display: block; border: 0; padding: 0.15rem 0; }
+  .ny-legal-table td::before { content: attr(data-label) ": "; font-weight: 700; color: var(--ny-text); }
+}
+
+/* Cookie banner choices: identical styling so neither answer is nudged. */
+.ny-cookie-choice { min-height: 2.75rem; border-radius: var(--ny-radius-sm); border: 1px solid rgba(255,255,255,0.7); background: #fff; color: var(--ny-green-deepest); font-size: 0.8rem; font-weight: 800; padding: 0 0.75rem; }
+.ny-cookie-choice:hover { background: #ecfdf5; }
+.ny-cookie-choice:focus-visible { outline: 3px solid #fbbf24; outline-offset: 2px; }
+
+/* Footer legal row: 24px minimum targets (WCAG 2.5.8) without looking like buttons. */
+.ny-footer-legal { display: inline-flex; align-items: center; min-height: 1.5rem; padding-block: 0.25rem; color: inherit; text-decoration: none; }
+.ny-footer-legal:hover { color: #fff; text-decoration: underline; text-underline-offset: 2px; }
+
+/* Form fields: visible label above every input, error text tied by aria-describedby. */
+.ny-field-label { display: block; margin-bottom: 0.375rem; font-size: 0.875rem; font-weight: 700; color: var(--ny-text); }
+.ny-field-error { margin-top: 0.25rem; font-size: 0.75rem; font-weight: 600; color: var(--ny-danger); }

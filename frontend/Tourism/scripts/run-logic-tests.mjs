@@ -108,11 +108,19 @@ check("custom message is trimmed", cc3.message === "Custom wording")
 const cc4 = mod.resolveCookieConsent({ message: "   " })
 check("blank message falls back to default", cc4.message === mod.DEFAULT_COOKIE_MESSAGE)
 const fakeStore = { map: {}, getItem(k) { return this.map[k] ?? null }, setItem(k, v) { this.map[k] = String(v) } }
-check("fresh browser has not dismissed", mod.isCookieConsentDismissed(fakeStore) === false)
-mod.dismissCookieConsent(fakeStore)
-check("accepting persists under the storage key", fakeStore.map[mod.COOKIE_CONSENT_KEY] === "accepted" && mod.isCookieConsentDismissed(fakeStore) === true)
+check("fresh browser has not chosen", mod.isCookieConsentDismissed(fakeStore) === false && mod.readCookieChoice(fakeStore) === null)
+fakeStore.map[mod.COOKIE_CONSENT_KEY] = "accepted"
+check("old notice-only value asks again", mod.readCookieChoice(fakeStore) === null)
+mod.saveCookieChoice(fakeStore, { media: false })
+check("essential-only choice persists with media blocked", mod.readCookieChoice(fakeStore)?.media === false && mod.isCookieConsentDismissed(fakeStore) === true)
+mod.saveCookieChoice(fakeStore, { media: true })
+check("allowing videos persists", mod.readCookieChoice(fakeStore)?.media === true)
+check("legacy default wording is replaced", mod.resolveCookieConsent({ message: "We use essential cookies to keep you signed in and remember your language and theme. See our Privacy Policy for details." }).message === mod.DEFAULT_COOKIE_MESSAGE)
+check("youtube embeds use youtube-nocookie", mod.privacyEmbedUrl("https://www.youtube.com/watch?v=abc123XYZ") === "https://www.youtube-nocookie.com/embed/abc123XYZ" && mod.privacyEmbedUrl("https://youtu.be/abc123XYZ") === "https://www.youtube-nocookie.com/embed/abc123XYZ")
+check("vimeo embeds request do-not-track", mod.privacyEmbedUrl("https://vimeo.com/123456") === "https://player.vimeo.com/video/123456?dnt=1")
+check("unknown hosts are not embedded", mod.privacyEmbedUrl("https://evil.example/x") === "")
 const brokenStore = { getItem() { throw new Error("blocked") }, setItem() { throw new Error("blocked") } }
-check("private-mode storage never crashes", mod.isCookieConsentDismissed(brokenStore) === false && mod.dismissCookieConsent(brokenStore) === undefined)
+check("private-mode storage never crashes", mod.isCookieConsentDismissed(brokenStore) === false && mod.saveCookieChoice(brokenStore, { media: true }).media === true)
 
 console.log("Pagination (components/common/Pagination.jsx source scan):")
 const pg = readFileSync("src/components/common/Pagination.jsx", "utf8")

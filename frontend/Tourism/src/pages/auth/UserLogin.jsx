@@ -58,7 +58,7 @@ export default function UserLogin() {
 
   return (
     <AuthShell portal="tourist" title="Welcome back">
-      <CMSPageIntro pageKey="auth-login" />
+      <CMSPageIntro pageKey="auth-login" compact />
       <p className="mb-5 rounded-[var(--ny-radius-md)] bg-[var(--ny-soft-green)] px-3 py-2.5 text-sm text-[var(--ny-green-dark)]">Sign in to save places, build an itinerary and manage trip requests.</p>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div><label htmlFor="login-email" className="mb-1.5 block text-sm font-semibold">Email address</label><div className="relative"><FiMail size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--ny-text-muted)]" aria-hidden="true" /><input id="login-email" type="email" autoComplete="email" data-testid="login-email" className="input-field pl-11" placeholder="you@example.com" {...register("email", { required: "Email is required" })} /></div>{errors.email && <p className="mt-1 text-xs text-[var(--ny-danger)]">{errors.email.message}</p>}</div>

@@ -5,6 +5,7 @@ import { motion } from "framer-motion"
 import authApi from "../../api/authApi"
 import TourismLogo from "../../components/branding/TourismLogo"
 import NepalSceneBackground from "../../components/branding/NepalSceneBackground"
+import CMSPageIntro from "../../components/cms/CMSPageIntro"
 
 /**
  * VerifyEmail — reached from the email link the backend sends after
@@ -97,6 +98,7 @@ const VerifyEmail = () => {
             </Link>
           </>
         )}
+        <CMSPageIntro pageKey="auth-verify-email" compact />
       </motion.div>
     </div>
   )

@@ -4,6 +4,7 @@ import { FiAlertTriangle, FiExternalLink, FiFileText, FiMap, FiShield, FiPhone, 
 import PageHeader from "../components/common/PageHeader"
 import travelApi from "../api/travelApi"
 import { NATIONALITY_OPTIONS } from "../utils/currency"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 // "Before you travel" -- visa, TIMS, permits, park & heritage fees,
 // altitude safety, insurance and official contacts. Every figure comes from
@@ -63,11 +64,12 @@ export default function BeforeYouTravel() {
   const [nationality, setNationality] = useState(() => localStorage.getItem("tourism_nationality") || "foreign")
   const [data, setData] = useState(null)
   const [error, setError] = useState("")
+  const [offlineCopy, setOfflineCopy] = useState(false)
 
   useEffect(() => {
     let alive = true
     travelApi.requirements(nationality)
-      .then(({ data: body }) => { if (alive) { setData(body); setError("") } })
+      .then(({ data: body, headers }) => { if (alive) { setData(body); setError(""); setOfflineCopy(Boolean(headers?.["x-ny-offline"])) } })
       .catch(() => { if (alive) setError("Official requirements could not be loaded. Please check the linked government pages directly.") })
     return () => { alive = false }
   }, [nationality])
@@ -77,6 +79,12 @@ export default function BeforeYouTravel() {
   return (
     <div className="ny-page container-app py-6 sm:py-8">
       <PageHeader title="Before you travel" subtitle="Visa, trekking permits, park and heritage fees, altitude safety and insurance — from official Government of Nepal and Nepal Tourism Board sources." icon={FiFileText} />
+      <CMSPageIntro pageKey="before-you-travel" />
+      {offlineCopy && (
+        <p role="status" className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          You appear to be offline. This is the copy saved on this device from an earlier visit; fees and rules may have changed since.
+        </p>
+      )}
 
       <div className="card-base mb-6 flex flex-col gap-3 border border-slate-200 bg-white p-4 sm:flex-row sm:items-end">
         <div className="flex-1">

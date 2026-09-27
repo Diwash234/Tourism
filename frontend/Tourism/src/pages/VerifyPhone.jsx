@@ -5,6 +5,7 @@ import { FiPhone, FiCheckCircle } from "react-icons/fi"
 import authApi from "../api/authApi"
 import useToast from "../hooks/useToast"
 import useAuth from "../hooks/useAuth"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 const RESEND_COOLDOWN_SECONDS = 60 // matches the backend's own 60s rate limit in ResendPhoneOTPView
 
@@ -142,6 +143,7 @@ const VerifyPhone = () => {
             </button>
           </>
         )}
+        <CMSPageIntro pageKey="auth-verify" compact />
       </motion.div>
     </div>
   )

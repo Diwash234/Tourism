@@ -131,14 +131,13 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '"Segoe UI"', 'Roboto', 'sans-serif'],
-        heading: ['Inter', 'system-ui', '"Segoe UI"', 'Roboto', 'sans-serif'],
-        serif: ['"Playfair Display"', 'Cinzel', 'Georgia', 'serif'],
-        royal: ['Cinzel', '"Playfair Display"', 'serif'],
-        // CEE "AI Index" reference typeface â€” clean, geometric, data-confident.
-        ubuntu: ['Ubuntu', 'Inter', 'system-ui', 'sans-serif'],
+        // Self-hosted via @fontsource (src/main.jsx). Devanagari glyphs come
+        // from Noto Sans Devanagari, downloaded only when Nepali text shows.
+        sans: ['"Inter Variable"', 'Inter', '"Noto Sans Devanagari Variable"', 'system-ui', '"Segoe UI"', 'Roboto', 'sans-serif'],
+        heading: ['"Inter Variable"', 'Inter', '"Noto Sans Devanagari Variable"', 'system-ui', '"Segoe UI"', 'Roboto', 'sans-serif'],
+        serif: ['Georgia', 'serif'],
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
-        devanagari: ['"Noto Sans Devanagari"', 'sans-serif'],
+        devanagari: ['"Noto Sans Devanagari Variable"', 'sans-serif'],
       },
       boxShadow: {
         card: '0 6px 16px rgba(0,0,0,0.08)',

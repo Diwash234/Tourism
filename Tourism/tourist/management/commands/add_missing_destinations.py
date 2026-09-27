@@ -299,7 +299,7 @@ class Command(BaseCommand):
                             is_cover=True,
                             verification_status=DestinationImage.ImageStatus.APPROVED,
                             is_verified=True,
-                            authenticity_score=0.9,
+                            authenticity_score=None,  # never invented: a real media review must assign this score
                             attribution="AI-generated for Nepal Tourism",
                             external_url=photo,
                         )

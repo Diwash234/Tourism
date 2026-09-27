@@ -135,6 +135,11 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     try {
       const { data } = await authApi.login(credentials)
+      // Store the SimpleJWT pair first: getCurrentUser() and every later
+      // request authenticate with it. (Dropping these lines left password
+      // sign-in "succeeding" and then immediately reporting an expired session.)
+      localStorage.setItem("access", data.access)
+      localStorage.setItem("refresh", data.refresh)
       const userData = data.user || (await authApi.getCurrentUser()).data
       localStorage.setItem("user", JSON.stringify(userData))
       setUser(userData)

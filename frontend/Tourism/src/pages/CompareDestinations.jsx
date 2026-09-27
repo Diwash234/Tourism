@@ -201,6 +201,16 @@ export default function CompareDestinations() {
         <PageHeader title="Compare recorded Nepal destinations" subtitle="Choose up to four places and scan the stored facts that matter for your trip. Missing values stay clearly marked as information unavailable." icon={FiColumns} />
       </header>
 
+      {selectedDestinations.filter((d) => d.id || d.slug).length >= 2 && (
+        <p className="ny-panel flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
+          <span>Want a verdict? The decision page compares season fit for your month, official fees, altitude, reach and hotels, with sources.</span>
+          <Link className="ny-btn ny-btn-primary min-h-10 px-4 text-sm"
+            to={`/decide?ids=${selectedDestinations.map((d) => d.id || d.slug).filter(Boolean).slice(0, 4).join(",")}`}>
+            Help me decide
+          </Link>
+        </p>
+      )}
+
       <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
         <span className="text-xs font-bold text-gray-400">Catalogue presets:</span>
         {PRESETS.map((p) => (
@@ -275,7 +285,7 @@ export default function CompareDestinations() {
             <div>
               <div className="h-44 w-full relative bg-slate-900 overflow-hidden">
                 {dest.image ? (
-                  <img src={dest.image} alt={dest.name} className="w-full h-full object-cover" />
+                  <img loading="lazy" decoding="async" src={dest.image} alt={dest.name} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-white/70 text-sm">No recorded photo</div>
                 )}

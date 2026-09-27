@@ -7,6 +7,7 @@ import authApi from "../../api/authApi"
 import useToast from "../../hooks/useToast"
 import TourismLogo from "../../components/branding/TourismLogo"
 import NepalSceneBackground from "../../components/branding/NepalSceneBackground"
+import CMSPageIntro from "../../components/cms/CMSPageIntro"
 
 const RESEND_COOLDOWN = 60 // seconds — matches the backend's per-account cooldown
 
@@ -40,7 +41,7 @@ const EmailLinkFlow = ({ showToast }) => {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="relative">
         <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input type="email" placeholder="Email" className="input-field pl-11" {...register("email", { required: true })} />
+        <input aria-label="Email" type="email" placeholder="Email" className="input-field pl-11" {...register("email", { required: true })} />
         {errors.email && <p className="text-xs text-red-500 mt-1">Email is required</p>}
       </div>
       <button type="submit" className="btn-primary w-full" disabled={loading}>
@@ -120,7 +121,7 @@ const OtpFlow = () => {
           phone (SMS) or email — whichever is on file. It expires in 10 minutes.
         </p>
         <div>
-          <input
+          <input aria-label="Reset code"
             type="text"
             inputMode="numeric"
             maxLength={6}
@@ -142,9 +143,9 @@ const OtpFlow = () => {
             {cooldown > 0 ? `Resend code in ${cooldown}s` : "Resend code"}
           </button>
         </div>
-        <input type="password" placeholder="New password" className="input-field" value={newPassword}
+        <input aria-label="New password" type="password" placeholder="New password" className="input-field" value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" required minLength={8} />
-        <input type="password" placeholder="Confirm new password" className="input-field" value={confirm}
+        <input aria-label="Confirm new password" type="password" placeholder="Confirm new password" className="input-field" value={confirm}
           onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" required minLength={8} />
         {error && <p className="text-xs text-rose-600">{error}</p>}
         <button type="submit" className="btn-primary w-full" disabled={loading || code.length !== 6}>
@@ -165,7 +166,7 @@ const OtpFlow = () => {
       </p>
       <div className="relative">
         <FiSmartphone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
+        <input aria-label="Email you signed up with"
           type="email"
           placeholder="Email you signed up with"
           className="input-field pl-11"
@@ -236,6 +237,7 @@ const ForgotPassword = () => {
             Login
           </Link>
         </p>
+        <CMSPageIntro pageKey="auth-recovery" compact />
       </motion.div>
     </div>
   )

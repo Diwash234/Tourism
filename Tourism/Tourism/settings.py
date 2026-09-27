@@ -187,6 +187,19 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+# Password hashing: bcrypt for new passwords, everything else kept for
+# verification. Measured on the deployment machine, PBKDF2 cost 4.743s per
+# hash, which made registration take over 4 seconds; bcrypt cost 11 costs
+# 0.307s. Existing pbkdf2_sha256$ hashes keep verifying through the fallbacks
+# below. See Tourism/hashers.py for the work-factor rationale.
+PASSWORD_HASHERS = [
+    "Tourism.hashers.PrimaryBCryptSHA256PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.ScryptPasswordHasher",
+]
+
 # ------------------------------------------------------------------
 # I18N
 # ------------------------------------------------------------------
@@ -201,6 +214,16 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+# Built React app (Dockerfile copies frontend/Tourism/dist here). When it is
+# present WhiteNoise serves it from the site root and Tourism/spa.py returns
+# index.html for client-side routes. Absent in development/tests.
+FRONTEND_DIST_DIR = Path(config("FRONTEND_DIST_DIR", default=str(BASE_DIR / "frontend_dist")))
+if (FRONTEND_DIST_DIR / "index.html").is_file():
+    WHITENOISE_ROOT = FRONTEND_DIST_DIR
+WHITENOISE_MIMETYPES = {".webmanifest": "application/manifest+json"}
+# Vite content-hashes everything under /assets/, so those files never change.
+WHITENOISE_IMMUTABLE_FILE_TEST = r"^/assets/.+-[A-Za-z0-9_-]{8,}\.\w+$"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -306,6 +329,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "auth": "10/min",
         "password_reset": "5/min",
+        "newsletter": "10/min",
     },
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
 }
@@ -407,6 +431,14 @@ GEOIP_PROVIDER_URL = config("GEOIP_PROVIDER_URL", default="http://ip-api.com/jso
 # Weather / Alerts external API (OpenWeatherMap etc.)
 # ------------------------------------------------------------------
 OPENWEATHER_API_KEY = config("OPENWEATHER_API_KEY", default="")
+
+# Official NRB forex: refresh automatically (at most hourly) when the stored
+# rate is older than today. Disabled under `manage.py test` so the suite never
+# depends on the live network or on today's rates.
+import sys as _sys
+FX_AUTO_REFRESH = config(
+    "FX_AUTO_REFRESH", default=not (len(_sys.argv) > 1 and _sys.argv[1] == "test"), cast=bool
+)
 
 # ------------------------------------------------------------------
 # External place/image data sources — all optional. Each client function

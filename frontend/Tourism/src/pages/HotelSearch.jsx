@@ -1,5 +1,5 @@
-import { useState } from "react"
-import { Link } from "react-router-dom"
+import { useEffect, useRef, useState } from "react"
+import { Link, useSearchParams } from "react-router-dom"
 import { FiMapPin, FiSearch } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"
 import EmptyState from "../components/common/EmptyState"
@@ -10,16 +10,18 @@ import hotelApi from "../api/hotelApi"
 import useAuth from "../hooks/useAuth"
 
 export default function HotelSearch() {
-  const [query, setQuery] = useState("")
+  const [searchParams, setSearchParams] = useSearchParams()
+  const urlQuery = (searchParams.get("q") || "").trim()
+  const [query, setQuery] = useState(urlQuery)
   const [hotels, setHotels] = useState([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
   const [error, setError] = useState("")
   const { isAuthenticated } = useAuth()
 
-  const handleSearch = async (event) => {
-    event.preventDefault()
-    if (!query.trim()) {
+  const lastUrlQuery = useRef("")
+  const runSearch = async (text) => {
+    if (!text) {
       setError("Enter a place, property or area to search.")
       return
     }
@@ -28,7 +30,7 @@ export default function HotelSearch() {
     setError("")
     setHotels([])
     try {
-      const data = await hotelApi.search(query.trim())
+      const data = await hotelApi.search(text)
       setHotels(Array.isArray(data?.results) ? data.results : Array.isArray(data) ? data : [])
     } catch (requestError) {
       setError(requestError.response?.data?.detail || "We could not load the stay catalogue right now. Please try again.")
@@ -36,6 +38,25 @@ export default function HotelSearch() {
       setLoading(false)
     }
   }
+
+  const handleSearch = (event) => {
+    event.preventDefault()
+    const text = query.trim()
+    if (text && text !== urlQuery) {
+      lastUrlQuery.current = text // the URL change below must not search twice
+      setSearchParams({ q: text }, { replace: true })
+    }
+    runSearch(text)
+  }
+
+  // /hotels/search?q=… (site search "See all", header links) searches on arrival.
+  useEffect(() => {
+    if (!urlQuery || urlQuery === lastUrlQuery.current) return
+    lastUrlQuery.current = urlQuery
+    const t = setTimeout(() => { setQuery(urlQuery); runSearch(urlQuery) }, 0)
+    return () => clearTimeout(t)
+    // runSearch is recreated each render; the URL query is the trigger.
+  }, [urlQuery])
 
   return (
     <div className="ny-page container-app space-y-6 py-6 sm:py-8">

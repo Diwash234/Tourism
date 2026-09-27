@@ -5,6 +5,7 @@ import PageHeader from "../components/common/PageHeader"
 import useAuth from "../hooks/useAuth"
 import useToast from "../hooks/useToast"
 import workforceApi from "../api/workforceApi"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 const STATUS_META = {
   applied: { label: "Applied", cls: "bg-sky-100 text-sky-700", icon: <FiClock /> },
@@ -159,6 +160,7 @@ export default function GuidePortal() {
           subtitle="Tourism workforce — apply, verify and manage your professional guide profile."
           actions={<Link to="/guides" className="ny-btn ny-btn-secondary min-h-10 text-xs">Browse guides <span aria-hidden="true">→</span></Link>}
         />
+        <CMSPageIntro pageKey="guide-portal" />
 
         {loadError && <p className="rounded-[var(--ny-radius-md)] border border-[#E9B9B9] bg-[var(--ny-soft-red)] p-3 text-sm text-[var(--ny-danger)]" role="alert">{loadError}</p>}
         <div className="ny-horizontal-scroll flex gap-2 pb-1">

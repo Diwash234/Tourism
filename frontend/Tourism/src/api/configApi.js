@@ -8,6 +8,8 @@ const configApi = {
   getPublicConfig: (lang) => axiosClient.get("/config/public/", { params: { ...(lang ? { lang } : {}), _ts: Date.now() } }),
   // Footer newsletter (CMS brief §6) — public, stores real signups server-side.
   subscribeNewsletter: (email) => axiosClient.post("/newsletter/subscribe/", { email }),
+  // { token } from an email link, or { email } typed by the visitor.
+  unsubscribeNewsletter: (body) => axiosClient.post("/newsletter/unsubscribe/", body),
 }
 
 export default configApi

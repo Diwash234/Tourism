@@ -16,6 +16,7 @@
 # dataset/verified_tourism_data.json. See docs/VERIFIED_DATA_SNAPSHOT.md.
 # =============================================================================
 Automat==25.4.16
+bcrypt==4.2.1
 Django==5.0.6
 Incremental==24.11.0
 PyJWT==2.15.0
@@ -79,6 +80,7 @@ typing_extensions==4.16.0
 ujson==6.0.0
 uritemplate==4.2.0
 urllib3==2.8.0
+vaderSentiment==3.3.2
 whitenoise==6.6.0
 yarl==1.25.1
 zope.interface==8.6

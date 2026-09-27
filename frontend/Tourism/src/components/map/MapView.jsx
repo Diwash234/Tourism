@@ -309,6 +309,8 @@ const MapView = ({
               ]}
 
               icon={userIcon}
+              alt="Your location"
+              title="Your location"
 
             >
 
@@ -335,6 +337,8 @@ const MapView = ({
               ]}
 
               icon={destinationIcon}
+              alt={dest.name || "Destination"}
+              title={dest.name || "Destination"}
 
             >
 
@@ -378,6 +382,8 @@ const MapView = ({
                 ]}
 
                 icon={placeTypeIcon(p)}
+                alt={place.name || "Nearby place"}
+                title={place.name || "Nearby place"}
 
               >
 
@@ -418,11 +424,13 @@ const MapView = ({
                 ]}
 
                 icon={hospitalIcon}
+                alt={`Hospital: ${place.name || "unnamed"}`}
+                title={`Hospital: ${place.name || "unnamed"}`}
 
               >
 
                 <Popup>
-                  🏥 {place.name}
+                  Hospital: {place.name}
                 </Popup>
 
               </Marker>
@@ -458,11 +466,13 @@ const MapView = ({
                 ]}
 
                 icon={policeIcon}
+                alt={`Police: ${place.name || "unnamed"}`}
+                title={`Police: ${place.name || "unnamed"}`}
 
               >
 
                 <Popup>
-                  🚓 {place.name}
+                  Police: {place.name}
                 </Popup>
 
               </Marker>

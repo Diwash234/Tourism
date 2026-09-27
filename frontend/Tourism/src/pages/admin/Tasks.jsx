@@ -7,6 +7,7 @@ import Loader from "../../components/common/Loader"
 import EmptyState from "../../components/common/EmptyState"
 import SearchSelect from "../../components/common/SearchSelect"
 import useToast from "../../hooks/useToast"
+import CMSPageIntro from "../../components/cms/CMSPageIntro"
 
 const STATUS_OPTIONS = ["pending", "in_progress", "completed", "cancelled"]
 
@@ -88,6 +89,7 @@ const Tasks = () => {
           {showForm ? <FiX /> : <FiPlus />} {showForm ? "Cancel" : "New Task"}
         </button>
       </div>
+      <CMSPageIntro pageKey="admin-tasks" />
 
       {showForm && (
         <form onSubmit={handleCreate} className="card-base p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-fade-in-up">

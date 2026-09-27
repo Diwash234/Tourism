@@ -40,7 +40,7 @@ export default function PlaceApproval({ pendingPlaces = [], onApprove, onReject 
 
               {p.cover_image_url && (
                 <div className="h-44 rounded-xl overflow-hidden border border-orange-800">
-                  <img src={p.cover_image_url} alt={p.name} className="w-full h-full object-cover" />
+                  <img loading="lazy" decoding="async" src={p.cover_image_url} alt={p.name} className="w-full h-full object-cover" />
                 </div>
               )}
 

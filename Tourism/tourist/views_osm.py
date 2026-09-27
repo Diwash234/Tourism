@@ -57,8 +57,15 @@ class OSMEssentialServiceNearbyView(APIView):
         lat, lon = _parse_coords(request.query_params)
         if lat is None:
             return Response({"detail": "latitude and longitude are required."}, status=status.HTTP_400_BAD_REQUEST)
-        radius_km = float(request.query_params.get("radius_km", 10))
+        try:
+            radius_km = float(request.query_params.get("radius_km", 10))
+        except (TypeError, ValueError):
+            return Response({"detail": "radius_km must be a number."}, status=status.HTTP_400_BAD_REQUEST)
+        if not 0 < radius_km <= 200:
+            return Response({"detail": "radius_km must be between 0 and 200."}, status=status.HTTP_400_BAD_REQUEST)
         category = request.query_params.get("category")
+        from .opening_hours import truthy
+        open_only = truthy(request.query_params.get("open_now"))
 
         qs = OSMEssentialService.objects.filter(is_archived=False)
         if category:
@@ -75,6 +82,9 @@ class OSMEssentialServiceNearbyView(APIView):
             results = ranked[:20]
 
         data = OSMEssentialServiceSerializer([o for _, o in results], many=True).data
+        if open_only:
+            kept = [(item, pair) for item, pair in zip(data, results) if item["hours"]["state"] == "open"]
+            data, results = [k[0] for k in kept], [k[1] for k in kept]
         for item, (distance, _) in zip(data, results):
             item["distance_km"] = round(distance, 2)
             item["outside_requested_radius"] = distance > radius_km
@@ -108,8 +118,15 @@ class OSMTourismPlaceNearbyView(APIView):
         lat, lon = _parse_coords(request.query_params)
         if lat is None:
             return Response({"detail": "latitude and longitude are required."}, status=status.HTTP_400_BAD_REQUEST)
-        radius_km = float(request.query_params.get("radius_km", 10))
+        try:
+            radius_km = float(request.query_params.get("radius_km", 10))
+        except (TypeError, ValueError):
+            return Response({"detail": "radius_km must be a number."}, status=status.HTTP_400_BAD_REQUEST)
+        if not 0 < radius_km <= 200:
+            return Response({"detail": "radius_km must be between 0 and 200."}, status=status.HTTP_400_BAD_REQUEST)
         category = request.query_params.get("category")
+        from .opening_hours import truthy
+        open_only = truthy(request.query_params.get("open_now"))
 
         qs = OSMTourismPlace.objects.all()
         if category:

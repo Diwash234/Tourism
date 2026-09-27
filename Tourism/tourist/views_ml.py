@@ -951,9 +951,32 @@ class ItineraryView(APIView):
         # never fall through to a generic nationwide plan.
         from django.db.models import Q
         place = district or start_city
-        scope = qs.filter(Q(district__icontains=place) | Q(city__icontains=place) | Q(province__icontains=place))
-        scope_label = f"places recorded in “{place}”"
-        scoped = scope.exists()
+        anchor_dest = None
+        exact_area = qs.filter(Q(district__iexact=place) | Q(city__iexact=place) | Q(province__iexact=place)).exists()
+        if not exact_area and place:
+            # /itinerary?dest=<slug> and typed destination names ("Upper
+            # Mustang", "chitwan national park birding"): plan around that real
+            # destination instead of a loose text match or a nationwide list.
+            from django.utils.text import slugify
+            located = qs.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+            anchor_dest = (
+                located.filter(slug__in={place, slugify(place)}).first()
+                or located.filter(name__iexact=place).first()
+                or located.filter(name__istartswith=place).order_by("name").first()
+            )
+            if anchor_dest is None and len(place) >= 4:
+                anchor_dest = min(located.filter(name__icontains=place)[:50], key=lambda d: len(d.name), default=None)
+        if anchor_dest is not None:
+            a_lat, a_lng = float(anchor_dest.latitude), float(anchor_dest.longitude)
+            near = qs.filter(latitude__range=(a_lat - 0.5, a_lat + 0.5), longitude__range=(a_lng - 0.55, a_lng + 0.55))
+            scope = near if not anchor_dest.district else (near | qs.filter(district=anchor_dest.district))
+            where = f" ({anchor_dest.district} district)" if anchor_dest.district else ""
+            scope_label = f"real places recorded around “{anchor_dest.name}”{where}, nearest first"
+            scoped = True
+        else:
+            scope = qs.filter(Q(district__icontains=place) | Q(city__icontains=place) | Q(province__icontains=place))
+            scope_label = f"places recorded in “{place}”"
+            scoped = scope.exists()
         if not scoped and district and district != start_city:
             scope = qs.filter(Q(district__icontains=start_city) | Q(city__icontains=start_city))
             scope_label = f"places recorded in “{start_city}”"
@@ -970,10 +993,36 @@ class ItineraryView(APIView):
             ])).lower()
             return sum(1 for term in interests if term and str(term).lower() in hay)
 
-        candidates = sorted(
-            list(scope.select_related("category")[:400]),
-            key=lambda d: (-interest_score(d), d.name),
-        )
+        def _km_from(lat, lng, dest):
+            if dest.latitude is None or dest.longitude is None:
+                return 10_000.0
+            return haversine_distance(lat, lng, float(dest.latitude), float(dest.longitude))
+
+        if anchor_dest is not None:
+            # Anchor first, then the closest places (10 km bands), interests
+            # breaking ties inside a band — geography beats keyword matches.
+            candidates = sorted(
+                list(scope.distinct().select_related("category")[:600]),
+                key=lambda d: (d.pk != anchor_dest.pk, int(_km_from(a_lat, a_lng, d) // 10), -interest_score(d), d.name),
+            )
+        else:
+            candidates = sorted(
+                list(scope.select_related("category")[:400]),
+                key=lambda d: (-interest_score(d), d.name),
+            )
+
+        def nearest_unused(ref, used, n=2):
+            """Closest real places to ``ref`` not yet used (expanding box)."""
+            if ref is None or ref.latitude is None or ref.longitude is None:
+                return []
+            r_lat, r_lng = float(ref.latitude), float(ref.longitude)
+            for span in (0.3, 0.8, 2.0, 6.0):
+                box = (qs.filter(latitude__range=(r_lat - span, r_lat + span), longitude__range=(r_lng - span, r_lng + span))
+                       .exclude(name__in=used).select_related("category")[:300])
+                rows = sorted(box, key=lambda d: _km_from(r_lat, r_lng, d))
+                if len(rows) >= n:
+                    return rows[:n]
+            return []
 
         # Greedy nearest-neighbour ordering so each day stays geographically
         # compact instead of zig-zagging across the district.
@@ -996,6 +1045,7 @@ class ItineraryView(APIView):
             item = {
                 "id": dest.id,
                 "name": dest.name,
+                "slug": dest.slug,
                 "city": dest.city or (dest.district or start_city),
                 "district": dest.district or "",
                 "latitude": float(dest.latitude) if dest.latitude is not None else None,
@@ -1062,7 +1112,10 @@ class ItineraryView(APIView):
                 used.update(item["name"] for item in day_destinations)
                 fillers = [c for c in candidates if c.name not in used][:2]
                 if not fillers:
-                    fillers = [c for c in qs.exclude(latitude__isnull=True).exclude(name__in=used)[:2]]
+                    # Nearest to where the trip already is — never an
+                    # arbitrary slice of the national catalogue.
+                    ref = anchor_dest or next((d for d in reversed(ordered) if d.latitude is not None), None)
+                    fillers = nearest_unused(ref, used)
                 if not fillers and ordered:
                     # Sparse area: nothing new is recorded anywhere reachable,
                     # so schedule honest return visits to the real recorded

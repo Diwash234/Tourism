@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { openCookieSettings } from "../../utils/cookieConsent"
 import useAuth from "../../hooks/useAuth"
 import { Link } from "react-router-dom"
 import { FiArrowRight, FiFacebook, FiGlobe, FiInstagram, FiMail, FiMapPin, FiPhone, FiTwitter, FiYoutube } from "react-icons/fi"
@@ -10,7 +11,7 @@ import { EmblemImg, StupaImg, TopiImg, FlagImg, MapImg, CowImg, DanpheImg, Rhodo
 
 const PROVINCES = ["Koshi", "Madhesh", "Bagmati", "Gandaki", "Lumbini", "Karnali", "Sudurpashchim"]
 const PUBLIC_FOOTER_PATHS = new Set([
-  "/", "/destinations", "/recommendation", "/gallery", "/compare", "/explore-map", "/discover-nepal",
+  "/", "/destinations", "/recommendation", "/gallery", "/compare", "/explore-map", "/discover-nepal", "/discover", "/decide", "/search",
   "/itinerary", "/budget-estimator", "/before-you-travel", "/hotels/search", "/emergency", "/risk-alerts", "/navigation",
   "/distances", "/language", "/translation", "/nearby-places", "/packages", "/guides", "/guide-portal",
   "/tourism-jobs", "/guide-bookings", "/collaborate", "/chatbot", "/travel", "/about", "/contact", "/support", "/how-it-works",
@@ -126,7 +127,8 @@ const Footer = () => {
                 <input id="footer-newsletter-email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" className="min-w-0 flex-1 !border-white/20 !bg-white/10 !text-white" />
                 <button type="submit" disabled={subscribing} className="ny-btn ny-btn-accent shrink-0">{subscribing ? "Joining…" : "Join"}</button>
               </div>
-              {newsletterMessage && <p className="mt-2 text-xs text-[#BDEBD9]" role="status">{newsletterMessage}</p>}
+              <p className="mt-2 text-xs leading-5 text-[#C7D9D2]">Used only for travel notes. <Link to="/unsubscribe" className="underline underline-offset-2 hover:text-white">Unsubscribe</Link> any time. See our <Link to="/privacy-policy" className="underline underline-offset-2 hover:text-white">Privacy Policy</Link>.</p>
+              <p className="mt-1 min-h-[1rem] text-xs text-[#BDEBD9]" role="status">{newsletterMessage}</p>
             </form>
           )}
         </div>
@@ -163,7 +165,15 @@ const Footer = () => {
       <div className="border-t border-white/10 bg-black/20 pt-4 pb-28 sm:pb-5">
         <div className="container-app flex flex-col gap-3 text-xs text-[#C7D9D2] sm:flex-row sm:items-center sm:justify-between sm:pr-20">
           <p>© {new Date().getFullYear()} {APP_NAME}. {footerText}</p>
-          <nav aria-label="Legal" className="flex flex-wrap gap-4"><Link to="/privacy" className="hover:text-white">Privacy</Link><Link to="/terms" className="hover:text-white">Terms</Link><Link to="/support" className="hover:text-white">Accessibility & support</Link><Link to="/how-it-works" className="hover:text-white">How it works</Link></nav>
+          <nav aria-label="Legal" className="flex flex-wrap gap-x-4 gap-y-1">
+            <Link to="/privacy-policy" className="ny-footer-legal">Privacy Policy</Link>
+            <Link to="/terms-of-service" className="ny-footer-legal">Terms</Link>
+            <Link to="/cookie-policy" className="ny-footer-legal">Cookie Policy</Link>
+            <button type="button" onClick={openCookieSettings} className="ny-footer-legal">Cookie settings</button>
+            <Link to="/data-deletion" className="ny-footer-legal">Delete account</Link>
+            <Link to="/support" className="ny-footer-legal">Accessibility & support</Link>
+            <Link to="/how-it-works" className="ny-footer-legal">How it works</Link>
+          </nav>
         </div>
       </div>
     </footer>

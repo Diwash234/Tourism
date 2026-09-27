@@ -15,7 +15,7 @@ Run in Docker: see Dockerfile.
 """
 import os
 import logging
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from api import hotel
@@ -70,8 +70,50 @@ async def log_requests(request: Request, call_next):
 
 
 @app.get("/health")
+@app.get("/health/")
 def health():
     return {"status": "ok", "service": "ml-service"}
+
+
+# Static capability catalog. Clients (and the Django proxy) can discover what
+# this service offers without triggering a model load or a recommendation
+# request, and without authentication.
+ML_MODEL_CATALOG = [
+    {"id": "nepal-yatra-recommendation", "object": "model", "owned_by": "nepal-yatra-ml-service",
+     "capability": "recommendation"},
+    {"id": "nepal-yatra-itinerary", "object": "model", "owned_by": "nepal-yatra-ml-service",
+     "capability": "itinerary"},
+    {"id": "nepal-yatra-budget", "object": "model", "owned_by": "nepal-yatra-ml-service",
+     "capability": "budget"},
+    {"id": "nepal-yatra-routes", "object": "model", "owned_by": "nepal-yatra-ml-service",
+     "capability": "routes"},
+    {"id": "nepal-yatra-translation", "object": "model", "owned_by": "nepal-yatra-ml-service",
+     "capability": "translation"},
+    {"id": "nepal-yatra-images", "object": "model", "owned_by": "nepal-yatra-ml-service",
+     "capability": "images"},
+    {"id": "nepal-yatra-risk", "object": "model", "owned_by": "nepal-yatra-ml-service",
+     "capability": "risk"},
+    {"id": "nepal-yatra-emergency", "object": "model", "owned_by": "nepal-yatra-ml-service",
+     "capability": "emergency"},
+    {"id": "nepal-yatra-hotels", "object": "model", "owned_by": "nepal-yatra-ml-service",
+     "capability": "hotel"},
+]
+
+
+@app.get("/v1/models")
+@app.get("/v1/models/")
+def models():
+    """List the registered ML capabilities in an OpenAI-compatible shape."""
+    return {"object": "list", "data": ML_MODEL_CATALOG}
+
+
+@app.get("/v1/models/{model_id}")
+@app.get("/v1/models/{model_id}/")
+def model_detail(model_id: str):
+    for model in ML_MODEL_CATALOG:
+        if model["id"] == model_id:
+            return model
+    raise HTTPException(status_code=404, detail=f"Unknown model '{model_id}'")
 
 
 # Every router below is prefixed so Django's proxy view can forward

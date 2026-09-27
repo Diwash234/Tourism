@@ -16,3 +16,20 @@ def is_placeholder_phone(value) -> bool:
         text = text[:-2]
     digits = re.sub(r"\D", "", text)
     return len(digits) >= 8 and bool(_TEMPLATE_TAIL.search(digits))
+
+
+# Missing-value markers left behind by spreadsheet / pandas imports.
+MISSING_MARKERS = {"nan", "nan.0", "none", "null", "n/a", "na", "-", "--"}
+
+
+def is_missing_phone(value) -> bool:
+    return str(value or "").strip().lower() in MISSING_MARKERS | {""}
+
+
+def usable_phone(value) -> str:
+    """The phone as stored, or "" when it is a missing-value marker or a
+    templated placeholder. Real numbers are returned unchanged (stripped)."""
+    text = str(value or "").strip()
+    if is_missing_phone(text) or is_placeholder_phone(text):
+        return ""
+    return text

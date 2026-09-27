@@ -306,7 +306,7 @@ export default function FeaturedDestinationsPanel() {
             >
               {/* Card Image & Header Badges */}
               <div className="relative h-48 bg-slate-900 overflow-hidden">
-                <img
+                <img loading="lazy" decoding="async"
                   src={card.effective_image_url || "/images/destinations/annapurna/trek.jpg"}
                   alt={card.effective_title}
                   className="w-full h-full object-cover"
@@ -534,7 +534,7 @@ export default function FeaturedDestinationsPanel() {
                                 isSel ? "border-amber-400 scale-105" : "border-transparent opacity-60 hover:opacity-100"
                               }`}
                             >
-                              <img src={url} alt="Gallery" className="w-full h-full object-cover" />
+                              <img loading="lazy" decoding="async" src={url} alt="Gallery" className="w-full h-full object-cover" />
                               {isSel && <span className="absolute inset-0 bg-amber-400/30 grid place-items-center"><FiCheck className="text-slate-950 font-black" /></span>}
                             </button>
                           )

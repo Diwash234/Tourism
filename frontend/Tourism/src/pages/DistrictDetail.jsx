@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import axiosClient from "../api/axiosClient"
 import useSeo from "../hooks/useSeo"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 /**
  * Public district page — 100% database-driven (§16/§17).
@@ -91,6 +92,7 @@ export default function DistrictDetail() {
           </p>
         )}
       </header>
+      <CMSPageIntro pageKey="district-detail" />
 
       <section className="rounded-xl bg-emerald-900/30 border border-emerald-600/40 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
         <div>
@@ -162,7 +164,7 @@ export default function DistrictDetail() {
                 <p className="font-semibold text-[var(--ny-text)]">{d.name}</p>
                 <p className="text-xs text-emerald-400 mt-0.5">
                   {d.category || "Attraction"}
-                  {d.average_rating != null && Number.isFinite(Number(d.average_rating)) ? ` · ★ ${Number(d.average_rating).toFixed(1)}` : ""}
+                  {Number(d.average_rating) > 0 ? ` · ★ ${Number(d.average_rating).toFixed(1)}` : ""}
                 </p>
                 {d.short_description && (
                   <p className="text-sm text-[var(--ny-text-secondary)] mt-2 line-clamp-2">
@@ -189,7 +191,7 @@ export default function DistrictDetail() {
             {data.hospitals?.length ? (
               <ul className="space-y-1 text-sm text-[var(--ny-text-secondary)]">
                 {data.hospitals.map((h) => (
-                  <li key={h.name}>
+                  <li key={h.id ?? `${h.name}-${h.latitude}-${h.longitude}`}>
                     Hospital: {h.name}
                     {h.phone ? <span className="text-[var(--ny-text-muted)]"> · {h.phone}</span> : null}
                   </li>
@@ -206,7 +208,7 @@ export default function DistrictDetail() {
             {data.police?.length ? (
               <ul className="space-y-1 text-sm text-[var(--ny-text-secondary)]">
                 {data.police.map((p) => (
-                  <li key={p.name}>
+                  <li key={p.id ?? `${p.name}-${p.latitude}-${p.longitude}`}>
                     Police: {p.name}
                     {p.phone ? <span className="text-[var(--ny-text-muted)]"> · {p.phone}</span> : null}
                   </li>

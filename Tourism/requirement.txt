@@ -1,30 +1,19 @@
-# Django backend requirements
-# NOTE: the ML microservice has its own requirements.txt (../ml_service/requirements.txt).
-Django==5.0.6
-djangorestframework==3.15.2
-djangorestframework-simplejwt==5.3.1
-django-filter==24.2
-drf-spectacular==0.27.2
-psycopg2-binary>=2.9.10          # 2.9.9 fails to build on Python 3.13
-python-decouple==3.8
-Pillow>=11.1.0                   # 10.3.0 does not build on Python 3.13
-django-cors-headers==4.3.1
-requests==2.32.3
-deep-translator==1.11.4
-gunicorn==22.0.0
-whitenoise==6.6.0
-django-phonenumber-field==7.3.0
-phonenumbers==8.13.37
-python-dotenv==1.0.1             # FIX: chatbot/ai_service.py imports dotenv
-
-# Runtime deps of the Django-side ML glue code
-# (chatbot/views.py -> ml_service.services.emergency_service)
-pandas>=2.2.0
-numpy>=1.26.0
-
-networkx==3.3
-twilio>=9.0
-
-# WebSocket chat (chatbot consumers; merged from devin dark-mode line)
-channels==4.3.2
-daphne==4.2.3
+# DEPRECATED - use ../Tourism/requirements.txt
+#
+# This file used to be a hand-curated 22-package subset of
+# requirements.txt, and the two silently drifted apart. That drift has
+# already caused two production outages:
+#
+#   * `twilio` was missing here, so every SMS send raised ImportError.
+#   * `bcrypt` was missing here, so after the password hasher moved to
+#     bcrypt every sign-in and sign-up failed on any environment that
+#     installed this file instead of the pinned one.
+#
+# Rather than maintain a second list, delegate to the single canonical,
+# fully pinned dependency set. `pip install -r requirement.txt` therefore
+# installs exactly what CI, Docker and local setup install, so there is no
+# longer anything to drift.
+#
+# Note: the ML microservice has its own requirements.txt
+# (../ml_service/requirements.txt) and is NOT installed from this file.
+-r requirements.txt

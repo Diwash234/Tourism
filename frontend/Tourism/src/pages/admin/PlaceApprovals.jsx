@@ -85,7 +85,7 @@ const PlaceApprovals = () => {
                   </div>
 
                   {d.cover_image_url && (
-                    <img src={d.cover_image_url} alt={d.name} className="w-full sm:w-32 h-24 object-cover rounded-xl shrink-0" />
+                    <img loading="lazy" decoding="async" src={d.cover_image_url} alt={d.name} className="w-full sm:w-32 h-24 object-cover rounded-xl shrink-0" />
                   )}
                 </div>
 

@@ -681,7 +681,7 @@ const DestinationMediaManager = () => {
                         exit={{ opacity: 0, scale: 0.9 }}
                         className="relative group rounded-lg overflow-hidden border border-gray-100"
                       >
-                        <img src={p.display_url} alt={p.caption} className="w-full h-28 object-cover" />
+                        <img loading="lazy" decoding="async" src={p.display_url} alt={p.caption} className="w-full h-28 object-cover" />
                         {p.is_cover && (
                           <span className="absolute top-1 left-1 bg-himalaya-500 text-white text-[10px] px-1.5 py-0.5 rounded">
                             Cover

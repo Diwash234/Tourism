@@ -17,68 +17,170 @@
     "records"
   ],
   "properties": {
-    "format": { "const": "nepal-yatra-public-data-snapshot" },
-    "format_version": { "const": 1 },
-    "policy_version": { "enum": [1, 2] },
-    "minimum_tourist_migration": { "const": "0080_backfill_managed_page_snapshots" },
-    "as_of": { "type": "string", "format": "date-time" },
+    "format": {
+      "const": "nepal-yatra-public-data-snapshot"
+    },
+    "format_version": {
+      "const": 1
+    },
+    "policy_version": {
+      "enum": [
+        1,
+        2
+      ]
+    },
+    "minimum_tourist_migration": {
+      "const": "0092_merge_main_handoff"
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
     "identity_policy": {
       "type": "object",
-      "required": ["destination", "related_records"],
+      "required": [
+        "destination",
+        "related_records"
+      ],
       "properties": {
-        "destination": { "type": "string", "minLength": 1 },
-        "related_records": { "type": "string", "minLength": 1 }
+        "destination": {
+          "type": "string",
+          "minLength": 1
+        },
+        "related_records": {
+          "type": "string",
+          "minLength": 1
+        }
       },
       "additionalProperties": false
     },
     "policy": {
       "type": "object",
-      "required": ["destinations", "services", "images", "privacy", "synthetic_records"],
+      "required": [
+        "destinations",
+        "services",
+        "images",
+        "privacy",
+        "synthetic_records"
+      ],
       "properties": {
-        "destinations": { "type": "string", "minLength": 1 },
-        "services": { "type": "string", "minLength": 1 },
-        "images": { "type": "string", "minLength": 1 },
-        "privacy": { "type": "string", "minLength": 1 },
-        "synthetic_records": { "type": "string", "minLength": 1 }
+        "destinations": {
+          "type": "string",
+          "minLength": 1
+        },
+        "services": {
+          "type": "string",
+          "minLength": 1
+        },
+        "images": {
+          "type": "string",
+          "minLength": 1
+        },
+        "privacy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "synthetic_records": {
+          "type": "string",
+          "minLength": 1
+        },
+        "media_gate": {
+          "type": "string",
+          "enum": [
+            "scored",
+            "approval"
+          ]
+        },
+        "media_gate_requires_provenance": {
+          "type": "string",
+          "enum": [
+            "true",
+            "false"
+          ]
+        },
+        "media_gate_score_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
       },
       "additionalProperties": false
     },
     "counts": {
       "type": "object",
-      "additionalProperties": { "type": "integer", "minimum": 0 }
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
     },
-    "records_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "records_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
     "records": {
       "type": "array",
-      "items": { "$ref": "#/$defs/record" }
+      "items": {
+        "$ref": "#/$defs/record"
+      }
     }
   },
   "$defs": {
     "record": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["model", "pk", "fields"],
+      "required": [
+        "model",
+        "pk",
+        "fields"
+      ],
       "properties": {
         "model": {
           "type": "string",
           "enum": [
-            "tourist.alert", "tourist.category", "tourist.cmscontenttranslation",
-            "tourist.contentblock", "tourist.contentsection", "tourist.currenthazard",
-            "tourist.destination", "tourist.destinationfeatureprofile",
-            "tourist.destinationimage", "tourist.destinationreferenceimage",
-            "tourist.destinationsource", "tourist.destinationsourcefield",
-            "tourist.destinationtransitroute", "tourist.destinationtranslation",
-            "tourist.destinationvideo", "tourist.district", "tourist.featureddestination",
-            "tourist.heroslide", "tourist.hospital", "tourist.hotel", "tourist.language",
-            "tourist.managednavigationitem", "tourist.managedpage",
-            "tourist.osmessentialservice", "tourist.osmtourismplace",
-            "tourist.policestation", "tourist.province", "tourist.redirectrule",
-            "tourist.restaurant", "tourist.riskincident", "tourist.routesegment",
+            "tourist.alert",
+            "tourist.category",
+            "tourist.cmscontenttranslation",
+            "tourist.contentblock",
+            "tourist.contentsection",
+            "tourist.currenthazard",
+            "tourist.destination",
+            "tourist.destinationfeatureprofile",
+            "tourist.destinationimage",
+            "tourist.destinationreferenceimage",
+            "tourist.destinationsource",
+            "tourist.destinationsourcefield",
+            "tourist.destinationtransitroute",
+            "tourist.destinationtranslation",
+            "tourist.destinationvideo",
+            "tourist.district",
+            "tourist.featureddestination",
+            "tourist.heroslide",
+            "tourist.hospital",
+            "tourist.hotel",
+            "tourist.language",
+            "tourist.managednavigationitem",
+            "tourist.managedpage",
+            "tourist.osmessentialservice",
+            "tourist.osmtourismplace",
+            "tourist.policestation",
+            "tourist.province",
+            "tourist.redirectrule",
+            "tourist.restaurant",
+            "tourist.riskincident",
+            "tourist.routesegment",
             "tourist.visitornotice"
           ]
         },
-        "pk": { "type": ["integer", "string"], "minLength": 1 },
-        "fields": { "type": "object" }
+        "pk": {
+          "type": [
+            "integer",
+            "string"
+          ],
+          "minLength": 1
+        },
+        "fields": {
+          "type": "object"
+        }
       }
     }
   }

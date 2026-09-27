@@ -8,6 +8,7 @@ import Loader from "../../components/common/Loader"
 import EmptyState from "../../components/common/EmptyState"
 import PlaceholderImage from "../../components/common/PlaceholderImage"
 import useToast from "../../hooks/useToast"
+import CMSPageIntro from "../../components/cms/CMSPageIntro"
 
 const STATUS_STYLES = {
   pending: "text-amber-600",
@@ -122,6 +123,7 @@ const LocalDashboard = () => {
         icon={FiHome}
         theme="teal"
       />
+      <CMSPageIntro pageKey="local-dashboard" />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <form onSubmit={handleSubmit(onSubmit)} className="card-base p-6 space-y-4 h-fit">

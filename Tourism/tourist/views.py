@@ -1,4 +1,5 @@
 from decimal import Decimal
+from .phone_quality import usable_phone
 
 from django.conf import settings
 from django.db.models import Count, F, Prefetch, Q
@@ -345,8 +346,9 @@ class NewsletterSubscribeView(APIView):
         _, created = NewsletterSignup.objects.get_or_create(email=email)
         if not created:
             NewsletterSignup.objects.filter(email=email, is_active=False).update(is_active=True)
+        # Same wording either way, so the form cannot reveal who is subscribed.
         return Response(
-            {"message": "Subscribed — thank you!" if created else "You're already on the list."},
+            {"message": "Thanks. You'll get occasional travel notes at this address. You can unsubscribe at any time from the Unsubscribe page or the link in any newsletter."},
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
 
@@ -1975,6 +1977,13 @@ class NationalEmergencyHotlinesView(APIView):
         return Response({"national_hotlines": NATIONAL_HOTLINES})
 
 
+def _hours_rows(rows, open_only=False):
+    """Attach open-now status to OSM POI rows; optionally keep only open ones."""
+    from .opening_hours import annotate
+    rows = annotate(rows)
+    return [r for r in rows if r["hours"]["state"] == "open"] if open_only else rows
+
+
 class NearbyPOIsView(APIView):
     """Coordinate-first nearby places (master spec §2): USER location → real places.
 
@@ -1987,6 +1996,8 @@ class NearbyPOIsView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
+        from .opening_hours import truthy
+        open_only = truthy(request.query_params.get("open_now"))
         from django.core.cache import cache
         from .services.overpass import search_pois
 
@@ -2037,7 +2048,7 @@ class NearbyPOIsView(APIView):
                     "longitude": float(dest.longitude),
                     "distance_km": round(distance, 2),
                     "slug": dest.slug,
-                    "source": "Tourism database (admin-verified)",
+                    "source": "Tourism database (approved listing)",
                     "source_url": f"/destinations/{dest.slug}",
                 })
         db_rows.sort(key=lambda row: row["distance_km"])
@@ -2051,10 +2062,12 @@ class NearbyPOIsView(APIView):
                 key: {
                     "label": meta_by_key.get(key, {}).get("label", key),
                     "icon": meta_by_key.get(key, {}).get("icon", ""),
-                    "results": groups.get(key, []),
+                    "results": _hours_rows(groups.get(key, []), open_only),
                 }
                 for key in groups
             },
+            "open_now_filter": open_only,
+            "hours_note": "Open/closed is worked out from OpenStreetMap opening hours in Nepal time. Places without hours are never shown as open.",
             "verified_database_places": db_rows[:15],
             "provider_error": error,
         }
@@ -2148,12 +2161,12 @@ class DestinationNearbyPOIsView(APIView):
         # tables are small: <6k rows total) and distance-rank in Python so
         # tier expansion never re-queries.
         hospital_rows = [
-            (h.name, float(h.latitude), float(h.longitude), {"phone": h.phone})
+            (h.name, float(h.latitude), float(h.longitude), {"phone": usable_phone(h.phone)})
             for h in Hospital.objects.filter(is_archived=False)
             if h.latitude is not None and h.longitude is not None
         ]
         police_rows = [
-            (p.name, float(p.latitude), float(p.longitude), {"phone": p.phone})
+            (p.name, float(p.latitude), float(p.longitude), {"phone": usable_phone(p.phone)})
             for p in PoliceStation.objects.filter(is_archived=False)
             if p.latitude is not None and p.longitude is not None
         ]
@@ -2284,7 +2297,26 @@ class DestinationNearbyPOIsView(APIView):
             "categories": categories,
         }
 
+    HOURS_NOTE = ("Open/closed is worked out from OpenStreetMap opening hours in Nepal time. "
+                  "Places without hours are never shown as open.")
+
     def get(self, request, destination_ref):
+        from .opening_hours import truthy
+        response = self._get(request, destination_ref)
+        data = getattr(response, "data", None)
+        if response.status_code == 200 and isinstance(data, dict) and isinstance(data.get("categories"), dict):
+            open_only = truthy(request.query_params.get("open_now"))
+            out = dict(data)  # never mutate the cached payload
+            out["categories"] = {
+                key: {**entry, "results": _hours_rows([dict(r) for r in entry.get("results") or []], open_only)}
+                for key, entry in data["categories"].items()
+            }
+            out["open_now_filter"] = open_only
+            out["hours_note"] = self.HOURS_NOTE
+            response.data = out
+        return response
+
+    def _get(self, request, destination_ref):
         import requests as http_requests
         from django.core.cache import cache
         from .emergency_service import resolve_destination
@@ -2537,6 +2569,22 @@ class DistrictsListView(APIView):
         })
 
 
+def _unique_places(rows):
+    """Directory rows as dicts, skipping exact repeats (same name, point and
+    phone). The imported directory has a few duplicated records; listing the
+    same station twice helps nobody, and the source data stays untouched."""
+    seen, out = set(), []
+    for row in rows:
+        item = {"id": row.pk, "name": row.name, "phone": usable_phone(row.phone),
+                "latitude": float(row.latitude), "longitude": float(row.longitude)}
+        key = (row.name.strip().lower(), item["latitude"], item["longitude"], item["phone"])
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(item)
+    return out
+
+
 class DistrictDetailView(APIView):
     """Database-generated district page data (§16-17)."""
 
@@ -2596,16 +2644,8 @@ class DistrictDetailView(APIView):
                  "short_description": d.short_description}
                 for d in top
             ],
-            "hospitals": [
-                {"name": h.name, "phone": h.phone,
-                 "latitude": float(h.latitude), "longitude": float(h.longitude)}
-                for h in hospitals
-            ],
-            "police": [
-                {"name": p.name, "phone": p.phone,
-                 "latitude": float(p.latitude), "longitude": float(p.longitude)}
-                for p in police
-            ],
+            "hospitals": _unique_places(hospitals),
+            "police": _unique_places(police),
             "note": ("" if pub.exists() else
                      "No verified destinations recorded for this district "
                      "yet — nothing is fabricated to fill the gap."),
@@ -2803,6 +2843,18 @@ class MoodRecommendationsView(generics.ListAPIView):
         budget = (request.query_params.get("budget") or "any").lower()
         difficulty = (request.query_params.get("difficulty") or "any").lower()
         season = (request.query_params.get("season") or "any").lower()
+        # Season-aware by default: the month being planned, else the legacy
+        # season choice, else the current month in Nepal.
+        from . import traveller_facts as _tf
+        plan_month = _tf.parse_month(request.query_params.get("month"))
+        month_basis = "chosen month"
+        if plan_month is None and season in {"spring", "summer", "monsoon", "autumn", "winter"}:
+            plan_month = {"spring": 4, "summer": 7, "monsoon": 7, "autumn": 10, "winter": 1}[season]
+            month_basis = f"{season} (representative month)"
+        if plan_month is None:
+            from django.utils import timezone as _tz
+            plan_month = _tz.localdate().month
+            month_basis = "current month"
         travel_style = (request.query_params.get("travel_style") or "any").lower()
         province = (request.query_params.get("province") or "").strip().lower()
 
@@ -2863,7 +2915,6 @@ class MoodRecommendationsView(generics.ListAPIView):
                 if slug:
                     affinity[slug] = affinity.get(slug, 0) + 1
 
-        near_districts = ["kathmandu", "lalitpur", "bhaktapur", "kaski", "makwanpur", "dhading", "kavre"]
         # Current sourced warnings are distinct from historical/model risk and
         # receive stronger, recency-appropriate ranking influence.
         from django.utils import timezone
@@ -2877,10 +2928,20 @@ class MoodRecommendationsView(generics.ListAPIView):
             if previous is None or severity_order.get(hazard["severity"], 0) > severity_order.get(previous["severity"], 0):
                 current_warning_by_destination[hazard["destination_id"]] = hazard
 
-        high_altitude_cats = {"mountains", "trekking", "winter", "valleys"}
-        easy_cats = {"cities", "heritage", "museums", "parks-gardens", "shopping", "food-culinary"}
+        # Shared, sourced facts (season, effort, fees, hospitals, distance).
+        # Nothing here is invented: unknown values add no score and no claim.
+        from . import traveller_facts as tf
+        fact_by_id = {r["id"]: r for r in tf.fact_rows()}
+        origin = tf.resolve_origin({
+            "origin": request.query_params.get("origin"),
+            "origin_lat": request.query_params.get("latitude"),
+            "origin_lng": request.query_params.get("longitude"),
+        })
         rows = []
         for destination in qs.iterator(chunk_size=500):
+            facts_row = fact_by_id.get(destination.id)
+            if facts_row is None:
+                continue
             cat = destination.category.slug if destination.category_id else ""
             hay = f"{destination.name or ''} {destination.short_description or ''} {destination.description or ''} {destination.city or ''} {destination.district or ''}".lower()
             score, reasons, breakdown = 0.05, [], {}
@@ -2896,55 +2957,66 @@ class MoodRecommendationsView(generics.ListAPIView):
                 reasons.append("Relevant experiences: " + ", ".join(keyword_hits[:3]))
             breakdown["interests"] = round(category_score + keyword_score, 3)
 
-            duration_score = 0.0
-            recommended_days = destination.recommended_days or 2
-            if abs(recommended_days - days) <= 1:
-                duration_score = 0.18
-                reasons.append(f"Fits a {days}-day trip")
-            elif days <= 2 and any(x in (destination.district or "").lower() for x in near_districts):
-                duration_score = 0.10
-            elif days >= 10 and cat in high_altitude_cats:
-                duration_score = 0.10
-            score += duration_score
-            breakdown["duration"] = duration_score
+            # Season (NTB climate guidance) for the month being planned.
+            fit = tf.season_fit(month=plan_month, activity=facts_row["activity"],
+                                elevation_m=facts_row["elevation_m"], district=facts_row["district"],
+                                province=facts_row["province"])
+            season_score = {"best": 0.20, "good": 0.10, "fair": 0.0, "caution": -0.08, "poor": -0.18}[fit["level"]]
+            score += season_score
+            breakdown["season"] = round(season_score, 3)
+            if fit["level"] in {"best", "poor", "caution"}:
+                # Good news leads; warnings stay visible right after the match reason.
+                reasons.insert(0 if fit["level"] == "best" else min(1, len(reasons)),
+                               f"{fit['label']} in {fit['month_name']}: {fit['reason']}")
 
-            inferred_difficulty = "hard" if cat in high_altitude_cats and recommended_days >= 4 else ("easy" if cat in easy_cats else "moderate")
+            # Effort from measured elevation (unknown elevation = no claim).
+            difficulty_info = facts_row["difficulty"]
+            inferred_difficulty = difficulty_info["level"]
+            wanted = {"hard": "strenuous"}.get(difficulty, difficulty)
             difficulty_score = 0.0
-            if difficulty != "any":
-                difficulty_score = 0.16 if difficulty == inferred_difficulty else -0.08
-                if difficulty == inferred_difficulty:
-                    reasons.append(f"{inferred_difficulty.title()} difficulty match")
+            if wanted != "any" and inferred_difficulty != "unknown":
+                difficulty_score = 0.16 if wanted == inferred_difficulty else -0.08
+                if wanted == inferred_difficulty:
+                    reasons.append(f"{difficulty_info['label']} effort: {difficulty_info['basis']}")
             score += difficulty_score
             breakdown["difficulty"] = difficulty_score
 
-            proximity_score = 0.0
-            if traveller_lat is not None and destination.latitude is not None and destination.longitude is not None:
-                from .utils import haversine_distance
-                distance_km = haversine_distance(traveller_lat, traveller_lng,
-                                                 float(destination.latitude), float(destination.longitude))
+            # Distance from wherever the trip starts (any district or GPS).
+            proximity_score, distance_km = 0.0, tf.row_distance(facts_row, origin)
+            if distance_km is not None:
                 proximity_score = 0.20 * max(0.0, 1.0 - distance_km / 400.0)
-                score += proximity_score
-                breakdown["proximity"] = round(proximity_score, 3)
                 if distance_km <= 60:
-                    reasons.append(f"Only ~{distance_km:.0f} km from your location (straight line)")
+                    reasons.append(f"~{distance_km:.0f} km from {origin['label']} (straight line)")
+                elif days <= 2 and distance_km > 200:
+                    proximity_score -= 0.08
+                    reasons.append(f"{distance_km:.0f} km from {origin['label']}: far for a {days}-day trip")
+            score += proximity_score
+            breakdown["proximity"] = round(proximity_score, 3)
 
-            estimated_daily = float(destination.entry_fee or 0) + (30 if cat in easy_cats else 50 if cat not in high_altitude_cats else 75)
-            inferred_budget = "low" if estimated_daily <= 40 else "medium" if estimated_daily <= 80 else "high"
+            # Trip length vs NTB acclimatization rules (replaces a guessed duration).
+            duration_score = 0.0
+            acclim = tf.acclimatization_days(origin.get("elevation_m") if origin else None, facts_row["elevation_m"])
+            if acclim and acclim["minimum_days"] > days:
+                duration_score = -0.15
+                reasons.append(f"Needs at least {acclim['minimum_days']} days of gradual ascent above "
+                               f"2,500 m (NTB), longer than your {days}-day trip")
+            score += duration_score
+            breakdown["duration"] = duration_score
+
+            # Official fees (DOI/NTB rules) instead of invented daily costs.
+            cost = facts_row["cost"]
             budget_score = 0.0
-            if budget != "any":
-                budget_score = 0.14 if budget == inferred_budget else -0.06
-                if budget == inferred_budget:
-                    reasons.append(f"Fits a {budget} budget")
+            if budget == "low":
+                if cost["class"] == "none_on_record":
+                    budget_score = 0.08
+                    reasons.append("No official permit or park fee on record")
+                elif cost["class"] == "restricted_permit":
+                    budget_score = -0.12
+                    reasons.append(f"Restricted-area permit required ({cost['area']}), charged in USD")
+            elif budget == "medium" and cost["class"] == "restricted_permit":
+                budget_score = -0.04
             score += budget_score
             breakdown["budget"] = budget_score
-
-            season_score = 0.0
-            best_season = (destination.best_time_to_visit or "").lower()
-            if season != "any" and season in best_season:
-                season_score = 0.12
-                reasons.append(f"Recommended in {season.title()}")
-            score += season_score
-            breakdown["season"] = season_score
 
             if travel_style == "family" and cat in {"wildlife", "cities", "museums", "parks-gardens", "heritage"}:
                 score += 0.14
@@ -2963,8 +3035,6 @@ class MoodRecommendationsView(generics.ListAPIView):
 
             risk = getattr(destination, "risk_analysis", None)
             risk_level = (risk.risk_category or "low").lower() if risk else "low"
-            # Avoid silently pushing high-risk places to the top, but keep them
-            # available and explain the indicator in the result.
             historical_risk_adjustment = -0.08 if risk_level in {"high", "critical"} else 0.0
             score += historical_risk_adjustment
             breakdown["historical_risk_adjustment"] = historical_risk_adjustment
@@ -2976,8 +3046,6 @@ class MoodRecommendationsView(generics.ListAPIView):
                 current_warning_adjustment = {
                     "low": -0.02, "moderate": -0.10, "high": -0.28, "critical": -0.55,
                 }.get(warning["severity"], 0.0)
-                # Only a verified official/admin critical warning can mark a
-                # destination temporarily unavailable; news/model rows cannot.
                 if (
                     warning["severity"] == "critical" and warning["verified"]
                     and warning["source_type"] in {"official", "admin", "api"}
@@ -2990,20 +3058,18 @@ class MoodRecommendationsView(generics.ListAPIView):
             emergency_score = min(service_count * 0.015, 0.09)
             score += emergency_score
             breakdown["services"] = round(emergency_score, 3)
-            if destination.hospital_total and destination.police_total:
-                reasons.append("Verified hospital and police coverage")
+            hospital = facts_row["nearest_hospital"]
+            if hospital and hospital["km"] <= 10:
+                reasons.append(f"Hospital on record {hospital['km']} km away"
+                               + ("" if hospital["verified"] else " (unverified listing)"))
 
-            dist_key = (destination.district or destination.city or destination.name or "").lower()
-            official_highway = next((v for k, v in NEPAL_HIGHWAYS.items() if k in dist_key), "Verified National Highway Corridor")
-
-            alt_str = re.sub(r"[^0-9.]", "", str(destination.altitude or "0"))
-            alt_num = float(alt_str) if alt_str else 0.0
-            if alt_num >= 4000:
+            elevation_m = facts_row["elevation_m"]
+            if elevation_m is not None and elevation_m >= 4000:
                 risk_level = "high"
-                reasons.append("High-altitude alpine environment (above 4,000m)")
-            elif alt_num >= 2500:
+                reasons.append(f"High altitude ({elevation_m:,} m): plan acclimatization")
+            elif elevation_m is not None and elevation_m >= 2500:
                 risk_level = "moderate"
-                reasons.append("Alpine elevation trail (above 2,500m)")
+                reasons.append(f"Above the 2,500 m altitude-sickness threshold ({elevation_m:,} m)")
             elif warning and warning.get("severity") in ["moderate", "high", "critical"]:
                 risk_level = warning.get("severity")
             elif risk and risk.risk_category:
@@ -3019,18 +3085,22 @@ class MoodRecommendationsView(generics.ListAPIView):
             route_penalty = -0.10 if any(word in route_text for word in ["blocked", "closed", "landslide", "impassable", "dangerous"]) else 0.04 if route_records else 0.0
             score += route_penalty
             breakdown["route_condition"] = route_penalty
+            recorded_condition = next((r.road_condition for r in route_records if r.road_condition), None)
             safety_context = {
                 "hospital_count": destination.hospital_total,
                 "police_count": destination.police_total,
                 "hotel_count": destination.hotel_total,
-                "route_condition": route_records[0].road_condition if (route_records and route_records[0].road_condition) else official_highway,
+                "route_condition": recorded_condition or "Route condition not on record",
+                "route_condition_recorded": bool(recorded_condition),
                 "availability": availability,
                 "current_warning": {
                     "title": warning["title"], "severity": warning["severity"],
                     "verified": warning["verified"], "source_type": warning["source_type"],
                 } if warning else None,
             }
-            rows.append((score, destination, reasons[:5], breakdown, inferred_difficulty, inferred_budget, estimated_daily, risk_level, safety_context))
+            extra = {"season": fit, "cost": cost, "difficulty": difficulty_info, "acclimatization": acclim,
+                     "distance_km": distance_km, "elevation_m": elevation_m}
+            rows.append((score, destination, reasons[:5], breakdown, inferred_difficulty, cost["label"], extra, risk_level, safety_context))
 
         # Diversity-aware reranking (MMR-style): preserve the existing score,
         # then progressively penalize repeated categories and districts.
@@ -3070,14 +3140,19 @@ class MoodRecommendationsView(generics.ListAPIView):
                 continue
             if image_key:
                 used_images.add(image_key)
-            score, destination, reasons, breakdown, inferred_difficulty, inferred_budget, estimated_daily, risk_level, safety_context = row
+            score, destination, reasons, breakdown, inferred_difficulty, fee_label, extra, risk_level, safety_context = row
             item["ml_score"] = round(min(score, 1.0), 3)
             item["why_recommended"] = reasons or ["Strong overall match from the live destination catalog"]
             item["match_breakdown"] = breakdown
-            item["difficulty"] = inferred_difficulty
-            item["budget_level"] = inferred_budget
-            item["budget_level_is_ranking_tag"] = True
-            item["recommended_days"] = destination.recommended_days or 2
+            item["difficulty"] = inferred_difficulty if inferred_difficulty != "unknown" else None
+            item["difficulty_basis"] = extra["difficulty"]["basis"]
+            item["official_fees"] = {"label": fee_label, "area": extra["cost"].get("area") or "",
+                                     "basis": extra["cost"]["basis"], "source": extra["cost"].get("source")}
+            item["budget_level"] = None
+            item["season_fit"] = extra["season"]
+            item["acclimatization"] = extra["acclimatization"]
+            item["elevation_m"] = extra["elevation_m"]
+            item["recommended_days"] = destination.recommended_days or None
             item["risk_summary"] = {"level": risk_level, "label": "Historical/model indicator"}
             if destination.latitude is not None and destination.longitude is not None:
                 from .emergency_service import build_emergency_directory
@@ -3086,11 +3161,8 @@ class MoodRecommendationsView(generics.ListAPIView):
                 safety_context["nearest_police"] = nearby["police"][0] if nearby["police"] else None
             item["safety_context"] = safety_context
             item["data_source"] = destination.source or ("User submission" if destination.is_user_submitted else "Database")
-            if traveller_lat is not None and destination.latitude is not None and destination.longitude is not None:
-                from .utils import haversine_distance
-                item["distance_km"] = round(haversine_distance(
-                    traveller_lat, traveller_lng,
-                    float(destination.latitude), float(destination.longitude)), 1)
+            if extra["distance_km"] is not None:
+                item["distance_km"] = extra["distance_km"]
                 item["distance_is_straight_line"] = True
             data.append(item)
             chosen_rows.append(row)
@@ -3098,9 +3170,14 @@ class MoodRecommendationsView(generics.ListAPIView):
                 break
 
         return Response({
-            "source": "live_database_content_model", "model_version": "content-v2",
+            "source": "live_database_content_model", "model_version": "content-v3-season",
             "preferences": {"moods": moods, "days": days, "budget": budget, "difficulty": difficulty, "season": season, "travel_style": travel_style, "province": province,
+                            "month": plan_month, "month_basis": month_basis, "origin": origin,
                             "location": {"latitude": traveller_lat, "longitude": traveller_lng} if traveller_lat is not None else None},
+            "season_source": _tf.season_source(),
+            "method": ("Content match on your interests, plus NTB season guidance for the month, effort from measured "
+                       "elevation, official DOI/NTB fees, NTB acclimatization rules, straight-line distance from your "
+                       "starting point, current verified warnings and nearby services. Unknown values add nothing."),
             "count": len(data), "results": data,
         })
 

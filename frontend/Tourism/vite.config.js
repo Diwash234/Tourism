@@ -36,7 +36,7 @@ const siteMetadata = (siteUrl) => ({
         {
           '@type': 'WebSite', '@id': `${base}/#website`, url: `${base}/`, name: 'Nepal Yatra',
           publisher: { '@id': `${base}/#organization` },
-          potentialAction: { '@type': 'SearchAction', target: `${base}/destinations?q={search_term_string}`, 'query-input': 'required name=search_term_string' },
+          potentialAction: { '@type': 'SearchAction', target: `${base}/search?q={search_term_string}`, 'query-input': 'required name=search_term_string' },
         },
       ],
     }

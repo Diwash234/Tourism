@@ -349,7 +349,7 @@ class MarketplaceCheckoutView(APIView):
         traveller = request.user if request.user.is_authenticated else User.objects.filter(email__iexact=guest_email).first()
         _notify_user(
             traveller, f"Trip request {order.reference}",
-            f"Your booking request {order.reference} was received. Status: {order.get_status_display()}. No payment is processed on Nepal Tourism.",
+            f"Your booking request {order.reference} was received. Status: {order.get_status_display()}. No payment is processed on Nepal Yatra.",
             metadata={"order_id": order.id, "reference": order.reference},
         )
         partner_users = {
@@ -369,7 +369,7 @@ class MarketplaceCheckoutView(APIView):
             extra={"status": order.status, "payment_method": order.payment_method},
         )
         return Response({
-            "message": "Booking request saved. No payment is processed on Nepal Tourism. Pay later with the operator or continue on their HTTPS site.",
+            "message": "Booking request saved. No payment is processed on Nepal Yatra. Pay later with the operator or continue on their HTTPS site.",
             "order": _order_row(order),
             "external_links": external_links,
         }, status=201)
@@ -589,7 +589,7 @@ class AdminMarketplaceView(APIView):
         if published_now:
             _notify_user(
                 listing.partner.user, "Your package is live",
-                f"“{listing.title}” is now published on Nepal Tourism packages.",
+                f"“{listing.title}” is now published on Nepal Yatra packages.",
                 metadata={"listing_id": listing.id, "slug": listing.slug},
             )
         log_action(

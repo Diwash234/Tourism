@@ -187,10 +187,10 @@ export default function LiveNavigationPanel({ destination, mode = "driving", sto
           <MapContainer center={center} zoom={14} className="h-full w-full" scrollWheelZoom>
             <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             {line.length > 1 && <Polyline positions={line} pathOptions={{ color: "#1D5146", weight: 5 }} />}
-            {destination && <Marker position={[destination.latitude, destination.longitude]} icon={destIcon} />}
+            {destination && <Marker position={[destination.latitude, destination.longitude]} icon={destIcon} title={destination.name ? `Destination: ${destination.name}` : "Destination"} />}
             {position && (
               <>
-                <Marker position={[position.latitude, position.longitude]} icon={userArrowIcon} />
+                <Marker position={[position.latitude, position.longitude]} icon={userArrowIcon} title="Your current location" />
                 {position.accuracy != null && (
                   <Circle center={[position.latitude, position.longitude]} radius={position.accuracy}
                     pathOptions={{ color: "#2563eb", weight: 1, fillOpacity: 0.08 }} />

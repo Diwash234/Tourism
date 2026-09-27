@@ -15,6 +15,12 @@ export default [
     },
   },
   {
+    // Playwright audit scripts: callbacks passed to page.evaluate() run in the
+    // browser, so they also see window/document/localStorage.
+    files: ["scripts/site-audit.mjs", "scripts/interaction-check.mjs"],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
+  {
     files: ["**/*.{js,jsx}"],
     languageOptions: {
       ecmaVersion: 2022,
