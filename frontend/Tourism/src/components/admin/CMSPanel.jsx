@@ -355,8 +355,12 @@ export default function CMSPanel() {
     "Published live to user site!"
   )
   const workflow = (action, extra = {}) => execute(
-    () => adminApi.runCMSAction({ resource, id: selected.id, action, ...extra }),
-    `${action} complete`
+    async () => {
+      const response = await adminApi.runCMSAction({ resource, id: selected.id, action, ...extra })
+      if (action === "publish") notifyCmsUpdated()
+      return response
+    },
+    "CMS workflow action complete"
   )
   const showPreview = async () => {
     if (!selected?.id) return showToast("Save this draft before previewing it", "info")
@@ -695,6 +699,21 @@ export default function CMSPanel() {
             <p className="text-xs text-slate-500 mt-1 mb-4">
               {health.section_count} section(s) · {health.draft_sections} draft(s) · {health.warning_count} warning(s)
             </p>
+            {health.publication_gate && (
+              <div className={`mb-4 rounded-xl border p-3 ${health.publication_gate.ok ? "border-emerald-200 bg-emerald-50" : "border-rose-200 bg-rose-50"}`}>
+                <p className="text-xs font-black">{health.publication_gate.ok ? "Publication gate ready" : "Publication blocked"}</p>
+                {!!health.publication_gate.blockers?.length && (
+                  <ul className="mt-2 space-y-1 text-[11px] text-rose-800">
+                    {health.publication_gate.blockers.map((item) => <li key={item.code}>✕ {item.message}</li>)}
+                  </ul>
+                )}
+                {!!health.publication_gate.warnings?.length && (
+                  <ul className="mt-2 space-y-1 text-[11px] text-amber-800">
+                    {health.publication_gate.warnings.map((item) => <li key={item.code}>⚠ {item.message}</li>)}
+                  </ul>
+                )}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-2 mb-4">
               {Object.entries(health.checks || {}).map(([name, state]) => (
                 <div key={name} className={`rounded-xl border px-3 py-2 text-xs font-bold capitalize ${state === "ok" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-300 bg-amber-50 text-amber-800"}`}>
