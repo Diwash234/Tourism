@@ -1012,6 +1012,15 @@ class AdminDestinationDetailView(APIView):
             "bookings_count": getattr(destination, "bookings", None).__class__ and destination.bookings.count() if hasattr(destination, "bookings") else 0,
             "reviews_count": destination.reviews.count() if hasattr(destination, "reviews") else 0,
             "views_count": destination.views_count,
+            "attached_data": {
+                "images": destination.gallery.count(),
+                "hotels": destination.hotels.count() if hasattr(destination, "hotels") else 0,
+                "hospitals": destination.hospitals.count() if hasattr(destination, "hospitals") else 0,
+                "police_stations": destination.police_stations.count() if hasattr(destination, "police_stations") else 0,
+                "restaurants": destination.restaurants.count() if hasattr(destination, "restaurants") else 0,
+                "reviews": destination.reviews.count() if hasattr(destination, "reviews") else 0,
+                "risk_incidents": destination.risk_incidents.count(),
+            },
             "created_at": destination.created_at,
             "updated_at": destination.updated_at,
         })
