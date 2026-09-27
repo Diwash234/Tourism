@@ -232,6 +232,10 @@ class AdminEmergencyDirectoryView(APIView):
             return Response(payload, status=409)
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)
+        uploaded_image = request.FILES.get("image") or request.FILES.get("file")
+        if uploaded_image is not None and hasattr(obj, "image"):
+            obj.image = uploaded_image
+            obj.save(update_fields=["image"])
         kind = _normalize_kind(request.data.get("kind")) or getattr(obj, "category", "hospital")
         log_action(
             request, "emergency.create", category="admin",
