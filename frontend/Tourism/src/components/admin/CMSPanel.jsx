@@ -6,7 +6,6 @@ import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
 import RichTextEditor from "./RichTextEditor"
 import CMSBlock, { CMSExtras } from "../cms/CMSBlock"
-import SafeHtml from "../cms/SafeHtml"
 
 const resources = ["pages", "sections", "navigation", "settings", "translations"]
 const RESOURCE_LABELS = { pages: "Pages", sections: "Sections", navigation: "Header, Navigation & Menus", settings: "Site Settings & Branding", translations: "Translations" }
@@ -35,18 +34,9 @@ const displayName = (row) => {
   return name
 }
 
-// Dashboard sections that open this editor on a specific resource. Anything
-// unknown falls back to Pages instead of requesting a resource the CMS API
-// does not have (which used to render an empty, broken editor).
-const RESOURCE_ALIASES = { seo_metadata: "pages", publishing: "pages", global_content: "settings", announcements: "sections" }
-const resolveResource = (value) => {
-  const name = RESOURCE_ALIASES[value] || value
-  return resources.includes(name) ? name : "pages"
-}
-
-export default function CMSPanel({ defaultResource = "pages" }) {
+export default function CMSPanel() {
   const { showToast } = useToast()
-  const [resource, setResource] = useState(() => resolveResource(defaultResource))
+  const [resource, setResource] = useState("pages")
   const [rows, setRows] = useState([])
   const [pageRows, setPageRows] = useState([])
   const [sectionPageId, setSectionPageId] = useState("")
@@ -363,7 +353,7 @@ export default function CMSPanel({ defaultResource = "pages" }) {
             <button
               key={item}
               onClick={() => switchResource(item)}
-              className={`block w-full text-left capitalize px-3 py-2.5 rounded-xl mb-1 ${resource === item ? "bg-emerald-700 text-white font-black" : "text-slate-700 hover:bg-emerald-50"}`}
+              className={`block w-full text-left capitalize px-3 py-2.5 rounded-xl mb-1 ${resource === item ? "bg-emerald-700 text-white font-black" : "text-slate-300 hover:bg-emerald-50"}`}
             >
               {RESOURCE_LABELS[item]}
             </button>
@@ -553,7 +543,7 @@ export default function CMSPanel({ defaultResource = "pages" }) {
                         <CMSExtras sections={preview.sections} />
                       </div>
                     )}
-                    {!preview.sections && <SafeHtml html={preview.body || ""} className="prose prose-sm mt-5" />}
+                    {!preview.sections && <div className="prose prose-sm mt-5" dangerouslySetInnerHTML={{ __html: preview.body || "" }} />}
                   </div>
                 )}
               </div>
@@ -1435,7 +1425,7 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
                 <h4 className="text-base font-black">{section.title}</h4>
                 <p className="text-slate-500">{section.subtitle}</p>
                 {section.image_url && <img src={section.image_url} alt="" className="mt-2 max-h-40 w-full rounded-lg object-cover" />}
-                <SafeHtml html={section.body || ""} className="prose prose-sm mt-2" />
+                <div className="prose prose-sm mt-2" dangerouslySetInnerHTML={{ __html: section.body || "" }} />
               </article>
             )}
             {openId === section.id && draft && (
@@ -1473,6 +1463,28 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
                     {["default", "compact", "wide", "cards", "hero", "split"].map((item) => <option key={item}>{item}</option>)}
                   </select>
                 </label>
+                <div className="sm:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <label className="font-semibold text-slate-300">Content width
+                    <select className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.config?.max_width || "container"} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), max_width: e.target.value } })}>
+                      <option value="narrow">Narrow</option><option value="container">Container</option><option value="wide">Wide</option><option value="full">Full width</option>
+                    </select>
+                  </label>
+                  <label className="font-semibold text-slate-300">Horizontal alignment
+                    <select className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.config?.align || "left"} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), align: e.target.value } })}>
+                      <option value="left">Left</option><option value="center">Center</option><option value="right">Right</option>
+                    </select>
+                  </label>
+                  <label className="font-semibold text-slate-300">Row gap
+                    <select className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.config?.row_gap || "normal"} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), row_gap: e.target.value } })}>
+                      <option value="compact">Compact</option><option value="normal">Normal</option><option value="large">Large</option>
+                    </select>
+                  </label>
+                  <label className="font-semibold text-slate-300">Mobile columns
+                    <select className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.config?.mobile_columns || 1} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), mobile_columns: Number(e.target.value) } })}>
+                      <option value={1}>1</option><option value={2}>2</option>
+                    </select>
+                  </label>
+                </div>
                 <label className="sm:col-span-2 font-semibold text-slate-300">Body Content
                   <RichTextEditor value={draft.body || ""} onChange={(html) => setDraft({ ...draft, body: html })} />
                 </label>
