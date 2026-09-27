@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { validateGpsPosition } from "../utils/placeUtils"
 
 /**
  * Continuous GPS tracking for live navigation (master spec Phase 2).
@@ -32,13 +33,22 @@ const useLivePosition = (active) => {
     const resetId = window.setTimeout(() => { setFixSeen(false); setError(null); setCode(null) }, 0)
     watchRef.current = navigator.geolocation.watchPosition(
       (pos) => {
-        setPosition({
+        const candidate = {
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
           accuracy: pos.coords.accuracy ?? null,
           altitude: pos.coords.altitude ?? null,
           speed: pos.coords.speed ?? null,
           heading: pos.coords.heading ?? null,
+        }
+        const validation = validateGpsPosition(candidate)
+        if (!validation.valid) {
+          setError(validation.reason)
+          setCode(3)
+          return
+        }
+        setPosition({
+          ...candidate,
         })
         setError(null)
         setCode(null)
