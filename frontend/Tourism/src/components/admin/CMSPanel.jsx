@@ -8,6 +8,7 @@ import RichTextEditor from "./RichTextEditor"
 import CMSBlock, { CMSExtras } from "../cms/CMSBlock"
 
 const resources = ["pages", "sections", "navigation", "settings", "translations", "hotels", "hospitals", "police_stations"]
+const resourceGroups = [{ label: "Website", items: ["pages", "sections", "navigation", "settings", "translations"] }, { label: "Travel & Hospitality", items: ["hotels"] }, { label: "Safety & Emergency", items: ["hospitals", "police_stations"] }]
 const RESOURCE_LABELS = { pages: "Pages", sections: "Sections", navigation: "Header, Navigation & Menus", settings: "Site Settings & Branding", translations: "Translations", hotels: "Hotels", hospitals: "Hospitals", police_stations: "Police Stations" }
 const sectionTypes = ["text", "heading", "image", "gallery", "cards", "faq", "cta", "map", "video", "audio", "marquee", "animation", "media", "form", "table", "figure", "testimonials", "contact", "breadcrumbs", "search"]
 const fallbackTemplates = {
@@ -344,15 +345,15 @@ export default function CMSPanel() {
     })
 
   return (
-    <div className="space-y-4 text-slate-900">
+    <div className="space-y-5 text-slate-900">
       <header>
-        <h2 className="text-2xl font-black">Pages, sections and navigation</h2>
-        <p className="text-xs text-slate-500">Edit website content without code. Draft, preview, publish, and restore previous versions.</p>
+        <h2 className="text-2xl font-black">Advanced CMS Workspace</h2>
+        <p className="text-xs text-slate-500">Central control for website content, layouts, navigation, hospitality and safety records. Draft, preview, publish, schedule and restore changes with audit history.</p>
         {dirty && <p className="mt-2 text-xs font-bold text-amber-700">You have unsaved changes.</p>}
       </header>
       <div className="grid lg:grid-cols-[180px_240px_1fr] xl:grid-cols-[220px_300px_1fr] gap-4">
         <aside className="bg-white border border-emerald-200 rounded-2xl p-3 h-fit">
-          {resources.map(item => (
+          {resourceGroups.map((group) => <div key={group.label} className="mb-4 last:mb-0"><div className="px-2 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-400">{group.label}</div>{group.items.map(item => (
             <button
               key={item}
               onClick={() => switchResource(item)}
