@@ -798,8 +798,8 @@ def is_destination_specific_image(destination, photo):
     conflicts = {place for place in known_places if place in evidence and place not in allowed}
     if conflicts and not own_match:
         return False
-    # Unknown/hash-based external URLs remain visible as destination-linked,
-    # but retain their pending/unverified badge for admin moderation.
+    # Unknown/hash-based URLs remain visible only as a fallback. They are
+    # never promoted over an exact verified place match.
     return True
 
 
