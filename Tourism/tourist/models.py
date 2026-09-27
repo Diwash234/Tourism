@@ -1350,6 +1350,7 @@ class PoliceStation(models.Model):
     emergency_available = models.BooleanField(default=False)
     source_name = models.CharField(max_length=160, blank=True)
     source_url = models.URLField(max_length=600, blank=True)
+    website = models.URLField(max_length=600, blank=True)
     is_verified = models.BooleanField(default=False)
     verified_at = models.DateTimeField(null=True, blank=True)
     is_archived = models.BooleanField(default=False)
