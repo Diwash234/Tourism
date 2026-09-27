@@ -75,6 +75,9 @@ class NavigationProgressView(APIView):
         ser = ProgressRequestSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         d = ser.validated_data
+        accuracy = d.get("accuracy")
+        if accuracy is not None and accuracy > 100:
+            return Response({"status": "error", "error": "gps_accuracy_too_low", "detail": "GPS accuracy must be 100 metres or better before navigation progress is accepted.", "accuracy_m": accuracy}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
         route = navigation_service.get_session(d["route_id"])
         if route is None:
             return Response(
