@@ -201,6 +201,7 @@ export default function EmergencyDirectoryPanel() {
             <input className="input-field" required placeholder="Latitude" value={form.latitude} onChange={(e) => setForm({ ...form, latitude: e.target.value })} />
             <input className="input-field" required placeholder="Longitude" value={form.longitude} onChange={(e) => setForm({ ...form, longitude: e.target.value })} />
           </div>
+          <input className="input-field" placeholder="Official website (https://…)" value={form.website || ""} onChange={(e) => setForm({ ...form, website: e.target.value })} />
           <input className="input-field" placeholder="HTTPS source URL (optional)" value={form.source_url} onChange={(e) => setForm({ ...form, source_url: e.target.value })} />
           <button type="submit" className="w-full rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black py-2 flex items-center justify-center gap-2">
             <FiPlus /> Save to database & CSV
