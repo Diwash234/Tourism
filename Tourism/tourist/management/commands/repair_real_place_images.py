@@ -49,20 +49,19 @@ def _is_live_image(url):
 
 
 def _place_score(hit, destination):
-    own = _norm_tokens(
-        f"{destination.name} {getattr(destination, 'district', '')} "
-        f"{getattr(destination, 'province', '')} {getattr(destination, 'city', '')}"
-    )
+    # Final gate: only the destination's own name or explicit alias can
+    # establish identity. City/district/province are never sufficient.
     evidence = _norm_tokens(
-        f"{hit.title} {hit.source_page} {hit.source_page_url if hasattr(hit, 'source_page_url') else ''}"
+        f"{hit.title} {hit.source_page} "
+        f"{getattr(hit, 'source_page_url', '')}"
     )
-    name = _norm_tokens(destination.name)
-    if name and name <= evidence:
+    own = _norm_tokens(getattr(destination, "name", ""))
+    aliases = _norm_tokens(getattr(destination, "aliases", ""))
+    if own and own <= evidence:
         return 1.0
-    if own & evidence:
-        return max(float(getattr(hit, "match_score", 0) or 0), 0.80)
-    return float(getattr(hit, "match_score", 0) or 0)
-
+    if aliases and aliases <= evidence:
+        return 0.97
+    return 0.0
 
 def _hotel_score(hit, hotel):
     hotel_name = _norm_tokens(hotel.name)
