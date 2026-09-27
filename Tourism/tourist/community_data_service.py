@@ -499,6 +499,9 @@ def publish_official_emergency(data, reviewer=None, verified=False):
     province = str(data.get("province") or "").strip()[:120]
     city = str(data.get("city") or data.get("destination") or "").strip()[:120]
     source_url = str(data.get("source_url") or "").strip()
+    website = str(data.get("website") or "").strip()
+    if website and not website.startswith("https://"):
+        raise ValueError("website must use HTTPS")
     if source_url and not source_url.startswith("https://"):
         raise ValueError("source_url must use HTTPS")
     opening_hours = str(data.get("opening_hours") or "")[:160]
@@ -554,7 +557,7 @@ def publish_official_emergency(data, reviewer=None, verified=False):
                 phone=phone, latitude=latitude, longitude=longitude,
                 district=district or (destination.district or ""),
                 opening_hours=opening_hours, source_name="Admin Control Center",
-                source_url=source_url, is_verified=verified, verified_at=now if verified else None, is_archived=False,
+                source_url=source_url, website=website[:600], is_verified=verified, verified_at=now if verified else None, is_archived=False,
             )
         hospital_fields = [
             "hospital_name", "address", "phone", "latitude", "longitude",
@@ -614,7 +617,7 @@ def publish_official_emergency(data, reviewer=None, verified=False):
     ]
     community_row = {
         "submission_id": f"admin-{kind}-{obj.id}", "place_type": kind, "name": name,
-        "phone": phone, "website": source_url, "address": address, "city": city,
+        "phone": phone, "website": website, "address": address, "city": city,
         "municipality": "", "municipality_type": "", "ward_number": "",
         "district": district, "province": province, "latitude": latitude, "longitude": longitude,
         "destination": destination.name if destination else city,
