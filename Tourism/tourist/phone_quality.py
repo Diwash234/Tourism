@@ -87,6 +87,22 @@ def is_unusable_phone(value) -> bool:
     return is_null_sentinel(value) or is_placeholder_phone(value)
 
 
+def usable_phone(value) -> str:
+    """Return a phone value that is safe to publish.
+
+    The single entry point for building a response field: an unusable value
+    becomes an empty string, a float-mangled real number is repaired, and
+    anything else is passed through untouched.
+
+    Views that assemble rows from model attributes rather than going through a
+    serializer must use this, or a value written after migration 0086 ran --
+    an import, an admin edit -- could put "nan" straight into a response.
+    """
+    if is_unusable_phone(value):
+        return ""
+    return normalize_phone_artifact(value)
+
+
 def normalize_phone_artifact(value) -> str:
     """Repair a float-mangled phone number, or return the input unchanged.
 

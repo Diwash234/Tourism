@@ -2156,13 +2156,19 @@ class DestinationNearbyPOIsView(APIView):
         # Load each candidate set ONCE (no bounding-box pre-filter — the
         # tables are small: <6k rows total) and distance-rank in Python so
         # tier expansion never re-queries.
+        # These rows are assembled straight from model attributes rather than
+        # through a serializer, so they need the publish-safe phone helper
+        # themselves: migration 0086 cleaned what is stored, but an import or
+        # an admin edit after that must not be able to serve "nan" as a number.
+        from .phone_quality import usable_phone
+
         hospital_rows = [
-            (h.name, float(h.latitude), float(h.longitude), {"phone": h.phone})
+            (h.name, float(h.latitude), float(h.longitude), {"phone": usable_phone(h.phone)})
             for h in Hospital.objects.filter(is_archived=False)
             if h.latitude is not None and h.longitude is not None
         ]
         police_rows = [
-            (p.name, float(p.latitude), float(p.longitude), {"phone": p.phone})
+            (p.name, float(p.latitude), float(p.longitude), {"phone": usable_phone(p.phone)})
             for p in PoliceStation.objects.filter(is_archived=False)
             if p.latitude is not None and p.longitude is not None
         ]
@@ -2174,14 +2180,14 @@ class DestinationNearbyPOIsView(APIView):
                      "homestay", "inn"):
             stay_q |= Q(name__icontains=word)
         hotel_rows = [
-            (h.name, float(h.latitude), float(h.longitude), {"phone": h.phone, "address": h.address, "price": str(h.price_per_night) if h.price_per_night else None})
+            (h.name, float(h.latitude), float(h.longitude), {"phone": usable_phone(h.phone), "address": h.address, "price": str(h.price_per_night) if h.price_per_night else None})
             for h in Hotel.objects.filter(is_active=True).exclude(latitude=None).exclude(longitude=None)
         ] + [
             (d.name, float(d.latitude), float(d.longitude), {"slug": d.slug})
             for d in dest_qs.filter(stay_q).exclude(latitude=None).exclude(longitude=None)
         ]
         restaurant_rows = [
-            (r.name, float(r.latitude), float(r.longitude), {"phone": r.phone, "address": r.address, "cuisine": r.cuisine_types})
+            (r.name, float(r.latitude), float(r.longitude), {"phone": usable_phone(r.phone), "address": r.address, "cuisine": r.cuisine_types})
             for r in Restaurant.objects.filter(status="published").exclude(latitude=None).exclude(longitude=None)
         ] + [
             (d.name, float(d.latitude), float(d.longitude), {"slug": d.slug})

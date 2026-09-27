@@ -91,3 +91,33 @@ def _enable_sqlite_wal(sender, connection, **kwargs):
 from django.db.backends.signals import connection_created  # noqa: E402
 
 connection_created.connect(_enable_sqlite_wal)
+
+
+# ---------------------------------------------------------------------------
+# Phone values must never be stored unusable
+# ---------------------------------------------------------------------------
+# The imported service data shipped the literal text "nan" as the phone number
+# of 788 police stations and 33 hospitals, because a missing value was
+# stringified on the way out of the source CSV. Migration 0086 cleaned what was
+# already stored, and the read paths blank anything unusable, but ten-odd views
+# assemble rows straight from model attributes, so patching every call site is
+# both repetitive and easy to miss on the next one.
+#
+# Normalising on write closes the class of bug instead of the instance: after
+# this, "nan" cannot be stored again, by an import, an admin edit or a script.
+# This catches Model.save() and create(); a queryset .update() bypasses signals
+# by design, which is why the read-path guard is kept as well.
+from django.db.models.signals import pre_save  # noqa: E402
+
+from .models import Hospital, Hotel, PoliceStation, Restaurant  # noqa: E402
+from .phone_quality import usable_phone  # noqa: E402
+
+
+@receiver(pre_save, sender=Hospital)
+@receiver(pre_save, sender=Hotel)
+@receiver(pre_save, sender=PoliceStation)
+@receiver(pre_save, sender=Restaurant)
+def normalize_stored_phone(sender, instance, **kwargs):
+    """Replace an unusable or float-mangled phone before it is written."""
+    if hasattr(instance, "phone"):
+        instance.phone = usable_phone(getattr(instance, "phone", ""))

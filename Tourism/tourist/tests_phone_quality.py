@@ -147,10 +147,46 @@ class PhoneCleanupMigrationTests(_ServiceFixtures):
         self.assertEqual(PoliceStation.objects.get(name="Idem Police").phone, "014440000")
 
     def test_migration_reports_what_it_changed(self):
-        self._police("Reported Police", "nan")
+        # Planted with .update(), which bypasses the pre_save guard exactly as a
+        # bulk import or raw-SQL load would. This is the case the migration
+        # exists for: values written before the guard, or written by a path
+        # that skips model signals.
+        police = self._police("Reported Police", "01-4469064")
+        PoliceStation.objects.filter(pk=police.pk).update(phone="nan")
         editor = self._run()
         self.assertTrue(editor.statements, "the migration should record what it cleaned")
         self.assertIn("PoliceStation", editor.statements[0])
+        self.assertEqual(PoliceStation.objects.get(pk=police.pk).phone, "")
+
+
+class PhoneWriteNormalisationTests(_ServiceFixtures):
+    """Normalising on write closes the class of bug, not the instance.
+
+    Migration 0086 cleaned what was stored and the read paths blank anything
+    unusable, but several views assemble rows straight from model attributes.
+    Patching every call site is repetitive and easy to miss on the next one, so
+    a pre_save guard makes an unusable value unstorable in the first place.
+    """
+
+    def test_sentinel_cannot_be_saved(self):
+        self._police("Saved Nan", "nan")
+        self.assertEqual(PoliceStation.objects.get(name="Saved Nan").phone, "")
+
+    def test_templated_filler_cannot_be_saved(self):
+        self._police("Saved Filler", "037-520123")
+        self.assertEqual(PoliceStation.objects.get(name="Saved Filler").phone, "")
+
+    def test_float_mangled_is_repaired_on_save(self):
+        self._police("Saved Float", "14440000.0")
+        self.assertEqual(PoliceStation.objects.get(name="Saved Float").phone, "014440000")
+
+    def test_real_number_is_preserved_on_save(self):
+        self._police("Saved Real", "01-4469064")
+        self.assertEqual(PoliceStation.objects.get(name="Saved Real").phone, "01-4469064")
+
+    def test_hospital_is_guarded_too(self):
+        self._hospital("Saved Hospital", "nan")
+        self.assertEqual(Hospital.objects.get(name="Saved Hospital").phone, "")
 
 
 class SerializerPhoneGuaranteeTests(_ServiceFixtures):
