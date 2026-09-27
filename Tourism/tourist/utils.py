@@ -74,33 +74,11 @@ def resolve_image_url(image_field, request=None):
         except (ValueError, AttributeError):
             url = f"/media/{s}"
 
-    return public_media_url(url, request)
-
-
-def public_media_url(url, request=None):
-    """Turn a root-relative local media path into the URL browsers should use.
-
-    ``request.build_absolute_uri`` used to bake the *backend's* host into
-    every uploaded photo (``http://127.0.0.1:8000/media/...`` behind the Vite
-    proxy). That address only works on the developer's own machine, so a photo
-    an admin uploaded was saved correctly but showed as a broken image to
-    anyone reaching the site through another host (LAN IP, tunnel, preview or
-    production domain).
-
-    * ``PUBLIC_MEDIA_BASE_URL`` set (e.g. ``https://api.example.com``) ->
-      absolute URL on that host, for deployments where the SPA and the API
-      live on different domains.
-    * otherwise -> keep the root-relative path (``/media/...``). The browser
-      resolves it against the site it is on; the Vite dev server and the
-      production web server both route ``/media`` to Django.
-    """
-    from django.conf import settings
-
-    if not url or _is_external_url(url) or not str(url).startswith("/"):
-        return url
-    base = (getattr(settings, "PUBLIC_MEDIA_BASE_URL", "") or "").rstrip("/")
-    if base:
-        return f"{base}{url}"
+    if request is not None:
+        try:
+            return request.build_absolute_uri(url)
+        except Exception:  # noqa: BLE001
+            return url
     return url
 
 
@@ -118,11 +96,24 @@ def resolve_str_image_url(value, request=None):
         url = s
     else:
         url = f"{settings.MEDIA_URL}{s}"
-    return public_media_url(url, request)
+    if request is not None:
+        try:
+            return request.build_absolute_uri(url)
+        except Exception:  # noqa: BLE001
+            return url
+    return url
 
 
 # ---------------------------------------------------------------------------
 # Distance
+def has_valid_coordinates(lat, lon):
+    """Validate Nepal GPS coordinates before routing/distance calculations."""
+    try:
+        lat, lon = float(lat), float(lon)
+    except (TypeError, ValueError):
+        return False
+    return 26 <= lat <= 31 and 80 <= lon <= 89
+
 def haversine_distance(lat1, lon1, lat2, lon2):
     """
     Great-circle distance between two points in kilometers.
