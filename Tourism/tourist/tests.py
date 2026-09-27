@@ -1416,6 +1416,36 @@ class CMSPublishingWorkflowTests(APITestCase):
         response = self.client.patch(reverse("admin-cms"), {"resource": "pages", "id": self.page.id, "action": "schedule", "scheduled_publish_at": (timezone.now() - timedelta(hours=1)).isoformat()}, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_publish_is_blocked_when_page_has_no_publishable_content(self):
+        response = self.client.patch(
+            reverse("admin-cms"),
+            {"resource": "pages", "id": self.page.id, "action": "publish"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertIn("publication_gate", response.data)
+        self.assertFalse(response.data["publication_gate"]["ok"])
+        self.assertTrue(any(item["code"] == "missing_seo_description" for item in response.data["publication_gate"]["blockers"]))
+        self.assertTrue(any(item["code"] == "no_published_sections" for item in response.data["publication_gate"]["blockers"]))
+
+    def test_publish_succeeds_after_required_gate_fields_are_ready(self):
+        from django.utils import timezone
+        self.page.meta_description = "A verified CMS workflow test page for Nepal travellers."
+        self.page.seo_title = "Workflow Test | Nepal Tourism"
+        self.page.og_image_url = "/media/cms-workflow.jpg"
+        self.page.save(update_fields=["meta_description", "seo_title", "og_image_url", "updated_at"])
+        self.section.status = "published"
+        self.section.is_visible = True
+        self.section.save(update_fields=["status", "is_visible", "updated_at"])
+        response = self.client.patch(
+            reverse("admin-cms"),
+            {"resource": "pages", "id": self.page.id, "action": "publish"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        self.page.refresh_from_db()
+        self.assertEqual(self.page.status, "published")
+
     def test_staff_without_change_capability_cannot_publish(self):
         from .models import StaffCapabilityProfile
         staff = User.objects.create_user(email="cms-viewer@example.com", password="StrongPass123!", role="staff", is_staff=True)
