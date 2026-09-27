@@ -9,6 +9,27 @@ import CMSBlock, { CMSExtras } from "../cms/CMSBlock"
 
 const resources = ["pages", "sections", "navigation", "settings", "translations", "hotels", "hospitals", "police_stations"]
 const resourceGroups = [{ label: "Website", items: ["pages", "sections", "navigation", "settings", "translations"] }, { label: "Travel & Hospitality", items: ["hotels"] }, { label: "Safety & Emergency", items: ["hospitals", "police_stations"] }]
+
+const workflowBar = (current) => (
+  <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-emerald-100 bg-emerald-50 p-2">
+    {CMS_WORKFLOW_STEPS.map((step, index) => (
+      <div key={step} className={`rounded-lg px-2.5 py-1 text-[10px] font-black ${index === current ? "bg-emerald-700 text-white" : "text-emerald-900/60"}`}>
+        {index + 1}. {step}
+      </div>
+    ))}
+  </div>
+)
+
+const CMS_FIELD_GROUPS = {
+  pages: ["title", "slug", "route", "status", "seo_title", "meta_description", "hero_image_url", "is_indexable"],
+  sections: ["page_id", "title", "section_type", "sort_order", "is_visible"],
+  hotels: ["destination_id", "name", "address", "phone", "website", "latitude", "longitude", "price_per_night", "rating", "is_verified", "is_active"],
+  hospitals: ["destination_id", "name", "address", "phone", "latitude", "longitude", "opening_hours", "emergency_available", "is_verified"],
+  police_stations: ["destination_id", "name", "address", "phone", "latitude", "longitude", "opening_hours", "emergency_available", "is_verified"],
+}
+
+const CMS_WORKFLOW_STEPS = ["Edit", "Validate", "Preview", "Publish"]
+
 const RESOURCE_LABELS = { pages: "Pages", sections: "Sections", navigation: "Header, Navigation & Menus", settings: "Site Settings & Branding", translations: "Translations", hotels: "Hotels", hospitals: "Hospitals", police_stations: "Police Stations" }
 const sectionTypes = ["text", "heading", "image", "gallery", "cards", "faq", "cta", "map", "video", "audio", "marquee", "animation", "media", "form", "table", "figure", "testimonials", "contact", "breadcrumbs", "search"]
 const fallbackTemplates = {
@@ -346,6 +367,7 @@ export default function CMSPanel() {
 
   return (
     <div className="space-y-5 text-slate-900">
+      {workflowBar(dirty ? 0 : 1)}
       <header>
         <h2 className="text-2xl font-black">Advanced CMS Workspace</h2>
         <p className="text-xs text-slate-500">Central control for website content, layouts, navigation, hospitality and safety records. Draft, preview, publish, schedule and restore changes with audit history.</p>
