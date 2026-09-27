@@ -1473,7 +1473,7 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
         resource: "sections",
         id: draft.id,
         ...draft,
-        status: "published",
+        status: draft.status || "draft",
         is_visible: Boolean(draft.is_visible),
       })
       notifyCmsUpdated()
@@ -1614,7 +1614,7 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
                 </div>
                 <label className="flex items-center gap-2 font-semibold text-slate-300"><input type="checkbox" checked={Boolean(draft.is_visible)} onChange={(e) => setDraft({ ...draft, is_visible: e.target.checked })} /> Visible on traveller page</label>
                 <div className="flex gap-2 self-end">
-                  <div className="flex gap-2">\n                    <button type="button" onClick={() => { setDraft({ ...draft, status: "draft" }); setTimeout(saveSection, 0) }} className="rounded-lg bg-slate-700 text-white font-black px-3 py-2 text-xs">Save Draft</button>\n                    <button type="button" onClick={() => { setDraft({ ...draft, status: "published" }); setTimeout(saveSection, 0) }} className="rounded-lg bg-amber-400 text-slate-950 font-black px-4 py-2 text-xs shadow">Publish Section</button>\n                  </div>
+                  <div className="flex gap-2">\n                    <button type="button" onClick={() => { setDraft({ ...draft, status: "draft" }); setTimeout(saveSection, 0) }} className="rounded-lg bg-slate-700 text-white font-black px-3 py-2 text-xs">Save Draft</button>\n                    <button type="button" onClick={() => { setDraft({ ...draft, status: "draft" }); setTimeout(saveSection, 0) }} className="rounded-lg bg-slate-700 text-white font-black px-3 py-2 text-xs">Save Draft</button><button type="button" onClick={() => { setDraft({ ...draft, status: "published" }); setTimeout(saveSection, 0) }} className="rounded-lg bg-amber-400 text-slate-950 font-black px-4 py-2 text-xs shadow">Publish Section</button>\n                  </div>
                   <button type="button" onClick={() => { setOpenId(null); setDraft(null) }} className="rounded-lg bg-slate-800 text-slate-300 px-3 py-2 text-xs font-bold">Cancel</button>
                 </div>
               </div>
