@@ -452,6 +452,7 @@ def serialize_emergency_record(kind, obj):
         "latitude": float(obj.latitude),
         "longitude": float(obj.longitude),
         "source_url": getattr(obj, "source_url", "") or "",
+        "website": getattr(obj, "website", "") or "",
         "source_name": getattr(obj, "source_name", "") or "",
         "emergency_available": bool(getattr(obj, "emergency_available", False)),
         "image_url": image_url,
@@ -525,7 +526,7 @@ def publish_official_emergency(data, reviewer=None, verified=False):
                 phone=phone, latitude=latitude, longitude=longitude,
                 district=district or (destination.district or ""),
                 opening_hours=opening_hours, source_name="Admin Control Center",
-                source_url=source_url, is_verified=False, verified_at=None, is_archived=False,
+                source_url=source_url, website=str(data.get("website") or "").strip()[:600], is_verified=False, verified_at=None, is_archived=False,
             )
         elif kind == "police":
             obj = PoliceStation.objects.create(
