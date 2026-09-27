@@ -4492,3 +4492,63 @@ class SeededCmsPlaceholderTests(TestCase):
         untouched.refresh_from_db(); edited_title.refresh_from_db()
         self.assertEqual((untouched.status, untouched.is_visible), ("draft", False))
         self.assertEqual((edited_title.status, edited_title.is_visible), ("published", True))
+
+
+class AdminOperationalCMSRegressionTests(TestCase):
+    """The generic CMS must expose operational records without bypassing
+    their module permissions or accepting unsafe location data."""
+
+    def setUp(self):
+        self.admin = make_superuser()
+        self.client_admin = APIClient()
+        self.client_admin.force_authenticate(user=self.admin)
+        self.category = Category.objects.create(name="CMS Hotel Test", slug="cms-hotel-test")
+        self.destination = Destination.objects.create(
+            name="CMS Operational Place", slug="cms-operational-place",
+            category=self.category, description="Regression destination",
+            latitude=27.7172, longitude=85.3240, status=Destination.SubmissionStatus.APPROVED,
+            is_active=True,
+        )
+
+    def test_hotel_is_editable_through_cms(self):
+        hotel = Hotel.objects.create(destination=self.destination, name="Old Hotel")
+        resp = self.client_admin.patch(
+            "/api/v1/admin/cms/",
+            {"resource": "hotels", "id": hotel.id, "name": "Updated Hotel",
+             "phone": "+977-9800000000", "latitude": 27.718, "longitude": 85.325},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 200, resp.content)
+        hotel.refresh_from_db()
+        self.assertEqual(hotel.name, "Updated Hotel")
+        self.assertEqual(hotel.phone, "+977-9800000000")
+
+    def test_hospital_is_editable_and_coordinates_are_validated(self):
+        hospital = Hospital.objects.create(
+            destination=self.destination, name="Test Hospital", address="Test address",
+            phone="+977-9800000000", latitude=27.7172, longitude=85.3240, district="Kathmandu",
+        )
+        bad = self.client_admin.patch(
+            "/api/v1/admin/cms/",
+            {"resource": "hospitals", "id": hospital.id, "latitude": 999},
+            format="json",
+        )
+        self.assertEqual(bad.status_code, 400)
+        good = self.client_admin.patch(
+            "/api/v1/admin/cms/",
+            {"resource": "hospitals", "id": hospital.id, "phone": "+977-9811111111"},
+            format="json",
+        )
+        self.assertEqual(good.status_code, 200, good.content)
+        hospital.refresh_from_db()
+        self.assertEqual(hospital.phone, "+977-9811111111")
+
+    def test_police_station_is_listed_by_cms(self):
+        PoliceStation = __import__("tourist.models", fromlist=["PoliceStation"]).PoliceStation
+        station = PoliceStation.objects.create(
+            destination=self.destination, name="Test Police", address="Test address",
+            phone="100", latitude=27.7172, longitude=85.3240, district="Kathmandu",
+        )
+        resp = self.client_admin.get("/api/v1/admin/cms/", {"resource": "police_stations"})
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(any(row["id"] == station.id for row in resp.json()["results"]))
