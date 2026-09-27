@@ -5,8 +5,8 @@
 # Usage (on the deployment host, from the repo root):
 #   export ROUTING_BASE_URL="http://<osrm-host>:5000"
 #   export ROUTING_PROFILES="driving,foot,bike"      # profiles your OSRM hosts
-#   export OPENWEATHER_API_KEY="..."                 # optional
-#   export DATABASE_URL="postgres://..."             # optional, for gate 6
+#   export OPENWEATHER_API_KEY="..."                 # required
+#   export DATABASE_URL="postgres://..."             # required for production
 #   bash scripts/close_production_gates.sh
 #
 # Exit code 0 = all runnable gates passed. Each gate prints PASS/FAIL/SKIP.
@@ -29,7 +29,8 @@ if [ -n "${ROUTING_BASE_URL:-}" ]; then
   echo "--- Gate 2: write regression baseline + health probe ---"
   gate "route baseline" $PY manage.py validate_navigation_routes --write-baseline
 else
-  echo "SKIP: ROUTING_BASE_URL not set"
+  echo "FAIL: ROUTING_BASE_URL not set"
+  FAILED=1
 fi
 
 echo ""
@@ -43,12 +44,13 @@ w = get_current_weather(28.2096, 83.9856)
 assert w, 'weather lookup returned None with key configured'
 print('weather ok:', w.get('weather', [{}])[0].get('main'))"
 else
-  echo "SKIP: OPENWEATHER_API_KEY not set"
+  echo "FAIL: OPENWEATHER_API_KEY not set"
+  FAILED=1
 fi
 
 echo ""
 echo "--- Gate 5: OAuth configuration check ---"
-gate "oauth config" $PY manage.py validate_oauth_providers || echo "(providers without credentials report SKIPPED — that is expected)"
+gate "oauth config" $PY manage.py validate_oauth_providers
 
 echo ""
 echo "--- Gate 6: database ---"
@@ -59,8 +61,8 @@ if [ -n "${DATABASE_URL:-}" ]; then
   gate "postgres suite" $PY manage.py test tourist navigation
   gate "postgres backup+drill restore" bash -c "rm -rf /tmp/gate-backups && $PY manage.py backup_database --dir /tmp/gate-backups && $PY manage.py restore_database --file \$(ls -t /tmp/gate-backups/*.gz | head -1) --target drill"
 else
-  echo "SKIP: DATABASE_URL not set (SQLite dev DB in use)"
-  gate "sqlite suite" $PY manage.py test tourist navigation
+  echo "FAIL: DATABASE_URL not set — production requires PostgreSQL"
+  FAILED=1
 fi
 
 echo ""
