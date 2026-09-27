@@ -189,7 +189,7 @@ class Command(BaseCommand):
                 caption=d.name,
                 alt_text=hit.title[:255] if hit.title else d.name,
                 is_cover=False,
-                source=DestinationImage.Source.WIKIMEDIA if hit.source == "wikimedia" else DestinationImage.Source.OPENVERSE,
+                source=DestinationImage.Source.WIKIMEDIA if hit.source == "wikimedia" else DestinationImage.Source.ADMIN,
                 source_platform=hit.source,
                 source_url=hit.source_page,
                 photographer=hit.author[:150],
