@@ -1,4 +1,4 @@
-﻿/** @type {import('tailwindcss').Config} */
+/** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   // Dark theme is class-driven: ThemeContext toggles `.dark` on <html> and
@@ -7,12 +7,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Semantic tokens from the UI audit â€” single source of truth for
+        // Semantic tokens from the UI audit — single source of truth for
         // role-based colors. Existing per-page classes keep working; new
         // code should use these.
         brand: {
-          DEFAULT: '#075B48', // Nepal green â€” primary actions and active nav
-          hover: '#063B32',   // dark Nepal green â€” hover/pressed
+          DEFAULT: '#075B48', // Nepal green — primary actions and active nav
+          hover: '#063B32',   // dark Nepal green — hover/pressed
           light: '#EFF8F4',   // soft green surfaces
           mint: '#63E6BE',
           gold: '#F5B51B',
@@ -23,13 +23,13 @@ export default {
          legacyBrand: { hover: '#065f46' },
          // NOTE: a bare `accent: '#f59e0b'` string used to live here and was
         // silently shadowed by the accent{} scale object below (duplicate key
-        // in the same literal â€” last one wins). Removed; use accent-500 or
+        // in the same literal — last one wins). Removed; use accent-500 or
         // saffron-500 for the amber attention color.
         surface: {
-          light: '#f9fafb', // gray-50 â€” page background (light theme)
-          dark: '#0f172a',  // slate-900 â€” page background (dark theme)
+          light: '#f9fafb', // gray-50 — page background (light theme)
+          dark: '#0f172a',  // slate-900 — page background (dark theme)
         },
-        // ONE Nepal-Yatra nav palette â€” shared tokens for Navbar, Sidebar and
+        // ONE Nepal-Yatra nav palette — shared tokens for Navbar, Sidebar and
         // nav-adjacent chrome. Hex values match the emerald shades these
         // components already used; consolidating here means future re-theming
         // happens in one place instead of ~30 scattered utility classes.
@@ -50,8 +50,8 @@ export default {
         ai: '#087F63',
         // RE-THEMED: primary/secondary used to be coral/teal (the old
         // generic starter palette). They're referenced by className
-        // across every page â€” btn-primary, input-field's focus ring,
-        // Sidebar/Navbar active states, checkbox accents, badges â€” so
+        // across every page — btn-primary, input-field's focus ring,
+        // Sidebar/Navbar active states, checkbox accents, badges — so
         // repointing the token values themselves (instead of editing
         // every file that uses them) reskins the whole app to Nepal
         // colors in one place, safely, with zero JSX/logic changes.
@@ -117,7 +117,7 @@ export default {
           500: '#DC143C', // Nepal flag red
           600: '#b10f30',
         },
-        // CEE "AI Index" reference palette â€” deep indigo anchor + glacier/turquoise data accents.
+        // CEE "AI Index" reference palette — deep indigo anchor + glacier/turquoise data accents.
         cee: {
           bg: '#F9FAFE',
           glacier: '#8BB2FC',
@@ -135,7 +135,7 @@ export default {
         heading: ['Inter', 'system-ui', '"Segoe UI"', 'Roboto', 'sans-serif'],
         serif: ['"Playfair Display"', 'Cinzel', 'Georgia', 'serif'],
         royal: ['Cinzel', '"Playfair Display"', 'serif'],
-        // CEE "AI Index" reference typeface â€” clean, geometric, data-confident.
+        // CEE "AI Index" reference typeface — clean, geometric, data-confident.
         ubuntu: ['Ubuntu', 'Inter', 'system-ui', 'sans-serif'],
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
         devanagari: ['"Noto Sans Devanagari"', 'sans-serif'],

@@ -1,4 +1,4 @@
-﻿import logging
+import logging
 from datetime import timedelta
 
 import secrets
@@ -36,7 +36,7 @@ User = get_user_model()
 TOKEN_LIFETIME_HOURS = 24
 
 # Auth-audit logger. Logs WHICH account an action was denied for (email
-# only â€” never the password) so "my correct password is rejected" reports
+# only — never the password) so "my correct password is rejected" reports
 # can be diagnosed from the server log alone.
 logger = logging.getLogger("tourist.auth")
 
@@ -87,13 +87,13 @@ class LoginView(APIView):
 
     SimpleJWT's stock view lumps "unknown email", "wrong password" and
     "deactivated account" into one vague 401 ("No active account found
-    with the given credentials") â€” which made it look like login was
+    with the given credentials") — which made it look like login was
     broken for correct credentials too. This view reports exactly what
     is wrong and points at the fix:
 
-      404 email_not_found      â†’ sign up first
-      403 account_deactivated  â†’ contact support
-      401 wrong_password       â†’ try again / forgot password
+      404 email_not_found      → sign up first
+      403 account_deactivated  → contact support
+      401 wrong_password       → try again / forgot password
       200 (+verification_required when email unverified)
     """
 
@@ -197,7 +197,7 @@ class ResendVerificationByEmailView(APIView):
         if cache.get(key):
             return Response(
                 {
-                    "detail": "A verification email was sent recently â€” please wait a minute, "
+                    "detail": "A verification email was sent recently — please wait a minute, "
                               "then check your inbox (and spam folder)."
                 },
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -207,7 +207,7 @@ class ResendVerificationByEmailView(APIView):
         cache.set(key, 1, 60)
         return Response(
             {
-                "message": f"Verification link sent to {email} â€” check your inbox (and spam folder). "
+                "message": f"Verification link sent to {email} — check your inbox (and spam folder). "
                            f"It expires in {TOKEN_LIFETIME_HOURS} hours."
             }
         )
@@ -466,7 +466,7 @@ class ResetPasswordOtpRequestView(APIView):
                 f"Your one-time password reset code: {code}\n\n"
                 f"Enter it on the 'Forgot password' page. It expires in {RESET_OTP_TTL_MINUTES} minutes.\n\n"
                 "If you did not request this, you can ignore this message.\n"
-                "â€” Tourism Portal",
+                "— Tourism Portal",
             )
 
         otp = PasswordResetOTP.objects.create(
@@ -532,7 +532,7 @@ class ResetPasswordOtpVerifyView(APIView):
         otp.is_used = True
         otp.save(update_fields=["is_used"])
 
-        # Revoke all active sessions for this account â€” the whole point is
+        # Revoke all active sessions for this account — the whole point is
         # that after a reset only the NEW password works anywhere.
         try:
             from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
@@ -562,7 +562,7 @@ class ChangePasswordView(APIView):
         user.save(update_fields=["password"])
 
         # Revoke every session (this one included) so the user must log in
-        # again with the new password â€” the old password stops working
+        # again with the new password — the old password stops working
         # everywhere, immediately.
         try:
             from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
