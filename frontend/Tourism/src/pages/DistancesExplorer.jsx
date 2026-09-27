@@ -81,7 +81,7 @@ export default function DistancesExplorer() {
       })
       .filter((p) => p.km != null)
       .sort((a, b) => a.km - b.km)
-  }, [points, origin?.lat, origin?.lng])
+  }, [points, origin])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
