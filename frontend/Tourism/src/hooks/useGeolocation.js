@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
+import { validateGpsPosition } from "../utils/placeUtils"
 
 /**
  * Browser geolocation with honest state separation.
@@ -33,13 +34,24 @@ const useGeolocation = ({ auto = true } = {}) => {
     setLocating(true)
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setPosition({
+        const candidate = {
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
           accuracy: pos.coords.accuracy ?? null,
           altitude: pos.coords.altitude ?? null,
           speed: pos.coords.speed ?? null,
           heading: pos.coords.heading ?? null,
+        }
+        const validation = validateGpsPosition(candidate)
+        if (!validation.valid) {
+          setPosition(null)
+          setError(validation.reason)
+          setCode(3)
+          setLocating(false)
+          return
+        }
+        setPosition({
+          ...candidate,
         })
         setError(null)
         setCode(null)
