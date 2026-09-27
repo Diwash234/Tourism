@@ -24,7 +24,7 @@ export function getRedirectUri(provider) {
 export function getGoogleAuthUrl() {
   const clientId = googleClientId()
   if (!looksConfigured(clientId)) {
-    return `${window.location.origin}/auth/callback/google?code=demo_google_oauth_user`
+    return `${window.location.origin}/auth/callback/google?oauth_error=not_configured`
   }
   const params = new URLSearchParams({
     client_id: clientId,
@@ -40,7 +40,7 @@ export function getGoogleAuthUrl() {
 export function getGithubAuthUrl() {
   const clientId = githubClientId()
   if (!looksConfigured(clientId)) {
-    return `${window.location.origin}/auth/callback/github?code=demo_github_oauth_user`
+    return `${window.location.origin}/auth/callback/github?oauth_error=not_configured`
   }
   const params = new URLSearchParams({
     client_id: clientId,
