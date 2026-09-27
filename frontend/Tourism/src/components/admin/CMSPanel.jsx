@@ -7,8 +7,8 @@ import useToast from "../../hooks/useToast"
 import RichTextEditor from "./RichTextEditor"
 import CMSBlock, { CMSExtras } from "../cms/CMSBlock"
 
-const resources = ["pages", "sections", "navigation", "settings", "translations"]
-const RESOURCE_LABELS = { pages: "Pages", sections: "Sections", navigation: "Header, Navigation & Menus", settings: "Site Settings & Branding", translations: "Translations" }
+const resources = ["pages", "sections", "navigation", "settings", "translations", "hotels", "hospitals", "police_stations"]
+const RESOURCE_LABELS = { pages: "Pages", sections: "Sections", navigation: "Header, Navigation & Menus", settings: "Site Settings & Branding", translations: "Translations", hotels: "Hotels", hospitals: "Hospitals", police_stations: "Police Stations" }
 const sectionTypes = ["text", "heading", "image", "gallery", "cards", "faq", "cta", "map", "video", "audio", "marquee", "animation", "media", "form", "table", "figure", "testimonials", "contact", "breadcrumbs", "search"]
 const fallbackTemplates = {
   blank: { label: "Blank" },
@@ -26,6 +26,9 @@ const templates = {
   sections: { page_id: null, key: "new-section", title: "New section", subtitle: "", body: "", image_url: "", cta_text: "", cta_url: "", icon: "", section_type: "text", layout_variant: "default", config: {}, display_order: 0, is_visible: true, is_reusable: false, status: "draft" },
   navigation: { location: "navbar", label: "New link", route: "/", icon: "", parent_id: null, allowed_roles: [], display_order: 0, is_active: true },
   translations: { target_resource: "pages", object_id: null, language_code: "ne", content: { title: "" } },
+  hotels: { destination_id: null, name: "", phone: "", price_per_night: "", currency: "NPR", rating: "", booking_status: "unknown", booking_url: "", external_image_url: "", facilities: [], address: "", latitude: "", longitude: "", source: "manual", source_url: "", website: "", is_verified: false, is_active: true },
+  hospitals: { destination_id: null, name: "", address: "", phone: "", latitude: "", longitude: "", district: "", opening_hours: "", emergency_available: false, source_name: "", source_url: "", website: "", is_verified: false, is_archived: false },
+  police_stations: { destination_id: null, name: "", address: "", phone: "", latitude: "", longitude: "", opening_hours: "", emergency_available: false, source_name: "", source_url: "", website: "", is_verified: false, is_archived: false },
 }
 const clean = (row) => Object.fromEntries(Object.entries(row || {}).filter(([key]) => !["updated_at", "published_at", "scheduled_publish_at"].includes(key)))
 const displayName = (row) => {
@@ -947,6 +950,42 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
     </div>
   )
   if (resource === "navigation") return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2"><label className="text-xs font-semibold text-slate-700">Location<select className="input-field mt-1" value={value.location || "navbar"} onChange={e => set("location", e.target.value)}><option>navbar</option><option>sidebar</option><option>footer</option></select></label>{field("label", "Visible label")}{field("route", "Internal route")}{field("parent_id", "Parent item ID")}{field("icon", "Icon")}{field("display_order", "Display order", "number")}<label className="text-xs font-semibold text-slate-700">Allowed roles (comma separated)<input className="input-field mt-1" value={(value.allowed_roles || []).join(", ")} onChange={e => set("allowed_roles", e.target.value.split(",").map(x => x.trim()).filter(Boolean))} /></label>{field("is_active", "Active", "checkbox")}</div>
+  if (["hotels", "hospitals", "police_stations"].includes(resource)) {
+    const isHotel = resource === "hotels"
+    return (
+      <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">
+        {field("destination_id", "Destination ID", "number")}
+        {field("name", isHotel ? "Hotel name" : resource === "hospitals" ? "Hospital name" : "Police station name")}
+        {field("address", "Address")}
+        {field("phone", "Phone number", "tel")}
+        {field("latitude", "Latitude", "number")}
+        {field("longitude", "Longitude", "number")}
+        {!isHotel && field("district", "District")}
+        {field("opening_hours", "Opening / availability hours")}
+        {field("website", "Website URL")}
+        {field("source_url", "Verification/source URL")}
+        {field("source_name", "Source / authority")}
+        {isHotel && <>
+          {field("price_per_night", "Price per night", "number")}
+          {field("currency", "Currency")}
+          {field("rating", "Rating", "number")}
+          <label className="text-xs font-semibold text-slate-700">Booking status
+            <select className="input-field mt-1" value={value.booking_status || "unknown"} onChange={e => set("booking_status", e.target.value)}>
+              <option value="unknown">Unknown</option><option value="available">Available</option><option value="unavailable">Unavailable</option>
+            </select>
+          </label>
+          {field("booking_url", "Booking URL")}
+          {field("external_image_url", "Hotel image URL")}
+          <label className="text-xs font-semibold text-slate-700 sm:col-span-2">Facilities (JSON array)
+            <textarea rows="3" className="input-field mt-1 font-mono" value={JSON.stringify(value.facilities || [], null, 2)} onChange={e => { try { set("facilities", JSON.parse(e.target.value)) } catch { /* keep until valid */ } }} />
+          </label>
+        </>}
+        <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={Boolean(value.emergency_available)} onChange={e => set("emergency_available", e.target.checked)} /> Emergency service available</label>
+        <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={Boolean(value.is_verified)} onChange={e => set("is_verified", e.target.checked)} /> Verified</label>
+        <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={Boolean(isHotel ? value.is_active : !value.is_archived)} onChange={e => set(isHotel ? "is_active" : "is_archived", isHotel ? e.target.checked : !e.target.checked)} /> Public/active</label>
+      </div>
+    )
+  }
   if (resource === "translations") return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">{field("target_resource", "Target type")}{field("object_id", "Target record ID", "number")}{field("language_code", "Language code")}<label className="text-xs font-semibold text-slate-700">Translated fields<textarea rows="5" className="input-field mt-1 font-mono" value={JSON.stringify(value.content || {}, null, 2)} onChange={e => { try { set("content", JSON.parse(e.target.value)) } catch { /* keep until valid */ } }} /></label></div>
   return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">{field("key", "Setting key")}{field("description", "Description")}{field("is_public", "Public setting", "checkbox")}<label className="text-xs font-semibold text-slate-700">Structured value<textarea rows="6" className="input-field mt-1 font-mono" value={JSON.stringify(value.value || {}, null, 2)} onChange={e => { try { set("value", JSON.parse(e.target.value)) } catch { /* keep until valid */ } }} /></label></div>
 }
