@@ -275,7 +275,7 @@ class AdminEmergencyDirectoryView(APIView):
             obj.is_archived = True
         elif action == "restore":
             obj.is_archived = False
-        for field in ("name", "phone", "address", "opening_hours", "source_name"):
+        for field in ("name", "phone", "address", "opening_hours", "source_name", "website"):
             if field in request.data:
                 value = str(request.data.get(field) or "").strip()
                 if field == "phone" and kind in {"hospital", "police"} and not value:
@@ -288,6 +288,11 @@ class AdminEmergencyDirectoryView(APIView):
             if source_url and not source_url.startswith("https://"):
                 return Response({"detail": "source_url must use HTTPS"}, status=400)
             obj.source_url = source_url
+        if "website" in request.data:
+            website = str(request.data.get("website") or "").strip()
+            if website and not website.startswith("https://"):
+                return Response({"detail": "website must use HTTPS"}, status=400)
+            obj.website = website[:600]
         if "latitude" in request.data or "longitude" in request.data:
             try:
                 latitude = float(request.data.get("latitude", obj.latitude))
