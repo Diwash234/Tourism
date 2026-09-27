@@ -151,7 +151,7 @@ class Command(BaseCommand):
                 seen = set()
                 for hit in hits:
                     score = _hotel_score(hit, h)
-                    if score < 1.0 or hit.source not in ("wikimedia", "openverse"):
+                    if score < 1.0 or hit.source not in ("wikimedia", "duckduckgo", "openverse"):
                         continue
                     if hit.url in seen or not _is_live_image(hit.url):
                         continue
