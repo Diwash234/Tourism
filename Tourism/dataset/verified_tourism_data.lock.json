@@ -2,11 +2,11 @@
   "artifacts": {
     "database": {
       "path": "downloads/nepal-tourism-database.sqlite3.gz",
-      "sha256": "9151c2acd635973ba6ce344f9f7f4a7d63c4dc1fa941614830a362393f26980a"
+      "sha256": "1b01dd2792b28d480db9176a9406866eaf8d1d071561d40da2c86678c61daf64"
     },
     "json": {
       "path": "Tourism/dataset/verified_tourism_data.json",
-      "sha256": "10e43878e4ef7b7a56614191bc51b9a7686060a5ac19b52136aa734c7b691273"
+      "sha256": "46d126b48a48242a245211cc5f89ab18041ef5d78f6b37972b180565aee2e2c6"
     }
   },
   "as_of": "2026-09-26T00:00:00+00:00",
@@ -24,12 +24,12 @@
     "tourist.managednavigationitem": 59,
     "tourist.managedpage": 97,
     "tourist.osmessentialservice": 1997,
-    "tourist.policestation": 801,
+    "tourist.policestation": 800,
     "tourist.province": 7,
     "tourist.restaurant": 265
   },
   "format": "nepal-yatra-public-data-snapshot-lock",
   "format_version": 1,
-  "minimum_tourist_migration": "0092_merge_main_handoff",
-  "records_sha256": "c07fbfd7bf87313e21d5780fba2ec40012a45b6e7758cee4b69bfab32d8c4829"
+  "minimum_tourist_migration": "0093_archive_duplicate_baidam_police_station",
+  "records_sha256": "b5715ac091b65e439ac58255cad0e6c2c0940d4f9cfaba6e5951167a9db5eeaa"
 }

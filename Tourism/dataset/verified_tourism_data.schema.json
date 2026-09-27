@@ -30,7 +30,7 @@
       ]
     },
     "minimum_tourist_migration": {
-      "const": "0092_merge_main_handoff"
+      "const": "0093_archive_duplicate_baidam_police_station"
     },
     "as_of": {
       "type": "string",

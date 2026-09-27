@@ -425,7 +425,9 @@ DEFAULT_LANGUAGE_CODE = config("DEFAULT_LANGUAGE_CODE", default="en")
 # ------------------------------------------------------------------
 # GeoIP (IP based geolocation fallback when browser GPS is unavailable)
 # ------------------------------------------------------------------
-GEOIP_PROVIDER_URL = config("GEOIP_PROVIDER_URL", default="http://ip-api.com/json/{ip}")
+# Optional IP geolocation fallback. It is disabled unless the operator provides
+# an HTTPS endpoint; never silently send visitor IPs over plain HTTP.
+GEOIP_PROVIDER_URL = config("GEOIP_PROVIDER_URL", default="")
 
 # ------------------------------------------------------------------
 # Weather / Alerts external API (OpenWeatherMap etc.)
@@ -523,7 +525,7 @@ ROUTING_API_URL = config("ROUTING_API_URL", default="")
 # unreachable the endpoints fall back to the bundled tourism graph and,
 # last, to an explicitly-labelled straight-line estimate.
 ROUTING_PROVIDER = config("ROUTING_PROVIDER", default="osrm")
-ROUTING_BASE_URL = config("ROUTING_BASE_URL", default="")
+ROUTING_BASE_URL = config("ROUTING_BASE_URL", default=ROUTING_API_URL)
 ROUTING_TIMEOUT = config("ROUTING_TIMEOUT", default=6, cast=float)
 ROUTING_MAX_RETRIES = config("ROUTING_MAX_RETRIES", default=2, cast=int)
 ROUTING_CACHE_TTL = config("ROUTING_CACHE_TTL", default=600, cast=int)

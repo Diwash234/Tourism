@@ -14,7 +14,7 @@
     "tourist.managednavigationitem": 59,
     "tourist.managedpage": 97,
     "tourist.osmessentialservice": 1997,
-    "tourist.policestation": 801,
+    "tourist.policestation": 800,
     "tourist.province": 7,
     "tourist.restaurant": 265
   },
@@ -24,7 +24,7 @@
     "destination": "slug plus external_id; numeric Django IDs are snapshot-local and must never merge separate databases",
     "related_records": "foreign keys are valid only inside this matched JSON/database pair"
   },
-  "minimum_tourist_migration": "0092_merge_main_handoff",
+  "minimum_tourist_migration": "0093_archive_duplicate_baidam_police_station",
   "policy": {
     "destinations": "active, approved, non-user-submitted, sourced records with valid Nepal coordinates",
     "images": "approved external images that are verified and destination-specific; AI/user uploads excluded; moderation scores are not required and are never invented",
@@ -505558,26 +505558,6 @@
     {
       "fields": {
         "address": "Kaski, Nepal",
-        "destination": 1088,
-        "emergency_available": true,
-        "is_archived": false,
-        "is_verified": false,
-        "latitude": "28.215000",
-        "longitude": "83.956000",
-        "name": "Police Station Baidam",
-        "opening_hours": "",
-        "phone": "",
-        "source_name": "Imported project dataset (not yet verified)",
-        "source_url": "",
-        "updated_at": "2026-09-20T14:42:13.577Z",
-        "verified_at": null
-      },
-      "model": "tourist.policestation",
-      "pk": 223
-    },
-    {
-      "fields": {
-        "address": "Kaski, Nepal",
         "destination": 2099,
         "emergency_available": true,
         "is_archived": false,
@@ -576644,5 +576624,5 @@
       "pk": 65
     }
   ],
-  "records_sha256": "c07fbfd7bf87313e21d5780fba2ec40012a45b6e7758cee4b69bfab32d8c4829"
+  "records_sha256": "b5715ac091b65e439ac58255cad0e6c2c0940d4f9cfaba6e5951167a9db5eeaa"
 }

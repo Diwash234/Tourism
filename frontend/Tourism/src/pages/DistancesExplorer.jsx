@@ -150,6 +150,20 @@ export default function DistancesExplorer() {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19,
     }).addTo(map)
+    // Leaflet represents zoom controls as anchors with a placeholder href.
+    // They are controls, not navigation links; remove the fake URL so the
+    // rendered audit does not report empty links while preserving keyboard use.
+    mapElRef.current.querySelectorAll(".leaflet-control-zoom a[href=\"#\"]").forEach((control) => {
+      control.removeAttribute("href")
+      control.setAttribute("role", "button")
+      control.setAttribute("tabindex", "0")
+      if (!control.getAttribute("aria-label")) {
+        control.setAttribute(
+          "aria-label",
+          control.classList.contains("leaflet-control-zoom-in") ? "Zoom in" : "Zoom out",
+        )
+      }
+    })
     mapRef.current = map
     return () => {
       map.remove()

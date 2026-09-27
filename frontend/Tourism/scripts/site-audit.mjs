@@ -59,7 +59,10 @@ const collect = () => {
     badAlt: [...document.querySelectorAll("img[alt]")].filter((i) => /^(image|photo|picture|img[_-]?\d*|untitled)$/i.test(i.alt.trim())).map((i) => i.alt).slice(0, 5),
     unnamedButtons: [...document.querySelectorAll("button, [role=button]")].filter((b) => visible(b) && !name(b)).map((b) => b.outerHTML.slice(0, 120)).slice(0, 6),
     unnamedLinks: [...document.querySelectorAll("a[href]")].filter((a) => visible(a) && !name(a)).map((a) => a.outerHTML.slice(0, 120)).slice(0, 6),
-    emptyLinks: [...document.querySelectorAll("a")].filter((a) => visible(a) && (!a.getAttribute("href") || a.getAttribute("href") === "#")).map((a) => a.outerHTML.slice(0, 120)).slice(0, 6),
+    // A few map libraries implement zoom controls as labelled anchors. Once
+    // they carry role=button they are controls, not navigation links; audit
+    // them through unnamedButtons instead of flagging their placeholder URL.
+    emptyLinks: [...document.querySelectorAll("a")].filter((a) => visible(a) && a.getAttribute("role") !== "button" && (!a.getAttribute("href") || a.getAttribute("href") === "#")).map((a) => a.outerHTML.slice(0, 120)).slice(0, 6),
     unlabelledInputs: [...document.querySelectorAll("input:not([type=hidden]), select, textarea")].filter((i) => visible(i)
       && !i.getAttribute("aria-label") && !i.getAttribute("aria-labelledby") && !(i.id && document.querySelector(`label[for="${CSS.escape(i.id)}"]`)) && !i.closest("label")).map((i) => i.outerHTML.slice(0, 120)).slice(0, 6),
     internalLinks: [...new Set([...document.querySelectorAll("a[href^='/']")].map((a) => a.getAttribute("href").split("#")[0]))],

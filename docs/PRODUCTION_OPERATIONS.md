@@ -15,13 +15,14 @@ DHM_API_KEY=
 BIPAD_FEED_URL=
 BIPAD_API_KEY=
 EXTERNAL_SYNC_TIMEOUT=15
+ROUTING_BASE_URL=
 ROUTING_API_URL=
 ROUTING_API_KEY=
 ```
 
 Feed URLs must return the normalized `records` schema accepted by `risk_ingestion.py`. Configure them only after the authority confirms endpoint access and data-use conditions.
 
-The bundled `ml_service/model/route/nepal_graph.graphml` is used automatically when `LOCAL_GRAPH_ROUTING_ENABLED=True`. It returns an approximate graph route, route distance, duration and polyline, but is explicitly not labeled as street-level road distance. `ROUTING_API_URL` can optionally expose an OSRM-compatible `/route/v1/driving/...` API for true road metrics. If neither backend can route the coordinates, the application returns `road_distance_km: null` and labels the displayed value as straight-line distance.
+The bundled `ml_service/model/route/nepal_graph.graphml` is used automatically when `LOCAL_GRAPH_ROUTING_ENABLED=True`. It returns an approximate graph route, route distance, duration and polyline, but is explicitly not labeled as street-level road distance. `ROUTING_BASE_URL` (with `ROUTING_API_URL` retained as a compatibility alias) can expose an OSRM-compatible `/route/v1/driving/...` API for true road metrics. If neither backend can route the coordinates, the application returns `road_distance_km: null` and labels the displayed value as straight-line distance.
 
 ## Scheduled jobs
 

@@ -34,7 +34,7 @@ const sections = [
     body: (
       <>
         <p>Like most websites, our server logs requests. Security and audit logs record the time, the action, your account (if signed in), your IP address and browser type, so we can investigate misuse and errors.</p>
-        <p>If a page needs your approximate location and your browser has not shared it (for example a nearby search without location permission), our server looks up your IP address with a GeoIP service (ip-api.com by default) to estimate your city. This happens only for that request, never on every visit, and never for private network addresses.</p>
+        <p>If a page needs your approximate location and your browser has not shared it (for example a nearby search without location permission), the site may look up your IP address with an operator-configured HTTPS GeoIP service to estimate your city. This is disabled unless the site operator configures that secure service, happens only for that request, and never runs for private network addresses.</p>
         <p>We do not use analytics, advertising or tracking cookies, and we do not build advertising profiles. See the <Link className="ny-legal-link" to="/cookie-policy">Cookie Policy</Link> for what is stored in your browser.</p>
       </>
     ),
@@ -69,7 +69,7 @@ const sections = [
           ["Firebase Cloud Messaging (Google)", "Push notifications", "Your device token and the notification"],
           ["OpenAI, Google Gemini or Groq", "The travel assistant, when enabled", "The messages you type in the chat"],
           ["Google Cloud Translation", "The translation tool, when enabled", "The text you ask to translate"],
-          ["ip-api.com (GeoIP)", "Approximate location without GPS", "Your IP address, only when needed (see above)"],
+          ["Configured HTTPS GeoIP provider", "Approximate location without GPS", "Your IP address, only when the operator enables it (see above)"],
           ["OpenStreetMap Nominatim and Overpass; a routing (OSRM) server", "Place search, nearby places, routes", "The place names or coordinates of the search"],
         ]} />
         <p>Weather, exchange rates and elevation are fetched for destination coordinates only, not for you.</p>

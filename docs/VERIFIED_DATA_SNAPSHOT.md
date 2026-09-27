@@ -129,14 +129,14 @@ emergency page shows no pharmacies near Pokhara.
 |---|---|
 | Policy version | 2 |
 | Cutoff (`--as-of`) | `2026-09-26T00:00:00Z` |
-| Source database | local runtime DB migrated through `0092_merge_main_handoff` (online SQLite backup, read-only) |
-| JSON records | 12,586 |
+| Source database | local runtime DB migrated through `0093_archive_duplicate_baidam_police_station` (online SQLite backup, read-only) |
+| JSON records | 12,585 |
 | Destinations | 6,075 |
 | Destination images | 409 (eligible under the explicit approval media gate) |
 | Hotels | 2,322 (all unverified, labelled; 26 hospitals misfiled as hotels archived by migration 0085) |
 | Restaurants | 265 |
 | Hospitals | 362 (111 templated placeholder phone numbers such as `…-520123` blanked by migration 0085 — shown as "Phone unavailable") |
-| Police stations | 801 (788 "nan" phone markers blanked by migration 0085_handoff_clear_missing_marker_phones; 8 have a recorded number) |
+| Police stations | 800 active (788 "nan" phone markers blanked by migration 0085_handoff_clear_missing_marker_phones; duplicate row 223 archived by migration 0093; 8 have a recorded number) |
 | OSM essential services | 1,997 (banks 838, ATMs 346, hospitals 381, pharmacies 351, police 81) |
 | Districts / provinces | 77 / 7 |
 | CMS | 97 page records; 27 new route records added by migration 0091; 34 seeded placeholder sections hidden (migration 0081) |

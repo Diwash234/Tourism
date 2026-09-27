@@ -3870,7 +3870,7 @@ class OpsLayerTests(TestCase):
         "EMAIL_HOST_USER": "smtp-user",
         "EMAIL_HOST_PASSWORD": "smtp-password",
         "DEFAULT_FROM_EMAIL": "no-reply@tourism.example.org",
-        "ROUTING_API_URL": "https://router.example.org",
+        "ROUTING_BASE_URL": "https://router.example.org",
     }
     POSTGRES = {"default": {"ENGINE": "django.db.backends.postgresql", "NAME": "tourism"}}
 
@@ -3902,19 +3902,31 @@ class OpsLayerTests(TestCase):
         self.assertIn("RESULT: FAIL", text)
         self.assertIn("SMTP", text)
 
+    def test_config_validator_blocks_plain_http_geoip_provider(self):
+        import io
+        from django.core.management import call_command
+        out = io.StringIO()
+        shape = {**self.PRODUCTION_SHAPE, "GEOIP_PROVIDER_URL": "http://geo.example/{ip}"}
+        with self.settings(**shape, DATABASES=self.POSTGRES):
+            with self.assertRaises(SystemExit):
+                call_command("validate_production_config", stdout=out)
+        text = out.getvalue()
+        self.assertIn("RESULT: FAIL", text)
+        self.assertIn("GEOIP_PROVIDER_URL must be an HTTPS URL", text)
+
     def test_config_validator_blocks_missing_routing_provider(self):
         """Without a road-routing provider the site must not be allowed to claim
         verified street-level routing."""
         import io
         from django.core.management import call_command
         out = io.StringIO()
-        shape = {**self.PRODUCTION_SHAPE, "ROUTING_API_URL": ""}
+        shape = {**self.PRODUCTION_SHAPE, "ROUTING_BASE_URL": ""}
         with self.settings(**shape, DATABASES=self.POSTGRES):
             with self.assertRaises(SystemExit):
                 call_command("validate_production_config", stdout=out)
         text = out.getvalue()
         self.assertIn("RESULT: FAIL", text)
-        self.assertIn("ROUTING_API_URL", text)
+        self.assertIn("ROUTING_BASE_URL", text)
         self.assertIn("verified road routing", text)
 
     def test_config_validator_passes_on_production_shape(self):

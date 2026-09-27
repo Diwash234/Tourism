@@ -4,14 +4,15 @@ FAIL (exit 1) when any critical is true:
   DEBUG=True; SECRET_KEY weak/placeholder; permissive ALLOWED_HOSTS;
   CORS_ALLOW_ALL_ORIGINS with DEBUG off; SQLite database in production;
   default/missing ML service credentials.
-WARN for: unconfigured OAuth providers, no routing provider, missing
-  backups dir or stale backups, insecure session cookies.
+WARN for: unconfigured OAuth providers, missing backups dir or stale backups,
+  insecure session cookies. FAIL for missing road-routing configuration.
 
 Usage: python manage.py validate_production_config [--json]
 """
 import json
 import os
 from pathlib import Path
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
@@ -99,6 +100,16 @@ class Command(BaseCommand):
         else:
             warns.append(f"Email backend is {email_backend or 'unset'}: verify that it performs real delivery")
 
+        geoip_url = str(getattr(settings, "GEOIP_PROVIDER_URL", "") or "").strip()
+        if geoip_url:
+            parsed_geoip = urlparse(geoip_url)
+            if parsed_geoip.scheme != "https" or not parsed_geoip.netloc:
+                fails.append("GEOIP_PROVIDER_URL must be an HTTPS URL when enabled")
+            else:
+                oks.append("GeoIP provider uses HTTPS")
+        else:
+            oks.append("GeoIP fallback disabled until an HTTPS provider is configured")
+
         for provider, cid in (("Google", getattr(settings, "GOOGLE_CLIENT_ID", "")),
                               ("GitHub", getattr(settings, "GITHUB_CLIENT_ID", ""))):
             if not cid:
@@ -106,10 +117,15 @@ class Command(BaseCommand):
             else:
                 oks.append(f"{provider} OAuth credentials present")
 
-        if getattr(settings, "ROUTING_API_URL", ""):
-            oks.append("Production road-routing provider configured")
+        routing_url = str(getattr(settings, "ROUTING_BASE_URL", "") or getattr(settings, "ROUTING_API_URL", "") or "").strip()
+        if routing_url:
+            parsed_routing = urlparse(routing_url)
+            if parsed_routing.scheme not in {"https", "http"} or not parsed_routing.netloc:
+                fails.append("ROUTING_BASE_URL must be a valid OSRM provider URL")
+            else:
+                oks.append("Production road-routing provider configured")
         else:
-            fails.append("ROUTING_API_URL is empty: production navigation cannot claim verified road routing")
+            fails.append("ROUTING_BASE_URL is empty: production navigation cannot claim verified road routing")
 
         backups_dir = Path(str(settings.BASE_DIR)) / "backups"
         if not backups_dir.exists() or not any(backups_dir.glob("*.gz")):

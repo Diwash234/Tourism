@@ -387,3 +387,30 @@ class CMSCoversEveryPageTests(TestCase):
         cookie = [r for r in reports if r["key"] == "cookie-policy"][0]
         self.assertIn("unpublished_changes", [w["code"] for w in cookie["warnings"]])
         self.assertEqual(cookie["checks"]["published"], "warn")
+
+
+class SecureExternalConfigurationTests(TestCase):
+    def test_geoip_plain_http_is_disabled_without_a_network_call(self):
+        from unittest.mock import patch
+        from tourist.utils import geoip_lookup
+
+        cache.clear()
+        with override_settings(GEOIP_PROVIDER_URL="http://ip-api.com/json/{ip}"):
+            with patch("tourist.utils.requests.get") as request:
+                self.assertIsNone(geoip_lookup("8.8.8.8", blocking=True))
+                request.assert_not_called()
+
+    def test_geoip_uses_an_explicit_https_provider_when_configured(self):
+        from unittest.mock import Mock, patch
+        from tourist.utils import geoip_lookup
+
+        cache.clear()
+        response = Mock()
+        response.json.return_value = {
+            "country": "Nepal", "city": "Kathmandu", "lat": 27.7172, "lon": 85.3240,
+        }
+        with override_settings(GEOIP_PROVIDER_URL="https://geo.example.test/{ip}"):
+            with patch("tourist.utils.requests.get", return_value=response) as request:
+                result = geoip_lookup("8.8.4.4", blocking=True)
+        self.assertEqual(result["city"], "Kathmandu")
+        request.assert_called_once_with("https://geo.example.test/8.8.4.4", timeout=3)

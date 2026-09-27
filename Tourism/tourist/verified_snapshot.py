@@ -82,7 +82,7 @@ from tourist.models import (
 SNAPSHOT_FORMAT = "nepal-yatra-public-data-snapshot"
 SNAPSHOT_VERSION = 1
 POLICY_VERSION = 2
-MINIMUM_TOURIST_MIGRATION = "0092_merge_main_handoff"
+MINIMUM_TOURIST_MIGRATION = "0093_archive_duplicate_baidam_police_station"
 
 # Bounds are intentionally a coarse validity gate, not geocoding.  A value
 # outside Nepal is not silently corrected or guessed in a public snapshot.

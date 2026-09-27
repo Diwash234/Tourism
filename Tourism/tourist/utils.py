@@ -190,7 +190,17 @@ def _geoip_lookup_sync(ip_address, cache_key):
     from django.core.cache import cache
 
     try:
-        url = settings.GEOIP_PROVIDER_URL.format(ip=ip_address)
+        provider = str(getattr(settings, "GEOIP_PROVIDER_URL", "") or "").strip()
+        if not provider:
+            cache.set(cache_key, None, 60 * 60)
+            return None
+        from urllib.parse import urlparse
+        parsed = urlparse(provider)
+        if parsed.scheme != "https" or not parsed.netloc:
+            logger.error("GeoIP provider is disabled because it is not an HTTPS URL")
+            cache.set(cache_key, None, 60 * 60)
+            return None
+        url = provider.format(ip=ip_address)
         response = requests.get(url, timeout=3)
         data = response.json()
         if data.get("status") == "fail":
@@ -217,8 +227,9 @@ def _geoip_lookup_sync(ip_address, cache_key):
 
 def geoip_lookup(ip_address, blocking=True):
     """
-    Resolve an IP address to country/city/lat/lon using a free GeoIP HTTP
-    provider (default: ip-api.com). Returns None on failure so callers can
+    Resolve an IP address to country/city/lat/lon using an operator-configured
+    HTTPS GeoIP provider. The feature is disabled when no provider is configured
+    and never falls back to plain HTTP. Returns None on failure so callers can
     gracefully degrade.
 
     FIX (2026-09): results are cached for 24h. The GeoIPMiddleware calls

@@ -28,16 +28,16 @@ provenance) are listed there.
 
 | Check | Result |
 |---|---|
-| Backend CI job, reproduced step by step from `ci.yml` | `manage.py check` ✓ · published snapshot verification ✓ · fresh-clone seed install + `migrate --check` ✓ (seed archive rebuilt at migration `0092_merge_main_handoff`) · **819 tests passed, 0 failed** (`manage.py test --parallel 1`, 2026-09-27, after migration conflict resolution). Live NRB fetches are switched off under `manage.py test` (`FX_AUTO_REFRESH`), so results never depend on the network or on today's rate. `ml_service/test_api_bounds.py`: 11 passed (unchanged since). |
+| Backend CI job, reproduced step by step from `ci.yml` | `manage.py check` ✓ · published snapshot verification ✓ · fresh-clone seed install + `migrate --check` ✓ (seed archive rebuilt at migration `0093_archive_duplicate_baidam_police_station`) · **822 tests passed, 0 failed** (`manage.py test --parallel 1`, 2026-09-27, after migration conflict resolution). Live NRB fetches are switched off under `manage.py test` (`FX_AUTO_REFRESH`), so results never depend on the network or on today's rate. `ml_service/test_api_bounds.py`: 11 passed (unchanged since). |
 | ESLint (`npm run lint`, i.e. `eslint .` as in CI) | **0 errors, 255 existing warnings** (2026-09-27). |
 | `npm run verify:charts` · `npm run build` | Both OK. Canonical/OG tags only appear when `VITE_SITE_URL` is an https origin. |
 | Layout e2e (`e2e/layout.spec.js`) | **266/266 passed** against the full 6,075-destination seeded dataset at 19 routes × 14 widths, Chromium, 2 workers (2026-09-27, 20.5 min). The overlap audit uses client-rect fragments so wrapped inline links are measured as rendered rather than as a false union box. |
-| Runtime sweep | Not rerun in this merge; the seeded live browser checks below cover the final UI shell and layout. The authenticated CMS and account-deletion checks are covered below with disposable accounts; the broader authenticated runtime sweep remains an owner-run production check. |
+| Runtime sweep | The final seeded live browser checks cover the affected public routes and UI shell. The authenticated CMS and account-deletion checks are covered below with disposable accounts; a broader authenticated production sweep remains an owner-run check. |
 
 | CMS check (`scripts/cms-check.mjs`) | **29/29 passed** in Chromium with a disposable admin on the seeded live app; CMS edits were discarded by reinstalling the public seed afterward. |
-| Rendered site audit (`scripts/site-audit.mjs`) | Not rerun in this merge; the full 266-case layout suite and the interaction check were run in Chromium against the seeded live app. |
-| Interaction check (`scripts/interaction-check.mjs`) | **29/29** in Chromium against the seeded live app with a disposable account: cookie choice (equal-weight options, no YouTube/Vimeo request before consent, persistence, settings reopen + focus), mobile drawer, labelled auth forms, both unsubscribe paths, protected-session persistence, and account deletion refusal/success/sign-out. The account was removed and the seed reinstalled afterward. |
-| Shared data snapshot | Rebuilt and verified: 12,586 records (97 CMS page records; 409 images under the explicit approval media gate). JSON and SQLite are semantically equal. See `docs/VERIFIED_DATA_SNAPSHOT.md`. |
+| Rendered site audit (`scripts/site-audit.mjs`) | **8 route/width checks passed** for `/nearby-places`, `/navigation`, `/distances` and `/destinations` at 375 and 1280 px: no overflow, missing alt text, unnamed controls, empty links or unlabelled inputs. Each route also reported one external OSM tile network error (`ERR_CONNECTION_CLOSED`), not an application error. |
+| Interaction check (`scripts/interaction-check.mjs`) | **22/22** in Chromium against the seeded live app: cookie choice (equal-weight options, no YouTube/Vimeo request before consent, persistence, settings reopen + focus), mobile drawer, labelled auth forms and both unsubscribe paths. |
+| Shared data snapshot | Rebuilt and verified: 12,585 records (97 CMS page records; 409 images under the explicit approval media gate). JSON and SQLite are semantically equal. See `docs/VERIFIED_DATA_SNAPSHOT.md`. |
 
 ## Website audit (2026-09-26)
 
@@ -89,8 +89,9 @@ Only items verified in the rendered app or by tests are listed as fixed.
   `position: sticky` elements start sticking (an `overflow` ancestor currently
   disables that), which changes layouts site-wide and needs a visual review.
   No audited public route needs it any more.
-- Leaflet's zoom controls use `href="#"` with `role="button"`; that is the
-  library's keyboard-operable markup, not a broken link.
+- Leaflet zoom controls are normalized at runtime to labelled, keyboard-operable
+  `role="button"` controls. The rendered audit excludes those controls from its
+  empty-navigation-link check.
 
 **Needs the owner (cannot be decided in code)**
 
@@ -102,8 +103,10 @@ Only items verified in the rendered app or by tests are listed as fixed.
   `docs/ASSET_LICENSING.md`.
 - Admin image tools (DuckDuckGo search, Pollinations AI generation) carry
   licensing risk.
-- GeoIP lookups use plain HTTP to ip-api.com.
-- Police station rows 222 and 223 are duplicates in the data (the API dedupes).
+- GeoIP/routing production configuration is validated by `validate_production_config`;
+  the check fails closed when a production-safe provider URL or key is absent.
+- Police station duplicate ID 223 is archived by migration 0093; canonical data
+  retains ID 222 and the lock records 800 active police stations.
 
 ## CMS coverage (2026-09-26)
 
@@ -150,7 +153,7 @@ before this work (`/districts` uses `DistrictsIndex.jsx`); it was kept.
   with its own CMS area.
 - The health report covers every page and warns about unpublished edits
   (`unpublished_changes`).
-- Seed archive rebuilt at `0092_merge_main_handoff`.
+- Seed archive rebuilt at `0093_archive_duplicate_baidam_police_station`.
 
 **Not covered, by design.** `/auth/callback/:provider` (a sign-in redirect
 handler with no content), `/page/:slug` (it *is* the renderer for admin-made
@@ -214,8 +217,9 @@ deeper feature testing than that.
 
 - **111 templated hospital phone numbers blanked**, e.g. `+977-037-520123`, `089-420123` and `87520123.0`. These are area code plus a repeated `[4-6]x0123` template from the original project CSV, not real numbers. Migration `0085`, with a display guard in `tourist/phone_quality.py`. They now show "Phone unavailable". Verified records were not touched.
 - **26 hospitals misfiled as hotels archived**, e.g. "Bir Hospital" with a phone number in the address field. They are archived, not deleted. Medical-college hostels remain as lodging.
+- **Confirmed duplicate police listing archived.** Rows 222 and 223 were the same recorded Police Station Baidam coordinates; the specific Baidam-address row 222 remains public, while row 223 is archived for audit by migration `0093_archive_duplicate_baidam_police_station`.
 - **"0.00" rating badges removed.** Unrated destinations no longer display a 0-star rating.
-- **788 police stations and 33 hospitals had the phone "nan"**, a leftover of the spreadsheet import, shown on district pages as "Police Station Kathmandu · nan". Migration `0085_handoff_clear_missing_marker_phones` blanks them, and a model-level guard stops future imports storing them. Only 8 of 801 police stations have a recorded direct number, so pages point to national hotline 100 and Tourist Police 1144.
+- **788 police stations and 33 hospitals had the phone "nan"**, a leftover of the spreadsheet import, shown on district pages as "Police Station Kathmandu · nan". Migration `0085_handoff_clear_missing_marker_phones` blanks them, and a model-level guard stops future imports storing them. Only 8 of 800 active police stations have a recorded direct number, so pages point to national hotline 100 and Tourist Police 1144.
 - **Superusers were labelled "Traveller".** `createsuperuser` left `role="tourist"`. It now sets `super_admin`, and migration `0086` corrects existing superusers.
 - **Research lookup is read-only.** It no longer writes to the database during a public request.
 
@@ -231,8 +235,8 @@ bcrypt hashing, the installable public seed database (`install_public_seed_db`),
 CMS inline sanitising and block audit/cache invalidation, the less flaky mail test,
 and removal of the duplicate root `frontend/`, the committed `db.sqlite3`/`data.json`
 and 44 committed `.pyc` files. `main` had this branch's work only up to migration
-`0081`. Main retains its published migrations `0082`–`0085`; the handoff keeps its independent `0085` data cleanup under `0085_handoff_clear_missing_marker_phones`, continues through `0091_cms_cover_every_page_route`, and joins the two lines with the no-op `0092_merge_main_handoff`. The
-published seed installs and migrates cleanly through `0092_merge_main_handoff`.
+`0081`. Main retains its published migrations `0082`–`0085`; the handoff keeps its independent `0085` data cleanup under `0085_handoff_clear_missing_marker_phones`, continues through `0091_cms_cover_every_page_route`, and joins the two lines with the no-op `0092_merge_main_handoff`, then applies the data correction `0093_archive_duplicate_baidam_police_station`. The
+published seed installs and migrates cleanly through `0093_archive_duplicate_baidam_police_station`.
 
 ## UI defects fixed in the final check
 
