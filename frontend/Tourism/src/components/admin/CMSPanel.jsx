@@ -1477,7 +1477,7 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
         is_visible: Boolean(draft.is_visible),
       })
       notifyCmsUpdated()
-      onToast("Section saved & published live!", "success")
+      onToast(draft.status === "published" ? "Section published live" : "Section saved as draft", "success")
       setOpenId(null)
       setDraft(null)
       loadSections()
@@ -1534,7 +1534,7 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
               <span className="font-black text-emerald-800">{index + 1}</span>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-bold">{section.title || section.key}</p>
-                <p className="text-[10px] uppercase tracking-widest text-slate-500">{section.key} · {section.section_type || "text"} · {section.status}{section.is_visible === false ? " · hidden" : ""}</p>
+                <p className="text-[10px] uppercase tracking-widest text-slate-500">{section.key} · {section.section_type || "text"} · {section.status || "draft"}{section.is_visible === false ? " · hidden" : ""}</p>
               </div>
               <button type="button" onClick={() => setPreviewId(previewId === section.id ? null : section.id)} className="rounded bg-white px-2 py-1 font-bold">Preview</button>
               <button type="button" onClick={() => { setOpenId(openId === section.id ? null : section.id); setDraft({ ...section }) }} className="rounded bg-white px-2 py-1 font-bold">Edit</button>
@@ -1614,7 +1614,7 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
                 </div>
                 <label className="flex items-center gap-2 font-semibold text-slate-300"><input type="checkbox" checked={Boolean(draft.is_visible)} onChange={(e) => setDraft({ ...draft, is_visible: e.target.checked })} /> Visible on traveller page</label>
                 <div className="flex gap-2 self-end">
-                  <button type="button" onClick={saveSection} className="rounded-lg bg-amber-400 text-slate-950 font-black px-4 py-2 text-xs shadow">Save & Publish Section</button>
+                  <div className="flex gap-2">\n                    <button type="button" onClick={() => { setDraft({ ...draft, status: "draft" }); setTimeout(saveSection, 0) }} className="rounded-lg bg-slate-700 text-white font-black px-3 py-2 text-xs">Save Draft</button>\n                    <button type="button" onClick={() => { setDraft({ ...draft, status: "published" }); setTimeout(saveSection, 0) }} className="rounded-lg bg-amber-400 text-slate-950 font-black px-4 py-2 text-xs shadow">Publish Section</button>\n                  </div>
                   <button type="button" onClick={() => { setOpenId(null); setDraft(null) }} className="rounded-lg bg-slate-800 text-slate-300 px-3 py-2 text-xs font-bold">Cancel</button>
                 </div>
               </div>
