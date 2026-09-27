@@ -4,6 +4,7 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from audit.logging_services import log_action
 from .community_data_service import (
@@ -106,6 +107,7 @@ def _submission_row(item):
 
 class AdminEmergencyDirectoryView(APIView):
     permission_classes = [IsAdminOrStaff]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get(self, request):
         _require_capability(request, "safety", "view")
@@ -293,6 +295,11 @@ class AdminEmergencyDirectoryView(APIView):
             if website and not website.startswith("https://"):
                 return Response({"detail": "website must use HTTPS"}, status=400)
             obj.website = website[:600]
+        uploaded_image = request.FILES.get("image") or request.FILES.get("file")
+        if uploaded_image is not None:
+            if not hasattr(obj, "image"):
+                return Response({"detail": "This emergency record does not support image uploads."}, status=400)
+            obj.image = uploaded_image
         if "latitude" in request.data or "longitude" in request.data:
             try:
                 latitude = float(request.data.get("latitude", obj.latitude))
