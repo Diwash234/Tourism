@@ -542,7 +542,7 @@ def publish_official_emergency(data, reviewer=None, verified=False):
             obj = OSMEssentialService.objects.create(
                 osm_id=f"admin/{kind}/{uuid.uuid4().hex[:12]}", category=kind, name=name[:255],
                 phone=phone, latitude=latitude, longitude=longitude, address=address,
-                source_name="Admin Control Center", source_url=source_url,
+                source_name="Admin Control Center", source_url=source_url, website=website[:600],
                 is_verified=False, verified_at=None, opening_hours=opening_hours, is_archived=False,
                 emergency_available=kind in {"fire_station", "ambulance", "blood_bank"},
                 raw_tags={"district": district, "province": province, "city": city, "source": "admin"},
@@ -602,7 +602,7 @@ def publish_official_emergency(data, reviewer=None, verified=False):
             obj = OSMEssentialService.objects.create(
                 osm_id=f"admin/{kind}/{uuid.uuid4().hex[:12]}", category=kind, name=name[:255],
                 phone=phone, latitude=latitude, longitude=longitude, address=address,
-                source_name="Admin Control Center", source_url=source_url,
+                source_name="Admin Control Center", source_url=source_url, website=website[:600],
                 is_verified=verified, verified_at=now if verified else None, opening_hours=opening_hours, is_archived=False,
                 emergency_available=kind in {"fire_station", "ambulance", "blood_bank"},
                 raw_tags={"district": district, "province": province, "city": city, "source": "admin"},
