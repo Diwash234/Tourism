@@ -18,6 +18,7 @@ import random
 from django.core.management.base import BaseCommand
 from django.db.models import Count
 
+from tourist.console_safe import make_console_utf8, safe_text
 from tourist.models import Destination
 
 NEPAL_BBOX = (26.3, 30.5, 80.0, 88.2)
@@ -31,6 +32,10 @@ class Command(BaseCommand):
                             help="how many random destinations to route-smoke-test")
 
     def handle(self, *args, **options):
+        # Place names are Devanagari as well as Latin; without this a Windows
+        # console (cp1252) raises UnicodeEncodeError exactly when the command
+        # is trying to report a routing failure, losing the whole report.
+        make_console_utf8()
         D = Destination.objects.filter(status="approved", is_active=True)
         total = D.count()
         problems = []
@@ -81,14 +86,14 @@ class Command(BaseCommand):
                     f"  [{label}] route -> {dest.name[:40]!r} ({dest.district}) "
                     f"{route['distance_m'] / 1000:.1f} km via {route['source']}")
                 if not ok:
-                    problems.append(f"no geometry for {dest.name}")
+                    problems.append(f"no geometry for {safe_text(dest.name)}")
             except Exception as exc:
-                problems.append(f"routing error for {dest.name}: {exc}")
-                self.stdout.write(self.style.ERROR(f"  [FAIL] {dest.name}: {exc}"))
+                problems.append(f"routing error for {safe_text(dest.name)}: {safe_text(exc, 200)}")
+                self.stdout.write(self.style.ERROR(f"  [FAIL] {safe_text(dest.name)}: {safe_text(exc, 200)}"))
 
         if problems:
             for p in problems:
-                self.stdout.write(self.style.ERROR(f"PROBLEM: {p}"))
+                self.stdout.write(self.style.ERROR(f"PROBLEM: {safe_text(p, 200)}"))
             raise SystemExit(1)
         self.stdout.write(self.style.SUCCESS(
             f"all {total} public destinations are navigable with real coordinates "
