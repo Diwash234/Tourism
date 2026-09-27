@@ -1,0 +1,52 @@
+name: Repair place images
+
+on:
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: "Dataset to repair"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - destination
+          - hotel
+      images_per_place:
+        description: "Maximum new verified images per place"
+        required: true
+        default: "8"
+        type: string
+      apply:
+        description: "Persist verified changes"
+        required: true
+        default: true
+        type: boolean
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build application
+        run: |
+          docker compose build web
+          docker compose run --rm web python manage.py check
+
+      - name: Repair real place images
+        env:
+          KIND: ${{ inputs.kind }}
+          IMAGES_PER_PLACE: ${{ inputs.images_per_place }}
+          APPLY: ${{ inputs.apply }}
+        run: |
+          if [ "$APPLY" != "true" ]; then
+            echo "Refusing a non-apply run in this production workflow."
+            exit 1
+          fi
+          docker compose run --rm web python manage.py repair_real_place_images             --kind "$KIND"             --images-per-place "$IMAGES_PER_PLACE"             --apply
+
+      - name: Audit cross-place reuse
+        run: |
+          docker compose run --rm web python manage.py audit_cross_place_images
