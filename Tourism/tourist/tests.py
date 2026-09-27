@@ -1368,8 +1368,16 @@ class CMSPublishingWorkflowTests(APITestCase):
         self.admin.role = User.Role.SUPER_ADMIN
         self.admin.save(update_fields=["role"])
         self.client.force_authenticate(self.admin)
-        self.page = ManagedPage.objects.create(route="/workflow-test", key="workflow-test", title="Workflow test", status="draft", updated_by=self.admin)
-        self.section = ContentSection.objects.create(page=self.page, key="hero", title="Draft hero", body="Not public yet", status="draft", updated_by=self.admin)
+        self.page = ManagedPage.objects.create(
+            route="/workflow-test", key="workflow-test", title="Workflow test",
+            meta_description="A verified CMS workflow test page for Nepal travellers.",
+            seo_title="Workflow Test | Nepal Tourism", og_image_url="/media/cms-workflow.jpg",
+            status="draft", updated_by=self.admin,
+        )
+        self.section = ContentSection.objects.create(
+            page=self.page, key="hero", title="Draft hero", body="Not public yet",
+            status="draft", updated_by=self.admin,
+        )
 
     def test_draft_is_previewable_but_not_public(self):
         preview = self.client.get(reverse("admin-cms"), {"resource": "pages", "id": self.page.id, "preview": "true"})
@@ -1379,9 +1387,14 @@ class CMSPublishingWorkflowTests(APITestCase):
         self.assertNotIn("workflow-test", [page["key"] for page in public.data["pages"]])
 
     def test_publish_actions_make_page_and_section_public(self):
-        for resource, object_id in (("pages", self.page.id), ("sections", self.section.id)):
-            response = self.client.patch(reverse("admin-cms"), {"resource": resource, "id": object_id, "action": "publish"}, format="json")
-            self.assertEqual(response.status_code, status.HTTP_200_OK)
+        section_response = self.client.patch(
+            reverse("admin-cms"), {"resource": "sections", "id": self.section.id, "action": "publish"}, format="json",
+        )
+        self.assertEqual(section_response.status_code, status.HTTP_200_OK, section_response.content)
+        page_response = self.client.patch(
+            reverse("admin-cms"), {"resource": "pages", "id": self.page.id, "action": "publish"}, format="json",
+        )
+        self.assertEqual(page_response.status_code, status.HTTP_200_OK, page_response.content)
         public = self.client.get(reverse("public-config"))
         page = next(item for item in public.data["pages"] if item["key"] == "workflow-test")
         self.assertEqual(page["sections"][0]["body"], "Not public yet")
