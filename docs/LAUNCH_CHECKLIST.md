@@ -140,7 +140,41 @@ attributed review; the `approval` gate yields **1,146**. If you publish under
 `scored`, expect the image count to fall to zero until a reviewer has actually
 reviewed media — that is the rule working, not a bug.
 
-## 8. Known test-suite state
+## 8. Placeholder service coordinates — repairable, but the geocoder is the constraint
+
+`audit_coordinates` reports 808 bad rows on the real dataset. The root cause is
+bulk-imported data: all 491 hospital and 958 police coordinates (**1,449
+rows**) carry no `coordinate_source`, so nothing downstream can tell a real
+position from an inherited one. 317 hospitals and 385 police stations share a
+coordinate with a peer row; a further 17 and 9 are byte-identical to their own
+parent destination's pin.
+
+`manage.py geocode_placeholders` repairs this and records provenance
+(`coordinate_source` / `coordinate_status` / `coordinate_retrieved_at`,
+migration 0088). It is dry-run unless `--apply`, single-threaded, cached,
+resumable, and never overwrites a coordinate that already names a source.
+
+**Do not point it at the public Nominatim for the full batch.**
+<https://operations.osmfoundation.org/policies/nominatim/> asks for at most 1
+request/second, requires an identifying User-Agent and visible OpenStreetMap
+attribution, and states that "bulk geocoding of larger amounts of data is not
+encouraged" — recurring jobs are capped at 4 requests/minute. 1,449 rows at the
+policy interval is ~27 minutes of sustained requests, i.e. precisely the bulk
+case. The command warns above 50 rows and points at the alternative.
+
+To actually clear this, pick one:
+
+- run your own Nominatim instance (needs its own PostgreSQL + OSM extract; pass
+  `--base-url` or set `GEOCODER_BASE_URL`) — free but the setup is real work;
+- a commercial geocoder with bulk terms that permit it;
+- or hand-review the highest-value rows — the "far" ones (95) and the ones whose
+  address text reads like a generator note are the ones actually hurting
+  "nearest hospital" answers.
+
+Re-run `audit_coordinates` afterwards: it now prints provenance coverage per
+model, so the improvement is measurable rather than assumed.
+
+## 9. Known test-suite state
 
 `manage.py test tourist.tests_regression` and the broader suites have not been
 run to completion in this environment. Do not treat "CI is green" as a
