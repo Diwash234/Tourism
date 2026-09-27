@@ -120,6 +120,39 @@ class Command(BaseCommand):
             )
         self.stdout.write(f"destination rows checked: {n_dest_checked}")
 
+        # --- 4. coordinate provenance coverage ------------------------------
+        # A coordinate with no recorded source is a number nobody can check.
+        # Reported per model so the effect of geocode_placeholders is visible:
+        # re-run this after repairing and the unprovenanced count should fall.
+        self.stdout.write("")
+        for label, model, in (("hospital", Hospital), ("police", PoliceStation)):
+            with_coord = model.objects.exclude(latitude=None).exclude(longitude=None)
+            total = with_coord.count()
+            sourced = with_coord.exclude(coordinate_source="").count()
+            same_site = 0
+            same_site_sourced = 0
+            for row in with_coord.values("id", "latitude", "longitude",
+                                        "coordinate_source", "destination__latitude",
+                                        "destination__longitude"):
+                if (row["destination__latitude"] is None or row["destination__longitude"] is None):
+                    continue
+                if (float(row["latitude"]) == float(row["destination__latitude"])
+                        and float(row["longitude"]) == float(row["destination__longitude"])):
+                    same_site += 1
+                    if row["coordinate_source"]:
+                        same_site_sourced += 1
+            self.stdout.write(
+                f"{label:9} coordinates: {total} total, {total - sourced} without a "
+                f"recorded source, {sourced} sourced"
+            )
+            # Distinct from the *_same_site flags above, which report a
+            # coordinate shared with a *peer* row; this one reports a
+            # coordinate copied from the row's own parent destination.
+            self.stdout.write(
+                f"{label:9} identical to its parent destination's pin: {same_site} "
+                f"({same_site_sourced} of them now carry a source)"
+            )
+
         from collections import Counter
         by_kind = Counter(f[0] for f in flagged)
         self.stdout.write("")

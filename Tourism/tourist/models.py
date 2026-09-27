@@ -1336,6 +1336,13 @@ class Hospital(models.Model):
     is_archived = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Coordinate provenance, mirroring Destination. A lat/lng pair that was
+    # copied from the parent destination is not a real position, and nothing
+    # downstream can tell the difference unless the source is recorded here.
+    coordinate_source = models.CharField(max_length=120, blank=True, default="")
+    coordinate_status = models.CharField(max_length=20, blank=True, default="")
+    coordinate_retrieved_at = models.DateTimeField(null=True, blank=True)
+
 
 class PoliceStation(models.Model):
 
@@ -1363,6 +1370,12 @@ class PoliceStation(models.Model):
     verified_at = models.DateTimeField(null=True, blank=True)
     is_archived = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)
+
+    # Coordinate provenance, mirroring Destination and Hospital.
+    coordinate_source = models.CharField(max_length=120, blank=True, default="")
+    coordinate_status = models.CharField(max_length=20, blank=True, default="")
+    coordinate_retrieved_at = models.DateTimeField(null=True, blank=True)
+
 
 class BudgetEstimation(models.Model):
     destination = models.OneToOneField(
