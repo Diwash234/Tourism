@@ -1,0 +1,14 @@
+.git
+.github
+node_modules
+frontend/Tourism/node_modules
+frontend/Tourism/dist
+frontend/Tourism/.vite
+Tourism/db.sqlite3
+Tourism/media
+Tourism/staticfiles
+image-server/images
+__pycache__
+*.pyc
+.venv
+.env
