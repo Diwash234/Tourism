@@ -167,7 +167,7 @@ else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / config("DB_NAME", default="db.sqlite3"),
+            "NAME": config("DB_NAME", default=str(BASE_DIR / "db.sqlite3")),
             # SQLite busy timeout (seconds): wait instead of failing with
             # "database is locked" when a writer holds the lock briefly.
             # 20s busy-timeout per the SQLite lock-hardening regression suite
@@ -214,10 +214,13 @@ USE_TZ = True
 # ------------------------------------------------------------------
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+# The React production bundle is copied here by Docker and collected by Django.
+# Keeping it in STATICFILES_DIRS makes WhiteNoise serve Vite assets at /static/.
+STATICFILES_DIRS = [BASE_DIR / "frontend_dist"]
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_ROOT = Path(config("MEDIA_ROOT", default=str(BASE_DIR / "media")))
 
 # ---------------------------------------------------------------------------
 # STANDALONE IMAGE SERVER
@@ -227,7 +230,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 # from IMAGE_BASE_URL, which points at the static image server:
 #   dev:   IMAGE_BASE_URL=http://localhost:8002  (python -m http.server in image-server/)
 #   prod:  IMAGE_BASE_URL=https://images.example.com  (Nginx serving image-server/images/)
-IMAGE_BASE_URL = config("IMAGE_BASE_URL", default="http://localhost:8002").rstrip("/")
+IMAGE_BASE_URL = config("IMAGE_BASE_URL", default="").rstrip("/")
 # Uploaded media (/media/...) is returned root-relative by default so it works
 # on whatever host the site is opened from (Vite proxies /media to Django).
 # Set this only when the SPA and the API are served from different domains,
