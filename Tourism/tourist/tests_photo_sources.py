@@ -19,8 +19,9 @@ used to be. Only the file's own title says what the photograph shows.
 No test here touches the network: the adapters take a payload and return
 candidates, so the parsing and the refusals can be checked deterministically.
 """
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, TestCase
 
+from tourist.models import Category, Destination, DestinationImage, User
 from tourist.management.commands.fetch_destination_photos import (
     MIN_HEIGHT, MIN_WIDTH, PHOTO_MIMES, CommonsSource, OpenverseSource, readable,
     subject_of,
@@ -225,6 +226,67 @@ class SubjectOfTests(SimpleTestCase):
         # exception.
         title = "File:Annapurna from Poon Hill by Sagarmatha Rai.jpg"
         self.assertEqual(match_score("Annapurna Conservation Area", subject_of(title)), 0.0)
+
+
+class SourceFieldIsWhatTheReleaseFiltersOnTests(TestCase):
+    """``source`` and ``source_platform`` are different fields, and the release
+    filters on the first one.
+
+    Filling in only ``source_platform`` left ``source`` at the model default, so
+    634 correct, licensed, perfectly matched Wikimedia photographs were excluded
+    from the release and the catalogue published 273 images instead of over a
+    thousand. Nothing looked wrong: the rows were attached, verified and
+    correctly scored. They were simply not the shape the gate asks for.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_superuser("src-qa@test.local", "SrcQA!123")
+        category = Category.objects.create(name="Source QA")
+        self.destination = Destination.objects.create(
+            name="Manikhel", slug="manikhel", category=category,
+            description="A waterfall.", latitude=27.5180, longitude=85.5230,
+            created_by=self.user, status="approved", is_active=True)
+
+    def _candidate(self, **overrides):
+        fields = {
+            "title": "Manikhel Waterfall",
+            "description": "",
+            "text": "Manikhel Waterfall",
+            "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/M.jpg",
+            "original_url": "https://upload.wikimedia.org/wikipedia/commons/a/ab/M.jpg",
+            "landing_url": "https://commons.wikimedia.org/wiki/File:Manikhel_Waterfall.jpg",
+            "creator": "Khadka Saramsh",
+            "license": "CC BY-SA 4.0",
+            "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+            "source": "wikimedia_commons",
+        }
+        fields.update(overrides)
+        return fields
+
+    def _attach(self, candidate):
+        from tourist.management.commands.fetch_destination_photos import Command
+        from tourist.models import DestinationImage
+        return Command()._attach(self.destination, candidate, 1.0)
+
+    def test_a_commons_photograph_is_labelled_wikimedia_so_the_release_keeps_it(self):
+        image = self._attach(self._candidate())
+        self.assertEqual(image.source_platform, "wikimedia_commons")
+        self.assertEqual(image.source, DestinationImage.Source.WIKIMEDIA)
+        self.assertIn(image.source, ["wikimedia", "openverse"],
+                      "this is the list the release filters on")
+
+    def test_an_openverse_result_from_wikimedia_is_labelled_wikimedia(self):
+        image = self._attach(self._candidate(source="openverse", upstream="wikimedia"))
+        self.assertEqual(image.source, DestinationImage.Source.WIKIMEDIA)
+
+    def test_an_openverse_result_from_a_collection_we_cannot_name_is_not_guessed(self):
+        # Openverse indexes museums, archives and others. Calling a museum
+        # photograph "wikimedia" would be a false provenance claim, so the row
+        # is left for a human instead.
+        from tourist.models import DestinationImage
+        image = self._attach(self._candidate(source="openverse", upstream="smithsonian"))
+        self.assertNotEqual(image.source, DestinationImage.Source.WIKIMEDIA)
+        self.assertNotIn(image.source, ["wikimedia", "openverse"])
 
 
 class RejectionIsThePointTests(SimpleTestCase):

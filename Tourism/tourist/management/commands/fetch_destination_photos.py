@@ -295,12 +295,35 @@ class OpenverseSource:
                 licence.upper(), item.get("license_version") or ""])).strip(),
             "license_url": item.get("license_url") or "",
             "source": "openverse",
+            # The collection the file actually lives in. Openverse indexes
+            # Flickr, Wikimedia, museums and more, so this is what decides
+            # whether the row can honestly be labelled.
+            "upstream": (item.get("source") or "").lower(),
         }
 
 
 SOURCES = {
     "commons": CommonsSource,
     "openverse": OpenverseSource,
+}
+
+#: ``source_platform`` records where the *search* found a file;
+#: ``source`` records who *made* it, and it is the field the release filters on
+#: (``source__in=["wikimedia", "openverse"]``). Filling in only the first one
+#: published none of these photographs: 634 correct, licensed, perfectly matched
+#: Commons images were excluded from the release because ``source`` still held
+#: the model default. The two fields are separate and both are needed.
+#:
+#: Openverse aggregates other collections -- Flickr, the Smithsonian, museums --
+#: so its results are not honestly described as Wikimedia. Its own ``source``
+#: value is used when it names a collection this model knows, and the row is
+#: otherwise left for a human rather than mislabelled.
+PLATFORM_TO_SOURCE = {
+    "wikimedia_commons": DestinationImage.Source.WIKIMEDIA,
+}
+KNOWN_OPENVERSE_SOURCES = {
+    "wikimedia": DestinationImage.Source.WIKIMEDIA,
+    "flickr": DestinationImage.Source.REFERENCE,
 }
 
 
@@ -361,24 +384,34 @@ class Command(BaseCommand):
         return None, 0.0, None
 
     def _attach(self, destination, candidate, score):
-        return DestinationImage.objects.create(
-            destination=destination,
-            external_url=candidate["url"],
-            thumbnail_url=candidate["url"],
-            caption=(candidate["title"] or destination.name)[:200],
-            alt_text=(candidate["title"] or destination.name)[:255],
-            attribution=(candidate["creator"][:250] or None),
-            photographer=(candidate["creator"][:150] or None),
-            license_type=candidate["license"][:100],
-            copyright_status="verified_reusable",
-            source_platform=candidate["source"],
-            source_url=(candidate["landing_url"] or "")[:500] or None,
-            verification_status=DestinationImage.ImageStatus.APPROVED,
-            is_verified=True,
-            is_cover=True,
-            authenticity_score=1.0,
-            destination_match_score=score,
-        )
+        platform = candidate["source"]
+        source = PLATFORM_TO_SOURCE.get(platform)
+        if source is None:
+            # Openverse indexes other collections, so a result is only labelled
+            # with a collection this model can actually name.
+            upstream = (candidate.get("upstream") or "").lower()
+            source = KNOWN_OPENVERSE_SOURCES.get(upstream)
+        fields = {
+            "destination": destination,
+            "external_url": candidate["url"],
+            "thumbnail_url": candidate["url"],
+            "caption": (candidate["title"] or destination.name)[:200],
+            "alt_text": (candidate["title"] or destination.name)[:255],
+            "attribution": (candidate["creator"][:250] or None),
+            "photographer": (candidate["creator"][:150] or None),
+            "license_type": candidate["license"][:100],
+            "copyright_status": "verified_reusable",
+            "source_platform": platform,
+            "source_url": (candidate["landing_url"] or "")[:500] or None,
+            "verification_status": DestinationImage.ImageStatus.APPROVED,
+            "is_verified": True,
+            "is_cover": True,
+            "authenticity_score": 1.0,
+            "destination_match_score": score,
+        }
+        if source is not None:
+            fields["source"] = source
+        return DestinationImage.objects.create(**fields)
 
     # -- entry point -------------------------------------------------------
     def handle(self, *args, **options):
