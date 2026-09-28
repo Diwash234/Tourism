@@ -2,7 +2,7 @@ services:
   - type: web
     name: tourism-recommendation
     runtime: docker
-    plan: starter
+    plan: 0.5c-512mb
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /health/
