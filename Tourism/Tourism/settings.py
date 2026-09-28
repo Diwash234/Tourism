@@ -128,6 +128,9 @@ def _database_from_url(url):
     parsed = urlsplit(url)
     scheme = parsed.scheme.lower()
     if scheme in ("postgres", "postgresql", "postgis"):
+        options = {}
+        if config("DATABASE_SSL_REQUIRE", default=False, cast=bool):
+            options["sslmode"] = "require"
         return {
             "ENGINE": "django.db.backends.postgresql",
             "NAME": (parsed.path or "/").lstrip("/") or "tourism_db",
@@ -135,6 +138,7 @@ def _database_from_url(url):
             "PASSWORD": unquote(parsed.password or ""),
             "HOST": parsed.hostname or "localhost",
             "PORT": str(parsed.port or 5432),
+            "OPTIONS": options,
         }
     if scheme == "sqlite":
         if parsed.netloc:
