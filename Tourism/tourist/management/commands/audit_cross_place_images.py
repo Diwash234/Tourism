@@ -63,14 +63,22 @@ from tourist.models import DestinationImage, Hotel
 _WIKIMEDIA_WIDTHS = ("120px-", "250px-", "320px-", "640px-", "800px-", "1024px-", "1280px-")
 
 
-def normalise_image_url(url: str) -> str:
+def normalise_image_url(url) -> str:
     """Collapse the size variants of one photograph to a single identity.
 
     Returns "" for a blank reference so callers never key on an empty string
     (which would otherwise make every imageless row look like one giant
     "shared" image).
+
+    Accepts non-strings on purpose: ``Hotel.cover_image`` and
+    ``DestinationImage.image`` are ``ImageFieldFile`` instances when read off a
+    model instance rather than a ``values()`` row, and passing one straight
+    through used to raise ``AttributeError: 'ImageFieldFile' object has no
+    attribute 'strip'`` -- which broke the hotel repair path completely.
     """
-    url = (url or "").strip()
+    if url is None or not isinstance(url, str):
+        url = str(url or "")
+    url = url.strip()
     if not url:
         return ""
     try:

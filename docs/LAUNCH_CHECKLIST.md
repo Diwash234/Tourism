@@ -140,8 +140,64 @@ attributed review; the `approval` gate yields **1,146**. If you publish under
 `scored`, expect the image count to fall to zero until a reviewer has actually
 reviewed media — that is the rule working, not a bug.
 
-## 8. Placeholder service coordinates — repairable, but the geocoder is the constraint
+## 8. Wrong and reused images — the largest single data-quality problem
 
+Measured on the real 8,757-destination database:
+
+- 26,203 gallery rows reference only **10,536 distinct images**
+- **19,848 rows (75.7%)** share an image with another place
+- **670 images** appear on three or more different destinations
+- worst single image: a photograph of Tansen at sunset (Palpa) on **384 places**
+  (185 destinations and 199 hotels); a Kathmandu Secretariat photo on 331
+  destinations; Patan Durbar Square at night on 236
+- **1,642 hotels** are showing a photograph that belongs to a destination —
+  193 on one Kathmandu Durbar Square frame, 165 on a Chitwan safari photo
+- **678 destinations** carry more than one `is_cover` row, so "the" cover is
+  not well defined
+
+A traveller reading "Gorkha Durbar" was most likely looking at Kathmandu, and
+had no way to tell. This is the item most likely to cost you real bookings.
+
+`manage.py audit_cross_place_images` reports all of the above and changes
+nothing. `manage.py repair_real_place_images` fixes it in two stages.
+
+**Stage 1 — offline triage. No downloads, no guessing, uses evidence already on
+the row.** `--reassign-by-caption`, `--quarantine-shared N`, `--fix-multiple-covers`,
+`--triage-only`. Against the real database this flags **20,484 rows** (232 on
+caption evidence, 19,574 on images shared by 4+ places, 678 duplicate covers).
+Flagged images become `pending` or `rejected` and drop out of public galleries via
+the media gate, so wrong photos stop being served immediately. 732 images were
+**skipped as ambiguous** because more than one holder's caption claimed a
+different place — the evidence did not pick a winner, so nothing was done.
+
+**Stage 2 — real replacement from Wikimedia Commons**, which is a documented API
+and records a licence and author per file, so the provenance is real and the
+attribution duty can be met. Rules enforced and covered by tests:
+
+- a candidate must **name the place** — an alias, the municipality, the landmark.
+  A hit for "Pokhara" is refused for a place merely located in Pokhara. This is
+  the single check that undoes the substitution above.
+- **hotels must match the hotel itself.** A destination photo is never a hotel
+  photo, and a city photo is never a hotel photo.
+- an image already specific to its place is **preserved**, not replaced
+- licences that are not clearly reusable are refused; an *unknown* licence is
+  refused too, because silence is not permission
+- proposals are written as `needs review` with `is_verified=False` and **no
+  score**, because the model otherwise defaults them to approved/verified
+- no match leaves the row exactly as it is
+
+Measured on a live dry run of the 8 most-damaged destinations: 4 got real
+place-specific images (Churen Himal, Putha Hiunchuli, Humla Limi Valley, Kala
+Patthar), and 4 were correctly left alone (Matihani, Maratika Caves, Kanyam
+Hill, Kagbeni Muktinath Route) because Commons has nothing that names those
+places. Those four need a human or a paid source; the command will not invent a
+photo for them.
+
+**Before launch:** run the triage stage with `--apply` so the wrong images stop
+being served, then work stage 2 in batches. Expect most destinations to remain
+without a correct photo — that is the honest state, not a bug to paper over.
+
+## 9. Placeholder service coordinates — repairable, but the geocoder is the constraint
 `audit_coordinates` reports 808 bad rows on the real dataset. The root cause is
 bulk-imported data: all 491 hospital and 958 police coordinates (**1,449
 rows**) carry no `coordinate_source`, so nothing downstream can tell a real
@@ -174,7 +230,7 @@ To actually clear this, pick one:
 Re-run `audit_coordinates` afterwards: it now prints provenance coverage per
 model, so the improvement is measurable rather than assumed.
 
-## 9. Known test-suite state
+## 10. Known test-suite state
 
 `manage.py test tourist.tests_regression` and the broader suites have not been
 run to completion in this environment. Do not treat "CI is green" as a

@@ -895,6 +895,10 @@ class DestinationImage(TimeStampedModel):
     is_promoted = models.BooleanField(
         default=False, help_text="Auto-set true once a community upload crosses the popularity threshold"
     )
+
+    # Why this image is being held or rejected. Without it a reviewer sees only
+    # a status change and cannot tell an automated flag from a human decision.
+    review_note = models.TextField(blank=True, default="")
     view_count = models.PositiveIntegerField(default=0)
     crop_box = models.JSONField(default=dict, blank=True, help_text='Optional focal crop as {"x":0,"y":0,"w":100,"h":100} percentages.')
 
