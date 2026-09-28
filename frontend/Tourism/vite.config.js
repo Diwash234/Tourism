@@ -103,6 +103,7 @@ const manualChunks = (id) => {
 }
 
 export default defineConfig(({ mode }) => ({
+  base: '/static/',
   plugins: [react(), noStaleReactChunks, siteMetadata(loadEnv(mode, process.cwd(), 'VITE_').VITE_SITE_URL)],
   build: {
     rollupOptions: {
