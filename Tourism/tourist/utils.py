@@ -1326,14 +1326,31 @@ from .models import DestinationImage
 from .models import Destination
 
 def find_nearby_places(latitude, longitude, place_type=None, radius_km=10):
-    
+    """Destinations within ``radius_km`` of a point, nearest first.
 
+    Performance: this used to load **every** Destination in the country and
+    distance-rank them in Python. Instantiating 8,757 full model objects cost
+    ~11 s, and `/destinations/<slug>/essentials/` calls this twice (restaurants
+    then shops), which is why that endpoint took 20-35 s.
+
+    The fix is a SQL bounding-box pre-filter. It cannot change the answer: a
+    point within `radius_km` of the centre is always inside that radius's
+    bounding box, and the exact haversine test below still decides inclusion.
+    Only the columns the ranking needs are loaded, so a row that is filtered
+    out never pays for its large text/JSON fields.
+    """
     nearby = []
 
     try:
         radius_km = float(radius_km)
     except (TypeError, ValueError):
         radius_km = 10.0
+
+    try:
+        lat = float(latitude)
+        lon = float(longitude)
+    except (TypeError, ValueError):
+        return nearby
 
     queryset = Destination.objects.all()
 
@@ -1348,7 +1365,29 @@ def find_nearby_places(latitude, longitude, place_type=None, radius_km=10):
             # continue without filtering
             pass
 
-    for destination in queryset:
+    # Bounding-box pre-filter (see docstring). The true distance test follows.
+    try:
+        import math as _math
+
+        dlat = radius_km / 111.0
+        dlng = radius_km / (111.0 * max(0.05, _math.cos(_math.radians(lat))))
+        queryset = queryset.filter(
+            latitude__gte=lat - dlat, latitude__lte=lat + dlat,
+            longitude__gte=lon - dlng, longitude__lte=lon + dlng,
+        ).exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+    except Exception:  # noqa: BLE001 - fall back to the unfiltered scan
+        queryset = Destination.objects.all()
+        if place_type:
+            queryset = queryset.filter(category__name__iexact=place_type)
+
+    # Only the fields used for ranking and display; large description/budget
+    # JSON columns stay untouched.
+    queryset = queryset.only(
+        "id", "name", "slug", "latitude", "longitude", "category", "city",
+        "district", "province", "type", "average_rating", "cover_image",
+    ).select_related("category")
+
+    for destination in queryset.iterator(chunk_size=500):
 
         if destination.latitude is None or destination.longitude is None:
             continue

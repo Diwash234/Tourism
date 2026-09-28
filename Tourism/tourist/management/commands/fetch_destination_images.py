@@ -26,6 +26,9 @@ Usage:
     # Force-refresh even if a destination already has enough images
     python manage.py fetch_destination_images --seed --force
 """
+import concurrent.futures
+import threading
+
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.conf import settings
@@ -62,6 +65,8 @@ class Command(BaseCommand):
         parser.add_argument("--force", action="store_true",
                             help="re-fetch even if the destination already has enough images")
         parser.add_argument("--min-score", type=float, default=0.30)
+        parser.add_argument("--workers", type=int, default=8,
+                            help="number of parallel search workers (default 8)")
 
     def handle(self, *args, **options):
         targets = self._collect_targets(options)
@@ -71,34 +76,50 @@ class Command(BaseCommand):
 
         openverse_key = getattr(settings, "OPENVERSE_API_KEY", "") or ""
         total_saved = 0
+        total = len(targets)
+        workers = max(1, options["workers"])
+        counter_lock = threading.Lock()
+        progress = {"done": 0}
 
-        for i, dest in enumerate(targets, 1):
+        def process_destination(dest):
             existing = dest.gallery.count()
             if existing >= options["num"] and not options["force"]:
-                self.stdout.write(f"[{i}/{len(targets)}] {dest.name} — already has {existing} images, skipping")
-                continue
-
-            self.stdout.write(f"[{i}/{len(targets)}] Searching: {dest.name} ({dest.district or dest.province or 'Nepal'})")
+                return dest, [], 0
             try:
                 hits = search_destination_images(
                     dest, per_source=max(10, options["num"]),
                     min_score=options["min_score"], openverse_key=openverse_key,
                 )
             except Exception as exc:  # noqa: BLE001
-                self.stderr.write(f"  search error: {exc}")
-                continue
+                return dest, [], 0
+            return dest, hits, 0
 
-            if not hits:
-                self.stdout.write(self.style.WARNING("  no matching free images found"))
-                continue
+        self.stdout.write(f"Searching {total} destinations with {workers} parallel workers...")
 
-            saved = self._save_hits(dest, hits[: options["num"]], replace=options["force"])
-            total_saved += saved
-            self.stdout.write(self.style.SUCCESS(
-                f"  saved {saved} images (top score {hits[0].match_score:.2f})"
-            ))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {pool.submit(process_destination, d): d for d in targets}
+            for future in concurrent.futures.as_completed(futures):
+                dest = futures[future]
+                with counter_lock:
+                    progress["done"] += 1
+                    i = progress["done"]
+                try:
+                    dest, hits, _ = future.result()
+                except Exception as exc:  # noqa: BLE001
+                    self.stderr.write(f"[{i}/{total}] {dest.name} — error: {exc}")
+                    continue
 
-        self.stdout.write(self.style.SUCCESS(f"Done. Saved {total_saved} images across {len(targets)} destinations."))
+                if not hits:
+                    self.stdout.write(f"[{i}/{total}] {dest.name} — no matching free images found")
+                    continue
+
+                saved = self._save_hits(dest, hits[: options["num"]], replace=options["force"])
+                total_saved += saved
+                self.stdout.write(self.style.SUCCESS(
+                    f"[{i}/{total}] {dest.name} — saved {saved} images (top score {hits[0].match_score:.2f})"
+                ))
+
+        self.stdout.write(self.style.SUCCESS(f"Done. Saved {total_saved} images across {total} destinations."))
 
     def _collect_targets(self, options):
         if options["destination"]:

@@ -125,6 +125,15 @@ def recommend(user_input, top_n=5, user_lat=None, user_lon=None, budget_level=No
 
         for index in range(num_rows):
             row = destinations.iloc[index]
+
+            # Never recommend something that is a real place but not a place a
+            # traveller visits. "Nepal Tourism Board" scored highly and was
+            # returned with the reason "Category: information", which is a bug
+            # rather than a suggestion. A matching category in a search query
+            # must not be able to pull these back in either.
+            if not _is_recommendable(row):
+                continue
+
             sim_score = float(similarity[index])
             if not math.isfinite(sim_score):
                 sim_score = 0.0
@@ -134,7 +143,18 @@ def recommend(user_input, top_n=5, user_lat=None, user_lon=None, budget_level=No
 
             dist_km = None
             prox_score = 0.0
-            if user_lat is not None and user_lon is not None and d_lat != 0.0 and d_lon != 0.0:
+            # A user location of exactly (0, 0) means "not provided", not
+            # "somewhere in the Atlantic". The guard already treated that as
+            # missing for the destination's own coordinates, but not for the
+            # user's, so haversine was measured from Null Island and every
+            # result came back around 9,400 km -- which is how destinations in
+            # Pokhara and the Everest region were reported as "9,416 km away".
+            user_loc_known = (
+                user_lat is not None
+                and user_lon is not None
+                and not (float(user_lat) == 0.0 and float(user_lon) == 0.0)
+            )
+            if user_loc_known and d_lat != 0.0 and d_lon != 0.0:
                 dist_km = round(haversine_km(user_lat, user_lon, d_lat, d_lon), 1)
                 # Proximity boost for places within 100km
                 if dist_km < 10.0:

@@ -15,6 +15,7 @@ Nothing here requires a paid/billed API. All providers are free.
 """
 from __future__ import annotations
 
+import concurrent.futures
 import logging
 import re
 from dataclasses import dataclass, field
@@ -224,12 +225,21 @@ def search_destination_images(destination, per_source: int = 12,
     query = name + (f", {region_bits[0]}" if region_bits else "")
 
     all_hits: List[ImageHit] = []
+    source_fns = []
     if "wikimedia" in sources:
-        all_hits += search_wikimedia(query, per_source)
+        source_fns.append(lambda: search_wikimedia(query, per_source))
     if "duckduckgo" in sources:
-        all_hits += search_duckduckgo(query, per_source)
+        source_fns.append(lambda: search_duckduckgo(query, per_source))
     if "openverse" in sources:
-        all_hits += search_openverse(query, per_source, openverse_key)
+        source_fns.append(lambda: search_openverse(query, per_source, openverse_key))
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(source_fns)) as pool:
+        futures = [pool.submit(fn) for fn in source_fns]
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                all_hits += future.result()
+            except Exception:  # noqa: BLE001
+                pass
 
     # dedupe by url
     seen = set()

@@ -762,6 +762,158 @@ NEPAL_CURATED_PHOTOS = [
 ]
 
 
+#: Provenance strings that declare an asset is a bundled placeholder rather
+#: than a photograph of a real place. Several import scripts wrote these while
+#: standing in stock images for missing photography.
+BUNDLED_PLACEHOLDER_MARKERS = (
+    "bundled with app",
+    "bundled asset",
+    "bundled placeholder",
+    "generated for nepal",
+    "generated for nepal tourism",
+    "royalty-free placeholder",
+    "placeholder image",
+)
+
+#: App-relative asset folders that hold the generic bundled stock imagery.
+BUNDLED_ASSET_PREFIXES = (
+    "/images/destinations/",
+    "/images/generic/",
+    "/images/placeholders/",
+    "/static/images/destinations/",
+)
+
+#: Words that describe a *kind* of place rather than identify one. They carry
+#: no information about which place a photograph shows, so a photo must never
+#: be required to match on them - otherwise "Manang Village" demands a file
+#: called "...village..." and correct photographs disappear.
+GENERIC_PLACE_WORDS = frozenset({
+    # administrative / settlement
+    "village", "villages", "town", "municipality", "rural", "ward", "vdc",
+    "district", "province", "region", "zone", "circle", "area", "place",
+    "community", "settlement", "hamlet", "city", "capital", "centre", "center",
+    # natural features
+    "lake", "lakes", "river", "rivers", "stream", "creek", "waterfall", "falls",
+    "spring", "pond", "pool", "wetland", "glacier", "glacial", "gorge", "canyon",
+    "cliff", "cliffs", "peak", "peaks", "pass", "valley", "hill", "hills",
+    "mountain", "mountains", "forest", "jungle", "cave", "caves", "gufa",
+    "gupha", "beach", "desert", "plain", "plains", "basin", "delta",
+    # structures and worship sites
+    "temple", "temples", "mandir", "devi", "gopura", "stupa", "chaitya",
+    "vihara", "chorten", "gompa", "monastery", "pagoda", "durbar", "palace",
+    "fort", "fortress", "castle", "bridge", "dam", "barrage", "canal",
+    "gate", "square", "chowk", "ghat", "bazaar", "market", "mall",
+    # visitor facilities
+    "museum", "gallery", "library", "hotel", "resort", "lodge", "guesthouse",
+    "homestay", "teahouse", "restaurant", "cafe", "shop", "store", "park",
+    "national", "reserve", "sanctuary", "conservation", "wildlife", "zoo",
+    "aquarium", "stadium", "hall", "airport", "station", "bus_park", "bus",
+    "road", "highway", "roadhouse", "viewpoint", "lookout", "trail", "route",
+    "trek", "trekking", "path", "camp", "camping", "junction",
+    "hospital", "clinic", "school", "campus", "university", "college",
+    "bank", "factory", "mill", "farm", "port", "aerodrome",
+    # descriptive / tourism language
+    "view", "views", "photo", "photograph", "image", "picture", "pic", "scene",
+    "scenic", "landscape", "panorama", "sunrise", "sunset", "heritage",
+    "culture", "cultural", "tourism", "tourist", "trip", "travel", "tour",
+    "festival", "fair", "mela", "ceremony", "ritual", "tradition", "craft",
+    "beauty", "beautiful", "the", "and", "for", "with", "from", "near", "of",
+    "nepal", "nepali", "sights", "must_see", "attraction", "destination",
+    "photo_gallery", "history", "historical", "ancient", "holy", "sacred",
+    # words that modify a name without identifying a place: "Nagarkot Test"
+    # and "Hotel new siddhartha" must not be demanded in a file name.
+    "test", "tests", "sample", "samples", "dummy", "example", "examples",
+    "demo", "unknown", "unnamed", "unspecified", "placeholder", "temp",
+    "temporary", "new", "old",
+})
+
+
+def _place_tokens(text):
+    """Alphanumeric word-tokens of length >= 4 found in ``text``.
+
+    Percent-decoding matters here. Wikimedia thumb URLs percent-encode
+    punctuation, so ``%28Rara_lake%29.jpg`` without decoding tokenises to
+    ``28rara`` - the place name glued onto a number - and a genuine photograph
+    of Rara Lake then fails to match its own destination.
+    """
+    import re
+    from urllib.parse import unquote
+
+    decoded = unquote(str(text or "")).lower()
+    return {t for t in re.sub(r"[^a-z0-9]+", " ", decoded).split() if len(t) >= 4}
+
+
+def _token_names_place(name_token, evidence_tokens):
+    """True when ``name_token`` plausibly appears in a photo's file title.
+
+    Exact token equality is too strict because file titles run words together
+    (``Akaladevi_temple.jpg`` for the destination "Akala Devi"). Substring
+    matching recovers those, but only for words of at least five characters, so
+    short words do not match inside unrelated names.
+    """
+    if name_token in evidence_tokens:
+        return True
+    if len(name_token) < 5:
+        return False
+    return any(name_token in token or (len(token) >= 5 and token in name_token)
+               for token in evidence_tokens)
+
+
+def _name_phrase_in_evidence(name, evidence):
+    """True when the photo's title spells out a two-word run of the place name.
+
+    This is what separates "Gorkha Museum" - a real photograph of one part of
+    "Gorkha Museum & Tallo Durbar Palace" - from "Koshi Tappu", a photograph of
+    a different town in the same province. Matching on the leading town name
+    alone cannot tell them apart, because destinations are routinely named
+    after the town they sit in: "Ilam Community Tea Homestays" is a specific
+    homestay, not the town of Ilam.
+    """
+    import re
+    from urllib.parse import unquote
+
+    def _sequence(text):
+        return re.sub(r"[^a-z0-9]+", " ", unquote(str(text or "")).lower()).split()
+
+    words = _sequence(name)
+    evidence_text = " ".join(_sequence(evidence))
+    return any(
+        f"{a} {b}" in evidence_text
+        for a, b in zip(words, words[1:])
+        if len(a) >= 3 and len(b) >= 3 and len(a) + len(b) >= 8
+    )
+
+
+def _is_bundled_placeholder_asset(photo, external_url, image_path, source_url):
+    """True when this row is a bundled stock asset, not real photography.
+
+    The catalogue shipped a folder of generic images (``temple.jpg``,
+    ``tea-gardens.jpg``, ``interior.jpg``) and wired them in as a destination's
+    photograph whenever a place had no real image. A traveller searching for a
+    place then saw a stock interior and reasonably concluded the catalogue was
+    showing a different location. A bundled placeholder is not a wrong place
+    exactly - it is not a photograph at all - so it must never be presented as
+    this destination's photography. The same rule already applied to generated
+    postcards, which render as an honest "no real photo yet" state.
+    """
+    for candidate in (external_url, image_path, source_url):
+        if not candidate:
+            continue
+        low = str(candidate).lower()
+        if is_generated_postcard_url(low):
+            return True
+        if low.startswith(BUNDLED_ASSET_PREFIXES):
+            return True
+
+    provenance = " ".join(filter(None, [
+        getattr(photo, "license_type", "") or "",
+        getattr(photo, "attribution", "") or "",
+        getattr(photo, "photographer", "") or "",
+        getattr(photo, "source", "") or "",
+    ])).lower()
+    return any(marker in provenance for marker in BUNDLED_PLACEHOLDER_MARKERS)
+
+
 def is_destination_specific_image(destination, photo):
     """Keep destination-linked media unless there is strong mismatch evidence.
 
@@ -780,6 +932,10 @@ def is_destination_specific_image(destination, photo):
     image_path = getattr(photo, "image_path", "") or ""
     evidence = " ".join([external_url, local_image, image_path, getattr(photo, "source_url", "") or ""]).lower()
     if any(term in evidence for term in ["airlines_crash", "plane_crash", "accident_scene", "placeholder", "stock-photo"]):
+        return False
+    # A bundled stock asset is not a photograph of this place.
+    if _is_bundled_placeholder_asset(photo, external_url, image_path,
+                                    getattr(photo, "source_url", "") or ""):
         return False
     # A locally uploaded/generated file is explicitly attached by destination_id.
     if (local_image or image_path) and not external_url:

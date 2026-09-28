@@ -4,7 +4,8 @@ Django settings for the Tourism project (Local Tourism Information Portal).
 from datetime import timedelta
 from pathlib import Path
 from decouple import config, Csv
-
+import os 
+import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config("SECRET_KEY", default="django-insecure-change-me-in-production")
