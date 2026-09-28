@@ -2896,7 +2896,7 @@ class AdminCMSView(APIView):
                     href = href.strip()
                     if href in {"", "#"} or href.lower().startswith("javascript:"):
                         issue("broken_link", f"Section '{section.key}' contains a dead link.", "blocker", section_id=section.id)
-                for url in re.findall(r'(?:src|href)=["\\']([^"\\']+)["\\']', body, re.I):
+                for url in re.findall(r"""(?:src|href)=["']([^"']+)["']""", body, re.I):
                     if url.lower().startswith(("javascript:", "data:")):
                         issue("unsafe_media_url", f"Section '{section.key}' contains an unsafe media URL.", "blocker", section_id=section.id)
             if sections and any(section.status != "published" for section in sections):
