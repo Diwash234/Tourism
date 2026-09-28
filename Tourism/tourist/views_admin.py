@@ -3030,6 +3030,29 @@ class AdminCMSView(APIView):
             queryset = ContentSection.objects.filter(is_reusable=True).select_related("page")
             return Response({"resource": "sections", "results": [self._row("sections", obj) for obj in queryset[:200]]})
         resource = request.query_params.get("resource", "pages")
+        if resource in {"dependencies", "page_dependencies"}:
+            pages = ManagedPage.objects.all().prefetch_related("sections")
+            results = []
+            for page in pages:
+                section_rows = list(page.sections.all().order_by("display_order", "id"))
+                links = []
+                for section in section_rows:
+                    config = section.config if isinstance(section.config, dict) else {}
+                    for key in ("route", "url", "href", "target_route"):
+                        value = config.get(key)
+                        if value and isinstance(value, str):
+                            links.append({"source": f"section:{section.id}", "type": key, "value": value})
+                    if section.cta_url:
+                        links.append({"source": f"section:{section.id}", "type": "cta_url", "value": section.cta_url})
+                results.append({
+                    "id": page.id, "title": page.title, "route": page.route,
+                    "status": page.status, "section_count": len(section_rows),
+                    "navigation_items": list(ManagedNavigationItem.objects.filter(route=page.route).values("id", "label", "location", "is_active")),
+                    "links": links,
+                    "seo": {"title": page.seo_title or "", "description": page.meta_description or "", "og_image": page.og_image_url or ""},
+                    "publication_gate": self._publication_gate("pages", page),
+                })
+            return Response({"resource": "dependencies", "count": len(results), "results": results})
         if resource in {"content_map", "site_map"}:
             pages = ManagedPage.objects.all().prefetch_related("sections").order_by("route", "id")
             query = str(request.query_params.get("q") or "").strip().lower()
