@@ -7,8 +7,8 @@ import useToast from "../../hooks/useToast"
 import RichTextEditor from "./RichTextEditor"
 import CMSBlock, { CMSExtras } from "../cms/CMSBlock"
 
-const resources = ["pages", "sections", "navigation", "settings", "translations", "media", "destinations", "announcements", "hotels", "hospitals", "police_stations"]
-const resourceGroups = [{ label: "Website", items: ["pages", "sections", "navigation", "settings", "translations", "media"] }, { label: "Travel Content", items: ["destinations", "announcements"] }, { label: "Travel & Hospitality", items: ["hotels"] }, { label: "Safety & Emergency", items: ["hospitals", "police_stations"] }]
+const resources = ["content_map", "pages", "sections", "navigation", "settings", "translations", "media", "destinations", "announcements", "hotels", "hospitals", "police_stations"]
+const resourceGroups = [{ label: "Website", items: ["content_map", "pages", "sections", "navigation", "settings", "translations", "media"] }, { label: "Travel Content", items: ["destinations", "announcements"] }, { label: "Travel & Hospitality", items: ["hotels"] }, { label: "Safety & Emergency", items: ["hospitals", "police_stations"] }]
 
 const workflowBar = (current) => (
   <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-emerald-100 bg-emerald-50 p-2">
@@ -30,7 +30,7 @@ const CMS_FIELD_GROUPS = {
 
 const CMS_WORKFLOW_STEPS = ["Edit", "Validate", "Preview", "Publish"]
 
-const RESOURCE_LABELS = { pages: "Pages", sections: "Sections", navigation: "Header, Navigation & Menus", settings: "Site Settings & Branding", translations: "Translations", media: "Media Library & Image Sources", destinations: "Destinations", announcements: "Visitor Notices", hotels: "Hotels", hospitals: "Hospitals", police_stations: "Police Stations" }
+const RESOURCE_LABELS = { content_map: "Site Content Map", pages: "Pages", sections: "Sections", navigation: "Header, Navigation & Menus", settings: "Site Settings & Branding", translations: "Translations", media: "Media Library & Image Sources", destinations: "Destinations", announcements: "Visitor Notices", hotels: "Hotels", hospitals: "Hospitals", police_stations: "Police Stations" }
 const sectionTypes = ["text", "heading", "image", "gallery", "cards", "faq", "cta", "map", "video", "audio", "marquee", "animation", "media", "form", "table", "figure", "testimonials", "contact", "breadcrumbs", "search"]
 const fallbackTemplates = {
   blank: { label: "Blank" },
@@ -43,6 +43,7 @@ const fallbackTemplates = {
   footer: { label: "Site Footer" },
 }
 const templates = {
+  content_map: {},
   settings: { key: "", value: {}, description: "", is_public: true },
   pages: { route: "/", key: "new-page", title: "New page", meta_description: "", seo_title: "", og_image_url: "", search_visible: true, is_enabled: true, status: "draft" },
   sections: { page_id: null, key: "new-section", title: "New section", subtitle: "", body: "", image_url: "", cta_text: "", cta_url: "", icon: "", section_type: "text", layout_variant: "default", config: {}, display_order: 0, is_visible: true, is_reusable: false, status: "draft" },
@@ -133,6 +134,7 @@ export default function CMSPanel() {
   const [autosaveEnabled, setAutosaveEnabled] = useState(true)
   const [bulkSelected, setBulkSelected] = useState([])
   const [focusMode, setFocusMode] = useState(false)
+  const [contentMap, setContentMap] = useState([])
 
   useEffect(() => {
     if (!autosaveEnabled || !autosaveKey || !dirty) return
@@ -212,8 +214,9 @@ export default function CMSPanel() {
 
   const load = async (keepId) => {
     try {
-      const { data } = await adminApi.getCMS(resource, resource === "sections" && sectionPageId ? { page_id: sectionPageId } : undefined)
+      const { data } = await adminApi.getCMS(resource === "content_map" ? "content_map" : resource, resource === "sections" && sectionPageId ? { page_id: sectionPageId } : undefined)
       setRows(data.results || [])
+      if (resource === "content_map") setContentMap(data.results || [])
       if (resource === "pages") setPageRows(data.results || [])
       if (keepId) {
         const current = (data.results || []).find(row => row.id === keepId)
@@ -295,6 +298,11 @@ export default function CMSPanel() {
 
   const choose = (row) => {
     if (!confirmLeave()) return
+    if (resource === "content_map") {
+      setResource("pages")
+      window.setTimeout(() => applyRow({ ...row, resource: "pages" }), 0)
+      return
+    }
     applyRow(row)
   }
 
@@ -317,6 +325,13 @@ export default function CMSPanel() {
     } finally {
       setBusy(false)
     }
+  }
+
+  const jumpToSection = (page, section) => {
+    if (!confirmLeave()) return
+    setResource("sections")
+    setSectionPageId(String(page.id))
+    window.setTimeout(() => applyRow({ ...section, page_id: page.id, page_title: page.title, page_route: page.route }), 0)
   }
 
   const createNew = () => {
@@ -449,6 +464,41 @@ export default function CMSPanel() {
   return (
     <div className="space-y-5 text-slate-900">
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs">
+        {resource === "content_map" && (
+          <div className="mb-4 rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 className="text-base font-black text-emerald-950">Site Content Map</h2>
+                <p className="text-xs text-slate-500">Search the entire managed website without opening pages one by one.</p>
+              </div>
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">{contentMap.length} pages</span>
+            </div>
+            <div className="space-y-2">
+              {contentMap.map((page) => (
+                <div key={page.id} className="rounded-xl border border-slate-200 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <button type="button" onClick={() => choose(page)} className="text-left">
+                      <div className="text-sm font-black">{page.title || page.key}</div>
+                      <div className="text-[11px] text-slate-500">{page.route} · {page.section_count} sections</div>
+                    </button>
+                    <div className="flex gap-1 text-[10px] font-bold">
+                      <span className="rounded-full bg-slate-100 px-2 py-1">{page.status}</span>
+                      <span className={`rounded-full px-2 py-1 ${page.publication_gate.ok ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>{page.publication_gate.ok ? "Publish ready" : `${page.publication_gate.blockers} blockers`}</span>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {page.sections.map((section) => (
+                      <button key={section.id} type="button" onClick={() => jumpToSection(page, section)} className="rounded-lg border bg-slate-50 px-2 py-1 text-[10px] hover:bg-emerald-50">
+                        {section.display_order}. {section.title || section.key} · {section.status}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-black text-slate-700">Editor controls</span>
           <label className="flex items-center gap-1.5"><input type="checkbox" checked={autosaveEnabled} onChange={(e) => setAutosaveEnabled(e.target.checked)} /> Autosave local draft</label>
