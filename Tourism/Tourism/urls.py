@@ -37,8 +37,9 @@ urlpatterns = [
     path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Render serves uploaded CMS media from the persistent disk. Keep this route explicit
+# because DEBUG=False in production and WhiteNoise only serves static assets.
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # React Router fallback. API, admin, health, sitemap and static routes are declared above.
 # This must remain last so Django never captures an API endpoint as a frontend route.
