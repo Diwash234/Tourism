@@ -2927,7 +2927,7 @@ class AdminCMSView(APIView):
                 issue("empty_section", "Section needs a title, body, image, or visible content block.")
             if obj.cta_url and not str(obj.cta_url).strip().startswith(("/", "https://", "mailto:", "tel:")):
                 issue("invalid_cta_url", "CTA URL must be an internal path, HTTPS URL, mailto, or tel link.")
-            for href in re.findall(r'href=["\\']([^"\\']*)["\\']', str(obj.body or ""), re.I):
+            for href in re.findall(r"""href=["']([^"']*)["']""", str(obj.body or ""), re.I):
                 if href.strip() in {"", "#"} or href.lower().startswith("javascript:"):
                     issue("broken_link", "Section contains a dead or unsafe link.")
         return {"ok": not blockers, "blockers": blockers, "warnings": warnings}
