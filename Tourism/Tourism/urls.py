@@ -4,6 +4,7 @@ from django.urls import path, include
 from tourist import views_seo
 from django.conf import settings
 from django.conf.urls.static import static
+from .spa import spa_index
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularSwaggerView,
@@ -38,3 +39,7 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# React Router fallback. API, admin, health, sitemap and static routes are declared above.
+# This must remain last so Django never captures an API endpoint as a frontend route.
+urlpatterns += [path("", spa_index, name="spa-root"), path("<path:path>", spa_index, name="spa-fallback")]
