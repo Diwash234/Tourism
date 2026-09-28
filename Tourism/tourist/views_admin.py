@@ -3030,6 +3030,16 @@ class AdminCMSView(APIView):
             queryset = ContentSection.objects.filter(is_reusable=True).select_related("page")
             return Response({"resource": "sections", "results": [self._row("sections", obj) for obj in queryset[:200]]})
         resource = request.query_params.get("resource", "pages")
+        if resource == "reusable_components":
+            sections = ContentSection.objects.filter(is_reusable=True).select_related("page").order_by("page_id", "display_order", "id")
+            results = []
+            for section in sections:
+                row = self._row("sections", section)
+                row["page_id"] = section.page_id
+                row["page_title"] = getattr(section.page, "title", "")
+                row["page_route"] = getattr(section.page, "route", "")
+                results.append(row)
+            return Response({"resource": "reusable_components", "count": len(results), "results": results})
         if resource in {"dependencies", "page_dependencies"}:
             pages = ManagedPage.objects.all().prefetch_related("sections")
             results = []
