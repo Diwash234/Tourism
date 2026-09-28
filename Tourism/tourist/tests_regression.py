@@ -2442,6 +2442,26 @@ class CMSContentMapTests(TestCase):
         self.assertEqual(page["section_count"], 1)
         self.assertEqual(page["sections"][0]["title"], "Hero section")
 
+class CMSWorkspaceMapTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(email="cmsworkspace@test.local", password="Pass@12345")
+        self.client.force_authenticate(user=self.admin)
+        self.page = ManagedPage.objects.create(route="/workspace-map", key="workspace-map", title="Workspace Map", status="published", is_enabled=True, meta_description="Workspace map test", updated_by=self.admin)
+        self.section = ContentSection.objects.create(page=self.page, key="shared-hero", title="Shared Hero", body="Reusable content", is_reusable=True, status="published", is_visible=True, cta_url="/destinations", updated_by=self.admin)
+        ManagedNavigationItem.objects.create(location="header", label="Workspace Map", route="/workspace-map", is_active=True)
+
+    def test_reusable_components_resource(self):
+        response = self.client.get(reverse("admin-cms"), {"resource": "reusable_components"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        self.assertTrue(any(item["id"] == self.section.id for item in response.data["results"]))
+
+    def test_dependency_resource_exposes_navigation_and_links(self):
+        response = self.client.get(reverse("admin-cms"), {"resource": "dependencies"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        page = next(item for item in response.data["results"] if item["id"] == self.page.id)
+        self.assertTrue(any(item["route"] == "/workspace-map" for item in page["navigation_items"]))
+        self.assertTrue(any(item["value"] == "/destinations" for item in page["links"]))
+
 class HomepageCMSBlockTypesTests(TestCase):
     """card_grid + packages block types and the seeded draft homepage
     sections (CMS prompt §8/§9): validation, draft gating, publish flow."""
