@@ -2,11 +2,11 @@
   "artifacts": {
     "database": {
       "path": "downloads/nepal-tourism-database.sqlite3.gz",
-      "sha256": "c22142a44559d3587f4d951b68d06f4d3c6db25ef336e9a5eefae96da8f54a58"
+      "sha256": "c05cae7ef197ccd36eca2eb928516ed6b92d75608561b346c78cda78c445d59b"
     },
     "json": {
       "path": "Tourism/dataset/verified_tourism_data.json",
-      "sha256": "aa111373020a130522d7502d3759ec45d8bca33791c06d1c1a5a731dfedc3980"
+      "sha256": "433f24f47f64350580a91ee0f6d15211cff57fc0b280fa328736739982e44879"
     }
   },
   "as_of": "2026-09-28T00:00:00+00:00",
@@ -15,7 +15,7 @@
     "tourist.contentsection": 48,
     "tourist.currenthazard": 3,
     "tourist.destination": 6068,
-    "tourist.destinationimage": 273,
+    "tourist.destinationimage": 740,
     "tourist.district": 77,
     "tourist.heroslide": 12,
     "tourist.hospital": 362,
@@ -31,5 +31,5 @@
   "format": "nepal-yatra-public-data-snapshot-lock",
   "format_version": 1,
   "minimum_tourist_migration": "0080_backfill_managed_page_snapshots",
-  "records_sha256": "32abb964a9fe2a932761f7be7e51d922f6ace7dac81617f1c7686d6661b1eb1b"
+  "records_sha256": "243574884fe29738f14c162a69a09b6032fb17227395c8a49132890073cf4f8f"
 }
