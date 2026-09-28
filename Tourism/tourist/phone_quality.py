@@ -30,6 +30,16 @@ _FLOAT_ARTIFACT = re.compile(r"^(?P<body>[\d\s()+\-.]+?)\.0$")
 
 #: Text that a missing value turns into once it has been stringified. None of
 #: these is ever a real phone number.
+#:
+#: The machine-shaped ones (``nan``, ``None``, ``n/a``) come from a missing cell
+#: passing through pandas and ``str()``. The prose ones come from the OSM-derived
+#: service CSVs, which mark absence in English: 2,752 of the 3,293 rows in
+#: ``emergency_services.csv`` carry the literal text ``Not Available`` in the
+#: phone column, and the same marker fills that file's email, website, opening
+#: hours, brand and address fields. Those values look populated -- a naive
+#: "is this cell non-empty" count reports 3,293 phones where 541 are real -- so
+#: an import that trusted emptiness would publish "Not Available" as a callable
+#: number.
 NULL_SENTINELS = frozenset(
     {
         "nan",
@@ -44,6 +54,15 @@ NULL_SENTINELS = frozenset(
         "--",
         "?",
         "undefined",
+        "not available",
+        "not applicable",
+        "not found",
+        "not listed",
+        "not known",
+        "no data",
+        "no information",
+        "unknown",
+        "information not available",
     }
 )
 

@@ -22,6 +22,7 @@ from .phone_quality import (
     is_placeholder_phone,
     is_unusable_phone,
     normalize_phone_artifact,
+    usable_phone,
 )
 from .serializers import HospitalSerializer, PoliceStationSerializer, RestaurantSerializer
 
@@ -36,6 +37,23 @@ class NullSentinelTests(TestCase):
         for value in ("", None, "01-4469064", "+9779800000010", "nanotechnology"):
             with self.subTest(value=value):
                 self.assertFalse(is_null_sentinel(value))
+
+    def test_english_missing_markers_from_the_osm_service_csvs_are_recognised(self):
+        # 2,752 of the 3,293 rows in emergency_services.csv carry the literal
+        # text "Not Available" in the phone column. The cell is non-empty, so an
+        # import that trusted emptiness would publish it as a callable number.
+        for value in ("Not Available", "not available", "NOT AVAILABLE", "Unknown",
+                      "Not Applicable", "Not Found", "No data", "No Information",
+                      "Information not available", "Not listed", "Not known"):
+            with self.subTest(value=value):
+                self.assertTrue(is_null_sentinel(value))
+
+    def test_prose_sentinels_never_reach_a_response_or_the_database(self):
+        # The end of the chain: not merely detected, but withheld and unstorable.
+        for value in ("Not Available", "Unknown", "Not Found"):
+            with self.subTest(value=value):
+                self.assertEqual(usable_phone(value), "")
+                self.assertTrue(is_unusable_phone(value))
 
 
 class PlaceholderPhoneTests(TestCase):
