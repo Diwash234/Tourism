@@ -3030,6 +3030,38 @@ class AdminCMSView(APIView):
             queryset = ContentSection.objects.filter(is_reusable=True).select_related("page")
             return Response({"resource": "sections", "results": [self._row("sections", obj) for obj in queryset[:200]]})
         resource = request.query_params.get("resource", "pages")
+        if resource in {"content_map", "site_map"}:
+            pages = ManagedPage.objects.all().prefetch_related("sections").order_by("route", "id")
+            query = str(request.query_params.get("q") or "").strip().lower()
+            status_filter = str(request.query_params.get("status") or "").strip().lower()
+            items = []
+            for page in pages:
+                sections = list(page.sections.all().order_by("display_order", "id"))
+                section_rows = [{
+                    "id": section.id, "key": section.key, "title": section.title,
+                    "status": section.status, "is_visible": section.is_visible,
+                    "section_type": section.section_type, "display_order": section.display_order,
+                    "image_url": section.image_url or "", "cta_url": section.cta_url or "",
+                } for section in sections]
+                gate = self._publication_gate("pages", page)
+                item = {
+                    "id": page.id, "resource": "pages", "title": page.title, "key": page.key,
+                    "route": page.route, "status": page.status, "is_enabled": page.is_enabled,
+                    "search_visible": page.search_visible, "seo_title": page.seo_title or "",
+                    "meta_description": page.meta_description or "", "og_image_url": page.og_image_url or "",
+                    "section_count": len(sections),
+                    "published_sections": sum(1 for section in sections if section.status == "published" and section.is_visible),
+                    "draft_sections": sum(1 for section in sections if section.status != "published"),
+                    "sections": section_rows,
+                    "publication_gate": {"ok": gate["ok"], "blockers": len(gate["blockers"]), "warnings": len(gate["warnings"])},
+                }
+                haystack = " ".join([str(item["title"]), str(item["key"]), str(item["route"]) ] + [str(x["title"]) + " " + str(x["key"]) for x in section_rows]).lower()
+                if query and query not in haystack:
+                    continue
+                if status_filter and status_filter != "all" and item["status"].lower() != status_filter:
+                    continue
+                items.append(item)
+            return Response({"resource": "content_map", "count": len(items), "results": items})
         if resource in self.RESOURCE_CAPABILITIES:
             _require_capability(request, *self.RESOURCE_CAPABILITIES[resource])
         if resource == "health":
