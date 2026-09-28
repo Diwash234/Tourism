@@ -7,8 +7,8 @@ import useToast from "../../hooks/useToast"
 import RichTextEditor from "./RichTextEditor"
 import CMSBlock, { CMSExtras } from "../cms/CMSBlock"
 
-const resources = ["content_map", "pages", "sections", "navigation", "settings", "translations", "media", "destinations", "announcements", "hotels", "hospitals", "police_stations"]
-const resourceGroups = [{ label: "Website", items: ["content_map", "pages", "sections", "navigation", "settings", "translations", "media"] }, { label: "Travel Content", items: ["destinations", "announcements"] }, { label: "Travel & Hospitality", items: ["hotels"] }, { label: "Safety & Emergency", items: ["hospitals", "police_stations"] }]
+const resources = ["content_map", "dependencies", "reusable_components", "pages", "sections", "navigation", "settings", "translations", "media", "destinations", "announcements", "hotels", "hospitals", "police_stations"]
+const resourceGroups = [{ label: "Website", items: ["content_map", "dependencies", "reusable_components", "pages", "sections", "navigation", "settings", "translations", "media"] }, { label: "Travel Content", items: ["destinations", "announcements"] }, { label: "Travel & Hospitality", items: ["hotels"] }, { label: "Safety & Emergency", items: ["hospitals", "police_stations"] }]
 
 const workflowBar = (current) => (
   <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-emerald-100 bg-emerald-50 p-2">
@@ -30,7 +30,7 @@ const CMS_FIELD_GROUPS = {
 
 const CMS_WORKFLOW_STEPS = ["Edit", "Validate", "Preview", "Publish"]
 
-const RESOURCE_LABELS = { content_map: "Site Content Map", pages: "Pages", sections: "Sections", navigation: "Header, Navigation & Menus", settings: "Site Settings & Branding", translations: "Translations", media: "Media Library & Image Sources", destinations: "Destinations", announcements: "Visitor Notices", hotels: "Hotels", hospitals: "Hospitals", police_stations: "Police Stations" }
+const RESOURCE_LABELS = { content_map: "Site Content Map", dependencies: "Page Dependencies", reusable_components: "Reusable Components", pages: "Pages", sections: "Sections", navigation: "Header, Navigation & Menus", settings: "Site Settings & Branding", translations: "Translations", media: "Media Library & Image Sources", destinations: "Destinations", announcements: "Visitor Notices", hotels: "Hotels", hospitals: "Hospitals", police_stations: "Police Stations" }
 const sectionTypes = ["text", "heading", "image", "gallery", "cards", "faq", "cta", "map", "video", "audio", "marquee", "animation", "media", "form", "table", "figure", "testimonials", "contact", "breadcrumbs", "search"]
 const fallbackTemplates = {
   blank: { label: "Blank" },
@@ -327,6 +327,19 @@ export default function CMSPanel() {
     }
   }
 
+  const openReusableComponent = (component) => {
+    if (!confirmLeave()) return
+    setResource("sections")
+    setSectionPageId("")
+    applyRow({
+      ...component,
+      is_reusable: true,
+      section_type: component.section_type || "custom",
+      config: component.config || {},
+      body: component.body || "",
+    })
+  }
+
   const dedicatedModules = [
     ["homepage_manager", "Homepage / Hero", "Homepage sections, featured content and hero controls"],
     ["header_navbar", "Header & Navbar", "Global navigation, menus and header controls"],
@@ -495,6 +508,44 @@ export default function CMSPanel() {
             ))}
           </div>
         </div>
+
+        {resource === "dependencies" && (
+          <div className="mb-4 rounded-2xl border border-sky-200 bg-white p-4 shadow-sm">
+            <h2 className="text-base font-black text-sky-950">Page Dependencies</h2>
+            <p className="mb-3 text-xs text-slate-500">See routes, navigation entries, CTAs and SEO dependencies before changing a page.</p>
+            <div className="space-y-2">
+              {rows.map((page) => (
+                <div key={page.id} className="rounded-xl border border-slate-200 p-3">
+                  <div className="flex flex-wrap justify-between gap-2">
+                    <button onClick={() => { setResource("pages"); applyRow(page) }} className="text-left">
+                      <div className="text-sm font-black">{page.title}</div>
+                      <div className="text-[11px] text-slate-500">{page.route} · {page.status}</div>
+                    </button>
+                    <span className="text-[10px] font-bold text-slate-500">{page.navigation_items.length} navigation link(s) · {page.links.length} content link(s)</span>
+                  </div>
+                  {page.navigation_items.length > 0 && <div className="mt-2 flex flex-wrap gap-1">{page.navigation_items.map(item => <span key={item.id} className="rounded-full bg-emerald-50 px-2 py-1 text-[10px]">{item.label} · {item.location}</span>)}</div>}
+                  {page.links.length > 0 && <div className="mt-2 space-y-1">{page.links.slice(0, 8).map((link, index) => <div key={index} className="truncate text-[10px] text-slate-500">{link.source} → {link.value}</div>)}</div>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {resource === "reusable_components" && (
+          <div className="mb-4 rounded-2xl border border-violet-200 bg-white p-4 shadow-sm">
+            <h2 className="text-base font-black text-violet-950">Reusable Components</h2>
+            <p className="mb-3 text-xs text-slate-500">Reusable published sections can become shared building blocks for multiple pages.</p>
+            <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+              {rows.filter(row => row.is_reusable).map(row => (
+                <button key={row.id} onClick={() => openReusableComponent(row)} className="rounded-xl border border-slate-200 p-3 text-left hover:border-violet-400">
+                  <div className="text-sm font-black">{row.title || row.key}</div>
+                  <div className="text-[10px] text-slate-500">{row.section_type} · {row.status} · {row.key}</div>
+                </button>
+              ))}
+              {rows.filter(row => row.is_reusable).length === 0 && <div className="text-xs text-slate-500">No reusable components yet. Mark a section as reusable from the section editor.</div>}
+            </div>
+          </div>
+        )}
 
         {resource === "content_map" && (
           <div className="mb-4 rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm">
