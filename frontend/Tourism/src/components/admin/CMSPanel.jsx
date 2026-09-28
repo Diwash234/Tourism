@@ -135,6 +135,7 @@ export default function CMSPanel() {
   const [bulkSelected, setBulkSelected] = useState([])
   const [focusMode, setFocusMode] = useState(false)
   const [contentMap, setContentMap] = useState([])
+  const dirty = Boolean(selected) && json !== savedJson
 
   useEffect(() => {
     if (!autosaveEnabled || !autosaveKey || !dirty) return
@@ -142,7 +143,7 @@ export default function CMSPanel() {
       try {
         localStorage.setItem(autosaveKey, json)
         setAutosaveAt(new Date().toISOString())
-      } catch {}
+      } catch { /* local autosave is best-effort */ }
     }, 1200)
     return () => window.clearTimeout(timer)
   }, [json, dirty, autosaveEnabled, autosaveKey])
@@ -169,7 +170,6 @@ export default function CMSPanel() {
     setBulkSelected((prev) => ids.every((id) => prev.includes(id)) ? prev.filter((id) => !ids.includes(id)) : Array.from(new Set([...prev, ...ids])))
   }
 
-  const dirty = Boolean(selected) && json !== savedJson
   const dirtyRef = useRef(false)
   // Refs must not be written during render (react-hooks/refs); mirror the
   // dirty flag in an effect — callbacks below read it outside of render.
@@ -188,7 +188,7 @@ export default function CMSPanel() {
           setSavedJson(JSON.stringify(clean(row), null, 2))
           return
         }
-      } catch {}
+      } catch { /* local autosave is best-effort */ }
     }
     const next = JSON.stringify(clean(row), null, 2)
     // Loading a different record starts a fresh undo history.
