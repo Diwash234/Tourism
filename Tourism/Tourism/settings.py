@@ -113,10 +113,9 @@ CHANNEL_LAYERS = {
 # ------------------------------------------------------------------
 # Database
 # ------------------------------------------------------------------
-# Engine-agnostic by design; SQLite is the DEFAULT so the project runs
-# with zero external setup (WAL-hardened at runtime by the tourist app,
-# so it is production-viable on a single node). For multi-instance
-# production, point the same code at PostgreSQL — no other change:
+# Engine-agnostic by design. SQLite is the local-development default so the
+# project runs with zero external setup. Render production uses PostgreSQL
+# through DATABASE_URL; no database credentials are stored in source control:
 #
 #   DATABASE_URL=postgres://user:pass@host:5432/dbname   (PostgreSQL)
 #   DATABASE_URL=sqlite:///abs/path/to/db.sqlite3        (explicit SQLite)
