@@ -1429,6 +1429,34 @@ class CMSPublishingWorkflowTests(APITestCase):
         response = self.client.patch(reverse("admin-cms"), {"resource": "pages", "id": self.page.id, "action": "schedule", "scheduled_publish_at": (timezone.now() - timedelta(hours=1)).isoformat()}, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_navigation_publish_is_blocked_for_invalid_route(self):
+        from tourist.models import ManagedNavigationItem
+        item = ManagedNavigationItem.objects.create(
+            location="navbar", label="Broken", route="javascript:alert(1)", is_active=False, updated_by=self.admin,
+        )
+        response = self.client.patch(
+            reverse("admin-cms"),
+            {"resource": "navigation", "id": item.id, "action": "publish"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertFalse(response.data["publication_gate"]["ok"])
+        self.assertTrue(any(item["code"] == "invalid_route" for item in response.data["publication_gate"]["blockers"]))
+
+    def test_navigation_publish_accepts_internal_route(self):
+        from tourist.models import ManagedNavigationItem
+        item = ManagedNavigationItem.objects.create(
+            location="navbar", label="Explore", route="/explore", is_active=False, updated_by=self.admin,
+        )
+        response = self.client.patch(
+            reverse("admin-cms"),
+            {"resource": "navigation", "id": item.id, "action": "publish"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        item.refresh_from_db()
+        self.assertTrue(item.is_active)
+
     def test_publish_is_blocked_when_page_has_no_publishable_content(self):
         response = self.client.patch(
             reverse("admin-cms"),
