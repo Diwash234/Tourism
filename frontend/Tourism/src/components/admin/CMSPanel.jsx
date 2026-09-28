@@ -7,8 +7,8 @@ import useToast from "../../hooks/useToast"
 import RichTextEditor from "./RichTextEditor"
 import CMSBlock, { CMSExtras } from "../cms/CMSBlock"
 
-const resources = ["pages", "sections", "navigation", "settings", "translations", "hotels", "hospitals", "police_stations"]
-const resourceGroups = [{ label: "Website", items: ["pages", "sections", "navigation", "settings", "translations"] }, { label: "Travel & Hospitality", items: ["hotels"] }, { label: "Safety & Emergency", items: ["hospitals", "police_stations"] }]
+const resources = ["pages", "sections", "navigation", "settings", "translations", "media", "destinations", "announcements", "hotels", "hospitals", "police_stations"]
+const resourceGroups = [{ label: "Website", items: ["pages", "sections", "navigation", "settings", "translations", "media"] }, { label: "Travel Content", items: ["destinations", "announcements"] }, { label: "Travel & Hospitality", items: ["hotels"] }, { label: "Safety & Emergency", items: ["hospitals", "police_stations"] }]
 
 const workflowBar = (current) => (
   <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-emerald-100 bg-emerald-50 p-2">
@@ -30,7 +30,7 @@ const CMS_FIELD_GROUPS = {
 
 const CMS_WORKFLOW_STEPS = ["Edit", "Validate", "Preview", "Publish"]
 
-const RESOURCE_LABELS = { pages: "Pages", sections: "Sections", navigation: "Header, Navigation & Menus", settings: "Site Settings & Branding", translations: "Translations", hotels: "Hotels", hospitals: "Hospitals", police_stations: "Police Stations" }
+const RESOURCE_LABELS = { pages: "Pages", sections: "Sections", navigation: "Header, Navigation & Menus", settings: "Site Settings & Branding", translations: "Translations", media: "Media Library & Image Sources", destinations: "Destinations", announcements: "Visitor Notices", hotels: "Hotels", hospitals: "Hospitals", police_stations: "Police Stations" }
 const sectionTypes = ["text", "heading", "image", "gallery", "cards", "faq", "cta", "map", "video", "audio", "marquee", "animation", "media", "form", "table", "figure", "testimonials", "contact", "breadcrumbs", "search"]
 const fallbackTemplates = {
   blank: { label: "Blank" },
@@ -51,6 +51,9 @@ const templates = {
   hotels: { destination_id: null, name: "", phone: "", price_per_night: "", currency: "NPR", rating: "", booking_status: "unknown", booking_url: "", external_image_url: "", facilities: [], address: "", latitude: "", longitude: "", source: "manual", source_url: "", website: "", is_verified: false, is_active: true },
   hospitals: { destination_id: null, name: "", address: "", phone: "", latitude: "", longitude: "", district: "", opening_hours: "", emergency_available: false, source_name: "", source_url: "", website: "", is_verified: false, is_archived: false },
   police_stations: { destination_id: null, name: "", address: "", phone: "", latitude: "", longitude: "", opening_hours: "", emergency_available: false, source_name: "", source_url: "", website: "", is_verified: false, is_archived: false },
+  media: { destination_id: null, external_url: "", source_url: "", caption: "", alt_text: "", photographer: "", license_type: "", verification_status: "pending", is_verified: false, is_cover: false, ordering: 0 },
+  destinations: { name: "", slug: "", description: "", short_description: "", district: "", province: "", city_english: "", latitude: "", longitude: "", status: "draft", seo_title: "", meta_description: "", og_image_url: "" },
+  announcements: { title: "", message: "", level: "info", is_active: true },
 }
 const clean = (row) => Object.fromEntries(Object.entries(row || {}).filter(([key]) => !["updated_at", "published_at", "scheduled_publish_at"].includes(key)))
 const displayName = (row) => {
@@ -65,6 +68,8 @@ export default function CMSPanel() {
   const [rows, setRows] = useState([])
   const [pageRows, setPageRows] = useState([])
   const [sectionPageId, setSectionPageId] = useState("")
+  const [selectedIds, setSelectedIds] = useState([])
+  const [bulkBusy, setBulkBusy] = useState(false)
   // Record-list search / status filter / sort (brief §22/§88) — client-side
   // over the loaded rows; reordering always operates on the FULL row order.
   const [listQuery, setListQuery] = useState("")
@@ -232,6 +237,7 @@ export default function CMSPanel() {
     setListQuery("")
     setStatusFilter("all")
     setSortMode("default")
+    setSelectedIds([])
     load()
     }, 0)
     return () => clearTimeout(t)
@@ -265,6 +271,26 @@ export default function CMSPanel() {
     if (!confirmLeave()) return
     dirtyRef.current = false
     setResource(next)
+  }
+
+  const toggleSelected = (id) => setSelectedIds((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id])
+  const toggleAllVisible = () => {
+    const ids = visibleRows.map((row) => row.id)
+    setSelectedIds((current) => ids.every((id) => current.includes(id)) ? current.filter((id) => !ids.includes(id)) : Array.from(new Set([...current, ...ids])))
+  }
+  const bulkAction = async (action) => {
+    if (!selectedIds.length || !window.confirm(`Apply “${action}” to ${selectedIds.length} selected ${RESOURCE_LABELS[resource]} record(s)?`)) return
+    setBulkBusy(true)
+    try {
+      const response = await adminApi.runCMSAction({ resource, action: "bulk", ids: selectedIds, bulk_action: action })
+      showToast(response.data?.message || "Bulk action complete", "success")
+      setSelectedIds([])
+      await load()
+      notifyCmsUpdated()
+    } catch (error) {
+      const blocked = error.response?.data?.blocked
+      showToast(blocked?.length ? `${blocked.length} record(s) failed the publication gate` : error.response?.data?.detail || "Bulk action failed", "error")
+    } finally { setBulkBusy(false) }
   }
 
   const choose = (row) => {
@@ -490,11 +516,26 @@ export default function CMSPanel() {
               <p className="text-[10px] font-bold text-slate-500">Showing {visibleRows.length} of {rows.length}</p>
             )}
           </div>
+          {visibleRows.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 border-b border-emerald-100 bg-emerald-50 p-2">
+              <button type="button" onClick={toggleAllVisible} className="rounded-lg border bg-white px-2 py-1 text-[10px] font-bold">
+                {visibleRows.length && visibleRows.every((row) => selectedIds.includes(row.id)) ? "Clear visible" : "Select visible"}
+              </button>
+              {selectedIds.length > 0 && <span className="text-[10px] font-black text-emerald-800">{selectedIds.length} selected</span>}
+              {selectedIds.length > 0 && <button disabled={bulkBusy} onClick={() => bulkAction("publish")} className="rounded-lg bg-emerald-700 px-2 py-1 text-[10px] font-bold text-white">Publish</button>}
+              {selectedIds.length > 0 && <button disabled={bulkBusy} onClick={() => bulkAction("unpublish")} className="rounded-lg bg-amber-700 px-2 py-1 text-[10px] font-bold text-white">Unpublish</button>}
+              {selectedIds.length > 0 && <button disabled={bulkBusy} onClick={() => bulkAction("activate")} className="rounded-lg bg-sky-700 px-2 py-1 text-[10px] font-bold text-white">Activate</button>}
+              {selectedIds.length > 0 && <button disabled={bulkBusy} onClick={() => bulkAction("deactivate")} className="rounded-lg bg-slate-700 px-2 py-1 text-[10px] font-bold text-white">Deactivate</button>}
+            </div>
+          )}
           <div className="overflow-y-auto max-h-[58vh] p-2 space-y-1">
             {rows.length === 0 && <p className="p-6 text-center text-sm text-slate-500">No records found.</p>}
             {rows.length > 0 && visibleRows.length === 0 && <p className="p-6 text-center text-sm text-slate-500">No records match the filter.</p>}
             {visibleRows.map((row) => (
               <div key={row.id} className="flex items-stretch gap-1">
+                <label className="flex items-center px-1" onClick={(event) => event.stopPropagation()}>
+                  <input type="checkbox" checked={selectedIds.includes(row.id)} onChange={() => toggleSelected(row.id)} aria-label={`Select ${displayName(row)}`} />
+                </label>
                 <button onClick={() => choose(row)} className={`block flex-1 min-w-0 text-left p-3 rounded-xl text-xs ${selected?.id === row.id ? "bg-emerald-50 ring-1 ring-emerald-600" : "bg-slate-50 hover:bg-emerald-50"}`}>
                   <span className="font-bold text-slate-900">{displayName(row)}</span>
                   <span className="flex justify-between mt-1 text-[10px] text-slate-500">
