@@ -2892,7 +2892,7 @@ class AdminCMSView(APIView):
                     issue("empty_section", f"Published section '{section.key}' has no visible content.", "blocker", section_id=section.id)
                 if section.cta_url and not str(section.cta_url).strip().startswith(("/", "https://", "mailto:", "tel:")):
                     issue("invalid_cta_url", f"Section '{section.key}' has an invalid CTA URL.", "blocker", section_id=section.id)
-                for href in re.findall(r'href=["\\']([^"\\']*)["\\']', body, re.I):
+                for href in re.findall(r"""href=["']([^"']*)["']""", body, re.I):
                     href = href.strip()
                     if href in {"", "#"} or href.lower().startswith("javascript:"):
                         issue("broken_link", f"Section '{section.key}' contains a dead link.", "blocker", section_id=section.id)
