@@ -86,10 +86,15 @@ STOP = {"hotel", "guest", "house", "lodge", "resort", "restaurant", "the", "and"
 
 
 def normalise(text):
-    """A comparable place name: letters and digits, with filler words dropped."""
+    """A comparable place name: letters and digits, with filler words dropped.
+
+    A name left with nothing distinctive returns "", which matches nothing. A
+    fallback to the raw words would be worse than useless here: "Hotel" and "The
+    Hotel" are both all-filler, and normalising them to two different strings
+    would let each match a different branch on a street where twenty exist.
+    """
     words = re.sub(r"[^a-z0-9]+", " ", (text or "").lower()).split()
-    kept = [w for w in words if w not in STOP and len(w) > 2]
-    return " ".join(kept) or " ".join(words)
+    return " ".join(w for w in words if w not in STOP and len(w) > 2)
 
 
 def distance_km(lat1, lon1, lat2, lon2):

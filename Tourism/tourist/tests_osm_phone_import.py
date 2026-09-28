@@ -28,11 +28,13 @@ class NormaliseTests(SimpleTestCase):
         self.assertEqual(normalise("Hotel Yak and Yeti"), normalise("Yak and Yeti"))
         self.assertEqual(normalise("The Dwarika's Hotel"), normalise("Dwarika's"))
 
-    def test_a_name_kept_only_as_filler_still_compares(self):
-        # Dropping every word would make all such names equal, so nothing is
-        # dropped when that would leave nothing.
-        self.assertEqual(normalise("Hotel"), "hotel")
-        self.assertEqual(normalise("Hotel"), normalise("THE HOTEL"))
+    def test_a_name_with_nothing_distinctive_matches_nothing(self):
+        # "Hotel" and "The Hotel" are both all business type. Normalising them
+        # to two different strings would let each match a different branch on a
+        # street where twenty exist, so both become unmatchable instead.
+        self.assertEqual(normalise("Hotel"), "")
+        self.assertEqual(normalise("THE HOTEL"), "")
+        self.assertEqual(normalise("Grand Plaza"), "")
 
     def test_different_places_stay_different(self):
         self.assertNotEqual(normalise("Hotel Yak and Yeti"), normalise("Hotel Yak Splash"))
@@ -70,9 +72,41 @@ class ChooseNearestTests(SimpleTestCase):
         self.assertIs(best, self.near)
         self.assertIn("nearest of", why)
 
-    def test_two_candidates_almost_equally_close_are_refused(self):
-        second = dict(self.far, lat=27.7172, lon=85.3250)  # ~45 m away
-        best, why = self.command._choose([self.near, second], 27.7172, 85.3245, 3.0)
+    def test_a_candidate_on_the_row_beats_one_over_a_km_away(self):
+        # The row's own coordinates sit on one of them, and the other is well
+        # outside a street's width. That separation is decisive, so the nearer
+        # number is the right one rather than a coin-toss between branches.
+        rival = {"phone": "015971234", "lat": 27.7280, "lon": 85.3290,
+                 "name": "Bank", "osm_type": "node", "osm_id": 3}
+        best, _why = self.command._choose([self.near, rival], 27.7172, 85.3245, 3.0)
+        self.assertIsNotNone(best)
+
+    def test_candidates_on_opposite_sides_of_the_radius_are_both_refused(self):
+        # A tie dressed up as a "winner" would be the worst outcome: the nearest
+        # is only slightly nearer, so neither is evidence about the other.
+        a = {"phone": "014469064", "lat": 27.7262, "lon": 85.3245,
+             "name": "Bank", "osm_type": "node", "osm_id": 4}
+        b = {"phone": "015971234", "lat": 27.7266, "lon": 85.3245,
+             "name": "Bank", "osm_type": "node", "osm_id": 5}
+        best, why = self.command._choose([a, b], 27.7172, 85.3245, 3.0)
+        self.assertIsNone(best)
+        self.assertIn("none clearly nearest", why)
+
+    def test_a_candidate_at_the_exact_coordinates_wins_over_one_fifty_metres_off(self):
+        # Decisiveness is what the rule asks for, and at these distances it is
+        # real: the row's own coordinates sit on one of them.
+        rival = dict(self.far, lat=27.7172, lon=85.3260)
+        best, _why = self.command._choose([self.near, rival], 27.7172, 85.3245, 3.0)
+        self.assertIsNotNone(best)
+
+    def test_a_candidate_on_the_row_and_one_far_away_still_refuses_when_close(self):
+        # Nearest is 1.0 km, second is 1.05 km: inside the radius, and
+        # essentially tied.
+        nearish = {"phone": "014469064", "lat": 27.7262, "lon": 85.3245,
+                   "name": "Bank", "osm_type": "node", "osm_id": 6}
+        rival = {"phone": "015971234", "lat": 27.7267, "lon": 85.3245,
+                 "name": "Bank", "osm_type": "node", "osm_id": 7}
+        best, why = self.command._choose([nearish, rival], 27.7172, 85.3245, 3.0)
         self.assertIsNone(best)
         self.assertIn("none clearly nearest", why)
 
