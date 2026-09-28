@@ -1,7 +1,7 @@
 import re
 
 from django.contrib.auth import get_user_model
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Count, Sum, F, Q, Max
 from django.utils import timezone
 from django.conf import settings
@@ -1977,6 +1977,59 @@ class AdminDataExplorerView(APIView):
             return None
         return apps.get_model(self.RESOURCES[resource][0])
 
+    def _bulk_action(self, request, resource, model):
+        """Apply safe workflow actions to up to 100 selected records."""
+        if not model or resource not in self.MODELS:
+            return Response({"detail": "Unsupported CMS resource"}, status=400)
+        ids = request.data.get("ids") or []
+        if not isinstance(ids, list) or not ids:
+            return Response({"detail": "Select one or more records"}, status=400)
+        ids = list(dict.fromkeys(ids))[:100]
+        action = str(request.data.get("bulk_action") or "").strip()
+        if action not in {"publish", "unpublish", "archive", "activate", "deactivate"}:
+            return Response({"detail": "Unsupported bulk action"}, status=400)
+        capability = "approve" if action in {"publish", "unpublish"} else "change"
+        module = self.RESOURCE_CAPABILITIES.get(resource, ("content", "view"))[0]
+        _require_capability(request, module, capability)
+        objects = list(model.objects.filter(pk__in=ids))
+        found = {str(obj.pk) for obj in objects}
+        missing = [value for value in ids if str(value) not in found]
+        if missing:
+            return Response({"detail": "Some selected records no longer exist.", "missing_ids": missing}, status=404)
+        blockers = []
+        if action == "publish":
+            for obj in objects:
+                gate = self._publication_gate(resource, obj)
+                if not gate["ok"]:
+                    row = self._row(resource, obj)
+                    blockers.append({"id": obj.pk, "name": row.get("title") or row.get("label") or str(obj.pk), "publication_gate": gate})
+            if blockers:
+                return Response({"detail": "Bulk publish blocked: fix all selected records first.", "blocked": blockers}, status=409)
+        now = timezone.now()
+        with transaction.atomic():
+            for obj in objects:
+                if action == "publish":
+                    if resource == "pages": obj.status, obj.is_enabled, obj.published_at, obj.scheduled_publish_at = "published", True, now, None
+                    elif resource == "sections": obj.status, obj.is_visible, obj.published_at, obj.scheduled_publish_at = "published", True, now, None
+                    elif resource == "navigation": obj.is_active = True
+                    elif resource == "media": obj.verification_status, obj.is_verified = "approved", True
+                elif action == "unpublish":
+                    if resource == "pages": obj.status, obj.is_enabled, obj.published_at = "draft", False, None
+                    elif resource == "sections": obj.status, obj.is_visible, obj.published_at = "draft", False, None
+                    elif resource == "navigation": obj.is_active = False
+                    elif resource == "media": obj.verification_status, obj.is_verified = "rejected", False
+                elif action in {"archive", "deactivate"}:
+                    field = "is_archived" if hasattr(obj, "is_archived") else ("is_active" if hasattr(obj, "is_active") else "is_visible")
+                    setattr(obj, field, False)
+                elif action == "activate":
+                    field = "is_active" if hasattr(obj, "is_active") else ("is_visible" if hasattr(obj, "is_visible") else "is_enabled")
+                    setattr(obj, field, True)
+                if hasattr(obj, "updated_by"): obj.updated_by = request.user
+                obj.save()
+                if action == "publish": self._sync_published_record(resource, obj)
+                self._revision(resource, obj, request.user, action if action in {"publish", "unpublish"} else "update")
+        self._invalidate_public_caches()
+        return Response({"message": f"{len(objects)} {resource} record(s) {action} complete", "updated": len(objects), "ids": [obj.pk for obj in objects]})
     def patch(self, request):
         """Generic row editing for every explorer resource.
 
@@ -2611,11 +2664,13 @@ class AdminCMSView(APIView):
         "hotels": Hotel,
         "hospitals": Hospital,
         "police_stations": PoliceStation,
+        "media": DestinationImage,
     }
     RESOURCE_CAPABILITIES = {
         "hotels": ("hotels", "view"),
         "hospitals": ("safety", "view"),
         "police_stations": ("safety", "view"),
+        "media": ("images", "view"),
     }
     FIELDS = {
         "settings": {"key", "value", "description", "is_public"},
@@ -2628,6 +2683,7 @@ class AdminCMSView(APIView):
         "hotels": {"destination_id", "name", "phone", "price_per_night", "currency", "rating", "booking_status", "booking_url", "external_image_url", "facilities", "address", "latitude", "longitude", "source", "source_url", "website", "is_verified", "is_active"},
         "hospitals": {"destination_id", "name", "address", "phone", "latitude", "longitude", "district", "opening_hours", "emergency_available", "source_name", "source_url", "website", "is_verified", "is_archived"},
         "police_stations": {"destination_id", "name", "address", "phone", "latitude", "longitude", "opening_hours", "emergency_available", "source_name", "source_url", "website", "is_verified", "is_archived"},
+        "media": {"destination_id", "external_url", "source_url", "caption", "alt_text", "photographer", "license_type", "verification_status", "is_verified", "is_cover", "ordering"},
     }
     PUBLICATION_FIELDS = {"status", "scheduled_publish_at", "published_at", "is_enabled", "is_visible", "is_active", "route", "key"}
     WORKFLOW_ACTIONS = {"publish", "unpublish", "schedule", "approve", "request_changes", "rollback"}
@@ -2650,6 +2706,14 @@ class AdminCMSView(APIView):
             for field in ("source_url", "website", "booking_url", "external_image_url"):
                 if field in payload and payload[field] and not str(payload[field]).startswith(("https://", "/")):
                     raise ValueError(f"{field} must be an HTTPS URL or an internal path")
+        if resource == "media":
+            for field in ("external_url", "source_url"):
+                if field in payload and payload[field] and not str(payload[field]).startswith("https://"):
+                    raise ValueError(f"{field} must use HTTPS")
+            if "destination_id" in payload and payload["destination_id"] and not Destination.objects.filter(pk=payload["destination_id"]).exists():
+                raise ValueError("destination_id does not reference an existing destination")
+            if "verification_status" in payload and str(payload["verification_status"]) not in {"pending", "approved", "rejected"}:
+                raise ValueError("Invalid media verification status")
         if resource in {"pages", "navigation"} and payload.get("route") and not str(payload["route"]).startswith("/"):
             raise ValueError("Only validated internal routes beginning with / are allowed")
         if resource == "sections" and payload.get("cta_url") and not str(payload["cta_url"]).startswith("/"):
@@ -2719,6 +2783,10 @@ class AdminCMSView(APIView):
                     row["image_url"] = ""
             elif resource == "hotels":
                 row["image_url"] = getattr(obj, "external_image_url", "") or ""
+        if resource == "media":
+            row["destination_id"] = getattr(obj, "destination_id", None)
+            row["destination_name"] = getattr(getattr(obj, "destination", None), "name", None)
+            row["image_url"] = getattr(obj, "external_url", "") or (obj.image.url if getattr(obj, "image", None) else "")
         if resource == "sections":
             page = getattr(obj, "page", None)
             row["published_snapshot"] = obj.published_snapshot
@@ -3364,6 +3432,8 @@ class AdminCMSView(APIView):
                 _require_capability(request, "content", "publish")
         resource = request.data.get("resource")
         model = self.MODELS.get(resource)
+        if request.data.get("action") == "bulk":
+            return self._bulk_action(request, resource, model)
         obj = model.objects.filter(pk=request.data.get("id")).first() if model else None
         if not obj:
             return Response({"detail": "CMS record not found"}, status=404)
