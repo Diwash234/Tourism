@@ -104,6 +104,31 @@ def resolve_str_image_url(value, request=None):
     return url
 
 
+def public_media_url(url, request=None):
+    """Return a browser-safe public media URL for local or external media."""
+    if not url:
+        return None
+    value = str(url).strip()
+    if not value:
+        return None
+    if _is_external_url(value):
+        return value
+    if value.startswith("/"):
+        resolved = value
+    elif value.startswith("images/"):
+        resolved = f"/{value}"
+    elif value.startswith("media/"):
+        resolved = f"/{value}"
+    else:
+        resolved = f"{settings.MEDIA_URL}{value}"
+    if request is not None:
+        try:
+            return request.build_absolute_uri(resolved)
+        except Exception:  # noqa: BLE001
+            pass
+    return resolved
+
+
 # ---------------------------------------------------------------------------
 # Distance
 def has_valid_coordinates(lat, lon):
