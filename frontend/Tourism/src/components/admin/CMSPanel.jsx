@@ -148,25 +148,9 @@ export default function CMSPanel() {
     return () => window.clearTimeout(timer)
   }, [json, dirty, autosaveEnabled, autosaveKey])
 
-  useEffect(() => {
-    const onKeyDown = (event) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
-        event.preventDefault()
-        if (dirty) save()
-      }
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "enter") {
-        event.preventDefault()
-        if (selected?.id && supportsWorkflow) workflow("publish")
-      }
-      if (event.key === "Escape") setFocusMode(false)
-    }
-    window.addEventListener("keydown", onKeyDown)
-    return () => window.removeEventListener("keydown", onKeyDown)
-  }, [dirty, selected?.id, resource])
-
   const toggleBulk = (id) => setBulkSelected((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])
   const toggleAllVisible = () => {
-    const ids = visibleRows.map((row) => row.id).filter(Boolean)
+    const ids = rows.map((row) => row.id).filter(Boolean)
     setBulkSelected((prev) => ids.every((id) => prev.includes(id)) ? prev.filter((id) => !ids.includes(id)) : Array.from(new Set([...prev, ...ids])))
   }
 
@@ -429,6 +413,22 @@ export default function CMSPanel() {
     },
     "CMS workflow action complete"
   )
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault()
+        if (dirty) save()
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "enter") {
+        event.preventDefault()
+        if (selected?.id && supportsWorkflow) workflow("publish")
+      }
+      if (event.key === "Escape") setFocusMode(false)
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [dirty, selected?.id, resource])
+
   const showPreview = async () => {
     if (!selected?.id) return showToast("Save this draft before previewing it", "info")
     try {
