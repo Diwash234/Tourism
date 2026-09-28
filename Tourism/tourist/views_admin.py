@@ -2833,6 +2833,21 @@ class AdminCMSView(APIView):
                         issue("unsafe_media_url", f"Section '{section.key}' contains an unsafe media URL.", "blocker", section_id=section.id)
             if sections and any(section.status != "published" for section in sections):
                 issue("unpublished_sections", "Some page sections are still draft/unpublished; they will not appear publicly.", "warning")
+        elif resource == "navigation":
+            label = str(getattr(obj, "label", "") or "").strip()
+            route = str(getattr(obj, "route", "") or "").strip()
+            location = str(getattr(obj, "location", "") or "").strip()
+            if not label:
+                issue("missing_label", "Navigation label is required.")
+            if location not in {"navbar", "sidebar", "footer"}:
+                issue("invalid_location", "Navigation location must be navbar, sidebar, or footer.")
+            if not route or not route.startswith(("/", "https://")):
+                issue("invalid_route", "Navigation route must be an internal path or HTTPS URL.")
+            parent = getattr(obj, "parent", None)
+            if parent and parent.pk == obj.pk:
+                issue("self_parent", "Navigation item cannot be its own parent.")
+            if parent and parent.location != location:
+                issue("parent_location_mismatch", "Navigation parent must use the same location.")
         elif resource == "sections":
             page = getattr(obj, "page", None)
             if not page:
@@ -3447,6 +3462,12 @@ class AdminCMSView(APIView):
             elif resource not in {"pages", "sections"}:
                 return Response({"detail": "Publication workflow applies to pages, sections, or navigation"}, status=400)
             elif action == "schedule":
+                gate = self._publication_gate(resource, obj)
+                if not gate["ok"]:
+                    return Response({
+                        "detail": "Scheduling is blocked until the required CMS checks pass.",
+                        "publication_gate": gate,
+                    }, status=409)
                 from django.utils.dateparse import parse_datetime
                 scheduled = parse_datetime(str(request.data.get("scheduled_publish_at", "")))
                 if scheduled and timezone.is_naive(scheduled):
