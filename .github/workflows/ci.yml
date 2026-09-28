@@ -23,6 +23,14 @@ jobs:
       - name: Django system check
         working-directory: Tourism
         run: python manage.py check
+      - name: Verify workflow files reference real commands
+        working-directory: Tourism
+        # repair-place-images.yml called two management commands that did not
+        # exist, and every dispatch failed at its first step. Nothing caught it
+        # because nothing looked at the workflow files. This also rejects
+        # duplicate YAML keys, which most readers resolve silently in favour of
+        # the last occurrence.
+        run: python manage.py check_workflows
       - name: Verify password hasher is usable
         working-directory: Tourism
         run: |

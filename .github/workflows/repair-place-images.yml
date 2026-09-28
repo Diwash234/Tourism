@@ -1,5 +1,7 @@
 name: Repair place images
 
+# Runs repair_real_place_images and audit_cross_place_images. Both commands used
+# to be missing, so this workflow failed on every dispatch; they now exist.
 on:
   workflow_dispatch:
     inputs:
@@ -12,41 +14,147 @@ on:
           - all
           - destination
           - hotel
+      mode:
+        description: "Offline triage only (no downloads), or fetch real photos too"
+        required: true
+        default: "triage"
+        type: choice
+        options:
+          - triage
+          - fetch
       images_per_place:
-        description: "Maximum new verified images per place"
+        description: "Maximum new images proposed per place"
         required: true
         default: "8"
         type: string
-      apply:
-        description: "Persist verified changes"
+      min_places:
+        description: "Only replace images shared by at least this many places"
+        required: true
+        default: "2"
+        type: string
+      quarantine_shared:
+        description: "Flag images shared by N+ places for review (0 disables)"
+        required: true
+        default: "0"
+        type: string
+      reassign_by_caption:
+        description: "Reassign a shared image when its caption names one holder"
         required: true
         default: true
+        type: boolean
+      fix_multiple_covers:
+        description: "Reduce each destination to a single cover image"
+        required: true
+        default: true
+        type: boolean
+      apply:
+        description: "Persist changes. OFF BY DEFAULT."
+        required: true
+        default: false
         type: boolean
 
 jobs:
   repair:
     runs-on: ubuntu-latest
+    # Real gate: a maintainer must approve the deployment environment.
     environment: production
+    # Hard ceiling. Fetch mode contacts Wikimedia Commons once per place at a
+    # polite interval, so a large batch is genuinely slow; this bounds a hang
+    # without cutting off a legitimate large run.
+    timeout-minutes: 120
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out
+        uses: actions/checkout@v4
 
       - name: Build application
         run: |
           docker compose build web
           docker compose run --rm web python manage.py check
 
-      - name: Repair real place images
+      # Measure before changing anything, so the effect of this run is a
+      # comparison rather than an assertion. This is the step that makes the
+      # run auditable afterwards.
+      - name: Measure image reuse before
+        run: |
+          docker compose run --rm web python manage.py audit_cross_place_images \
+            --tsv image-reuse-before.tsv --top 40
+
+      # Dry run first, always. Nothing is written on this step, so a bad input
+      # is caught before it can reach the database.
+      - name: Dry run
         env:
           KIND: ${{ inputs.kind }}
+          MODE: ${{ inputs.mode }}
           IMAGES_PER_PLACE: ${{ inputs.images_per_place }}
-          APPLY: ${{ inputs.apply }}
+          MIN_PLACES: ${{ inputs.min_places }}
+          QUARANTINE_SHARED: ${{ inputs.quarantine_shared }}
         run: |
-          if [ "$APPLY" != "true" ]; then
-            echo "Refusing a non-apply run in this production workflow."
-            exit 1
+          if [ "$MODE" = "triage" ]; then
+            docker compose run --rm web python manage.py repair_real_place_images \
+              --triage-only \
+              --reassign-by-caption \
+              --fix-multiple-covers \
+              --quarantine-shared "$QUARANTINE_SHARED"
+          else
+            docker compose run --rm web python manage.py repair_real_place_images \
+              --kind "$KIND" \
+              --images-per-place "$IMAGES_PER_PLACE" \
+              --min-places "$MIN_PLACES"
           fi
-          docker compose run --rm web python manage.py repair_real_place_images             --kind "$KIND"             --images-per-place "$IMAGES_PER_PLACE"             --apply
 
-      - name: Audit cross-place reuse
+      - name: Persist changes
+        if: ${{ inputs.apply }}
+        env:
+          KIND: ${{ inputs.kind }}
+          MODE: ${{ inputs.mode }}
+          IMAGES_PER_PLACE: ${{ inputs.images_per_place }}
+          MIN_PLACES: ${{ inputs.min_places }}
+          QUARANTINE_SHARED: ${{ inputs.quarantine_shared }}
+          REASSIGN: ${{ inputs.reassign_by_caption }}
+          FIX_COVERS: ${{ inputs.fix_multiple_covers }}
         run: |
-          docker compose run --rm web python manage.py audit_cross_place_images
+          if [ "$MODE" = "triage" ]; then
+            FLAGS="--triage-only"
+            [ "$REASSIGN" = "true" ] && FLAGS="$FLAGS --reassign-by-caption"
+            [ "$FIX_COVERS" = "true" ] && FLAGS="$FLAGS --fix-multiple-covers"
+            docker compose run --rm web python manage.py repair_real_place_images \
+              $FLAGS --quarantine-shared "$QUARANTINE_SHARED" --apply
+          else
+            FLAGS=""
+            [ "$REASSIGN" = "true" ] && FLAGS="$FLAGS --reassign-by-caption"
+            [ "$FIX_COVERS" = "true" ] && FLAGS="$FLAGS --fix-multiple-covers"
+            docker compose run --rm web python manage.py repair_real_place_images \
+              --kind "$KIND" \
+              --images-per-place "$IMAGES_PER_PLACE" \
+              --min-places "$MIN_PLACES" \
+              $FLAGS \
+              --apply
+          fi
+
+      - name: Measure image reuse after
+        if: ${{ inputs.apply }}
+        run: |
+          docker compose run --rm web python manage.py audit_cross_place_images \
+            --tsv image-reuse-after.tsv --top 40
+
+      - name: Summarise
+        if: ${{ always() }}
+        run: |
+          {
+            echo "### Image repair run"
+            echo
+            echo "- mode: \`${{ inputs.mode }}\`"
+            echo "- apply: \`${{ inputs.apply }}\`"
+            if [ -f image-reuse-before.tsv ] && [ -f image-reuse-after.tsv ]; then
+              echo
+              echo "Reuse findings before: $(($(wc -l < image-reuse-before.tsv) - 1)) rows"
+              echo "Reuse findings after:  $(($(wc -l < image-reuse-after.tsv) - 1)) rows"
+            else
+              echo
+              echo "Dry run only (apply=false): no comparison, and no data was changed."
+            fi
+            echo
+            echo "Proposals are written as 'needs review' with is_verified=false and"
+            echo "no score. A human must approve them in the admin before they are"
+            echo "published as media."
+          } >> "$GITHUB_STEP_SUMMARY"
