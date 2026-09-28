@@ -13,12 +13,14 @@ services:
         generateValue: true
       - key: ALLOWED_HOSTS
         value: "*"
-      - key: DB_ENGINE
-        value: "sqlite"
-      - key: DB_NAME
-        value: "/var/lib/tourism/data/db.sqlite3"
-      - key: MEDIA_ROOT
-        value: "/var/lib/tourism/media"
+      # Render injects the existing tourism_db private connection string.
+      # The real URL/password stays in Render, not Git.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tourism_db
+          property: connectionString
+      - key: DATABASE_SSL_REQUIRE
+        value: "true"
       - key: PUBLIC_SITE_URL
         sync: false
       - key: VITE_SITE_URL
@@ -29,7 +31,3 @@ services:
         sync: false
       - key: IMAGE_BASE_URL
         sync: false
-    disk:
-      name: tourism-data
-      mountPath: /var/lib/tourism
-      sizeGB: 10
