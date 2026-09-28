@@ -10,6 +10,7 @@ import logging
 import threading
 from math import radians, cos, sin, asin, sqrt
 from django.db.models import Q
+from django.utils import timezone
 
 import requests
 from django.conf import settings
@@ -773,10 +774,56 @@ def get_ml_supported_languages():
 # missing API key or a downed third-party service never breaks the request
 # that called it — callers just get less-enriched data back.
 # ---------------------------------------------------------------------------
+#: How long a weather reading is reused for a ~1 km cell. Conditions are
+#: current-ish, not live, so a short window is honest; the response says so.
+WEATHER_CACHE_TTL_SECONDS = 900
+#: How long an upstream outage is remembered, so one slow failure does not
+#: become a full timeout on every subsequent page load.
+WEATHER_FAILURE_CACHE_TTL_SECONDS = 120
+#: Sentinel stored when the provider failed, so the failure itself is cached
+#: without ever being returned as if it were a reading.
+_WEATHER_UNAVAILABLE = {"__weather_unavailable__": True}
+
+
 def get_current_weather(latitude, longitude):
-    """OpenWeatherMap current conditions for a point. Returns None if not configured/unreachable."""
+    """OpenWeatherMap current conditions for a point. Returns None if not configured/unreachable.
+
+    The result is cached per ~1 km cell so a destination page does not make a
+    synchronous call to a third-party API on every visit. Measured cost of the
+    uncached call was ~5.4 s, which was the single largest contributor to the
+    destination detail page (and the reason it intermittently timed out).
+
+    Cached values carry ``observed_at``/``age_minutes``/``cached`` so a caller
+    can disclose that the reading is a short-lived snapshot rather than
+    pretending it is a live reading. A provider failure is cached briefly too,
+    so a broken upstream costs one slow request instead of every request.
+    """
     if not settings.OPENWEATHER_API_KEY:
         return None
+
+    try:
+        from django.core.cache import cache
+
+        cell = (round(float(latitude), 2), round(float(longitude), 2))
+        key = f"weather:v2:{cell[0]},{cell[1]}"
+        cached = cache.get(key)
+        if cached is not None:
+            # A cached outage is not a reading.
+            if isinstance(cached, dict) and cached.get("__weather_unavailable__"):
+                return None
+            payload = dict(cached)
+            age = (timezone.now() - payload["observed_at"]).total_seconds() / 60.0
+            payload["age_minutes"] = round(age, 1)
+            payload["cached"] = True
+            payload["freshness_note"] = (
+                f"Weather reading cached {payload['age_minutes']} minutes ago; "
+                "conditions can change quickly."
+            )
+            return payload
+    except Exception:  # noqa: BLE001 - a cache problem must not break the page
+        key = None
+        cell = None
+
     try:
         response = requests.get(
             "https://api.openweathermap.org/data/2.5/weather",
@@ -788,16 +835,39 @@ def get_current_weather(latitude, longitude):
         )
         response.raise_for_status()
         data = response.json()
-        return {
+        result = {
             "temperature_c": data["main"]["temp"],
             "feels_like_c": data["main"]["feels_like"],
             "condition": data["weather"][0]["main"],
             "description": data["weather"][0]["description"],
             "humidity": data["main"]["humidity"],
             "wind_speed_ms": data["wind"]["speed"],
+            "source": "OpenWeatherMap current conditions",
         }
+        if key:
+            result["observed_at"] = timezone.now()
+            try:
+                from django.core.cache import cache
+
+                cache.set(key, result, WEATHER_CACHE_TTL_SECONDS)
+            except Exception:  # noqa: BLE001
+                pass
+        result = dict(result)
+        result["age_minutes"] = 0.0
+        result["cached"] = False
+        result["freshness_note"] = "Reading taken moments ago."
+        return result
     except (requests.RequestException, KeyError, IndexError) as exc:
         logger.warning("OpenWeather lookup failed: %s", exc)
+        if key:
+            try:
+                from django.core.cache import cache
+
+                # Remember the outage briefly: without this, an unreachable
+                # provider adds its full timeout to EVERY page load.
+                cache.set(key, _WEATHER_UNAVAILABLE, WEATHER_FAILURE_CACHE_TTL_SECONDS)
+            except Exception:  # noqa: BLE001
+                pass
         return None
 
 
