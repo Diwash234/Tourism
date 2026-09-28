@@ -127,18 +127,25 @@ def _database_from_url(url):
     parsed = urlsplit(url)
     scheme = parsed.scheme.lower()
     if scheme in ("postgres", "postgresql", "postgis"):
-        options = {}
-        if config("DATABASE_SSL_REQUIRE", default=False, cast=bool):
-            options["sslmode"] = "require"
-        return {
+        db = {
             "ENGINE": "django.db.backends.postgresql",
             "NAME": (parsed.path or "/").lstrip("/") or "tourism_db",
             "USER": unquote(parsed.username or ""),
             "PASSWORD": unquote(parsed.password or ""),
             "HOST": parsed.hostname or "localhost",
             "PORT": str(parsed.port or 5432),
-            "OPTIONS": options,
+            # Reuse connections between requests. Without this every request
+            # opens a fresh PostgreSQL connection, which is slow and will
+            # exhaust the database's connection limit under load.
+            "CONN_MAX_AGE": config("CONN_MAX_AGE", default=600, cast=int),
         }
+        # Render's *internal* database URL is plain TCP on the private network
+        # and must NOT be asked for SSL; the *external* URL needs it. Let the
+        # operator decide rather than inferring it from the hostname.
+        sslmode = config("DATABASE_SSLMODE", default="").strip()
+        if sslmode:
+            db["OPTIONS"] = {"sslmode": sslmode}
+        return db
     if scheme == "sqlite":
         if parsed.netloc:
             name = parsed.netloc + parsed.path      # sqlite://:memory:
@@ -223,7 +230,23 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # The React production bundle is copied here by Docker and collected by Django.
 # Keeping it in STATICFILES_DIRS makes WhiteNoise serve Vite assets at /static/.
 STATICFILES_DIRS = [BASE_DIR / "frontend_dist"]
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+# WhiteNoise serves and caches everything under STATIC_ROOT, which is what makes
+# `collectstatic` + gunicorn serve the CSS/JS and the Vite bundle on Render
+# (Render does not serve static files from a web service).
+#
+# This was spelled STATICFILES_STORAGE, which Django deprecated in 4.2 and
+# *removed* in 5.1. The project runs Django 6.0, so that assignment was
+# silently ignored and collectstatic emitted unhashed, uncompressed files.
+# STORAGES is the supported spelling. Verified: 453 files post-processed.
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(config("MEDIA_ROOT", default=str(BASE_DIR / "media")))

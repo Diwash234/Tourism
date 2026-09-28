@@ -7,6 +7,17 @@
 !.env.example
 
 #################################
+# DATABASE EXPORTS
+#################################
+# `manage.py dumpdata` writes a full copy of the database, including user
+# password hashes, for a one-time transfer into production PostgreSQL. It must
+# never enter version control. (Note: this is distinct from the tracked seed
+# fixture Tourism/dataset/data.json below.)
+data.json
+Tourism/data.json
+*.dump.json
+
+#################################
 # PYTHON
 #################################
 
