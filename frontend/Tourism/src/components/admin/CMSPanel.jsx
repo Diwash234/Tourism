@@ -413,6 +413,8 @@ export default function CMSPanel() {
     },
     "CMS workflow action complete"
   )
+  const supportsWorkflow = ["pages", "sections"].includes(resource) && selected?.id
+
   useEffect(() => {
     const onKeyDown = (event) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
@@ -467,8 +469,6 @@ export default function CMSPanel() {
     await workflow("rollback", { revision_id: revisionId })
     showHistory()
   }
-
-  const supportsWorkflow = ["pages", "sections"].includes(resource) && selected?.id
 
   // Filtered/sorted view of the record list (brief §22/§88). Reordering and
   // saving always use the full `rows` array — this is display-only.
