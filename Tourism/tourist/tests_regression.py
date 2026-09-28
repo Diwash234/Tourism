@@ -2420,6 +2420,28 @@ class CMSBulkAndMediaTests(TestCase):
         response = self.client.patch(reverse('admin-cms'), {'resource': 'pages', 'action': 'bulk', 'bulk_action': 'publish', 'ids': [self.page.id]}, format='json')
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT, response.content)
 
+class CMSContentMapTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(email="cmsmap@test.local", password="Pass@12345")
+        self.client.force_authenticate(user=self.admin)
+        self.page = ManagedPage.objects.create(
+            route="/content-map-test", key="content-map-test", title="Content Map Test",
+            meta_description="Valid CMS map test", status="draft", is_enabled=False, updated_by=self.admin,
+        )
+        ContentSection.objects.create(
+            page=self.page, key="hero", title="Hero section", body="Map test content",
+            status="published", is_visible=True, display_order=10, updated_by=self.admin,
+        )
+
+    def test_content_map_returns_pages_and_sections(self):
+        response = self.client.get(reverse("admin-cms"), {"resource": "content_map", "q": "content-map-test"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        self.assertEqual(response.data["count"], 1)
+        page = response.data["results"][0]
+        self.assertEqual(page["route"], "/content-map-test")
+        self.assertEqual(page["section_count"], 1)
+        self.assertEqual(page["sections"][0]["title"], "Hero section")
+
 class HomepageCMSBlockTypesTests(TestCase):
     """card_grid + packages block types and the seeded draft homepage
     sections (CMS prompt §8/§9): validation, draft gating, publish flow."""
