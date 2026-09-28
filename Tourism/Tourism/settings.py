@@ -22,7 +22,10 @@ SECURE_HSTS_PRELOAD = config("SECURE_HSTS_PRELOAD", default=not DEBUG, cast=bool
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = config("X_FRAME_OPTIONS", default="DENY" if not DEBUG else "SAMEORIGIN")
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*", cast=Csv())
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="", cast=Csv())
+RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME", "").strip()
+if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 # ------------------------------------------------------------------
 # Applications
@@ -212,7 +215,7 @@ USE_TZ = True
 # ------------------------------------------------------------------
 # Static & media
 # ------------------------------------------------------------------
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 # The React production bundle is copied here by Docker and collected by Django.
 # Keeping it in STATICFILES_DIRS makes WhiteNoise serve Vite assets at /static/.
@@ -298,6 +301,10 @@ CSRF_TRUSTED_ORIGINS = config(
     default="https://*.e2b.app,https://*.arena.site,http://localhost:5173,http://localhost:8000",
     cast=Csv(),
 )
+if RENDER_EXTERNAL_HOSTNAME:
+    render_origin = f"https://{RENDER_EXTERNAL_HOSTNAME}"
+    if render_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(render_origin)
 
 # ------------------------------------------------------------------
 # Django REST Framework
@@ -363,7 +370,9 @@ DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="no-reply@tourism-port
 # verification / password-reset emails. Default matches the vite dev
 # server (port 5173). Override in .env for production so emailed links
 # point at your deployed site, e.g. FRONTEND_URL=https://your-domain.com
-FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:5173")
+FRONTEND_URL = config("FRONTEND_URL", default="")
+if not FRONTEND_URL and RENDER_EXTERNAL_HOSTNAME:
+    FRONTEND_URL = f"https://{RENDER_EXTERNAL_HOSTNAME}"
 
 # ------------------------------------------------------------------
 # SMS (Twilio) - optional, disabled unless credentials are supplied
@@ -522,7 +531,9 @@ LOCAL_GRAPH_ROUTING_ENABLED = config("LOCAL_GRAPH_ROUTING_ENABLED", default=True
 LOCAL_GRAPH_MAX_SNAP_KM = config("LOCAL_GRAPH_MAX_SNAP_KM", default=100, cast=float)
 EXTERNAL_SYNC_TIMEOUT = config("EXTERNAL_SYNC_TIMEOUT", default=15, cast=int)
 ML_WEBHOOK_SECRET = config("ML_WEBHOOK_SECRET", default="change-this-shared-secret")
-BACKEND_URL = config("BACKEND_URL", default="http://localhost:8000")
+BACKEND_URL = config("BACKEND_URL", default="")
+if not BACKEND_URL and RENDER_EXTERNAL_HOSTNAME:
+    BACKEND_URL = f"https://{RENDER_EXTERNAL_HOSTNAME}"
 # Language codes that should try the ML teammate's local-language model
 # BEFORE Google Translate (e.g. languages Google handles poorly). Populated
 # automatically by `python manage.py sync_languages`, or set manually here.
