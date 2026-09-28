@@ -277,10 +277,6 @@ export default function CMSPanel() {
   }
 
   const toggleSelected = (id) => setSelectedIds((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id])
-  const toggleAllVisible = () => {
-    const ids = visibleRows.map((row) => row.id)
-    setSelectedIds((current) => ids.every((id) => current.includes(id)) ? current.filter((id) => !ids.includes(id)) : Array.from(new Set([...current, ...ids])))
-  }
   const bulkAction = async (action) => {
     if (!selectedIds.length || !window.confirm(`Apply “${action}” to ${selectedIds.length} selected ${RESOURCE_LABELS[resource]} record(s)?`)) return
     setBulkBusy(true)
@@ -605,7 +601,7 @@ export default function CMSPanel() {
             >
               {RESOURCE_LABELS[item]}
             </button>
-          ))}
+          ))}</div>)}
           <button onClick={createNew} className="mt-4 w-full px-3 py-2.5 bg-emerald-700 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2">
             <FiFilePlus /> New {resource.slice(0, -1)}
           </button>
