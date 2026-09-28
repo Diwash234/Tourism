@@ -27,7 +27,8 @@ export default function CMSOverviewPanel() {
   const [checks, setChecks] = useState({ publicSite: null, cmsApi: null, media: null, notices: null })
   const [counts, setCounts] = useState(null)
   const [recent, setRecent] = useState([])
-  const [health, setHealth] = useState(null)\n  const [operational, setOperational] = useState({ hotels: null, hospitals: null, police_stations: null })
+  const [health, setHealth] = useState(null)
+  const [operational, setOperational] = useState({ hotels: null, hospitals: null, police_stations: null })
 
   useEffect(() => {
     let cancelled = false
