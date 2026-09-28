@@ -53,7 +53,10 @@ export default function CMSOverviewPanel() {
           adminApi.getCMS("pages"),
           adminApi.getCMS("sections"),
           adminApi.getCMS("navigation"),
-          adminApi.getCMSHealth().catch(() => null),\n          adminApi.getCMS("hotels").catch(() => null),\n          adminApi.getCMS("hospitals").catch(() => null),\n          adminApi.getCMS("police_stations").catch(() => null),
+          adminApi.getCMSHealth().catch(() => null),
+adminApi.getCMS("hotels").catch(() => null),
+adminApi.getCMS("hospitals").catch(() => null),
+adminApi.getCMS("police_stations").catch(() => null),
         ])
         if (cancelled) return
         mark("cmsApi", true)
@@ -154,7 +157,10 @@ export default function CMSOverviewPanel() {
         {stat(<FiLayers size={18} />, "Drafts", counts?.drafts)}
         {stat(<FiLayers size={18} />, "Sections", counts?.sections)}
         {stat(<FiImage size={18} />, "Media", counts?.media)}
-        {stat(<FiRadio size={18} />, "Announcements", counts?.notices)}\n        {stat(<FiLayers size={18} />, "Hotels", operational.hotels)}\n        {stat(<FiLayers size={18} />, "Hospitals", operational.hospitals)}\n        {stat(<FiLayers size={18} />, "Police stations", operational.police_stations)}
+        {stat(<FiRadio size={18} />, "Announcements", counts?.notices)}
+{stat(<FiLayers size={18} />, "Hotels", operational.hotels)}
+{stat(<FiLayers size={18} />, "Hospitals", operational.hospitals)}
+{stat(<FiLayers size={18} />, "Police stations", operational.police_stations)}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
