@@ -327,6 +327,23 @@ export default function CMSPanel() {
     }
   }
 
+  const dedicatedModules = [
+    ["homepage_manager", "Homepage / Hero", "Homepage sections, featured content and hero controls"],
+    ["header_navbar", "Header & Navbar", "Global navigation, menus and header controls"],
+    ["redirects", "Redirects & URLs", "301/302 redirects and old routes"],
+    ["branding", "Branding & Theme", "Colors, typography, logo and global theme"],
+    ["media_library", "Central Media Library", "Search, review and manage site media"],
+    ["images", "Image Verification", "Destination image verification and metadata"],
+    ["emergency_directory", "Emergency Directory", "Hospitals, police and emergency contacts"],
+    ["safety_management", "Safety & Alerts", "Risk alerts and safety content"],
+    ["visitor_desk", "Visitor Notices", "Notices, closures, festivals and featured places"],
+    ["content_translations", "Translations", "Multilingual content management"],
+  ]
+  const openDedicatedModule = (section) => {
+    if (!confirmLeave()) return
+    window.location.assign(`/admin?section=${section}`)
+  }
+
   const jumpToSection = (page, section) => {
     if (!confirmLeave()) return
     setResource("sections")
@@ -464,6 +481,21 @@ export default function CMSPanel() {
   return (
     <div className="space-y-5 text-slate-900">
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs">
+        <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
+          <div className="mb-3">
+            <h2 className="text-sm font-black text-emerald-950">Dedicated Website Controls</h2>
+            <p className="text-[11px] text-emerald-900/70">Use purpose-built modules for global website controls instead of searching page JSON.</p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2">
+            {dedicatedModules.map(([id, label, description]) => (
+              <button key={id} type="button" onClick={() => openDedicatedModule(id)} className="rounded-xl border border-emerald-200 bg-white p-3 text-left hover:border-emerald-500 hover:shadow-sm">
+                <div className="text-[11px] font-black text-emerald-900">{label}</div>
+                <div className="mt-1 text-[10px] leading-4 text-slate-500">{description}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {resource === "content_map" && (
           <div className="mb-4 rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
