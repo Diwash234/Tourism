@@ -127,31 +127,68 @@ class Command(BaseCommand):
     def _fetch(self, tag_key, tag_value, attempts=4):
         """Every such feature in Nepal that carries a phone tag.
 
-        Overpass is a shared public service and resets connections under load,
-        so a failed query is retried with a widening pause rather than allowed
-        to end the run. Seven queries, not thousands: the whole catalogue is
-        answered by fetching each category once.
+        Overpass is a shared public service. It resets connections under load,
+        and it also answers a throttled query with a *valid but empty* result
+        rather than an error -- which is worse, because an empty answer looks
+        exactly like a category that genuinely has no numbers and quietly
+        under-reports the coverage that was available. A category that comes
+        back empty is therefore retried before it is believed.
         """
         query = (f'[out:json][timeout:180];area["ISO3166-1"="NP"]->.np;('
                  f'node["{tag_key}"="{tag_value}"]["phone"](area.np);'
                  f'way["{tag_key}"="{tag_value}"]["phone"](area.np););out center tags;')
         url = f"{OVERPASS}?{urllib.parse.urlencode({'data': query})}"
         last = None
+        empty_tries = 0
         for attempt in range(attempts):
             request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
             try:
                 with urllib.request.urlopen(request, timeout=180) as response:
                     payload = json.loads(response.read())
-                break
             except (urllib.error.URLError, ConnectionError, TimeoutError, ValueError) as exc:
                 last = exc
-                # Overpass rate limits by refusing; pausing and retrying is the
-                # documented way to be a well-behaved caller.
                 time.sleep(4 * (attempt + 1))
-        else:
+                continue
+            elements = payload.get("elements") or []
+            if elements:
+                return self._candidates(elements)
+            # Empty but successful: a throttle looks like this.
+            empty_tries += 1
+            if empty_tries < 2:
+                time.sleep(10)
+                continue
             self.stderr.write(
-                f"  {tag_key}={tag_value}: giving up after {attempts} attempts ({last})")
+                f"  {tag_key}={tag_value}: came back empty after {empty_tries} tries; "
+                f"treating that as no data, so any coverage it held is not reported")
             return []
+        self.stderr.write(
+            f"  {tag_key}={tag_value}: giving up after {attempts} attempts ({last})")
+        return []
+
+    def _candidates(self, elements):
+        """Turn raw Overpass elements into usable candidates."""
+        found = []
+        for element in elements:
+            tags = element.get("tags") or {}
+            raw = (tags.get("phone") or "").strip()
+            if not raw or is_placeholder_phone(raw):
+                continue
+            lat = element.get("lat") or (element.get("center") or {}).get("lat")
+            lon = element.get("lon") or (element.get("center") or {}).get("lon")
+            if lat is None or lon is None:
+                continue
+            number = normalize_phone_artifact(raw)
+            if not number:
+                continue
+            found.append({
+                "name": tags.get("name") or tags.get("official_name") or "",
+                "phone": number,
+                "lat": lat,
+                "lon": lon,
+                "osm_type": element.get("type"),
+                "osm_id": element.get("id"),
+            })
+        return found
         found = []
         for element in payload.get("elements", []):
             tags = element.get("tags") or {}

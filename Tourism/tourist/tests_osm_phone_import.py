@@ -127,6 +127,74 @@ class ChooseNearestTests(SimpleTestCase):
         self.assertIn("no coordinates", why)
 
 
+class EmptyResponseIsNotBelievedTests(SimpleTestCase):
+    """Overpass throttles with a valid but empty answer, not an error.
+
+    An empty result is indistinguishable from a category that genuinely has no
+    numbers, so believing it silently under-reports the coverage that was
+    actually available. It was caught in practice: amenity=hospital returned 275
+    features on one run and 0 on the next, minutes apart, and the 0 was accepted.
+    """
+
+    def _run_with(self, payloads):
+        """Call _fetch with a urlopen that returns the given payloads in order."""
+        import io
+        import urllib.request
+
+        command = Command()
+        original = urllib.request.urlopen
+        calls = []
+
+        def fake_urlopen(request, timeout=None):
+            calls.append(request)
+            payload = payloads[min(len(calls) - 1, len(payloads) - 1)]
+
+            class Response(io.BytesIO):
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *exc):
+                    return False
+
+            return Response(json.dumps(payload).encode("utf-8"))
+
+        urllib.request.urlopen = fake_urlopen
+        self.addCleanup(lambda: setattr(urllib.request, "urlopen", original))
+        # The retry pause is real time; keep the test quick.
+        import tourist.management.commands.import_osm_phones as module
+        original_sleep = module.time.sleep
+        module.time.sleep = lambda *_: None
+        self.addCleanup(lambda: setattr(module.time, "sleep", original_sleep))
+        return command._fetch("amenity", "hospital"), calls
+
+    def test_an_empty_first_answer_is_retried(self):
+        found, calls = self._run_with([
+            {"elements": []},  # looks exactly like a throttle
+            {"elements": [{"type": "node", "id": 1, "lat": 27.7, "lon": 85.3,
+                           "tags": {"name": "Jiri Hospital", "phone": "014469064"}}]},
+        ])
+        self.assertEqual(len(found), 1)
+        self.assertEqual(found[0]["phone"], "014469064")
+        self.assertGreaterEqual(len(calls), 2, "the empty answer must not be believed")
+
+    def test_a_genuinely_empty_category_is_reported_as_such(self):
+        found, _calls = self._run_with([{"elements": []}])
+        self.assertEqual(found, [])
+
+    def test_a_candidate_without_coordinates_is_discarded(self):
+        # An area-shaped result has no point of its own, so it cannot be matched
+        # to a catalogue row's coordinates and is not offered.
+        found, _calls = self._run_with([{"elements": [
+            {"type": "way", "id": 2, "tags": {"name": "Somewhere", "phone": "014469064"}}]}])
+        self.assertEqual(found, [])
+
+    def test_filler_in_the_source_is_not_offered(self):
+        found, _calls = self._run_with([{"elements": [
+            {"type": "node", "id": 3, "lat": 27.7, "lon": 85.3,
+             "tags": {"name": "Somewhere", "phone": "037-520123"}}]}])
+        self.assertEqual(found, [])
+
+
 class OdbLAttributionTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_superuser("osm-qa@test.local", "OsmQA!123")
