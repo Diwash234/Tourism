@@ -2397,6 +2397,29 @@ class HomepageCMSDraftPublishTests(TestCase):
         self.assertEqual(self._public_section()["title"], "Why travel with Nepal Portal")
 
 
+class CMSBulkAndMediaTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(email='cmsbulk@test.local', password='Pass@12345')
+        self.client.force_authenticate(user=self.admin)
+        self.destination = Destination.objects.create(name='CMS Media Test', slug='cms-media-test')
+        self.media = DestinationImage.objects.create(destination=self.destination, external_url='https://example.com/original.jpg', verification_status='pending')
+        self.page = ManagedPage.objects.create(route='/bulk-test', key='bulk-test', title='Bulk Test', meta_description='A valid page for bulk CMS testing.', seo_title='Bulk Test | Nepal Tourism', og_image_url='https://example.com/og.jpg', status='draft', is_enabled=False, updated_by=self.admin)
+        ContentSection.objects.create(page=self.page, key='hero', title='Hero', body='Valid content', status='published', is_visible=True, updated_by=self.admin)
+
+    def test_media_resource_accepts_https_image_source(self):
+        response = self.client.patch(reverse('admin-cms'), {'resource': 'media', 'id': self.media.id, 'external_url': 'https://images.example.com/nepal.jpg', 'source_url': 'https://example.com/source', 'alt_text': 'Nepal destination', 'caption': 'Verified source'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        self.media.refresh_from_db()
+        self.assertEqual(self.media.external_url, 'https://images.example.com/nepal.jpg')
+
+    def test_media_resource_rejects_non_https_source(self):
+        response = self.client.patch(reverse('admin-cms'), {'resource': 'media', 'id': self.media.id, 'external_url': 'http://bad.example/image.jpg'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_bulk_publish_uses_publication_gate(self):
+        response = self.client.patch(reverse('admin-cms'), {'resource': 'pages', 'action': 'bulk', 'bulk_action': 'publish', 'ids': [self.page.id]}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT, response.content)
+
 class HomepageCMSBlockTypesTests(TestCase):
     """card_grid + packages block types and the seeded draft homepage
     sections (CMS prompt §8/§9): validation, draft gating, publish flow."""
