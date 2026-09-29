@@ -22,6 +22,7 @@ from datetime import timedelta
 
 from django.core.cache import cache
 from django.db.models import Count
+from django.utils import timezone
 
 from .models import Destination, VisitHistory
 
@@ -310,10 +311,6 @@ class CacheManager:
             wrapper.__doc__ = func.__doc__
             return wrapper
         return decorator
-
-
-# Import timezone at module level for warm_trending_searches
-from django.utils import timezone  # noqa: E402
 
 
 # Singleton instance

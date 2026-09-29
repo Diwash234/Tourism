@@ -1,19 +1,18 @@
 """
-Management command to generate a system health report.
+Management command to generate a comprehensive system report.
 """
 from django.core.management.base import BaseCommand
 from django.db import connection
 from django.core.cache import cache
-
-from tourist.models import Destination, User, Review, Booking
+from tourist.models import Destination, User, Review, Booking, AuditLog, ErrorEvent
 
 
 class Command(BaseCommand):
-    help = "Generate a comprehensive system health report"
+    help = "Generate a comprehensive system report"
 
     def handle(self, *args, **options):
         self.stdout.write("=" * 60)
-        self.stdout.write("NEPAL TOURISM PLATFORM — SYSTEM HEALTH REPORT")
+        self.stdout.write("NEPAL TOURISM PLATFORM — SYSTEM REPORT")
         self.stdout.write("=" * 60)
 
         # Database stats
@@ -22,6 +21,8 @@ class Command(BaseCommand):
         self.stdout.write(f"  Users: {User.objects.count()}")
         self.stdout.write(f"  Reviews: {Review.objects.count()}")
         self.stdout.write(f"  Bookings: {Booking.objects.count() if hasattr(Booking, 'objects') else 'N/A'}")
+        self.stdout.write(f"  Audit Logs: {AuditLog.objects.count()}")
+        self.stdout.write(f"  Error Events: {ErrorEvent.objects.count()}")
 
         # Database connection
         self.stdout.write("\n--- Database Connection ---")
@@ -48,11 +49,18 @@ class Command(BaseCommand):
         self.stdout.write("\n--- Recent Errors (last 24h) ---")
         from datetime import timedelta
         from django.utils import timezone
-        from tourist.models import ErrorEvent
         recent_errors = ErrorEvent.objects.filter(
             created_at__gte=timezone.now() - timedelta(hours=24)
         ).count()
         self.stdout.write(f"  Errors in last 24h: {recent_errors}")
+
+        # User activity
+        self.stdout.write("\n--- User Activity (last 30 days) ---")
+        thirty_days_ago = timezone.now() - timedelta(days=30)
+        new_users = User.objects.filter(date_joined__gte=thirty_days_ago).count()
+        active_users = User.objects.filter(last_login__gte=thirty_days_ago).count()
+        self.stdout.write(f"  New users: {new_users}")
+        self.stdout.write(f"  Active users: {active_users}")
 
         self.stdout.write("\n" + "=" * 60)
         self.stdout.write("END OF REPORT")

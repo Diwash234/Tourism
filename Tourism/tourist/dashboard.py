@@ -7,7 +7,8 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Destination, Review, User, TravelPlan, Booking
+from .models import Destination, Review, User, TravelPlan
+from booking.models import Booking
 
 
 class DashboardStatsView(APIView):

@@ -17,6 +17,7 @@ import logging
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.conf import settings
+from django.db.models import Q
 
 logger = logging.getLogger(__name__)
 
@@ -266,8 +267,10 @@ class LocationSharingConsumer(AsyncJsonWebsocketConsumer):
         from .models import SharedTrip
         try:
             trip = SharedTrip.objects.get(id=trip_id)
-            return trip.user == user or trip.trusted_contacts.filter(
-                models.Q(email=user.email) | models.Q(phone_number=user.phone_number)
+            if trip.user == user:
+                return True
+            return trip.trusted_contacts.filter(
+                Q(email=user.email) | Q(phone_number=user.phone_number)
             ).exists()
         except SharedTrip.DoesNotExist:
             return False

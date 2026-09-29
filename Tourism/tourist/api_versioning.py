@@ -15,10 +15,8 @@ Version negotiation:
 """
 
 import logging
-from datetime import timedelta
 
 from django.conf import settings
-from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +55,7 @@ class APIVersioningMiddleware:
                     successor = version_info["successor_version"]
                     # Build the successor URL
                     successor_url = request.path.replace(f"/api/{version}/", f"/api/{successor}/")
-                    response["Link'] = f'<{successor_url}>; rel="successor-version"'
+                    response["Link"] = '<' + successor_url + '>; rel="successor-version"'
 
                 # Log deprecated API usage
                 logger.info(

@@ -27,6 +27,8 @@ from django.core.cache import cache
 from django.db import models
 from django.utils import timezone
 
+from .models import WebhookDelivery, WebhookEndpoint
+
 logger = logging.getLogger(__name__)
 
 # Supported webhook events
@@ -47,69 +49,6 @@ MAX_RETRIES = 3
 RETRY_DELAYS = [1, 5, 15]  # seconds between retries
 WEBHOOK_TIMEOUT = 10  # seconds
 WEBHOOK_CACHE_PREFIX = "webhook"
-
-
-class WebhookEndpoint(models.Model):
-    """A registered webhook endpoint."""
-
-    class EventType(models.TextChoices):
-        BOOKING_CREATED = "booking.created", "Booking Created"
-        BOOKING_CANCELLED = "booking.cancelled", "Booking Cancelled"
-        BOOKING_CONFIRMED = "booking.confirmed", "Booking Confirmed"
-        REVIEW_CREATED = "review.created", "Review Created"
-        REVIEW_UPDATED = "review.updated", "Review Updated"
-        USER_REGISTERED = "user.registered", "User Registered"
-        USER_UPDATED = "user.updated", "User Updated"
-        DESTINATION_CREATED = "destination.created", "Destination Created"
-        DESTINATION_UPDATED = "destination.updated", "Destination Updated"
-
-    name = models.CharField(max_length=200)
-    url = models.URLField(max_length=500)
-    secret = models.CharField(max_length=200, blank=True, help_text="Secret for HMAC signature verification")
-    event_types = models.JSONField(default=list, help_text="List of event types to subscribe to")
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ["-created_at"]
-
-    def __str__(self):
-        return f"{self.name} ({self.url})"
-
-
-class WebhookDelivery(models.Model):
-    """Log of a webhook delivery attempt."""
-
-    class Status(models.TextChoices):
-        PENDING = "pending", "Pending"
-        SUCCESS = "success", "Success"
-        FAILED = "failed", "Failed"
-        RETRYING = "retrying", "Retrying"
-
-    webhook = models.ForeignKey(WebhookEndpoint, on_delete=models.CASCADE, related_name="deliveries")
-    event_type = models.CharField(max_length=50)
-    payload = models.JSONField()
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
-    response_status = models.PositiveIntegerField(null=True, blank=True)
-    response_body = models.TextField(blank=True)
-    error_message = models.TextField(blank=True)
-    attempt_count = models.PositiveSmallIntegerField(default=0)
-    max_attempts = models.PositiveSmallIntegerField(default=MAX_RETRIES)
-    next_retry_at = models.DateTimeField(null=True, blank=True)
-    delivered_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ["-created_at"]
-        indexes = [
-            models.Index(fields=["status", "next_retry_at"]),
-            models.Index(fields=["event_type", "created_at"]),
-        ]
-
-    def __str__(self):
-        return f"{self.event_type} → {self.webhook.name} ({self.status})"
 
 
 class WebhookDispatcher:
@@ -295,16 +234,16 @@ class WebhookDispatcher:
         cutoff = timezone.now() - timedelta(hours=max_age_hours)
         failed = WebhookDelivery.objects.filter(
             status=WebhookDelivery.Status.FAILED,
-            attempt_count__lt=models.F("max_attempts"),
             created_at__gte=cutoff,
         )
 
         retried = 0
         for delivery in failed:
-            delivery.status = WebhookDelivery.Status.PENDING
-            delivery.save()
-            self._send_webhook(delivery)
-            retried += 1
+            if delivery.attempt_count < delivery.max_attempts:
+                delivery.status = WebhookDelivery.Status.PENDING
+                delivery.save()
+                self._send_webhook(delivery)
+                retried += 1
 
         return retried
 
