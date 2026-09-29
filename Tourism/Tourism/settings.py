@@ -78,6 +78,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "audit.middleware.AuditMiddleware",   # logs every request + error to AuditLog/ErrorEvent
     "tourist.middleware.GeoIPMiddleware",
+    "tourist.maintenance.MaintenanceModeMiddleware",  # 503 during maintenance windows
 ]
 
 ROOT_URLCONF = "Tourism.urls"

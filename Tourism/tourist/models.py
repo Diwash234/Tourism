@@ -1234,6 +1234,22 @@ class VisitHistory(models.Model):
         verbose_name_plural = "Visit history"
 
 
+class SearchQuery(models.Model):
+    """Tracks user search queries for analytics and recommendation improvement."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="search_queries", null=True, blank=True)
+    query = models.CharField(max_length=500)
+    results_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name_plural = "Search queries"
+
+    def __str__(self):
+        return f"{self.query[:50]} by {self.user_id or 'anonymous'}"
+
+
 class LocationHistory(TimeStampedModel):
     """GPS location history for a user.
 
