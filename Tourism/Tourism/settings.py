@@ -367,7 +367,14 @@ REST_FRAMEWORK = {
         "auth": "10/min",
         "password_reset": "5/min",
         "newsletter": "10/min",
+        "oauth": "10/min",
+        "otp": "5/min",
+        "image_discovery": "10/min",
+        "search": "30/min",
+        "api_general": "60/min",
+        "upload": "10/min",
     },
+    "EXCEPTION_HANDLER": "tourist.exceptions.custom_exception_handler",
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
 }
 
