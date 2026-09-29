@@ -166,7 +166,12 @@ from pathlib import Path
 from django.conf import settings
 from .serializers import public_destination_cover
 from .views_ml import _with_readiness, enrich_itinerary_with_services
-from .curated_planning import calculate_cost_breakdown, calculate_altitude_safety, compare_curated_itineraries
+from .curated_planning import (
+    calculate_cost_breakdown,
+    calculate_altitude_safety,
+    compare_curated_itineraries,
+    generate_packing_checklist,
+)
 
 
 CURATED_DATA_FILE = Path(settings.BASE_DIR) / "dataset" / "curated_itineraries.json"
@@ -286,12 +291,14 @@ class CuratedItineraryDetailView(APIView):
 
         cost_breakdown = calculate_cost_breakdown(target, nationality=nationality, style=style, travelers=travelers)
         altitude_safety = calculate_altitude_safety(target)
+        packing_detailed = generate_packing_checklist(target)
 
         mode = request.query_params.get("mode") or request.query_params.get("schema") or request.query_params.get("as")
         if mode != "planner":
             enriched_raw = dict(target)
             enriched_raw["cost_breakdown"] = cost_breakdown
             enriched_raw["altitude_safety"] = altitude_safety
+            enriched_raw["packing_checklist_detailed"] = packing_detailed
             return Response(enriched_raw)
 
         days_schedule = target.get("days_schedule", [])
@@ -394,6 +401,7 @@ class CuratedItineraryDetailView(APIView):
 
         plan_payload["cost_breakdown"] = cost_breakdown
         plan_payload["altitude_safety"] = altitude_safety
+        plan_payload["packing_checklist_detailed"] = packing_detailed
 
         return Response(plan_payload)
 
@@ -444,4 +452,25 @@ class CuratedItinerarySafetyView(APIView):
             "title": target["title"],
             "title_nepali": target.get("title_nepali", ""),
             "safety": safety,
+        })
+
+
+class CuratedItineraryPackingView(APIView):
+    """
+    GET /api/v1/curated-itineraries/<slug>/packing/
+    Returns structured gear checklist and local gear rental guidance (Kathmandu & Pokhara).
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, slug):
+        items = _load_curated_data()
+        target = next((it for it in items if it.get("slug") == slug), None)
+        if not target:
+            return Response({"detail": "Curated itinerary not found."}, status=status.HTTP_404_NOT_FOUND)
+        packing = generate_packing_checklist(target)
+        return Response({
+            "slug": target["slug"],
+            "title": target["title"],
+            "title_nepali": target.get("title_nepali", ""),
+            "packing": packing,
         })

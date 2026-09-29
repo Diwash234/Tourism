@@ -19,6 +19,7 @@ import {
   FiPlus,
   FiTrash2,
   FiActivity,
+  FiCheckSquare,
 } from "react-icons/fi"
 
 import itineraryApi from "../api/itineraryApi"
@@ -30,6 +31,7 @@ import TripReadinessPanel from "../components/itinerary/TripReadinessPanel"
 import CuratedItineraryShowcase from "../components/itinerary/CuratedItineraryShowcase"
 import AltitudeSafetyModal from "../components/itinerary/AltitudeSafetyModal"
 import CostBreakdownModal from "../components/itinerary/CostBreakdownModal"
+import PackingChecklistModal from "../components/itinerary/PackingChecklistModal"
 import { NATIONALITY_OPTIONS } from "../utils/currency"
 
 
@@ -175,6 +177,7 @@ const Itinerary = () => {
   const [modifying, setModifying] = useState(false)
   const [showSafetyModal, setShowSafetyModal] = useState(false)
   const [showCostModal, setShowCostModal] = useState(false)
+  const [showPackingModal, setShowPackingModal] = useState(false)
   const [notes, setNotes] = useState([])
   const [noteForm, setNoteForm] = useState({ category: "Hotel", label: "", amount: "" })
 
@@ -1036,7 +1039,7 @@ const Itinerary = () => {
       }
       {plan && !error && <TripReadinessPanel plan={plan} />}
 
-      {plan && !error && (plan.cost_breakdown || plan.altitude_safety) && (
+      {plan && !error && (plan.cost_breakdown || plan.altitude_safety || plan.packing_checklist_detailed) && (
         <div className="flex flex-wrap gap-2.5 my-4">
           {plan.cost_breakdown && (
             <button
@@ -1056,6 +1059,16 @@ const Itinerary = () => {
             >
               <FiActivity size={14} className="text-rose-700" />
               <span>AMS & High-Altitude Safety Guide ({plan.altitude_safety.max_elevation_m}m)</span>
+            </button>
+          )}
+          {plan.packing_checklist_detailed && (
+            <button
+              type="button"
+              onClick={() => setShowPackingModal(true)}
+              className="ny-btn ny-btn-secondary text-xs flex items-center gap-1.5 py-2 px-3.5 rounded-xl border-blue-300 bg-blue-50 text-blue-900 hover:bg-blue-100 font-bold shadow-2xs"
+            >
+              <FiCheckSquare size={14} className="text-blue-700" />
+              <span>Gear & Packing Checklist ({plan.packing_checklist_detailed.total_items} items)</span>
             </button>
           )}
         </div>
@@ -1625,6 +1638,15 @@ const Itinerary = () => {
           style: "standard",
           travelers: plan?.travelers || form.travelers,
         }}
+      />
+
+      {/* Gear & Packing Checklist Modal */}
+      <PackingChecklistModal
+        isOpen={showPackingModal}
+        onClose={() => setShowPackingModal(false)}
+        packingData={plan?.packing_checklist_detailed}
+        title={plan?.title}
+        slug={plan?.slug || plan?.title?.toLowerCase()?.replace(/\s+/g, "-")}
       />
     </div>
 

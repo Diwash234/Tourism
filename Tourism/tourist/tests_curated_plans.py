@@ -202,6 +202,36 @@ class CuratedTravelPlansTests(TestCase):
         data = resp.json()
         self.assertIn("cost_breakdown", data)
         self.assertIn("altitude_safety", data)
+        self.assertIn("packing_checklist_detailed", data)
         self.assertEqual(data["cost_breakdown"]["parameters"]["style"], "luxury")
         self.assertEqual(data["cost_breakdown"]["parameters"]["travelers"], 2)
+
+    def test_curated_itinerary_packing_view(self):
+        resp = self.client.get("/api/v1/curated-itineraries/everest-base-camp-kala-patthar/packing/")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertIn("packing", data)
+        packing = data["packing"]
+        self.assertIn("categories", packing)
+        self.assertIn("clothing", packing["categories"])
+        self.assertIn("hardware", packing["categories"])
+        self.assertIn("health", packing["categories"])
+        self.assertIn("rental_guide", packing)
+        self.assertIn("thamel_kathmandu", packing["rental_guide"])
+        self.assertIn("lakeside_pokhara", packing["rental_guide"])
+
+    def test_packing_checklist_generation_wildlife_vs_alpine(self):
+        from tourist.curated_planning import generate_packing_checklist
+        alpine_plan = {"category": "trekking", "max_elevation_m": 5545, "slug": "everest"}
+        wildlife_plan = {"category": "wildlife", "max_elevation_m": 200, "slug": "chitwan-safari"}
+
+        alpine_pack = generate_packing_checklist(alpine_plan)
+        wildlife_pack = generate_packing_checklist(wildlife_plan)
+
+        alpine_item_names = [it["item"] for it in alpine_pack["all_items"]]
+        wildlife_item_names = [it["item"] for it in wildlife_pack["all_items"]]
+
+        self.assertTrue(any("Down Jacket" in name for name in alpine_item_names))
+        self.assertTrue(any("Diamox" in name for name in alpine_item_names))
+        self.assertTrue(any("Binoculars" in name or "Safari" in name for name in wildlife_item_names))
 

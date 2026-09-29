@@ -123,6 +123,7 @@ urlpatterns = [
     path("curated-itineraries/", views_itinerary.CuratedItineraryListView.as_view(), name="curated-itineraries-list"),
     path("curated-itineraries/compare/", views_itinerary.CuratedItineraryCompareView.as_view(), name="curated-itineraries-compare"),
     path("curated-itineraries/<slug:slug>/safety/", views_itinerary.CuratedItinerarySafetyView.as_view(), name="curated-itineraries-safety"),
+    path("curated-itineraries/<slug:slug>/packing/", views_itinerary.CuratedItineraryPackingView.as_view(), name="curated-itineraries-packing"),
     path("curated-itineraries/<slug:slug>/", views_itinerary.CuratedItineraryDetailView.as_view(), name="curated-itineraries-detail"),
     # Mark an itinerary stop visited (plan -> execution tracking)
     path("itinerary-stops/<int:pk>/visit/", views_itinerary.ItineraryStopVisitView.as_view(), name="itinerary-stop-visit"),

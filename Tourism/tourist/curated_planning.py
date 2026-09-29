@@ -387,3 +387,136 @@ def compare_curated_itineraries(
             "travelers": travelers,
         }
     }
+
+
+def generate_packing_checklist(itinerary_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Generates an categorized gear & packing checklist with local Kathmandu/Pokhara
+    rental rates for high-altitude trekking, wildlife safari, or cultural pilgrimage.
+    """
+    category = (itinerary_data.get("category") or "trekking").lower()
+    max_elevation = int(itinerary_data.get("max_elevation_m") or 0)
+    is_high_altitude = max_elevation >= 3000
+    is_wildlife = "wildlife" in category or "safari" in (itinerary_data.get("slug") or "")
+    is_pilgrimage = "pilgrimage" in category or "spiritual" in category or "heritage" in category
+
+    clothing = []
+    if is_high_altitude:
+        clothing.extend([
+            {"item": "Down Jacket (-15°C to -20°C rated)", "category": "clothing", "essential": True, "note": "Crucial above 3,500m; can be rented in Thamel/Pokhara for ~NPR 200/day."},
+            {"item": "Thermal Base Layers (Merino Wool / Synthetic)", "category": "clothing", "essential": True, "note": "2 sets (top & bottom) for moisture management during active ascent."},
+            {"item": "Waterproof / Windproof Hardshell Jacket & Trousers", "category": "clothing", "essential": True, "note": "Gore-Tex or breathable equivalent for high mountain winds & rain."},
+            {"item": "Fleece Mid-Layer Jacket or Pullover", "category": "clothing", "essential": True, "note": "Provides lightweight breathable warmth while on trail."},
+            {"item": "Quick-dry Trekking Pants & Shorts", "category": "clothing", "essential": True, "note": "Convertible zip-off pants work great for valley heat to ridge chill."},
+            {"item": "Heavyweight Thermal Gloves & Windproof Mittens", "category": "clothing", "essential": True, "note": "Essential for pre-dawn climbs like Kala Patthar or Thorong La."},
+            {"item": "Warm Woolen Beanie & UV Sun Brim Hat", "category": "clothing", "essential": True, "note": "Protects against both intense Himalayan UV and freezing winds."},
+        ])
+    elif is_wildlife:
+        clothing.extend([
+            {"item": "Neutral Khaki / Olive Safari Clothing", "category": "clothing", "essential": True, "note": "Avoid bright colors (red/white/yellow) that alert or provoke wild rhinos and tigers."},
+            {"item": "Long-Sleeve Lightweight Cotton Shirts", "category": "clothing", "essential": True, "note": "Protects against direct jungle sun, tall elephant grass, and mosquitoes."},
+            {"item": "Leech Socks / Ankle Gaiters", "category": "clothing", "essential": False, "note": "Recommended during monsoon / humid shoulder months in dense terai sal forests."},
+            {"item": "Light Windbreaker / Evening Fleece", "category": "clothing", "essential": False, "note": "Jungle river air gets chilly during early morning and late evening boat safaris."},
+        ])
+    else:  # Leisure / Heritage / Pilgrimage
+        clothing.extend([
+            {"item": "Modest Temple Attire (Shoulders & Knees Covered)", "category": "clothing", "essential": True, "note": "Required for entering sacred Buddhist stupas, Hindu shrines, and Muktinath."},
+            {"item": "Slip-on Walking Shoes or Sandals", "category": "clothing", "essential": True, "note": "Easy to slip off at temple thresholds; bring thick socks for hot/cold stone flags."},
+            {"item": "Breathable Cotton Casual Wear", "category": "clothing", "essential": True, "note": "Comfortable for city sightseeing, museum tours, and Lakeside strolls."},
+            {"item": "Light Shawl / Scarf", "category": "clothing", "essential": True, "note": "Versatile for temple covering, dust protection, and chilly evening breezes."},
+        ])
+
+    gear_and_hardware = []
+    if is_high_altitude:
+        gear_and_hardware.extend([
+            {"item": "Sturdy Broken-In Trekking Boots", "category": "hardware", "essential": True, "note": "High-ankle support with good lugged Vibram sole; do not wear brand-new unconditioned boots."},
+            {"item": "Adjustable Trekking Poles (Pair)", "category": "hardware", "essential": True, "note": "Saves 25% of knee joint impact on steep stone steps; rent for ~NPR 100/day."},
+            {"item": "30L–40L Daypack with Rain Cover", "category": "hardware", "essential": True, "note": "Carried by yourself with water, jacket, snacks, and valuables while porters take main duffel."},
+            {"item": "80L–100L Water-Resistant Duffel Bag", "category": "hardware", "essential": True, "note": "Carried by your porter or tied on pack animal."},
+            {"item": "Four-Season Sleeping Bag (-15°C rated)", "category": "hardware", "essential": True, "note": "Tea house blankets are often insufficient at high camps; rent for ~NPR 150-200/day."},
+            {"item": "UV 400 Polarized Glacier Sunglasses", "category": "hardware", "essential": True, "note": "Essential to prevent snow blindness on moraine and snow-capped passes."},
+        ])
+    elif is_wildlife:
+        gear_and_hardware.extend([
+            {"item": "8x42 or 10x42 Compact Binoculars", "category": "hardware", "essential": True, "note": "Invaluable for spotting tigers, one-horned rhinos, and 500+ bird species in Chitwan/Bardiya."},
+            {"item": "Comfortable Walking Shoes", "category": "hardware", "essential": True, "note": "For guided jungle walks and elephant-breeding center visits."},
+            {"item": "Waterproof Dry Bag / Backpack", "category": "hardware", "essential": True, "note": "Protects camera lenses and smartphones during dugout canoe river safaris."},
+        ])
+    else:
+        gear_and_hardware.extend([
+            {"item": "Comfortable City Walking Sneakers", "category": "hardware", "essential": True, "note": "For cobblestones in Patan, Bhaktapur, and Kathmandu Durbar Square."},
+            {"item": "Day Backpack (20L)", "category": "hardware", "essential": True, "note": "For day trips, water bottle, camera, and souvenirs."},
+            {"item": "Foldable Compact Umbrella / Sun Parasol", "category": "hardware", "essential": False, "note": "Shields against strong mid-day sun in Lumbini or sudden afternoon showers."},
+        ])
+
+    health_and_medicine = [
+        {"item": "Water Purification (Aquatabs / LifeStraw / SteriPEN)", "category": "health", "essential": True, "note": "Never drink untreated tap water. Saves money and plastic bottle pollution."},
+        {"item": "Oral Rehydration Salts (Jeevan Jal)", "category": "health", "essential": True, "note": "Essential for quick recovery from traveler's diarrhea or heavy sweat dehydration."},
+        {"item": "Blister Care Kit (Compeed pads, zinc oxide tape)", "category": "health", "essential": True, "note": "Treat hotspots immediately before they develop into full blisters."},
+        {"item": "High-SPF 50+ Broad Spectrum Sunscreen & Lip Balm", "category": "health", "essential": True, "note": "Himalayan UV radiation increases by ~10% for every 1,000m gained."},
+        {"item": "Hand Sanitizer & Biodegradable Wet Wipes", "category": "health", "essential": True, "note": "Water lines frequently freeze at high teahouses; wet wipes are indispensable."},
+    ]
+    if is_high_altitude:
+        health_and_medicine.append({
+            "item": "Acetazolamide (Diamox 125mg–250mg)",
+            "category": "health",
+            "essential": True,
+            "note": "Aids high-altitude acclimatization by acidifying the blood; take only after consulting a doctor."
+        })
+    if is_wildlife:
+        health_and_medicine.append({
+            "item": "DEET-Based Tropical Insect Repellent (30–50%)",
+            "category": "health",
+            "essential": True,
+            "note": "Protects against jungle mosquitoes and ticks during dawn and dusk safaris."
+        })
+
+    electronics = [
+        {"item": "High-Capacity Power Bank (20,000mAh)", "category": "electronics", "essential": True, "note": "Cold weather rapidly drains lithium batteries; charging costs NPR 200–500 in teahouses."},
+        {"item": "LED Headlamp with Spare Batteries or USB-C Recharge", "category": "electronics", "essential": True, "note": "Crucial for pre-dawn pass crossings, evening village navigation, and power outages."},
+        {"item": "Universal Plug Adapter (Nepal Types C, D, and M)", "category": "electronics", "essential": True, "note": "230V, 50Hz standard round-pin sockets throughout Nepal."},
+    ]
+
+    documents_and_cash = [
+        {"item": "Valid Passport (minimum 6 months validity)", "category": "docs", "essential": True, "note": "Keep physical original and digital backup on your phone."},
+        {"item": "4–6 Passport-Sized Photographs", "category": "docs", "essential": True, "note": "Required for national park entry permits, TIMS registration, and local SIM cards."},
+        {"item": "Adequate Cash in Nepalese Rupees (NPR)", "category": "docs", "essential": True, "note": "ATMs in mountain villages are rare or often out of service. Withdraw all cash in Kathmandu or Pokhara."},
+        {"item": "Travel & Medical Evacuation Insurance Policy", "category": "docs", "essential": True, "note": "Must explicitly cover high-altitude trekking and emergency helicopter rescue up to your peak elevation."},
+    ]
+
+    rental_guide = {
+        "thamel_kathmandu": {
+            "location": "Thamel (Chaksibari Marg & Jyatha), Kathmandu",
+            "rates": {
+                "down_jacket": "NPR 150 – 250 / day (~$1.20 – $1.80)",
+                "sleeping_bag_neg20": "NPR 150 – 200 / day (~$1.10 – $1.50)",
+                "trekking_poles_pair": "NPR 80 – 120 / day (~$0.60 – $0.90)",
+                "crampons_microspikes": "NPR 100 – 150 / day (~$0.75 – $1.10)",
+            },
+            "tips": "Always inspect down density and zippers before leaving the shop. A refundable cash deposit or copy of your passport is usually required."
+        },
+        "lakeside_pokhara": {
+            "location": "Lakeside (Middle & North Lakeside), Pokhara",
+            "rates": {
+                "down_jacket": "NPR 150 – 220 / day",
+                "sleeping_bag": "NPR 150 – 200 / day",
+                "trekking_poles": "NPR 80 – 100 / day"
+            },
+            "tips": "Ideal for Annapurna Circuit, ABC, Poon Hill, or Mustang treks. Many shops allow pick-up in Pokhara and drop-off in Kathmandu."
+        }
+    }
+
+    all_items = clothing + gear_and_hardware + health_and_medicine + electronics + documents_and_cash
+
+    return {
+        "total_items": len(all_items),
+        "categories": {
+            "clothing": clothing,
+            "hardware": gear_and_hardware,
+            "health": health_and_medicine,
+            "electronics": electronics,
+            "docs_and_cash": documents_and_cash,
+        },
+        "all_items": all_items,
+        "rental_guide": rental_guide,
+    }

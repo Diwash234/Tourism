@@ -16,13 +16,16 @@ import {
   FiLayers,
   FiActivity,
   FiCheck,
-  FiX
+  FiX,
+  FiCheckSquare,
+  FiSearch
 } from "react-icons/fi"
 import itineraryApi from "../../api/itineraryApi"
 import useToast from "../../hooks/useToast"
 import CuratedCompareModal from "./CuratedCompareModal"
 import AltitudeSafetyModal from "./AltitudeSafetyModal"
 import CostBreakdownModal from "./CostBreakdownModal"
+import PackingChecklistModal from "./PackingChecklistModal"
 
 const PERSONA_TABS = [
   { id: "all", label: "All Journeys", labelNe: "सबै यात्रा", icon: "✨" },
@@ -63,6 +66,13 @@ export default function CuratedItineraryShowcase({ onSelectPlan, currentNational
     travelers: 1,
   })
   const [activeCostSlug, setActiveCostSlug] = useState(null)
+
+  // Packing Modal State
+  const [activePackingData, setActivePackingData] = useState(null)
+  const [activePackingTitle, setActivePackingTitle] = useState("")
+  const [activePackingSlug, setActivePackingSlug] = useState("")
+  const [isPackingOpen, setIsPackingOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
     let alive = true
@@ -174,12 +184,38 @@ export default function CuratedItineraryShowcase({ onSelectPlan, currentNational
     }
   }
 
+  // Open Packing Checklist Modal
+  const handleOpenPacking = async (slug, title) => {
+    setActivePackingSlug(slug)
+    setActivePackingTitle(title)
+    try {
+      const { data } = await itineraryApi.getCuratedPacking(slug)
+      setActivePackingData(data.packing)
+      setIsPackingOpen(true)
+    } catch {
+      showToast("Could not load gear & packing checklist.", "error")
+    }
+  }
+
   // Recompute cost when modal parameters change
   const handleChangeCostParams = (newParams) => {
     if (activeCostSlug) {
       handleOpenCost(activeCostSlug, activeCostTitle, newParams)
     }
   }
+
+  const filteredItineraries = itineraries.filter((item) => {
+    if (!searchQuery.trim()) return true
+    const q = searchQuery.toLowerCase()
+    return (
+      item.title?.toLowerCase().includes(q) ||
+      item.title_nepali?.toLowerCase().includes(q) ||
+      item.summary?.toLowerCase().includes(q) ||
+      item.start_city?.toLowerCase().includes(q) ||
+      item.end_city?.toLowerCase().includes(q) ||
+      item.category?.toLowerCase().includes(q)
+    )
+  })
 
   return (
     <section className="ny-panel p-5 sm:p-7 mb-8 border border-[var(--ny-border)] bg-gradient-to-b from-white to-slate-50/60 rounded-2xl shadow-sm">
@@ -223,8 +259,31 @@ export default function CuratedItineraryShowcase({ onSelectPlan, currentNational
         </div>
       </div>
 
+      {/* Search & Filter Bar */}
+      <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="relative flex-1 max-w-md">
+          <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search journeys (e.g. Everest, Pokhara, Mustang, Safari, Rara)…"
+            className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            >
+              <FiX size={14} />
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Persona & Category Tabs */}
-      <div className="mt-5 flex gap-2 overflow-x-auto pb-2 scrollbar-none" role="tablist">
+      <div className="mt-4 flex gap-2 overflow-x-auto pb-2 scrollbar-none" role="tablist">
         {PERSONA_TABS.map((tab) => {
           const active = activeTab === tab.id
           return (
@@ -256,13 +315,13 @@ export default function CuratedItineraryShowcase({ onSelectPlan, currentNational
               <div key={n} className="h-80 rounded-xl bg-slate-100 animate-pulse" />
             ))}
           </div>
-        ) : itineraries.length === 0 ? (
+        ) : filteredItineraries.length === 0 ? (
           <div className="text-center py-12 text-slate-500 text-sm">
-            No curated itineraries found for this filter.
+            No curated itineraries match your search or filter.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {itineraries.map((item) => {
+            {filteredItineraries.map((item) => {
               const isExpanded = expandedSlug === item.slug
               const isLoading = loadingSlug === item.slug
               const isDomestic = item.persona === "nepali"
@@ -380,6 +439,16 @@ export default function CuratedItineraryShowcase({ onSelectPlan, currentNational
                         >
                           <FiDollarSign size={11} />
                           <span>Cost Calculator</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleOpenPacking(item.slug, item.title)}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-bold hover:bg-blue-100 transition"
+                          title="Open Interactive Gear & Packing Checklist"
+                        >
+                          <FiCheckSquare size={11} />
+                          <span>Gear Checklist</span>
                         </button>
                       </div>
 
@@ -533,6 +602,15 @@ export default function CuratedItineraryShowcase({ onSelectPlan, currentNational
         title={activeCostTitle}
         onChangeParameters={handleChangeCostParams}
         currentParams={costParams}
+      />
+
+      {/* Packing Checklist & Local Rental Modal */}
+      <PackingChecklistModal
+        isOpen={isPackingOpen}
+        onClose={() => setIsPackingOpen(false)}
+        packingData={activePackingData}
+        title={activePackingTitle}
+        slug={activePackingSlug}
       />
     </section>
   )

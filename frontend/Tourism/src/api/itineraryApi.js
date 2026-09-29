@@ -20,6 +20,7 @@ const itineraryApi = {
     axiosClient.get(`/curated-itineraries/${slug}/`, { params: { mode: "planner", ...params } }),
   compareCurated: (params = {}) => axiosClient.get("/curated-itineraries/compare/", { params }),
   getCuratedSafety: (slug) => axiosClient.get(`/curated-itineraries/${slug}/safety/`),
+  getCuratedPacking: (slug) => axiosClient.get(`/curated-itineraries/${slug}/packing/`),
 }
 
 export default itineraryApi
