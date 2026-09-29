@@ -196,6 +196,80 @@ class Command(BaseCommand):
                 self.stdout.write(f"  {table}: {count}")
 
     def _install(self, extracted: Path, force: bool) -> Path:
+        if connection.vendor == "postgresql":
+            try:
+                from tourist.models import Destination
+                dest_count = Destination.objects.count()
+            except Exception:
+                dest_count = 0
+
+            if dest_count > 0 and not force:
+                raise CommandError(
+                    f"PostgreSQL database already contains {dest_count} destinations.\n"
+                    "Use --force to import seed data into PostgreSQL anyway."
+                )
+
+            self.stdout.write("Transferring seed database records into PostgreSQL ...")
+            from django.db import connections
+            new_dbs = {
+                **settings.DATABASES,
+                "seed_sqlite": {
+                    "ENGINE": "django.db.backends.sqlite3",
+                    "NAME": str(extracted),
+                },
+            }
+            configured = connections.configure_settings(new_dbs)
+            settings.DATABASES["seed_sqlite"] = configured["seed_sqlite"]
+            connections.databases["seed_sqlite"] = configured["seed_sqlite"]
+
+            fixture_file = tempfile.NamedTemporaryFile(
+                mode="w+", suffix=".json", encoding="utf-8", delete=False
+            )
+            try:
+                excludes = [
+                    "contenttypes",
+                    "auth.permission",
+                    "admin.logentry",
+                    "sessions",
+                    "token_blacklist",
+                    "audit.auditlog",
+                    "audit.errorevent",
+                ]
+                call_command(
+                    "dumpdata",
+                    "--database", "seed_sqlite",
+                    *[item for exclude in excludes for item in ("--exclude", exclude)],
+                    "--natural-foreign",
+                    "--natural-primary",
+                    stdout=fixture_file,
+                )
+                fixture_file.flush()
+                fixture_file.close()
+
+                call_command("loaddata", fixture_file.name, database="default")
+            finally:
+                try:
+                    os.unlink(fixture_file.name)
+                except OSError:
+                    pass
+                connections["seed_sqlite"].close()
+                connections.databases.pop("seed_sqlite", None)
+                settings.DATABASES.pop("seed_sqlite", None)
+
+            from django.core.management.color import no_style
+            from django.apps import apps
+            sequence_sql = connection.ops.sequence_reset_sql(no_style(), apps.get_models())
+            with connection.cursor() as cursor:
+                for sql in sequence_sql:
+                    if sql.strip():
+                        try:
+                            cursor.execute(sql)
+                        except Exception:
+                            pass
+
+            self.stdout.write(self.style.SUCCESS("Installed seed database into PostgreSQL."))
+            return extracted
+
         target = database_path()
         if target.exists() and target.stat().st_size:
             occupied = self._occupant_summary(target)
@@ -239,6 +313,10 @@ class Command(BaseCommand):
             probe.close()
 
     def _report(self, target: Path) -> None:
+        if connection.vendor == "postgresql":
+            self._print_summary()
+            return
+
         # Point this process at the freshly installed file, then always put the
         # connection back so the rest of the process (and test teardown) still
         # sees the database it started with.
@@ -255,31 +333,54 @@ class Command(BaseCommand):
             connection.settings_dict["NAME"] = previous
 
     def _print_summary(self) -> None:
-        summary = database_path()
-        probe = sqlite3.connect(summary)
-        try:
+        if connection.vendor == "postgresql":
+            from django.apps import apps
             self.stdout.write("")
-            self.stdout.write(self.style.SUCCESS("Seed database ready."))
-            for table in (
-                "tourist_destination",
-                "tourist_destinationimage",
-                "tourist_hotel",
-                "tourist_hospital",
-                "tourist_policestation",
-                "tourist_restaurant",
-                "tourist_osmessentialservice",
-                "tourist_destinationtransitroute",
-                "tourist_managedpage",
-                "tourist_contentsection",
-                "tourist_user",
+            self.stdout.write(self.style.SUCCESS("PostgreSQL database ready."))
+            for model_name in (
+                "tourist.Destination",
+                "tourist.DestinationImage",
+                "tourist.Hotel",
+                "tourist.Hospital",
+                "tourist.PoliceStation",
+                "tourist.Restaurant",
+                "tourist.OSMEssentialService",
+                "tourist.DestinationTransitRoute",
+                "tourist.ManagedPage",
+                "tourist.ContentSection",
+                "tourist.User",
             ):
                 try:
-                    count = probe.execute(f'select count(*) from "{table}"').fetchone()[0]
-                except sqlite3.Error:
-                    continue
-                self.stdout.write(f"  {table}: {count}")
-        finally:
-            probe.close()
+                    m = apps.get_model(model_name)
+                    self.stdout.write(f"  {m._meta.db_table}: {m.objects.count()}")
+                except Exception:
+                    pass
+        else:
+            summary = database_path()
+            probe = sqlite3.connect(summary)
+            try:
+                self.stdout.write("")
+                self.stdout.write(self.style.SUCCESS("Seed database ready."))
+                for table in (
+                    "tourist_destination",
+                    "tourist_destinationimage",
+                    "tourist_hotel",
+                    "tourist_hospital",
+                    "tourist_policestation",
+                    "tourist_restaurant",
+                    "tourist_osmessentialservice",
+                    "tourist_destinationtransitroute",
+                    "tourist_managedpage",
+                    "tourist_contentsection",
+                    "tourist_user",
+                ):
+                    try:
+                        count = probe.execute(f'select count(*) from "{table}"').fetchone()[0]
+                    except sqlite3.Error:
+                        continue
+                    self.stdout.write(f"  {table}: {count}")
+            finally:
+                probe.close()
 
         self.stdout.write("")
         self.stdout.write(

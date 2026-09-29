@@ -22,10 +22,19 @@ SECURE_HSTS_PRELOAD = config("SECURE_HSTS_PRELOAD", default=not DEBUG, cast=bool
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = config("X_FRAME_OPTIONS", default="DENY" if not DEBUG else "SAMEORIGIN")
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="", cast=Csv())
+raw_hosts = config("ALLOWED_HOSTS", default="", cast=Csv())
+ALLOWED_HOSTS = [h.strip() for h in raw_hosts if h.strip()]
+if not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ["*"] if not DEBUG else ["localhost", "127.0.0.1", "[::1]", "testserver"]
+else:
+    for h in ("localhost", "127.0.0.1", "[::1]", "testserver"):
+        if h not in ALLOWED_HOSTS and "*" not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(h)
+
 RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME", "").strip()
-if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
+if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS and "*" not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+    ALLOWED_HOSTS.append(f".{RENDER_EXTERNAL_HOSTNAME}")
 
 # ------------------------------------------------------------------
 # Applications
@@ -141,8 +150,16 @@ def _database_from_url(url):
         }
         # Render's *internal* database URL is plain TCP on the private network
         # and must NOT be asked for SSL; the *external* URL needs it. Let the
-        # operator decide rather than inferring it from the hostname.
+        # operator decide via DATABASE_SSLMODE or DATABASE_SSL_REQUIRE.
         sslmode = config("DATABASE_SSLMODE", default="").strip()
+        ssl_require = config("DATABASE_SSL_REQUIRE", default="false").strip().lower() in ("true", "1", "yes")
+        if not sslmode and ssl_require:
+            sslmode = "require"
+        if not sslmode and parsed.query:
+            from urllib.parse import parse_qs
+            qs = parse_qs(parsed.query)
+            if "sslmode" in qs:
+                sslmode = qs["sslmode"][0]
         if sslmode:
             db["OPTIONS"] = {"sslmode": sslmode}
         return db
@@ -227,9 +244,11 @@ USE_TZ = True
 # ------------------------------------------------------------------
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-# The React production bundle is copied here by Docker and collected by Django.
-# Keeping it in STATICFILES_DIRS makes WhiteNoise serve Vite assets at /static/.
-STATICFILES_DIRS = [BASE_DIR / "frontend_dist"]
+# Built React app (Dockerfile copies frontend/Tourism/dist here). When it is
+# present WhiteNoise serves it from the site root and Tourism/spa.py returns
+# index.html for client-side routes. Absent in development/tests.
+FRONTEND_DIST_DIR = Path(config("FRONTEND_DIST_DIR", default=str(BASE_DIR / "frontend_dist")))
+STATICFILES_DIRS = [FRONTEND_DIST_DIR] if FRONTEND_DIST_DIR.is_dir() else []
 
 # WhiteNoise serves and caches everything under STATIC_ROOT, which is what makes
 # `collectstatic` + gunicorn serve the CSS/JS and the Vite bundle on Render
@@ -248,10 +267,6 @@ STORAGES = {
     },
 }
 
-# Built React app (Dockerfile copies frontend/Tourism/dist here). When it is
-# present WhiteNoise serves it from the site root and Tourism/spa.py returns
-# index.html for client-side routes. Absent in development/tests.
-FRONTEND_DIST_DIR = Path(config("FRONTEND_DIST_DIR", default=str(BASE_DIR / "frontend_dist")))
 if (FRONTEND_DIST_DIR / "index.html").is_file():
     WHITENOISE_ROOT = FRONTEND_DIST_DIR
 WHITENOISE_MIMETYPES = {".webmanifest": "application/manifest+json"}
@@ -341,6 +356,21 @@ if RENDER_EXTERNAL_HOSTNAME:
     render_origin = f"https://{RENDER_EXTERNAL_HOSTNAME}"
     if render_origin not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(render_origin)
+    if render_origin not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(render_origin)
+
+PUBLIC_SITE_URL = config("PUBLIC_SITE_URL", default="").strip().rstrip("/")
+VITE_SITE_URL = config("VITE_SITE_URL", default="").strip().rstrip("/")
+for site_url in (PUBLIC_SITE_URL, VITE_SITE_URL):
+    if site_url:
+        if site_url not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(site_url)
+        if site_url not in CORS_ALLOWED_ORIGINS:
+            CORS_ALLOWED_ORIGINS.append(site_url)
+        from urllib.parse import urlsplit as _urlsplit
+        _host = _urlsplit(site_url).hostname
+        if _host and _host not in ALLOWED_HOSTS and "*" not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(_host)
 
 # ------------------------------------------------------------------
 # Django REST Framework

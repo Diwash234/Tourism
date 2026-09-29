@@ -5,7 +5,6 @@ from tourist import views_seo
 from Tourism.spa import spa_index
 from django.conf import settings
 from django.conf.urls.static import static
-from .spa import spa_index
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularSwaggerView,

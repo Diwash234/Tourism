@@ -1,58 +1,97 @@
 # Render PostgreSQL deployment and SQLite data migration
 
-This project uses SQLite by default for local development and PostgreSQL when Render supplies DATABASE_URL. Production uses the existing Render PostgreSQL service named tourism_db.
+This project uses SQLite by default for local development and PostgreSQL when Render supplies `DATABASE_URL`. Production connects to a Render PostgreSQL service named `tourism_db`.
 
 ## 1. Export current SQLite data
 
-From the directory containing manage.py:
+From the directory containing `manage.py`:
 
     python manage.py check
     python manage.py export_render_data --output data.json
-    python -m json.tool data.json > /dev/null
 
-Keep db.sqlite3 as a separate backup until the PostgreSQL import is verified.
+This creates `data.json` (and mirrors it to `load.json`).
+The export automatically excludes Django framework runtime records:
+- Content types (`contenttypes`)
+- Permissions (`auth.permission`)
+- Admin log entries (`admin.logentry`)
+- Sessions (`sessions`)
+- JWT blacklist entries (`token_blacklist`)
+- Transient audit log events (`audit.auditlog`, `audit.errorevent`)
 
-The export excludes Django runtime/framework records: content types, permissions, admin log entries, sessions, and JWT blacklist entries.
+Keep `db.sqlite3` as a backup until the PostgreSQL import is verified.
 
 ## 2. Render database connection
 
-render.yaml references the existing tourism_db service:
+`render.yaml` defines the PostgreSQL service and references it automatically:
 
-    DATABASE_URL
-      fromDatabase:
-        name: tourism_db
-        property: connectionString
+```yaml
+databases:
+  - name: tourism_db
+    databaseName: tourism_db
+    user: tourism_user
+    plan: free
 
-Render resolves this to the private connection string. Never put the password or actual connection URL in Git. The web service and database should stay in the same region.
+services:
+  - type: web
+    name: tourism-recommendation
+    runtime: docker
+    plan: 0.5c-512mb
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health/
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tourism_db
+          property: connectionString
+      - key: DATABASE_SSL_REQUIRE
+        value: "true"
+```
 
-## 3. Normal deployment
+Render resolves `DATABASE_URL` to the private connection string. Never store database credentials in Git.
 
-The Docker image builds the React production bundle and Django static assets. Startup runs:
+## 3. Automatic deployment and seeding
 
-    python manage.py migrate --noinput
+When the Docker container starts on Render:
+1. It runs `python manage.py migrate --noinput` to apply all database migrations.
+2. If the PostgreSQL database is empty (destination count is 0):
+   - It checks for `data.json` or `load.json`. If found, it automatically imports the fixture using `python manage.py import_render_data` with automatic conflict sanitization and PostgreSQL sequence synchronization.
+   - If no JSON fixture is present, it automatically populates the PostgreSQL database from the bundled privacy-safe seed archive (`downloads/nepal-tourism-seed.sqlite3.gz`) containing 6,700+ Nepal tourism destinations, hotels, hospitals, and police stations.
+3. If data already exists, startup synchronizes all PostgreSQL sequence counters so subsequent user signups, reviews, and bookings never encounter primary key collisions.
 
-The normal deployment does NOT run loaddata, so deployments cannot accidentally re-import old records.
+## 4. Manual one-time import (via Render Shell)
 
-## 4. One-time import
-
-After the web service deploys successfully and migrations finish, make data.json temporarily available to the service. In Render Shell run:
+If you prefer to import data manually via the Render Shell console:
 
     python manage.py import_render_data data.json
 
-The command refuses to import unless the active database is PostgreSQL and requires explicit confirmation.
+Or if named `load.json`:
 
-Verify important record counts, Django admin, and API responses.
+    python manage.py import_render_data load.json
 
-## 5. After verification
+Or simply:
 
-Remove the temporary data.json from Git if it contains production data. The repository ignores data.json and SQLite runtime files.
+    python manage.py import_render_data
 
-## Render environment
+The command automatically:
+- Strips any duplicate `contenttypes` or `auth.permission` records that would cause unique constraint errors.
+- Loads the dataset cleanly.
+- Executes `sequence_reset_sql` to align all PostgreSQL serial sequences (`id_seq`) with the maximum primary keys in the database.
+- Reports a summary of verified record counts.
 
-At minimum configure DEBUG=False, DATABASE_URL (provided from tourism_db), DATABASE_SSL_REQUIRE=true, SECRET_KEY, PUBLIC_SITE_URL, VITE_SITE_URL, CSRF_TRUSTED_ORIGINS, and CORS_ALLOWED_ORIGINS.
+## 5. Render environment variables
 
-Do not set the old SQLite deployment variables DB_ENGINE=sqlite or DB_NAME=/var/lib/tourism/data/db.sqlite3. No Render disk is required for PostgreSQL.
+Required/recommended environment variables in Render:
+- `DEBUG`: `False`
+- `SECRET_KEY`: Automatically generated by Render
+- `ALLOWED_HOSTS`: `*` or your custom domain
+- `DATABASE_URL`: Injected from `tourism_db`
+- `DATABASE_SSL_REQUIRE`: `true`
+- `MEDIA_ROOT`: `/app/Tourism/media`
+- `PUBLIC_SITE_URL`: Your production URL (e.g. `https://your-service.onrender.com`)
+- `VITE_SITE_URL`: Same as `PUBLIC_SITE_URL`
+- `CSRF_TRUSTED_ORIGINS`: Your production URL
 
-## Media
+## 6. Media storage
 
-PostgreSQL stores database records, not uploaded files. The project supports IMAGE_BASE_URL for the large image dataset. If Django-managed uploaded media must survive redeploys, use durable external/object storage or a separate persistent-media strategy.
+PostgreSQL stores database records, not file uploads. The application uses `IMAGE_BASE_URL` for large static image catalogs. For user-uploaded media to persist across deployments, configure persistent volume storage or an S3-compatible object storage provider.

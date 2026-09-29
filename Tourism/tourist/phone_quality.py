@@ -87,6 +87,13 @@ def is_unusable_phone(value) -> bool:
     return is_null_sentinel(value) or is_placeholder_phone(value)
 
 
+def usable_phone(value) -> str:
+    """Return a cleaned, callable phone number, or empty string if unusable/filler."""
+    if not value or is_unusable_phone(value):
+        return ""
+    return normalize_phone_artifact(str(value).strip())
+
+
 def normalize_phone_artifact(value) -> str:
     """Repair a float-mangled phone number, or return the input unchanged.
 

@@ -153,10 +153,22 @@ class AdminControlCenterSecurityTests(APITestCase):
 
     def test_page_metadata_draft_isolated_until_publish(self):
         page = ManagedPage.objects.create(
-            route="/control-center-page", key="control-center-page", title="Old title", status="published"
+            route="/control-center-page",
+            key="control-center-page",
+            title="Old title",
+            meta_description="Valid SEO meta description for control center page.",
+            status="published",
         )
-        from .cms_publishing import sync_published_page
+        section = ContentSection.objects.create(
+            page=page,
+            title="Main Section",
+            section_type="hero",
+            status="published",
+            is_visible=True,
+        )
+        from .cms_publishing import sync_published_page, sync_published_snapshot
         sync_published_page(page)
+        sync_published_snapshot(section)
         self.client.force_authenticate(self.admin)
         saved = self.client.patch(
             "/api/v1/admin/cms/",

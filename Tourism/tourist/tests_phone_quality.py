@@ -113,6 +113,16 @@ class _ServiceFixtures(TestCase):
 class PhoneCleanupMigrationTests(_ServiceFixtures):
     """Migration 0086 fixes storage, not just the response."""
 
+    def _police(self, name, phone):
+        ps = super()._police(name, phone)
+        PoliceStation.objects.filter(pk=ps.pk).update(phone=phone)
+        return ps
+
+    def _hospital(self, name, phone):
+        h = super()._hospital(name, phone)
+        Hospital.objects.filter(pk=h.pk).update(phone=phone)
+        return h
+
     def _run(self):
         from importlib import import_module
 

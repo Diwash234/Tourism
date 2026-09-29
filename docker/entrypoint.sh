@@ -9,6 +9,9 @@
 set -e
 cd /app/Tourism
 
+# Ensure media directory exists and is writable
+mkdir -p /app/Tourism/media /var/lib/tourism/media /var/lib/tourism/data 2>/dev/null || true
+
 DB_FILE=$(python - <<'PY'
 import os
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Tourism.settings")
@@ -24,6 +27,9 @@ if [ -n "$DB_FILE" ]; then
   if [ ! -s "$DB_FILE" ]; then
     echo "entrypoint: no database at $DB_FILE - installing the published seed database"
     python manage.py install_public_seed_db
+  else
+    echo "entrypoint: existing SQLite database found - applying any pending migrations"
+    python manage.py migrate --noinput
   fi
 else
   # PostgreSQL: run migrations, then import data if the database is empty
@@ -50,19 +56,28 @@ PY
   if [ "$DATA_EXISTS" = "0" ]; then
     echo "entrypoint: PostgreSQL database is empty - loading seed data"
 
-    # Try to load from a JSON fixture if one exists
-    if [ -f "/app/Tourism/load.json" ]; then
-      echo "entrypoint: loading data from load.json"
-      python manage.py loaddata /app/Tourism/load.json --noinput
+    # Search for an exported fixture (data.json or load.json in standard locations)
+    FIXTURE=""
+    for candidate in /app/Tourism/data.json /app/Tourism/load.json /app/data.json /app/load.json data.json load.json; do
+      if [ -f "$candidate" ]; then
+        FIXTURE="$candidate"
+        break
+      fi
+    done
+
+    if [ -n "$FIXTURE" ]; then
+      echo "entrypoint: loading data from $FIXTURE via import_render_data"
+      python manage.py import_render_data "$FIXTURE" --noinput
     elif [ -f "/app/downloads/nepal-tourism-seed.sqlite3.gz" ]; then
-      echo "entrypoint: no load.json found, using SQLite seed database as fallback"
+      echo "entrypoint: no JSON fixture found, importing published seed database into PostgreSQL"
       python manage.py install_public_seed_db --skip-checksum
     else
       echo "entrypoint: WARNING - no seed data found. Database will be empty."
-      echo "entrypoint: Run 'python manage.py export_render_data' locally and upload load.json"
+      echo "entrypoint: Run 'python manage.py export_render_data' locally and deploy data.json or load.json"
     fi
   else
-    echo "entrypoint: PostgreSQL database already has $DATA_EXISTS destinations - skipping data import"
+    echo "entrypoint: PostgreSQL database already has $DATA_EXISTS destinations - ensuring sequences are synchronized"
+    python manage.py import_render_data --noinput --sync-sequences-only 2>/dev/null || true
   fi
 fi
 

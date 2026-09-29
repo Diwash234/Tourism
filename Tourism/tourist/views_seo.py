@@ -185,6 +185,8 @@ class HealthView(View):
         media_status = "ok"
         try:
             media_root = str(getattr(settings, "MEDIA_ROOT", ""))
+            if media_root:
+                os.makedirs(media_root, exist_ok=True)
             if not (media_root and os.path.isdir(media_root) and os.access(media_root, os.W_OK)):
                 media_status = "unwritable"
         except Exception:  # pragma: no cover
@@ -194,5 +196,5 @@ class HealthView(View):
         overall = "ok" if db_status == "ok" and media_status == "ok" else "degraded"
         return JsonResponse(
             {"status": overall, "checks": checks},
-            status=200 if overall == "ok" else 503,
+            status=200 if db_status == "ok" else 503,
         )
