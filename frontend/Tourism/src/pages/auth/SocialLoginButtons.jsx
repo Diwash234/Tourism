@@ -1,6 +1,7 @@
 import { FiGithub } from "react-icons/fi"
 import { getGoogleAuthUrl, getGithubAuthUrl, hasGoogleClientId, hasGithubClientId } from "../../utils/oauth"
 import usePublicConfig from "../../hooks/usePublicConfig"
+import useToast from "../../hooks/useToast"
 
 // Official Google "G" brand mark with standard Google colors
 const GoogleMark = () => (
@@ -14,16 +15,25 @@ const GoogleMark = () => (
 
 /**
  * SocialLoginButtons
- * Provides active Google and GitHub social login choices. Redirects to
- * provider's consent screen. OAuthCallback.jsx handles return trip.
+ * Always shows Google and GitHub social login choices. If a provider is
+ * not configured, clicking it shows a friendly message instead of a broken
+ * redirect. OAuthCallback.jsx handles the return trip.
  */
 const SocialLoginButtons = ({ showDivider = true }) => {
   usePublicConfig()
-  // Only offer providers that are actually configured -- an unconfigured
-  // button would just lead to "sign-in failed" (the API answers 503).
+  const { showToast } = useToast()
   const google = hasGoogleClientId()
   const github = hasGithubClientId()
-  if (!google && !github) return null
+
+  const handleClick = (e, provider, isConfigured) => {
+    if (!isConfigured) {
+      e.preventDefault()
+      showToast(
+        `${provider} sign-in is not configured yet. Please set up the ${provider} OAuth client ID in the backend .env file.`,
+        "error"
+      )
+    }
+  }
 
   return (
     <div className="space-y-3">
@@ -35,19 +45,21 @@ const SocialLoginButtons = ({ showDivider = true }) => {
         </div>
       )}
 
-      <div className={`grid gap-3 ${google && github ? "grid-cols-2" : "grid-cols-1"}`}>
-        {google && <a
+      <div className="grid gap-3 grid-cols-2">
+        <a
           href={getGoogleAuthUrl()}
+          onClick={(e) => handleClick(e, "Google", google)}
           className="flex items-center justify-center gap-2 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
         >
           <GoogleMark /> Google
-        </a>}
-        {github && <a
+        </a>
+        <a
           href={getGithubAuthUrl()}
+          onClick={(e) => handleClick(e, "GitHub", github)}
           className="flex items-center justify-center gap-2 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
         >
           <FiGithub size={18} className="text-gray-900" /> GitHub
-        </a>}
+        </a>
       </div>
     </div>
   )
