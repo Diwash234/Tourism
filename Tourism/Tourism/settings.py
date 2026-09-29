@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "corsheaders",
     "phonenumber_field",
+    "channels",           # WebSocket support for real-time features
 
     # Local
     "tourist",
@@ -79,6 +80,8 @@ MIDDLEWARE = [
     "audit.middleware.AuditMiddleware",   # logs every request + error to AuditLog/ErrorEvent
     "tourist.middleware.GeoIPMiddleware",
     "tourist.maintenance.MaintenanceModeMiddleware",  # 503 during maintenance windows
+    "tourist.performance.PerformanceMonitoringMiddleware",  # request timing + query logging
+    "tourist.api_versioning.APIVersioningMiddleware",  # API version deprecation headers
 ]
 
 ROOT_URLCONF = "Tourism.urls"
@@ -622,6 +625,49 @@ if not BACKEND_URL and RENDER_EXTERNAL_HOSTNAME:
 LOCAL_TRANSLATION_LANGUAGE_CODES = config(
     "LOCAL_TRANSLATION_LANGUAGE_CODES", default="ne,new,mai,bho,tdg", cast=Csv()
 )
+
+# ------------------------------------------------------------------
+# Payment Provider Settings
+# ------------------------------------------------------------------
+# Stripe (international cards)
+STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="")
+STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET", default="")
+
+# eSewa (Nepal's digital wallet)
+ESEWA_MERCHANT_ID = config("ESEWA_MERCHANT_ID", default="")
+ESEWA_SECRET_KEY = config("ESEWA_SECRET_KEY", default="")
+ESEWA_BASE_URL = config("ESEWA_BASE_URL", default="https://rc-epay.esewa.com.np")
+
+# Khalti (Nepal's digital wallet)
+KHALTI_SECRET_KEY = config("KHALTI_SECRET_KEY", default="")
+KHALTI_PUBLIC_KEY = config("KHALTI_PUBLIC_KEY", default="")
+KHALTI_BASE_URL = config("KHALTI_BASE_URL", default="https://khalti.com/api/v2")
+
+# SendGrid (email delivery)
+SENDGRID_API_KEY = config("SENDGRID_API_KEY", default="")
+
+# ------------------------------------------------------------------
+# Performance Monitoring
+# ------------------------------------------------------------------
+SLOW_REQUEST_THRESHOLD = config("SLOW_REQUEST_THRESHOLD", default=1.0, cast=float)
+SLOW_QUERY_THRESHOLD = config("SLOW_QUERY_THRESHOLD", default=0.5, cast=float)
+ENABLE_QUERY_LOG = config("ENABLE_QUERY_LOG", default=False, cast=bool)
+TRACK_MEMORY_USAGE = config("TRACK_MEMORY_USAGE", default=False, cast=bool)
+
+# ------------------------------------------------------------------
+# API Versioning
+# ------------------------------------------------------------------
+API_VERSION_DEPRECATION_HEADERS = {
+    "v1": {
+        "deprecated": True,
+        "deprecation_date": "2026-12-31",
+        "sunset_date": "2027-06-30",
+        "successor_version": "v2",
+    },
+    "v2": {
+        "deprecated": False,
+    },
+}
 
 LOGGING = {
     "version": 1,
