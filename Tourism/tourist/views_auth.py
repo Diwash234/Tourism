@@ -645,10 +645,8 @@ class UpdateLocationView(APIView):
         if not resolved_source:
             resolved_source = fix.source or "gps"
 
-        if location.get("latitude") is not None:
-            user.latitude = location["latitude"]
-        if location.get("longitude") is not None:
-            user.longitude = location["longitude"]
+        user.latitude = location.get("latitude", fix.latitude)
+        user.longitude = location.get("longitude", fix.longitude)
         if location.get("country"):
             user.country = location["country"]
         if location.get("city"):
