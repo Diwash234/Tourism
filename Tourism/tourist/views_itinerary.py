@@ -166,6 +166,8 @@ from pathlib import Path
 from django.conf import settings
 from .serializers import public_destination_cover
 from .views_ml import _with_readiness, enrich_itinerary_with_services
+from .curated_planning import calculate_cost_breakdown, calculate_altitude_safety, compare_curated_itineraries
+
 
 CURATED_DATA_FILE = Path(settings.BASE_DIR) / "dataset" / "curated_itineraries.json"
 
@@ -276,15 +278,21 @@ class CuratedItineraryDetailView(APIView):
         if not target:
             return Response({"detail": "Curated itinerary not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        mode = request.query_params.get("mode") or request.query_params.get("schema") or request.query_params.get("as")
-        if mode != "planner":
-            return Response(target)
-
-        # Build full interactive planner payload
         travelers = max(1, int(request.query_params.get("travelers", 1)))
         nationality = request.query_params.get("nationality", target.get("persona", "foreign"))
         if nationality not in ("foreign", "saarc", "chinese", "nepali"):
             nationality = "foreign" if target.get("persona") == "foreign" else ("nepali" if target.get("persona") == "nepali" else "foreign")
+        style = request.query_params.get("style", "standard")
+
+        cost_breakdown = calculate_cost_breakdown(target, nationality=nationality, style=style, travelers=travelers)
+        altitude_safety = calculate_altitude_safety(target)
+
+        mode = request.query_params.get("mode") or request.query_params.get("schema") or request.query_params.get("as")
+        if mode != "planner":
+            enriched_raw = dict(target)
+            enriched_raw["cost_breakdown"] = cost_breakdown
+            enriched_raw["altitude_safety"] = altitude_safety
+            return Response(enriched_raw)
 
         days_schedule = target.get("days_schedule", [])
         itinerary_days = []
@@ -384,4 +392,56 @@ class CuratedItineraryDetailView(APIView):
             {"nationality": nationality, "travel_month": int(month_param) if month_param and month_param.isdigit() else None}
         )
 
+        plan_payload["cost_breakdown"] = cost_breakdown
+        plan_payload["altitude_safety"] = altitude_safety
+
         return Response(plan_payload)
+
+
+class CuratedItineraryCompareView(APIView):
+    """
+    GET /api/v1/curated-itineraries/compare/?slugs=slug1,slug2&nationality=nepali&style=standard&travelers=1
+    Returns side-by-side comparative matrix of up to 4 curated itineraries.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        items = _load_curated_data()
+        slugs_param = request.query_params.get("slugs", "").strip()
+        if slugs_param:
+            req_slugs = [s.strip() for s in slugs_param.split(",") if s.strip()][:4]
+            matched = [it for it in items if it.get("slug") in req_slugs]
+        else:
+            # Default to comparing top 2 signature itineraries
+            matched = items[:2] if len(items) >= 2 else items
+
+        if not matched:
+            return Response({"detail": "No matching itineraries found for comparison."}, status=status.HTTP_404_NOT_FOUND)
+
+        nationality = request.query_params.get("nationality", "nepali")
+        style = request.query_params.get("style", "standard")
+        travelers = max(1, int(request.query_params.get("travelers", 1)))
+
+        matrix = compare_curated_itineraries(matched, nationality=nationality, style=style, travelers=travelers)
+        return Response(matrix)
+
+
+class CuratedItinerarySafetyView(APIView):
+    """
+    GET /api/v1/curated-itineraries/<slug>/safety/
+    Returns high-altitude risk evaluation, Lake Louise AMS rubric, and emergency rescue directory.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, slug):
+        items = _load_curated_data()
+        target = next((it for it in items if it.get("slug") == slug), None)
+        if not target:
+            return Response({"detail": "Curated itinerary not found."}, status=status.HTTP_404_NOT_FOUND)
+        safety = calculate_altitude_safety(target)
+        return Response({
+            "slug": target["slug"],
+            "title": target["title"],
+            "title_nepali": target.get("title_nepali", ""),
+            "safety": safety,
+        })

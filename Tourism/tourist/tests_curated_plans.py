@@ -146,3 +146,62 @@ class CuratedTravelPlansTests(TestCase):
         self.assertGreaterEqual(TravelPlan.objects.count(), 12)
         self.assertGreaterEqual(Itinerary.objects.count(), 12)
         self.assertGreaterEqual(MarketplaceListing.objects.count(), 12)
+
+    def test_curated_itinerary_compare_view_default(self):
+        resp = self.client.get("/api/v1/curated-itineraries/compare/?nationality=nepali&style=standard&travelers=2")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data["count"], 2)
+        self.assertIn("comparison", data)
+        self.assertIn("cost_breakdown", data["comparison"][0])
+        self.assertIn("altitude_safety", data["comparison"][0])
+
+    def test_curated_itinerary_compare_view_specific_slugs(self):
+        resp = self.client.get(
+            "/api/v1/curated-itineraries/compare/?slugs=muktinath-lower-mustang-yatra,rara-lake-queen-of-himalayan-waters&nationality=foreign&style=budget&travelers=1"
+        )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data["count"], 2)
+        slugs = [item["slug"] for item in data["comparison"]]
+        self.assertIn("muktinath-lower-mustang-yatra", slugs)
+        self.assertIn("rara-lake-queen-of-himalayan-waters", slugs)
+
+    def test_curated_itinerary_safety_view(self):
+        resp = self.client.get("/api/v1/curated-itineraries/everest-base-camp-kala-patthar/safety/")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        safety = data["safety"]
+        self.assertEqual(safety["risk_class"], "extreme")
+        self.assertGreaterEqual(len(safety["golden_rules"]), 5)
+        self.assertGreaterEqual(len(safety["emergency_rescue_directory"]), 4)
+        self.assertIn("lake_louise_score_chart", safety)
+
+    def test_cost_breakdown_dual_personas(self):
+        from tourist.curated_planning import calculate_cost_breakdown
+        sample = {
+            "slug": "everest-base-camp-kala-patthar",
+            "days": 14,
+            "category": "trekking",
+            "max_elevation_m": 5545,
+        }
+        # Nepali national: no foreign TIMS permit, domestic airfare
+        cost_np = calculate_cost_breakdown(sample, nationality="nepali", style="budget", travelers=1)
+        # Foreign national: foreign park permits, mandatory guide, foreign airfare
+        cost_fg = calculate_cost_breakdown(sample, nationality="foreign", style="budget", travelers=1)
+
+        self.assertGreater(cost_fg["total_npr"], cost_np["total_npr"])
+        self.assertEqual(cost_np["itemized"][0]["amount_npr"], 100)  # Domestic park entry
+        self.assertGreaterEqual(cost_fg["itemized"][0]["amount_npr"], 8000)  # TIMS + Park + Khumbu fee
+
+    def test_cost_breakdown_and_safety_in_detail_payload(self):
+        resp = self.client.get(
+            "/api/v1/curated-itineraries/everest-base-camp-kala-patthar/?travelers=2&nationality=foreign&style=luxury"
+        )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertIn("cost_breakdown", data)
+        self.assertIn("altitude_safety", data)
+        self.assertEqual(data["cost_breakdown"]["parameters"]["style"], "luxury")
+        self.assertEqual(data["cost_breakdown"]["parameters"]["travelers"], 2)
+

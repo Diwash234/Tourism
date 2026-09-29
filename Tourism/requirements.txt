@@ -28,7 +28,7 @@ deep-translator==1.11.4
 dill==0.4.1
 distro==1.9.0
 dj-database-url==3.1.2
-Django==6.0.7
+Django>=5.2,<6.1
 django-cors-headers==4.9.0
 django-extensions==4.1
 django-filter==26.1
@@ -79,7 +79,7 @@ multidict==6.7.1
 multiprocess==0.70.19
 narwhals==2.24.0
 networkx==3.6.1
-numpy==2.5.1
+numpy>=1.26,<2.5
 openai==2.48.0
 openpyxl==3.1.5
 osmnx==2.1.1
@@ -117,7 +117,7 @@ rich==15.0.0
 rpds-py==2026.6.3
 safetensors==0.8.0
 scikit-learn==1.9.0
-scipy==1.18.0
+scipy>=1.14,<1.18
 sentencepiece==0.2.2
 service-identity==26.1.0
 setuptools==83.0.0

@@ -18,6 +18,7 @@ import {
   FiSliders,
   FiPlus,
   FiTrash2,
+  FiActivity,
 } from "react-icons/fi"
 
 import itineraryApi from "../api/itineraryApi"
@@ -27,6 +28,8 @@ import { formatDistance, formatDuration } from "../utils/formatDistance"
 import useToast from "../hooks/useToast"
 import TripReadinessPanel from "../components/itinerary/TripReadinessPanel"
 import CuratedItineraryShowcase from "../components/itinerary/CuratedItineraryShowcase"
+import AltitudeSafetyModal from "../components/itinerary/AltitudeSafetyModal"
+import CostBreakdownModal from "../components/itinerary/CostBreakdownModal"
 import { NATIONALITY_OPTIONS } from "../utils/currency"
 
 
@@ -170,6 +173,8 @@ const Itinerary = () => {
   const focusDestination = (searchParams.get("dest") || "").replace(/[-_]/g, " ").trim()
 
   const [modifying, setModifying] = useState(false)
+  const [showSafetyModal, setShowSafetyModal] = useState(false)
+  const [showCostModal, setShowCostModal] = useState(false)
   const [notes, setNotes] = useState([])
   const [noteForm, setNoteForm] = useState({ category: "Hotel", label: "", amount: "" })
 
@@ -1031,6 +1036,31 @@ const Itinerary = () => {
       }
       {plan && !error && <TripReadinessPanel plan={plan} />}
 
+      {plan && !error && (plan.cost_breakdown || plan.altitude_safety) && (
+        <div className="flex flex-wrap gap-2.5 my-4">
+          {plan.cost_breakdown && (
+            <button
+              type="button"
+              onClick={() => setShowCostModal(true)}
+              className="ny-btn ny-btn-secondary text-xs flex items-center gap-1.5 py-2 px-3.5 rounded-xl border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 font-bold shadow-2xs"
+            >
+              <FiDollarSign size={14} className="text-emerald-700" />
+              <span>Itemized Cost Schedule (NPR {plan.cost_breakdown.total_npr?.toLocaleString()})</span>
+            </button>
+          )}
+          {plan.altitude_safety && (
+            <button
+              type="button"
+              onClick={() => setShowSafetyModal(true)}
+              className="ny-btn ny-btn-secondary text-xs flex items-center gap-1.5 py-2 px-3.5 rounded-xl border-rose-300 bg-rose-50 text-rose-900 hover:bg-rose-100 font-bold shadow-2xs"
+            >
+              <FiActivity size={14} className="text-rose-700" />
+              <span>AMS & High-Altitude Safety Guide ({plan.altitude_safety.max_elevation_m}m)</span>
+            </button>
+          )}
+        </div>
+      )}
+
             {/* AI Itinerary Refinement + Trip Cost Notepad (merged from TripPlanner) */}
       {
         plan && !error && (
@@ -1576,6 +1606,26 @@ const Itinerary = () => {
 
       </div>
 
+      {/* Altitude Safety & Lake Louise Modal */}
+      <AltitudeSafetyModal
+        isOpen={showSafetyModal}
+        onClose={() => setShowSafetyModal(false)}
+        safetyData={plan?.altitude_safety}
+        title={plan?.title}
+      />
+
+      {/* Itemized Cost Breakdown Modal */}
+      <CostBreakdownModal
+        isOpen={showCostModal}
+        onClose={() => setShowCostModal(false)}
+        costData={plan?.cost_breakdown}
+        title={plan?.title}
+        currentParams={{
+          nationality: plan?.nationality || form.nationality,
+          style: "standard",
+          travelers: plan?.travelers || form.travelers,
+        }}
+      />
     </div>
 
   )

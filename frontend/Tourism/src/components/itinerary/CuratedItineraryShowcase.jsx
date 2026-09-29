@@ -13,9 +13,16 @@ import {
   FiChevronDown,
   FiChevronUp,
   FiInfo,
+  FiLayers,
+  FiActivity,
+  FiCheck,
+  FiX
 } from "react-icons/fi"
 import itineraryApi from "../../api/itineraryApi"
 import useToast from "../../hooks/useToast"
+import CuratedCompareModal from "./CuratedCompareModal"
+import AltitudeSafetyModal from "./AltitudeSafetyModal"
+import CostBreakdownModal from "./CostBreakdownModal"
 
 const PERSONA_TABS = [
   { id: "all", label: "All Journeys", labelNe: "सबै यात्रा", icon: "✨" },
@@ -34,6 +41,28 @@ export default function CuratedItineraryShowcase({ onSelectPlan, currentNational
   const [loading, setLoading] = useState(true)
   const [expandedSlug, setExpandedSlug] = useState(null)
   const [loadingSlug, setLoadingSlug] = useState(null)
+
+  // Comparison State
+  const [selectedSlugs, setSelectedSlugs] = useState([])
+  const [compareData, setCompareData] = useState(null)
+  const [isCompareOpen, setIsCompareOpen] = useState(false)
+  const [loadingCompare, setLoadingCompare] = useState(false)
+
+  // Safety Modal State
+  const [activeSafetyData, setActiveSafetyData] = useState(null)
+  const [activeSafetyTitle, setActiveSafetyTitle] = useState("")
+  const [isSafetyOpen, setIsSafetyOpen] = useState(false)
+
+  // Cost Modal State
+  const [activeCostData, setActiveCostData] = useState(null)
+  const [activeCostTitle, setActiveCostTitle] = useState("")
+  const [isCostOpen, setIsCostOpen] = useState(false)
+  const [costParams, setCostParams] = useState({
+    nationality: currentNationality || "nepali",
+    style: "standard",
+    travelers: 1,
+  })
+  const [activeCostSlug, setActiveCostSlug] = useState(null)
 
   useEffect(() => {
     let alive = true
@@ -81,6 +110,77 @@ export default function CuratedItineraryShowcase({ onSelectPlan, currentNational
     }
   }
 
+  // Toggle selection for comparison
+  const toggleSelectForCompare = (slug) => {
+    if (selectedSlugs.includes(slug)) {
+      setSelectedSlugs((prev) => prev.filter((s) => s !== slug))
+    } else {
+      if (selectedSlugs.length >= 3) {
+        showToast("You can compare up to 3 itineraries simultaneously.", "warning")
+        return
+      }
+      setSelectedSlugs((prev) => [...prev, slug])
+      showToast("Added to comparison drawer", "info")
+    }
+  }
+
+  // Open comparison modal
+  const handleOpenComparison = async () => {
+    if (selectedSlugs.length < 2) {
+      showToast("Select at least 2 itineraries to compare.", "info")
+      return
+    }
+    setLoadingCompare(true)
+    try {
+      const { data } = await itineraryApi.compareCurated({
+        slugs: selectedSlugs.join(","),
+        nationality: currentNationality,
+      })
+      setCompareData(data)
+      setIsCompareOpen(true)
+    } catch {
+      showToast("Could not load comparative data.", "error")
+    } finally {
+      setLoadingCompare(false)
+    }
+  }
+
+  // Open Safety Modal
+  const handleOpenSafety = async (slug, title) => {
+    try {
+      const { data } = await itineraryApi.getCuratedSafety(slug)
+      setActiveSafetyData(data.safety)
+      setActiveSafetyTitle(data.title || title)
+      setIsSafetyOpen(true)
+    } catch {
+      showToast("Could not load altitude safety analysis.", "error")
+    }
+  }
+
+  // Open Cost Breakdown Modal
+  const handleOpenCost = async (slug, title, overrides = {}) => {
+    setActiveCostSlug(slug)
+    setActiveCostTitle(title)
+    const nextParams = { ...costParams, ...overrides }
+    setCostParams(nextParams)
+    try {
+      const { data } = await itineraryApi.getCuratedDetail(slug, nextParams)
+      if (data.cost_breakdown) {
+        setActiveCostData(data.cost_breakdown)
+        setIsCostOpen(true)
+      }
+    } catch {
+      showToast("Could not load cost breakdown.", "error")
+    }
+  }
+
+  // Recompute cost when modal parameters change
+  const handleChangeCostParams = (newParams) => {
+    if (activeCostSlug) {
+      handleOpenCost(activeCostSlug, activeCostTitle, newParams)
+    }
+  }
+
   return (
     <section className="ny-panel p-5 sm:p-7 mb-8 border border-[var(--ny-border)] bg-gradient-to-b from-white to-slate-50/60 rounded-2xl shadow-sm">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--ny-border)] pb-5">
@@ -102,9 +202,24 @@ export default function CuratedItineraryShowcase({ onSelectPlan, currentNational
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start md:self-auto bg-slate-100 p-1 rounded-xl text-xs font-semibold text-slate-700">
-          <span className="px-2 py-1 bg-white rounded-lg shadow-xs text-emerald-800">100% Verified Routes</span>
-          <span className="px-2 py-1">Dual Persona: 🇳🇵 Nepali & 🌍 Foreign</span>
+        <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+          {/* Comparison Bar Button */}
+          {selectedSlugs.length > 0 && (
+            <button
+              type="button"
+              disabled={loadingCompare}
+              onClick={handleOpenComparison}
+              className="ny-btn ny-btn-primary flex items-center gap-2 text-xs font-bold py-1.5 px-3 rounded-xl shadow-md animate-pulse"
+            >
+              <FiLayers size={14} />
+              <span>Compare Selected ({selectedSlugs.length})</span>
+            </button>
+          )}
+
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-semibold text-slate-700">
+            <span className="px-2 py-1 bg-white rounded-lg shadow-xs text-emerald-800">100% Verified Routes</span>
+            <span className="px-2 py-1">Dual Persona: 🇳🇵 Nepali & 🌍 Foreign</span>
+          </div>
         </div>
       </div>
 
@@ -152,11 +267,15 @@ export default function CuratedItineraryShowcase({ onSelectPlan, currentNational
               const isLoading = loadingSlug === item.slug
               const isDomestic = item.persona === "nepali"
               const isForeignOnly = item.persona === "foreign"
+              const isSelected = selectedSlugs.includes(item.slug)
+              const hasHighAltitude = (item.max_elevation_m || 0) >= 2500
 
               return (
                 <div
                   key={item.slug}
-                  className="group flex flex-col justify-between overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition"
+                  className={`group flex flex-col justify-between overflow-hidden rounded-xl border bg-white shadow-sm hover:shadow-md transition ${
+                    isSelected ? "border-amber-500 ring-2 ring-amber-400/40" : "border-slate-200"
+                  }`}
                 >
                   <div>
                     {/* Card Cover Header */}
@@ -191,10 +310,21 @@ export default function CuratedItineraryShowcase({ onSelectPlan, currentNational
                         )}
                       </div>
 
-                      <div className="absolute top-3 right-3">
-                        <span className="rounded-md bg-black/60 backdrop-blur-xs px-2 py-1 text-[11px] font-medium text-emerald-300 capitalize">
-                          {item.difficulty}
-                        </span>
+                      {/* Top Right: Compare Checkbox */}
+                      <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => toggleSelectForCompare(item.slug)}
+                          className={`flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-md backdrop-blur-xs transition ${
+                            isSelected
+                              ? "bg-amber-400 text-slate-950 font-black shadow-sm"
+                              : "bg-black/60 text-white hover:bg-black/80"
+                          }`}
+                          title="Select to compare side-by-side"
+                        >
+                          {isSelected ? <FiCheck size={12} /> : <FiLayers size={12} />}
+                          <span>{isSelected ? "Comparing" : "Compare"}</span>
+                        </button>
                       </div>
 
                       {/* Title & Nepali Title Overlay */}
@@ -226,6 +356,31 @@ export default function CuratedItineraryShowcase({ onSelectPlan, currentNational
                           <FiCompass className="text-emerald-600 shrink-0" size={13} />
                           <span>Max {item.max_elevation_m ? `${item.max_elevation_m.toLocaleString()}m` : "Sub-Alpine"}</span>
                         </div>
+                      </div>
+
+                      {/* Feature Tags & Quick Modals */}
+                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                        {hasHighAltitude && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenSafety(item.slug, item.title)}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-bold hover:bg-rose-100 transition"
+                            title="Open Altitude Safety & AMS Guidelines"
+                          >
+                            <FiActivity size={11} />
+                            <span>AMS & Altitude Guide ({item.max_elevation_m}m)</span>
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => handleOpenCost(item.slug, item.title)}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold hover:bg-emerald-100 transition"
+                          title="Open Itemized Cost Calculator"
+                        >
+                          <FiDollarSign size={11} />
+                          <span>Cost Calculator</span>
+                        </button>
                       </div>
 
                       {/* Highlights */}
@@ -344,6 +499,41 @@ export default function CuratedItineraryShowcase({ onSelectPlan, currentNational
           </div>
         )}
       </div>
+
+      {/* Comparison Modal */}
+      <CuratedCompareModal
+        isOpen={isCompareOpen}
+        onClose={() => setIsCompareOpen(false)}
+        comparisonData={compareData}
+        onSelectItinerary={handleLoadPlan}
+        onRemoveFromCompare={(slug) => {
+          setSelectedSlugs((prev) => prev.filter((s) => s !== slug))
+          if (compareData) {
+            setCompareData({
+              ...compareData,
+              comparison: compareData.comparison.filter((c) => c.slug !== slug),
+            })
+          }
+        }}
+      />
+
+      {/* Altitude Safety & AMS Modal */}
+      <AltitudeSafetyModal
+        isOpen={isSafetyOpen}
+        onClose={() => setIsSafetyOpen(false)}
+        safetyData={activeSafetyData}
+        title={activeSafetyTitle}
+      />
+
+      {/* Cost Breakdown & Currency Modal */}
+      <CostBreakdownModal
+        isOpen={isCostOpen}
+        onClose={() => setIsCostOpen(false)}
+        costData={activeCostData}
+        title={activeCostTitle}
+        onChangeParameters={handleChangeCostParams}
+        currentParams={costParams}
+      />
     </section>
   )
 }
