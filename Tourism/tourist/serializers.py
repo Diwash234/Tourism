@@ -1713,7 +1713,9 @@ class NotificationPreferenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = NotificationPreference
         fields = ["in_app_enabled", "email_enabled", "sms_enabled", "push_enabled", "safety_alerts",
-                  "booking_updates", "recommendations", "marketing", "quiet_hours_start", "quiet_hours_end", "updated_at"]
+                  "booking_updates", "recommendations", "marketing", "quiet_hours_start", "quiet_hours_end",
+                  "email_notifications", "sms_notifications", "push_notifications", "marketing_emails",
+                  "weekly_digest", "updated_at"]
         read_only_fields = ["updated_at"]
 
 

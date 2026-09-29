@@ -261,7 +261,8 @@ class Destination(TimeStampedModel):
     slug = models.SlugField(
         max_length=220,
         unique=True,
-        blank=True
+        blank=True,
+        db_index=True,
     )
 
     city_nepali = models.CharField(
@@ -280,7 +281,8 @@ class Destination(TimeStampedModel):
         on_delete=models.PROTECT,
         related_name="destinations",
         null=True,
-        blank=True
+        blank=True,
+        db_index=True,
     )
 
 
@@ -331,7 +333,8 @@ class Destination(TimeStampedModel):
     district = models.CharField(
         max_length=100,
         blank=True,
-        null=True
+        null=True,
+        db_index=True,
     )
 
     municipality = models.CharField(
@@ -350,7 +353,8 @@ class Destination(TimeStampedModel):
     province = models.CharField(
         max_length=100,
         blank=True,
-        null=True
+        null=True,
+        db_index=True,
     )
 
 
@@ -814,7 +818,7 @@ class DestinationImage(TimeStampedModel):
         APPROVED = "approved", "Approved"
         REJECTED = "rejected", "Rejected"
 
-    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="gallery")
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="gallery", db_index=True)
     image = models.ImageField(upload_to="destinations/gallery/", blank=True, null=True)
     external_url = models.URLField(
         blank=True, help_text="Used instead of `image` for externally-hosted photos (Unsplash/Wikimedia/etc.)"
@@ -941,7 +945,7 @@ class DestinationVideo(TimeStampedModel):
 
 
 class Review(TimeStampedModel):
-    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="reviews")
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="reviews", db_index=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="reviews")
     comment = models.TextField()
     is_flagged = models.BooleanField(default=False)
@@ -1228,6 +1232,51 @@ class VisitHistory(models.Model):
     class Meta:
         ordering = ["-viewed_at"]
         verbose_name_plural = "Visit history"
+
+
+class LocationHistory(TimeStampedModel):
+    """GPS location history for a user.
+
+    Records each location fix with its source (gps, geoip, manual) and
+    accuracy. Used for location-based features, trip history, and
+    safety/emergency services.
+    """
+
+    class Source(models.TextChoices):
+        GPS = "gps", "Browser GPS"
+        GEOIP = "geoip", "GeoIP"
+        MANUAL = "manual", "Manual"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="location_history",
+    )
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    accuracy_m = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="Device-reported accuracy in metres",
+    )
+    source = models.CharField(
+        max_length=10,
+        choices=Source.choices,
+        default=Source.GPS,
+    )
+    recorded_at = models.DateTimeField(
+        help_text="When the device took the fix (may differ from created_at for delayed syncs)",
+    )
+
+    class Meta:
+        ordering = ["-recorded_at"]
+        indexes = [
+            models.Index(fields=["user", "recorded_at"]),
+        ]
+        verbose_name_plural = "Location history"
+
+    def __str__(self):
+        return f"{self.user.email} at ({self.latitude}, {self.longitude}) via {self.source}"
 
 
 class UserRoute(TimeStampedModel):
@@ -1650,6 +1699,12 @@ class NotificationPreference(TimeStampedModel):
     marketing = models.BooleanField(default=False)
     quiet_hours_start = models.TimeField(null=True, blank=True)
     quiet_hours_end = models.TimeField(null=True, blank=True)
+    # Enhanced preference fields
+    email_notifications = models.BooleanField(default=True, help_text="Master toggle for email notifications")
+    sms_notifications = models.BooleanField(default=True, help_text="Master toggle for SMS notifications")
+    push_notifications = models.BooleanField(default=True, help_text="Master toggle for push notifications")
+    marketing_emails = models.BooleanField(default=False, help_text="Receive promotional and marketing emails")
+    weekly_digest = models.BooleanField(default=False, help_text="Receive a weekly digest of destinations and updates")
 
     def __str__(self): return f"Notification preferences for {self.user.email}"
 

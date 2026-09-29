@@ -348,6 +348,14 @@ urlpatterns = [
     path("safety/trip-share/<uuid:token>/", views_family_safety.SharedTripPublicView.as_view(), name="shared-trip-public"),
     path("safety/family/members/", views_family_safety.FamilyMembersView.as_view(), name="family-members"),
 
+    # Advanced features
+    path("weather/forecast/", views.WeatherForecastView.as_view(), name="weather-forecast"),
+    path("admin/export/", views.BulkExportView.as_view(), name="bulk-export"),
+    path("admin/review-moderation/", views.ReviewModerationView.as_view(), name="review-moderation"),
+    path("health/", views.HealthCheckView.as_view(), name="health-check"),
+    path("location-history/", views.LocationHistoryView.as_view(), name="location-history"),
+    path("search/enhanced/", views.EnhancedSearchView.as_view(), name="enhanced-search"),
+
     # Router includes
     path("", include(router.urls)),
 ]

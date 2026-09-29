@@ -2,7 +2,7 @@ services:
   - type: web
     name: tourism-recommendation
     runtime: docker
-    plan: free
+    plan: 0.5c-512mb
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /health/
@@ -12,7 +12,7 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: ALLOWED_HOSTS
-        sync: false
+        value: "*"
       # Render injects the existing tourism_db private connection string.
       # The real URL/password stays in Render, not Git.
       - key: DATABASE_URL
@@ -31,3 +31,27 @@ services:
         sync: false
       - key: IMAGE_BASE_URL
         sync: false
+      - key: ML_SERVICE_URL
+        value: "http://localhost:8001"
+      - key: ACCESS_TOKEN_LIFETIME_MIN
+        value: "60"
+      - key: REFRESH_TOKEN_LIFETIME_DAYS
+        value: "7"
+      - key: NOTIFICATION_WORKER_ENABLED
+        value: "true"
+      - key: NOTIFICATION_WORKER_INTERVAL
+        value: "60"
+      - key: LOCAL_GRAPH_ROUTING_ENABLED
+        value: "true"
+      - key: LOCAL_GRAPH_MAX_SNAP_KM
+        value: "100"
+      - key: PHOTO_PROMOTION_IMPRESSION_THRESHOLD
+        value: "50"
+      - key: FX_AUTO_REFRESH
+        value: "true"
+
+databases:
+  - name: tourism_db
+    plan: free
+    databaseName: tourism_db
+    user: tourism_user

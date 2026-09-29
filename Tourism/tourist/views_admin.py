@@ -1,6 +1,7 @@
 import re
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.db import models, transaction
 from django.db.models import Count, Sum, F, Q, Max
 from django.utils import timezone
@@ -179,6 +180,13 @@ class AdminStatsView(APIView):
 
     def get(self, request):
         _require_capability(request, "dashboard", "view")
+
+        # Cache stats for 1 minute to reduce DB load
+        cache_key = "admin_stats"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
         destination_scope = _scope_destination_queryset(Destination.objects.all(), request.user)
         total_destinations = destination_scope.count()
         pending_destinations = destination_scope.filter(status=Destination.SubmissionStatus.PENDING).count()
@@ -192,7 +200,7 @@ class AdminStatsView(APIView):
             pending_images = pending_images.filter(destination_id__in=destination_scope.values("id"))
         pending_images = pending_images.count()
 
-        return Response({
+        response_data = {
             "totalUsers": User.objects.count(),
             "touristCount": User.objects.filter(role=User.Role.TOURIST).count(),
             "staffCount": User.objects.filter(role__in=[
@@ -212,7 +220,9 @@ class AdminStatsView(APIView):
             "totalVisitsLogged": VisitHistory.objects.count(),
             "totalExpenseReports": TravelExpenseFeedback.objects.count(),
             "totalRiskReports": TravelRiskFeedback.objects.count(),
-        })
+        }
+        cache.set(cache_key, response_data, 60)
+        return Response(response_data)
 
 
 class AdminUsersView(APIView):

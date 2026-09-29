@@ -91,3 +91,26 @@ def _enable_sqlite_wal(sender, connection, **kwargs):
 from django.db.backends.signals import connection_created  # noqa: E402
 
 connection_created.connect(_enable_sqlite_wal)
+
+
+# ---------------------------------------------------------------------------
+# Cache invalidation on CMS publish
+# ---------------------------------------------------------------------------
+from django.db.models.signals import post_save  # noqa: E402
+from django.dispatch import receiver  # noqa: E402
+from django.core.cache import cache  # noqa: E402
+
+
+@receiver(post_save, sender="tourist.ManagedPage")
+def invalidate_public_config_on_page_save(sender, instance, **kwargs):
+    """Invalidate the public config cache when a CMS page is published."""
+    if instance.status == "published":
+        # Invalidate all language variants of the public config cache
+        cache.delete_pattern("public_config_v2:*")
+
+
+@receiver(post_save, sender="tourist.ContentSection")
+def invalidate_public_config_on_section_save(sender, instance, **kwargs):
+    """Invalidate the public config cache when a CMS section is published."""
+    if instance.status == "published":
+        cache.delete_pattern("public_config_v2:*")

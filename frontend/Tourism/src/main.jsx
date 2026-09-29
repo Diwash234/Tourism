@@ -14,6 +14,10 @@ import './index.css'
 import './styles/animations.css'
 import { registerServiceWorker } from './pwa'
 
+// react-icons renders inline SVG — no separate CSS import needed.
+// Icons are tree-shaken at build time, so only the icons you actually use
+// are included in the bundle.
+
 if (typeof window !== "undefined") {
   if ("scrollRestoration" in window.history) {
     window.history.scrollRestoration = "manual"

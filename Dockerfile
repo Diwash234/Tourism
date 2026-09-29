@@ -15,6 +15,8 @@ COPY frontend/Tourism/ ./
 ARG VITE_SITE_URL=""
 ENV VITE_SITE_URL=$VITE_SITE_URL
 
+# Build with optimizations
+ENV NODE_ENV=production
 RUN npm run build
 
 
@@ -24,7 +26,9 @@ RUN npm run build
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 WORKDIR /app
 
@@ -34,6 +38,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libjpeg-dev \
     zlib1g-dev \
     libpq-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
@@ -64,6 +69,10 @@ RUN python manage.py collectstatic --noinput
 
 # Render exposes the PORT environment variable
 EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/health/ || exit 1
 
 # ASGI (daphne) so the live-chat WebSocket at /ws/chat/<id>/ works; HTTP is
 # the same Django app. CHANNEL_LAYERS is in-memory, so run ONE process per
