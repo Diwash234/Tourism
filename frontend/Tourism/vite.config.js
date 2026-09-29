@@ -118,8 +118,19 @@ export default defineConfig(({ mode }) => ({
     dedupe: ['react', 'react-dom'],
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react/jsx-runtime', 'react-icons/fi', 'react-icons/bs'],
+    include: ['react', 'react-dom', 'react/jsx-runtime', 'react-icons'],
     force: true,
+  },
+  build: {
+    chunkSizeWarningLimit: 1500,
+    rollupOptions: {
+      output: {
+        manualChunks,
+        assetFileNames: 'assets/[name]-[hash][extname]',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
+      },
+    },
   },
   server: {
     host: '0.0.0.0',
