@@ -40,6 +40,12 @@ const INTERESTS = [
 ]
 
 const SELECTS = {
+  persona: [
+    ["all", "All Travelers (सबैका लागि)"],
+    ["nepali", "🇳🇵 Domestic Explorer (नेपाली आन्तरिक पर्यटक)"],
+    ["foreign", "🌍 International Visitor (विदेशी पर्यटक)"],
+    ["saarc", "🏛️ SAARC National (सार्क देशहरू)"],
+  ],
   budget: [["any", "Any budget"], ["low", "Budget"], ["medium", "Mid-range"], ["high", "Premium"]],
   difficulty: [["any", "Any difficulty"], ["easy", "Easy"], ["moderate", "Moderate"], ["hard", "Hard"]],
   month: [["", "This month"], ...["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"].map((m, i) => [String(i + 1), m])],
@@ -72,7 +78,7 @@ export default function Recommendation() {
   )
   const [selected, setSelected] = useState(["cultural", "nature"])
   const [showMoreInterests, setShowMoreInterests] = useState(false)
-  const [form, setForm] = useState({ days: 5, budget: "any", difficulty: "any", month: "", origin: "", travelStyle: "family", province: "" })
+  const [form, setForm] = useState({ days: 5, budget: "any", difficulty: "any", month: "", origin: "", travelStyle: "family", province: "", persona: "all" })
   const [explorationMode, setExplorationMode] = useState("balanced")
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(false)
@@ -134,6 +140,7 @@ export default function Recommendation() {
         mood: selected.join(","), days: form.days, budget: form.budget, difficulty: form.difficulty,
         ...(form.month ? { month: form.month } : {}), ...(form.origin ? { origin: form.origin } : {}),
         travel_style: form.travelStyle, province: form.province, mode: explorationMode, limit: 18,
+        ...(form.persona && form.persona !== "all" ? { persona: form.persona } : {}),
         ...(nearMe ? { latitude: nearMe.lat, longitude: nearMe.lng } : {}),
       })
       const results = data.results || data.recommendations || (Array.isArray(data) ? data : [])
@@ -177,6 +184,7 @@ export default function Recommendation() {
             <p className="ny-kicker">Step 2 · Your trip</p>
             <h2 className="mt-2 !text-xl">A few practical preferences</h2>
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <SelectField label="Traveler Persona" value={form.persona} options={SELECTS.persona} onChange={(value) => update("persona", value)} />
               <SelectField label="Budget level" value={form.budget} options={SELECTS.budget} onChange={(value) => update("budget", value)} />
               <SelectField label="Difficulty" value={form.difficulty} options={SELECTS.difficulty} onChange={(value) => update("difficulty", value)} />
               <SelectField label="Travel month" value={form.month} options={SELECTS.month} onChange={(value) => update("month", value)} />

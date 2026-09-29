@@ -14,6 +14,10 @@ const itineraryApi = {
     axiosClient.post("/ml/itinerary/", payload, { timeout: 45000, ...config }),
   savePlan: (payload) => axiosClient.post("/travel-plans/", payload),
   listPlans: () => axiosClient.get("/travel-plans/"),
+  getCuratedList: (params = {}) => axiosClient.get("/curated-itineraries/", { params }),
+  getCuratedDetail: (slug, params = {}) => axiosClient.get(`/curated-itineraries/${slug}/`, { params }),
+  loadCuratedPlanner: (slug, params = {}) =>
+    axiosClient.get(`/curated-itineraries/${slug}/`, { params: { mode: "planner", ...params } }),
 }
 
 export default itineraryApi

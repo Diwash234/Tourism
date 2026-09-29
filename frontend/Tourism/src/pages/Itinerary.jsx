@@ -26,6 +26,7 @@ import axiosClient from "../api/axiosClient"
 import { formatDistance, formatDuration } from "../utils/formatDistance"
 import useToast from "../hooks/useToast"
 import TripReadinessPanel from "../components/itinerary/TripReadinessPanel"
+import CuratedItineraryShowcase from "../components/itinerary/CuratedItineraryShowcase"
 import { NATIONALITY_OPTIONS } from "../utils/currency"
 
 
@@ -205,6 +206,21 @@ const Itinerary = () => {
       ...patch
     }))
 
+  }
+
+  const handleSelectCuratedPlan = (curatedPlan) => {
+    const updatedForm = {
+      ...form,
+      days: curatedPlan.days || form.days,
+      travelers: curatedPlan.travelers || form.travelers,
+      nationality: curatedPlan.nationality || form.nationality,
+      start_city: curatedPlan.itinerary?.[0]?.city || curatedPlan.itinerary?.[0]?.destinations?.[0]?.city || form.start_city,
+      budget_npr: curatedPlan.total_estimated_npr || form.budget_npr,
+    }
+    setForm(updatedForm)
+    setPlan(enrichPlanBudget(curatedPlan, updatedForm))
+    setGeneratedKey(planKey(updatedForm))
+    setError("")
   }
 
   const [savedPlan, setSavedPlan] = useState(null)
@@ -429,7 +445,8 @@ const Itinerary = () => {
       <PageHeader title="Itinerary Planner" subtitle={<>Tell us your days, budget and interests, then press Generate. Plans include
         altitude checks, official permits & fees and a trip-readiness checklist.</>} icon={ FiCalendar } />
 
-
+      {/* Curated Signature Master Itineraries Showcase */}
+      <CuratedItineraryShowcase onSelectPlan={handleSelectCuratedPlan} currentNationality={form.nationality} />
 
       {/* Controls */}
 
@@ -943,6 +960,48 @@ const Itinerary = () => {
         )}
       </div>
 
+      {/* Dual Persona Guidance Banner */}
+      <div className="mb-6 rounded-2xl border border-slate-200/80 bg-slate-50/50 p-4 shadow-2xs">
+        {form.nationality === "nepali" ? (
+          <div className="flex items-start gap-3">
+            <span className="text-2xl" aria-hidden="true">🇳🇵</span>
+            <div>
+              <p className="font-bold text-emerald-950 text-sm">
+                नेपाली आन्तरिक पर्यटक योजना (Nepalese Domestic Explorer Mode)
+              </p>
+              <p className="mt-1 text-xs text-slate-700 leading-relaxed">
+                नेपाली नागरिकका लागि कुनै TIMS कार्ड वा विदेशी निकुञ्ज परमिट चाहिँदैन। केवल सामान्य मन्दिर, पालिका तथा स्थानीय शुल्क (रु. २५ - रु. १५०) मात्र लाग्नेछ। स्थानीय डिलक्स बस, स्कोर्पियो जीप तथा रैथाने खानाका सिफारिसहरू उपलब्ध छन्।
+              </p>
+            </div>
+          </div>
+        ) : form.nationality === "saarc" ? (
+          <div className="flex items-start gap-3">
+            <span className="text-2xl" aria-hidden="true">🏛️</span>
+            <div>
+              <p className="font-bold text-blue-950 text-sm">
+                SAARC National Explorer (सार्क देशहरूका नागरिकहरू)
+              </p>
+              <p className="mt-1 text-xs text-slate-700 leading-relaxed">
+                Concessional entry rates (50% to 70% discount) apply across UNESCO World Heritage sites, National Parks, and Conservation Areas. Please ensure you carry your valid SAARC passport or government photo ID.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-start gap-3">
+            <span className="text-2xl" aria-hidden="true">🌍</span>
+            <div>
+              <p className="font-bold text-slate-900 text-sm">
+                International Visitor Planning Mode (विदेशी पर्यटक)
+              </p>
+              <p className="mt-1 text-xs text-slate-700 leading-relaxed">
+                Official TIMS Cards (NPR 2,000 / $20) and Conservation Area / National Park permits (Sagarmatha, ACAP, Langtang) are automatically calculated. Certified licensed trekking guides are required on declared mountain routes under NTB regulations.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div id="itinerary-plan-results" className="scroll-mt-6">
       {
         loading && (
 
@@ -1515,8 +1574,7 @@ const Itinerary = () => {
         )
       }
 
-
-
+      </div>
 
     </div>
 

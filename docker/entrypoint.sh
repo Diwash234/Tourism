@@ -81,4 +81,8 @@ PY
   fi
 fi
 
+# Ensure signature curated travel plans, packages, and authentic images are populated
+echo "entrypoint: seeding curated travel plans, packages, and authentic landmark images"
+python manage.py seed_curated_travel_plans || true
+
 exec "$@"

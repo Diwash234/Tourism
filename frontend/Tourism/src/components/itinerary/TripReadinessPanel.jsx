@@ -85,7 +85,27 @@ export default function TripReadinessPanel({ plan }) {
 
       {permits && (
         <div className="card-base p-5">
-          <h3 className="flex items-center gap-2 text-sm font-bold"><FiFileText aria-hidden="true" /> Permits & official fees</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="flex items-center gap-2 text-sm font-bold"><FiFileText aria-hidden="true" /> Permits & official fees</h3>
+            {permits.nationality === "nepali" ? (
+              <span className="rounded-md bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-bold">
+                🇳🇵 नेपाली नागरिक दर
+              </span>
+            ) : permits.nationality === "saarc" ? (
+              <span className="rounded-md bg-blue-100 text-blue-800 px-2 py-0.5 text-[10px] font-bold">
+                🏛️ SAARC Concessional
+              </span>
+            ) : (
+              <span className="rounded-md bg-slate-100 text-slate-800 px-2 py-0.5 text-[10px] font-bold">
+                🌍 International Tier
+              </span>
+            )}
+          </div>
+          {permits.nationality === "nepali" && (
+            <p className="mt-1 text-xs text-emerald-800 bg-emerald-50/70 p-2 rounded-lg border border-emerald-100">
+              Nepali citizens are exempt from TIMS cards and foreign conservation permits. Only nominal local/temple entry fees apply.
+            </p>
+          )}
           {lines.length ? (
             <ul className="mt-2 divide-y divide-slate-100 text-sm">
               {lines.map((l) => (
@@ -97,7 +117,11 @@ export default function TripReadinessPanel({ plan }) {
               ))}
             </ul>
           ) : (
-            <p className="mt-2 text-sm text-[var(--ny-text-secondary)]">No park, permit or TIMS requirement matched the catalogue places in this plan.</p>
+            <p className="mt-2 text-sm text-[var(--ny-text-secondary)]">
+              {permits.nationality === "nepali"
+                ? "No foreign tourist permit or TIMS required for Nepali citizens on this route. Standard temple and local municipal charges apply on arrival."
+                : "No park, permit or TIMS requirement matched the catalogue places in this plan."}
+            </p>
           )}
           {lines.length > 0 && (
             <p className="mt-2 flex justify-between border-t border-slate-200 pt-2 text-sm font-bold"><span>Per person</span><span>{npr(permits.fee_totals.per_person_npr)}</span></p>

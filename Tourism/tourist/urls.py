@@ -120,6 +120,8 @@ urlpatterns = [
     path("ml/best-route/", views_ml.BestRouteView.as_view(), name="ml-best-route"),
     path("ml/itinerary/", views_ml.ItineraryView.as_view(), name="ml-itinerary"),
     path("ml/itinerary/modify/", views_ml.AIItineraryModificationView.as_view(), name="ml-itinerary-modify"),
+    path("curated-itineraries/", views_itinerary.CuratedItineraryListView.as_view(), name="curated-itineraries-list"),
+    path("curated-itineraries/<slug:slug>/", views_itinerary.CuratedItineraryDetailView.as_view(), name="curated-itineraries-detail"),
     # Mark an itinerary stop visited (plan -> execution tracking)
     path("itinerary-stops/<int:pk>/visit/", views_itinerary.ItineraryStopVisitView.as_view(), name="itinerary-stop-visit"),
     path("ml/results/", views_ml.MLResultWebhookView.as_view(), name="ml-results-webhook"),

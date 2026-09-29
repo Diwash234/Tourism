@@ -159,3 +159,229 @@ class ItineraryStopVisitView(APIView):
 
         from .serializers_itinerary import ItineraryStopSerializer
         return Response(ItineraryStopSerializer(stop).data)
+
+
+import json
+from pathlib import Path
+from django.conf import settings
+from .serializers import public_destination_cover
+from .views_ml import _with_readiness, enrich_itinerary_with_services
+
+CURATED_DATA_FILE = Path(settings.BASE_DIR) / "dataset" / "curated_itineraries.json"
+
+
+def _load_curated_data():
+    if not CURATED_DATA_FILE.exists():
+        return []
+    try:
+        with open(CURATED_DATA_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+
+class CuratedItineraryListView(APIView):
+    """
+    GET /api/v1/curated-itineraries/
+    Public curated itineraries tailored for Foreign, Domestic Nepali, and SAARC travelers.
+    Query params: persona (nepali|foreign|saarc|all), category, days, q
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        items = _load_curated_data()
+        persona = (request.query_params.get("persona") or "").strip().lower()
+        category = (request.query_params.get("category") or "").strip().lower()
+        days_param = request.query_params.get("days")
+        query = (request.query_params.get("q") or "").strip().lower()
+
+        results = []
+        for it in items:
+            it_persona = it.get("persona", "all")
+            if persona and persona != "all":
+                if persona == "nepali" and it_persona not in ("nepali", "all"):
+                    continue
+                elif persona == "foreign" and it_persona not in ("foreign", "all"):
+                    continue
+                elif persona == "saarc" and it_persona not in ("saarc", "all"):
+                    continue
+            if category and category != "all" and it.get("category") != category:
+                continue
+            if days_param:
+                try:
+                    d_int = int(days_param)
+                    if it.get("days") != d_int and it.get("days") > d_int:
+                        continue
+                except ValueError:
+                    pass
+            if query:
+                haystack = f"{it.get('title','')} {it.get('title_nepali','')} {it.get('summary','')} {it.get('summary_nepali','')} {it.get('category','')} {it.get('start_city','')} {it.get('end_city','')}".lower()
+                if query not in haystack:
+                    continue
+
+            results.append({
+                "slug": it["slug"],
+                "title": it["title"],
+                "title_nepali": it.get("title_nepali", ""),
+                "persona": it.get("persona", "all"),
+                "persona_label": "Nepalese Domestic Explorer" if it.get("persona") == "nepali" else ("International Traveler" if it.get("persona") == "foreign" else "All Travelers"),
+                "category": it.get("category", "trekking"),
+                "days": it.get("days", 3),
+                "difficulty": it.get("difficulty", "moderate"),
+                "start_city": it.get("start_city", "Kathmandu"),
+                "end_city": it.get("end_city", "Kathmandu"),
+                "best_seasons": it.get("best_seasons", []),
+                "max_elevation_m": it.get("max_elevation_m"),
+                "estimated_budget_npr": it.get("estimated_budget_npr"),
+                "estimated_budget_usd": it.get("estimated_budget_usd"),
+                "cover_image": it.get("cover_image", ""),
+                "summary": it.get("summary", ""),
+                "summary_nepali": it.get("summary_nepali", ""),
+                "highlights": it.get("highlights", []),
+                "highlights_nepali": it.get("highlights_nepali", []),
+                "permits_info": it.get("permits_info", {}),
+                "transport_info": it.get("transport_info", ""),
+                "local_food_recommendations": it.get("local_food_recommendations", ""),
+                "stops_count": len(it.get("days_schedule", [])),
+            })
+
+        return Response({
+            "count": len(results),
+            "results": results,
+            "meta": {
+                "categories": ["trekking", "pilgrimage", "heritage", "wildlife", "weekend", "adventure"],
+                "personas": [
+                    {"key": "all", "label": "All Travelers (सबैका लागि)"},
+                    {"key": "nepali", "label": "Nepali Domestic Explorer (नेपाली आन्तरिक पर्यटक)"},
+                    {"key": "foreign", "label": "International Explorer (विदेशी पर्यटक)"},
+                    {"key": "saarc", "label": "SAARC National (सार्क देशहरू)"},
+                ]
+            }
+        })
+
+
+class CuratedItineraryDetailView(APIView):
+    """
+    GET /api/v1/curated-itineraries/<slug>/
+    Returns full day-by-day curated itinerary.
+    If ?format=planner is passed, formats into the full interactive planner schema
+    ready to display in the frontend Travel Planner with altitude profile, maps,
+    hospitals, police stations, hotels and permits checklist.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, slug):
+        items = _load_curated_data()
+        target = next((it for it in items if it.get("slug") == slug), None)
+        if not target:
+            return Response({"detail": "Curated itinerary not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        mode = request.query_params.get("mode") or request.query_params.get("schema") or request.query_params.get("as")
+        if mode != "planner":
+            return Response(target)
+
+        # Build full interactive planner payload
+        travelers = max(1, int(request.query_params.get("travelers", 1)))
+        nationality = request.query_params.get("nationality", target.get("persona", "foreign"))
+        if nationality not in ("foreign", "saarc", "chinese", "nepali"):
+            nationality = "foreign" if target.get("persona") == "foreign" else ("nepali" if target.get("persona") == "nepali" else "foreign")
+
+        days_schedule = target.get("days_schedule", [])
+        itinerary_days = []
+        dest_cache = {}
+
+        total_distance_km = 0.0
+        for day_item in days_schedule:
+            dest_name = day_item.get("destination_name", "")
+            dest_obj = None
+            if dest_name:
+                if dest_name not in dest_cache:
+                    dest_obj = (
+                        Destination.publicly_visible().filter(name__icontains=dest_name).first()
+                        or Destination.publicly_visible().filter(name__icontains=dest_name.split()[0]).first()
+                    )
+                    dest_cache[dest_name] = dest_obj
+                else:
+                    dest_obj = dest_cache[dest_name]
+
+            dest_data = {
+                "id": dest_obj.id if dest_obj else None,
+                "name": dest_name,
+                "city": dest_obj.city if dest_obj else target.get("start_city"),
+                "district": dest_obj.district if dest_obj else "",
+                "latitude": float(dest_obj.latitude) if dest_obj and dest_obj.latitude else None,
+                "longitude": float(dest_obj.longitude) if dest_obj and dest_obj.longitude else None,
+                "elevation_m": day_item.get("elevation_m") or (dest_obj.elevation_m if dest_obj else None),
+                "cover_image_url": public_destination_cover(dest_obj, request) if dest_obj else target.get("cover_image"),
+                "short_description": day_item.get("activity") or (dest_obj.short_description if dest_obj else ""),
+            }
+
+            dist = float(day_item.get("distance_km") or 0.0)
+            total_distance_km += dist
+
+            daily_budget = round(float(target.get("estimated_budget_npr") or 10000) / max(1, target.get("days", 1)))
+
+            itinerary_days.append({
+                "day_number": day_item.get("day_number", 1),
+                "day": day_item.get("day_number", 1),
+                "title": day_item.get("title", f"Day {day_item.get('day_number')}"),
+                "city": dest_data["city"],
+                "destinations": [dest_data],
+                "daily_budget_npr": daily_budget,
+                "activity": day_item.get("activity", ""),
+                "stay": day_item.get("stay", ""),
+                "legs": [
+                    {
+                        "from": "Start",
+                        "to": dest_name,
+                        "distance_km": dist,
+                        "duration_min": round(dist * 2.5),
+                        "mode": "surface / trek",
+                    }
+                ] if dist > 0 else [],
+            })
+
+        total_budget_npr = target.get("estimated_budget_npr", 25000) * travelers
+        total_budget_usd = target.get("estimated_budget_usd", 190) * travelers
+
+        plan_payload = {
+            "title": target["title"],
+            "title_nepali": target.get("title_nepali", ""),
+            "days": target.get("days", len(days_schedule)),
+            "travelers": travelers,
+            "nationality": nationality,
+            "persona": target.get("persona", "all"),
+            "category": target.get("category", "trekking"),
+            "total_budget_npr": total_budget_npr,
+            "total_estimated_npr": total_budget_npr,
+            "total_estimated_usd": total_budget_usd,
+            "estimated_budget_npr": total_budget_npr,
+            "estimated_budget_usd": total_budget_usd,
+            "total_distance_km": round(total_distance_km, 1),
+            "cover_image": target.get("cover_image", ""),
+            "summary": target.get("summary", ""),
+            "highlights": target.get("highlights", []),
+            "permits_info": target.get("permits_info", {}),
+            "transport_info": target.get("transport_info", ""),
+            "local_food_recommendations": target.get("local_food_recommendations", ""),
+            "packing_checklist": target.get("packing_checklist", []),
+            "itinerary": itinerary_days,
+            "source": "curated_master_catalog",
+            "why_this_itinerary": [
+                f"Curated signature itinerary for {target['title']} with certified Nepal route milestones.",
+                f"Sourced elevation profiles ({target.get('max_elevation_m', 'High')}m maximum altitude) and safety intervals.",
+                "Permits and fees calculated from Department of Immigration and Nepal Tourism Board official rate schedules.",
+            ],
+        }
+
+        # Enrich with live nearest emergency services (hospitals, police, hotels)
+        plan_payload = enrich_itinerary_with_services(plan_payload)
+
+        # Enrich with trip readiness (acclimatization checks, permits, readiness checklist)
+        month_param = request.query_params.get("travel_month")
+        plan_payload = _with_readiness(
+            plan_payload,
+            {"nationality": nationality, "travel_month": int(month_param) if month_param and month_param.isdigit() else None}
+        )
+
+        return Response(plan_payload)

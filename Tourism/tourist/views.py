@@ -2861,6 +2861,7 @@ class MoodRecommendationsView(generics.ListAPIView):
             month_basis = "current month"
         travel_style = (request.query_params.get("travel_style") or "any").lower()
         province = (request.query_params.get("province") or "").strip().lower()
+        persona_param = (request.query_params.get("persona") or request.query_params.get("nationality") or "all").lower()
 
         # Optional traveller location (master spec §21/§119): when supplied,
         # straight-line proximity joins the ranking and every result carries
@@ -3031,6 +3032,18 @@ class MoodRecommendationsView(generics.ListAPIView):
             elif travel_style == "couple" and cat in {"lakes", "viewpoints", "hills"}:
                 score += 0.12
                 reasons.append("Strong couple-trip fit")
+
+            if persona_param in {"nepali", "domestic"}:
+                if cat in {"pilgrimage", "spiritual-wellness", "temples", "hill-stations", "villages"}:
+                    score += 0.12
+                    reasons.append("Top-rated domestic pilgrimage & cultural escape")
+                elif cost.get("class") in {"none_on_record", "park_fee"}:
+                    score += 0.06
+                    reasons.append("Highly accessible domestic destination with nominal entry fees")
+            elif persona_param in {"foreign", "international"}:
+                if cat in {"mountains", "trekking", "wildlife", "heritage"}:
+                    score += 0.10
+                    reasons.append("Signature Nepal highlight for international explorers")
 
             popularity = float(destination.average_rating or 0) * 0.025 + min(math.log10((destination.views_count or 0) + 1) * 0.015, 0.05)
             behavior = min(affinity.get(cat, 0) * 0.025, 0.10)
