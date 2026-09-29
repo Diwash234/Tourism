@@ -455,19 +455,6 @@ export const deriveImageCategory = (destination) => {
   return null
 }
 
-// Manually corrected media for records whose imported DB cover is known to
-// depict a different attraction. These take priority until an admin replaces
-// the cover through the media dashboard.
-const CORRECTED_DESTINATION_MEDIA = {
-  "hot air balloon pokhara": "/images/destinations/hot-air-balloon-pokhara/img1.jpg",
-  "ultralight flight pokhara": "/images/destinations/ultralight-flight-pokhara/img1.jpg",
-  "pokhara ultralight flights": "/images/destinations/ultralight-flight-pokhara/img1.jpg",
-  "zipflyer nepal pokhara": "/images/destinations/zipflyer-pokhara/img1.jpg",
-  "zipflyer pokhara": "/images/destinations/zipflyer-pokhara/img1.jpg",
-  "chhoser sky caves": "/images/destinations/chhoser-sky-caves/img1.jpg",
-  "gupteswor gupha": "/images/destinations/gupteswor-gupha/img1.jpg",
-}
-
 /**
  * Return a usable image URL for a destination/hotel/card.
  */
@@ -490,10 +477,6 @@ export const getDestinationImageUrl = (destination) => {
       if (isUsable(url)) return url
     }
   }
-  // Bundled corrections apply only when the API has no approved photo, so an
-  // admin's new cover (saved through the media library) always wins.
-  const corrected = CORRECTED_DESTINATION_MEDIA[normalizeName(destination.name)]
-  if (corrected) return corrected
   // Bundled photo for a landmark whose exact name is known.
   const local = lookupLocalNepal(destination.name)
   if (local) return local

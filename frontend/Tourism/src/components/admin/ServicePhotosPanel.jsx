@@ -116,7 +116,7 @@ export default function ServicePhotosPanel() {
           return (
             <article key={key} className="overflow-hidden rounded-2xl border border-emerald-100 bg-emerald-50/40">
               {row.image_url
-                ? <img src={row.image_url} alt={row.name} className="h-36 w-full object-cover" />
+                ? <img loading="lazy" decoding="async" src={row.image_url} alt={row.name} className="h-36 w-full object-cover" />
                 : <div className="flex h-36 items-center justify-center bg-emerald-100 text-emerald-800"><Icon className="text-3xl" /></div>}
               <div className="space-y-2 p-3 text-xs text-slate-700">
                 <p className="text-[10px] font-black uppercase tracking-widest text-emerald-800">{row.kind} · {row.category}</p>
@@ -124,9 +124,9 @@ export default function ServicePhotosPanel() {
                 <p className="truncate">{row.destination || row.address || "Nepal"}</p>
                 <p>{row.phone || "Phone not listed"}</p>
                 <div className="grid grid-cols-2 gap-2 pt-1">
-                  <label className="cursor-pointer rounded-lg bg-emerald-700 px-2 py-2 text-center font-bold text-white">
+                  <label className="focus-within:ring-2 focus-within:ring-emerald-500 focus-within:ring-offset-2 cursor-pointer rounded-lg bg-emerald-700 px-2 py-2 text-center font-bold text-white">
                     <BsUpload className="mr-1 inline" />{uploading === key ? "Saving…" : "Upload"}
-                    <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => upload(row, event.target.files?.[0])} />
+                    <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => upload(row, event.target.files?.[0])} />
                   </label>
                   <button type="button" disabled={!row.has_image} onClick={() => remove(row)} className="rounded-lg bg-rose-100 px-2 py-2 font-bold text-rose-800 disabled:opacity-40">
                     <BsTrash className="mr-1 inline" />Remove

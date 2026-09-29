@@ -18,6 +18,7 @@ import {
 } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import ErrorBoundary from "../../components/common/ErrorBoundary"
+import CMSPageIntro from "../../components/cms/CMSPageIntro"
 
 const severityColor = {
   debug: "bg-stone-100 text-stone-700",
@@ -405,6 +406,7 @@ export default function DiagnosticsCenter() {
           <p className="text-sm text-stone-500">Find mistakes fast: live health, every error, every action — all in one place.</p>
         </div>
       </div>
+      <CMSPageIntro pageKey="admin-diagnostics" />
 
       <ErrorBoundary name="HealthPanel">
         <HealthPanel />

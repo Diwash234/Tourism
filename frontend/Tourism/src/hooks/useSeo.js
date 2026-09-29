@@ -1,4 +1,5 @@
 import { useEffect } from "react"
+import { formatTitle } from "../utils/seoRoutes"
 
 /**
  * Per-page SEO metadata (§101/§104). Sets document title, meta description,
@@ -26,6 +27,11 @@ const upsertMeta = (attr, key, content) => {
   el.setAttribute("content", content)
 }
 
+// Pages that call useSeo own the document metadata while mounted; the layout
+// only fills in defaults for pages that don't (see MainLayout).
+let activeOwners = 0
+export const pageSeoActive = () => activeOwners > 0
+
 export default function useSeo({
   title,
   description,
@@ -39,10 +45,11 @@ export default function useSeo({
   const jsonLdText = jsonLd ? JSON.stringify(jsonLd) : null
   useEffect(() => {
     const prevTitle = document.title
+    activeOwners += 1
     let canonical = document.head.querySelector('link[rel="canonical"]')
     const createdCanonical = !canonical
 
-    if (title) document.title = title
+    if (title) document.title = formatTitle(title)
     upsertMeta("name", "description", description || null)
     upsertMeta("name", "robots", noindex ? "noindex, nofollow" : null)
     upsertMeta("property", "og:title", title || null)
@@ -72,6 +79,7 @@ export default function useSeo({
     }
 
     return () => {
+      activeOwners -= 1
       document.title = prevTitle
       if (script) script.remove()
       if (createdCanonical && canonical) canonical.remove()

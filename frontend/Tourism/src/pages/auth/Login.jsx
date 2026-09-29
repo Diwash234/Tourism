@@ -9,6 +9,7 @@ import authApi from "../../api/authApi"
 import TourismLogo from "../../components/branding/TourismLogo"
 import NepalSceneBackground from "../../components/branding/NepalSceneBackground"
 import SocialLoginButtons from "./SocialLoginButtons"
+import CMSPageIntro from "../../components/cms/CMSPageIntro"
 
 const ROLE_PRESETS = [
   {
@@ -151,26 +152,38 @@ const Login = () => {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="relative">
-            <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="email"
-              placeholder="Email Address"
-              className="input-field pl-11 text-sm"
-              {...register("email", { required: true })}
-            />
-            {errors.email && <p className="text-xs text-red-500 mt-1">Email is required</p>}
+          <div>
+            <label htmlFor="login-email" className="ny-field-label">Email address</label>
+            <div className="relative">
+              <FiMail aria-hidden="true" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                id="login-email"
+                type="email"
+                autoComplete="email"
+                className="input-field pl-11 text-sm"
+                aria-invalid={errors.email ? true : undefined}
+                aria-describedby={errors.email ? "login-email-error" : undefined}
+                {...register("email", { required: true })}
+              />
+            </div>
+            {errors.email && <p id="login-email-error" role="alert" className="ny-field-error">Email is required</p>}
           </div>
 
-          <div className="relative">
-            <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="password"
-              placeholder="Password"
-              className="input-field pl-11 text-sm"
-              {...register("password", { required: true })}
-            />
-            {errors.password && <p className="text-xs text-red-500 mt-1">Password is required</p>}
+          <div>
+            <label htmlFor="login-password" className="ny-field-label">Password</label>
+            <div className="relative">
+              <FiLock aria-hidden="true" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                id="login-password"
+                type="password"
+                autoComplete="current-password"
+                className="input-field pl-11 text-sm"
+                aria-invalid={errors.password ? true : undefined}
+                aria-describedby={errors.password ? "login-password-error" : undefined}
+                {...register("password", { required: true })}
+              />
+            </div>
+            {errors.password && <p id="login-password-error" role="alert" className="ny-field-error">Password is required</p>}
           </div>
 
           {loginError && (
@@ -232,6 +245,8 @@ const Login = () => {
           <div className="mt-2.5 flex gap-2">
             <input
               type="email"
+              autoComplete="email"
+              aria-label="Email you signed up with"
               value={verifyEmail}
               onChange={(e) => setVerifyEmail(e.target.value)}
               placeholder="Email you signed up with"
@@ -264,6 +279,7 @@ const Login = () => {
             Register (Sign Up)
           </Link>
         </p>
+        <CMSPageIntro pageKey="portal-login" compact />
       </motion.div>
     </div>
   )

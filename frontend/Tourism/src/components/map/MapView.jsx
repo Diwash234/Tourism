@@ -90,6 +90,31 @@ const MapMeasureEvents = ({ active, onPoint }) => {
   return null
 }
 
+const AccessibleZoomControl = () => {
+  const map = useMap()
+
+  useEffect(() => {
+    const controls = map.getContainer().querySelectorAll(".leaflet-control-zoom a[href=\"#\"]")
+    controls.forEach((control) => {
+      // Leaflet uses anchors for its controls, but the href is only a
+      // placeholder and is reported as an empty link by accessibility audits.
+      // Keep the control keyboard-accessible without advertising a fake URL.
+      control.removeAttribute("href")
+      control.setAttribute("role", "button")
+      control.setAttribute("tabindex", "0")
+      if (!control.getAttribute("aria-label")) {
+        control.setAttribute(
+          "aria-label",
+          control.classList.contains("leaflet-control-zoom-in") ? "Zoom in" : "Zoom out",
+        )
+      }
+    })
+  }, [map])
+
+  return null
+}
+
+
 const haversineKm = (lat1, lon1, lat2, lon2) => {
   const r = 6371.0
   const dlat = ((lat2 - lat1) * Math.PI) / 180.0
@@ -277,6 +302,7 @@ const MapView = ({
         {/* The style/ruler toolbar spans the top edge and wraps on phones,
             so the zoom buttons live bottom-right where nothing covers them. */}
         <ZoomControl position="bottomright" />
+        <AccessibleZoomControl />
         <TileLayer
           key={mapStyle}
           attribution={activeTile.attr}
@@ -309,6 +335,8 @@ const MapView = ({
               ]}
 
               icon={userIcon}
+              alt="Your location"
+              title="Your location"
 
             >
 
@@ -335,6 +363,8 @@ const MapView = ({
               ]}
 
               icon={destinationIcon}
+              alt={dest.name || "Destination"}
+              title={dest.name || "Destination"}
 
             >
 
@@ -378,6 +408,8 @@ const MapView = ({
                 ]}
 
                 icon={placeTypeIcon(p)}
+                alt={place.name || "Nearby place"}
+                title={place.name || "Nearby place"}
 
               >
 
@@ -418,11 +450,13 @@ const MapView = ({
                 ]}
 
                 icon={hospitalIcon}
+                alt={`Hospital: ${place.name || "unnamed"}`}
+                title={`Hospital: ${place.name || "unnamed"}`}
 
               >
 
                 <Popup>
-                  🏥 {place.name}
+                  Hospital: {place.name}
                 </Popup>
 
               </Marker>
@@ -458,11 +492,13 @@ const MapView = ({
                 ]}
 
                 icon={policeIcon}
+                alt={`Police: ${place.name || "unnamed"}`}
+                title={`Police: ${place.name || "unnamed"}`}
 
               >
 
                 <Popup>
-                  🚓 {place.name}
+                  Police: {place.name}
                 </Popup>
 
               </Marker>

@@ -24,6 +24,9 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("is_verified", True)
+        # Without this, `createsuperuser` produced role="tourist": full
+        # permissions, but labelled "Traveller" throughout the app.
+        extra_fields.setdefault("role", "super_admin")
 
         if extra_fields.get("is_staff") is not True:
             raise ValueError("Superuser must have is_staff=True.")

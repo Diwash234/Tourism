@@ -139,6 +139,12 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     full_name = serializers.ReadOnlyField()
+    # Lets the account-deletion form ask for a password, or the email for
+    # Google/GitHub-only accounts. Never exposes the hash itself.
+    has_password = serializers.SerializerMethodField()
+
+    def get_has_password(self, obj):
+        return obj.has_usable_password()
 
     class Meta:
         model = User
@@ -146,7 +152,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "id", "email", "first_name", "last_name", "full_name", "phone_number",
             "role", "profile_picture", "bio", "preferred_language",
             "latitude", "longitude", "country", "city", "location_source",
-            "is_verified", "is_staff", "is_superuser", "date_joined",
+            "is_verified", "is_staff", "is_superuser", "date_joined", "has_password",
         ]
         read_only_fields = ["id", "email", "role", "is_verified", "is_staff", "is_superuser", "date_joined", "location_source"]
 
@@ -365,8 +371,10 @@ class TravelPlanSerializer(serializers.ModelSerializer):
     class Meta:
         model = TravelPlan
         fields = ["id", "user", "user_email", "title", "start_date", "end_date", "travelers", "budget_npr",
-                  "interests", "itinerary_data", "generation_source", "status", "notes", "stops", "created_at", "updated_at"]
-        read_only_fields = ["user", "user_email", "status", "created_at", "updated_at"]
+                  "interests", "itinerary_data", "generation_source", "status", "notes", "stops",
+                  "share_token", "shared_at", "created_at", "updated_at"]
+        # Sharing is changed only through /travel-plans/<id>/share/ (owner only).
+        read_only_fields = ["user", "user_email", "status", "share_token", "shared_at", "created_at", "updated_at"]
 
     def validate(self, attrs):
         start = attrs.get("start_date", getattr(self.instance, "start_date", None))
@@ -519,10 +527,23 @@ class VisitHistorySerializer(serializers.ModelSerializer):
 
 class HospitalSerializer(UsablePhoneMixin, serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
+    hours = serializers.SerializerMethodField()
 
     class Meta:
         model = Hospital
-        fields = ["id", "name", "address", "phone", "latitude", "longitude", "district", "image_url", "opening_hours", "emergency_available", "source_name", "source_url", "is_verified", "verified_at", "updated_at"]
+        fields = ["id", "name", "address", "phone", "latitude", "longitude", "district", "image_url", "opening_hours", "hours", "emergency_available", "source_name", "source_url", "is_verified", "verified_at", "updated_at"]
+
+    def get_hours(self, obj):
+        from .opening_hours import status as hours_status
+        return hours_status(obj.opening_hours)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        from .phone_quality import usable_phone
+
+        # "nan" markers and templated filler are never shown as callable numbers.
+        data["phone"] = usable_phone(data.get("phone"))
+        return data
 
     def get_image_url(self, obj):
         if not obj.image:
@@ -540,6 +561,13 @@ class PoliceStationSerializer(UsablePhoneMixin, serializers.ModelSerializer):
     class Meta:
         model = PoliceStation
         fields = ["id", "name", "address", "phone", "latitude", "longitude", "image_url", "opening_hours", "emergency_available", "source_name", "source_url", "is_verified", "verified_at", "updated_at"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        from .phone_quality import usable_phone
+
+        data["phone"] = usable_phone(data.get("phone"))
+        return data
 
     def get_image_url(self, obj):
         if not obj.image:
@@ -1838,10 +1866,15 @@ class ItineraryRequestSerializer(serializers.Serializer):
 
 class OSMEssentialServiceSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
+    hours = serializers.SerializerMethodField()
 
     class Meta:
         model = OSMEssentialService
-        fields = ["id", "osm_id", "category", "name", "phone", "latitude", "longitude", "address", "image_url", "opening_hours", "emergency_available", "source_name", "source_url", "is_verified", "verified_at", "created_at", "updated_at"]
+        fields = ["id", "osm_id", "category", "name", "phone", "latitude", "longitude", "address", "image_url", "opening_hours", "hours", "emergency_available", "source_name", "source_url", "is_verified", "verified_at", "created_at", "updated_at"]
+
+    def get_hours(self, obj):
+        from .opening_hours import status as hours_status
+        return hours_status(obj.opening_hours)
 
     def get_image_url(self, obj):
         if obj.image:

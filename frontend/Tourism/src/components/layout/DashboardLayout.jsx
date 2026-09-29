@@ -1,9 +1,11 @@
+import { Suspense } from "react"
 import { Outlet, useLocation } from "react-router-dom"
 import useSidebarState from "../../hooks/useSidebarState"
 import Navbar from "./Navbar"
 import Sidebar from "./Sidebar"
 import Footer from "./Footer"
 import FloatingChatbot from "../common/FloatingChatbot"
+import CookieConsentBanner from "../common/CookieConsentBanner"
 import MobileBottomNav from "./MobileBottomNav"
 import { ElevationScrollProgress } from "../common/MotionSystem"
 
@@ -26,12 +28,14 @@ const DashboardLayout = () => {
         className={`ny-app-main ny-page flex w-full flex-1 flex-col justify-between pb-28 pt-16 transition-[padding] duration-300 lg:pb-0 ${desktopPad}`}
       >
         <div className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 sm:px-6 md:py-8 lg:px-8">
-          <Outlet />
+          <Suspense fallback={<div className="container-app flex min-h-[320px] items-center justify-center py-12" role="status" aria-live="polite"><span className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--ny-border)] border-t-[var(--ny-green)]" aria-hidden="true" /><span className="sr-only">Loading page</span></div>}><Outlet /></Suspense>
         </div>
         <Footer />
       </div>
       <MobileBottomNav />
       <FloatingChatbot />
+      {/* Also here, so "Cookie settings" (footer and Settings page) works on signed-in pages. */}
+      <CookieConsentBanner />
     </div>
   )
 }

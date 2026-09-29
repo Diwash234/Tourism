@@ -109,7 +109,7 @@ const PersonalDetails = () => {
         actions={
           <button
             onClick={openAddForm}
-            ny-btn ny-btn-secondary min-h-10 px-3 text-xs
+            className="ny-btn ny-btn-secondary min-h-10 px-3 text-xs"
           >
             <FiPlus /> Add Details
           </button>

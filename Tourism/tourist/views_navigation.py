@@ -707,7 +707,8 @@ class RouteOptionsView(APIView):
                              "configured, and the bundled tourism graph returns a single best path. "
                              "Straight-line distance is not road distance.")
 
-        if settings.ROUTING_API_URL:
+        routing_url = getattr(settings, "ROUTING_BASE_URL", "") or getattr(settings, "ROUTING_API_URL", "")
+        if routing_url:
             # Ask the road-routing service for genuine alternatives.
             import hashlib
             import requests
@@ -719,7 +720,7 @@ class RouteOptionsView(APIView):
             if cached is not None:
                 alternatives, alternatives_note = cached
             else:
-                base = settings.ROUTING_API_URL.rstrip("/")
+                base = routing_url.rstrip("/")
                 url = f"{base}/route/v1/driving/{values[1]},{values[0]};{values[3]},{values[2]}"
                 headers = {"Accept": "application/json", "User-Agent": "NepalTourismRouting/1.0"}
                 if settings.ROUTING_API_KEY:

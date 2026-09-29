@@ -569,7 +569,7 @@ export default function Navigation() {
             <div className="relative flex gap-2">
               <div className="relative flex-1">
                 <FiCompass className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600" />
-                <input
+                <input aria-label="Starting point"
                   className="input-field pl-11 text-xs font-medium"
                   placeholder="From: My Current Location, Kathmandu, Pokhara, Rara..."
                   value={originQuery}
@@ -605,7 +605,7 @@ export default function Navigation() {
 
             <div className="relative">
               <FiMapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-rose-600" />
-              <input
+              <input aria-label="Destination"
                 className="input-field pl-11 text-xs font-medium"
                 placeholder="Destination Place (e.g. Koshi, Lumbini, Chitwan, Phewa Lake, Thamel)..."
                 value={destinationQuery}
@@ -683,10 +683,11 @@ export default function Navigation() {
                 className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold flex items-center gap-1"
                 title="Swap Origin and Destination"
               >
-                <FiRepeat /> ⇄ Swap
+                <FiRepeat aria-hidden="true" /> Swap
               </button>
 
               <select
+                aria-label="Travel mode"
                 className="input-field py-1.5 px-3 text-xs w-auto border-slate-200 font-bold"
                 value={transportMode}
                 onChange={(e) => setTransportMode(e.target.value)}
@@ -1092,7 +1093,7 @@ export default function Navigation() {
               <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-1 text-xs">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-black text-white truncate">{destination.name}</span>
-                  {destination.average_rating != null && (
+                  {Number(destination.average_rating) > 0 && (
                     <span className="text-amber-300 font-bold whitespace-nowrap">
                       ★ {Number(destination.average_rating).toFixed(1)}
                       {destination.ratings_count ? ` (${destination.ratings_count})` : ""}

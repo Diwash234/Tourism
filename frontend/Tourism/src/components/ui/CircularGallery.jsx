@@ -87,7 +87,7 @@ export default function CircularGallery({
     >
       {/* Background ambient */}
       <div className="absolute inset-0 opacity-60">
-        <PlaceholderImage src={images[active]?.url} title={title} className="absolute inset-0" />
+        <PlaceholderImage src={images[active]?.url} title={title} labelPlacement="top" className="absolute inset-0" />
         <div className="absolute inset-0 bg-gradient-to-t from-stone-900/90 via-stone-900/40 to-stone-900/70 backdrop-blur-sm" />
       </div>
 

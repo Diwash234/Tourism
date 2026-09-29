@@ -43,7 +43,7 @@ const DestinationCard = ({ destination = {}, onToggleFavorite, isFavorite = fals
         <PlaceholderImage src={imageUrl} title={name} alt={name} className="h-full w-full transition-transform duration-300 group-hover:scale-[1.03]" />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/5 to-transparent" aria-hidden="true" />
         {category_name && <span className="absolute bottom-3 left-3 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-[var(--ny-green)]">{category_name}</span>}
-        {average_rating != null && (
+        {Number(average_rating) > 0 && (
           <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-[var(--ny-text)]">
             <FiStar size={13} className="fill-[var(--ny-gold)] text-[var(--ny-warm-gold)]" aria-hidden="true" />
             {average_rating}

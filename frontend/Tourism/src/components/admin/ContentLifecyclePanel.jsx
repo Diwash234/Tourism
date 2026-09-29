@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import {
   FiSearch, FiCheckCircle, FiXCircle, FiArchive, FiRefreshCw, FiEdit3,
@@ -49,6 +49,7 @@ export default function ContentLifecyclePanel() {
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState([])
   const [bulkReason, setBulkReason] = useState("")
+  const contentRequestRef = useRef(0)
 
   // ---- Approvals / conflicts / duplicates / integrity ----
   const [approvals, setApprovals] = useState(null)
@@ -62,13 +63,22 @@ export default function ContentLifecyclePanel() {
   const [subTab, setSubTab] = useState("content")
 
   const loadContent = useCallback(() => {
+    const requestId = ++contentRequestRef.current
     const params = { page, page_size: 25, ...filters }
     if (q.trim()) params.q = q.trim()
     Object.keys(params).forEach((k) => params[k] === "" && delete params[k])
     axiosClient.get("/admin/destinations", { params })
-      .then(({ data }) => { setRows(data.results); setMeta(data); })
-      .catch(() => showToast("Could not load content table.", "error"))
-      .finally(() => setLoading(false))
+      .then(({ data }) => {
+        if (requestId !== contentRequestRef.current) return
+        setRows(data.results)
+        setMeta(data)
+      })
+      .catch(() => {
+        if (requestId === contentRequestRef.current) showToast("Could not load content table.", "error")
+      })
+      .finally(() => {
+        if (requestId === contentRequestRef.current) setLoading(false)
+      })
   }, [q, filters, page, showToast])
 
   const loadApprovals = useCallback(() => {

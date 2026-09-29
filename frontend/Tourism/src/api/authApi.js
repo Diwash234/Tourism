@@ -46,6 +46,8 @@ const authApi = {
     axiosClient.post("/auth/logout/", { refresh: localStorage.getItem("refresh") }),
 
   getCurrentUser: () => axiosClient.get("/auth/profile/"),
+  // Self-service deletion: { password } or, for Google/GitHub accounts, { confirm_email }.
+  deleteAccount: (body) => axiosClient.post("/auth/account/delete/", body),
   getCapabilities: () => axiosClient.get("/auth/capabilities/"),
 
   // NEW: phone verification. IMPORTANT — this is NOT a "login with

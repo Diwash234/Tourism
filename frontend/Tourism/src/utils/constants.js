@@ -101,6 +101,8 @@ export const NAV_LINKS = [
   { label: "Home", path: "/" },
   { label: "Explore", path: "/destinations", children: [
     { label: "Recommended", path: "/recommendation" },
+    { label: "Find by Activity", path: "/discover" },
+    { label: "Which Should I Choose?", path: "/decide" },
     { label: "Gallery", path: "/gallery" },
     { label: "Compare Places", path: "/compare" },
     { label: "Explore by Province", path: "/explore-map" },
@@ -108,6 +110,7 @@ export const NAV_LINKS = [
   { label: "Plan a Trip", path: "/itinerary", children: [
     { label: "Itinerary", path: "/itinerary" },
     { label: "Budget Estimator", path: "/budget-estimator" },
+    { label: "Before You Travel", path: "/before-you-travel" },
     { label: "Find Hotels", path: "/hotels/search" },
   ] },
   { label: "Emergency Services", path: "/emergency", children: [

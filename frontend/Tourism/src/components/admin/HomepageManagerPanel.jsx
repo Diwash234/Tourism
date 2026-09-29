@@ -485,7 +485,7 @@ export default function HomepageManagerPanel() {
               <div className="bg-slate-900/70 border border-slate-600/40 rounded-2xl p-5">
                 <h3 className="text-sm font-black uppercase tracking-wider text-slate-300 mb-1">Cards / blocks inside “{selected.title || selected.key}”</h3>
                 <p className="text-[11px] text-slate-500 mb-3">Blocks are part of the draft: after editing them, press Publish in the editor above to push them live.</p>
-                <ContentBlocksBuilder key={selected.id} sectionId={selected.id} onToast={(msg, kind) => showToast(msg, kind)} />
+                <ContentBlocksBuilder key={selected.id} sectionId={selected.id} section={selected} onToast={(msg, kind) => showToast(msg, kind)} />
               </div>
             )}
           </div>

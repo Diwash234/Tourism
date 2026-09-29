@@ -14,7 +14,7 @@ export default function ImageApproval({ pendingImages = [], onApprove, onReject 
       {pendingImages.map((img) => (
         <div key={img.id} className="bg-orange-950/70 border border-orange-700/50 rounded-2xl overflow-hidden shadow-lg flex flex-col justify-between">
           <div className="h-44 w-full relative bg-black">
-            <img src={img.image_url} alt={img.caption} className="w-full h-full object-cover" />
+            <img loading="lazy" decoding="async" src={img.image_url} alt={img.caption} className="w-full h-full object-cover" />
             <span className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/70 text-amber-300 text-[10px] font-bold">
               {img.destination_name}
             </span>

@@ -165,7 +165,7 @@ const RiskAlertDashboard = () => {
           options={LEVEL_OPTIONS}
           value={level}
           onChange={(val) => setLevel(val)}
-          placeholder="All Risk Levels"
+          ariaLabel="Filter alerts by risk level"
         />
         <span className="text-sm font-semibold text-gray-500">
           {total} Active Alert{total === 1 ? "" : "s"}
@@ -253,7 +253,7 @@ const RiskAlertDashboard = () => {
                     />
                   </div>
                   {feedbackForm.became_sick && (
-                    <input
+                    <input aria-label="Sickness type"
                       placeholder="Sickness type (e.g. Altitude Sickness / AMS, Food Poisoning, Dehydration)"
                       className="input-field text-xs"
                       value={feedbackForm.sickness_type}
@@ -266,6 +266,7 @@ const RiskAlertDashboard = () => {
                   <div>
                     <label htmlFor="feedback-hazard" className="font-semibold text-gray-700">Natural Hazard Witnessed</label>
                     <select
+                      id="feedback-hazard"
                       className="input-field mt-1 text-xs"
                       value={feedbackForm.hazard_witnessed}
                       onChange={(e) => setFeedbackForm({ ...feedbackForm, hazard_witnessed: e.target.value })}
@@ -279,8 +280,8 @@ const RiskAlertDashboard = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="font-semibold text-gray-700">Overall Safety Score (1-10)</label>
-                    <input
+                    <label htmlFor="risk-1" className="font-semibold text-gray-700">Overall Safety Score (1-10)</label>
+                    <input id="risk-1"
                       type="number"
                       min={1}
                       max={10}
@@ -294,8 +295,8 @@ const RiskAlertDashboard = () => {
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <div>
-                    <label className="font-semibold text-gray-700">Transport Ease (1-5)</label>
-                    <input
+                    <label htmlFor="risk-2" className="font-semibold text-gray-700">Transport Ease (1-5)</label>
+                    <input id="risk-2"
                       type="number"
                       min={1}
                       max={5}
@@ -305,8 +306,8 @@ const RiskAlertDashboard = () => {
                     />
                   </div>
                   <div>
-                    <label className="font-semibold text-gray-700">Helpfulness (1-5)</label>
-                    <input
+                    <label htmlFor="risk-3" className="font-semibold text-gray-700">Helpfulness (1-5)</label>
+                    <input id="risk-3"
                       type="number"
                       min={1}
                       max={5}
@@ -316,8 +317,8 @@ const RiskAlertDashboard = () => {
                     />
                   </div>
                   <div>
-                    <label className="font-semibold text-gray-700">Greeting / Hospitality (1-5)</label>
-                    <input
+                    <label htmlFor="risk-4" className="font-semibold text-gray-700">Greeting / Hospitality (1-5)</label>
+                    <input id="risk-4"
                       type="number"
                       min={1}
                       max={5}
@@ -329,8 +330,8 @@ const RiskAlertDashboard = () => {
                 </div>
 
                 <div>
-                  <label className="font-semibold text-gray-700">Comments & Safety Advice</label>
-                  <textarea
+                  <label htmlFor="risk-5" className="font-semibold text-gray-700">Comments & Safety Advice</label>
+                  <textarea id="risk-5"
                     rows={2}
                     placeholder="Share any tips (e.g. trail condition, water purification, guide requirement)..."
                     className="input-field mt-1 text-xs"

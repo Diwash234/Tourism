@@ -54,6 +54,7 @@ import GuideVerificationPanel from "../../components/admin/GuideVerificationPane
 import AdminReportManagerPanel from "../../components/admin/AdminReportManagerPanel"
 import RoutingProviderPanel from "../../components/admin/RoutingProviderPanel"
 import UserDashboardControlPanel from "../../components/admin/UserDashboardControlPanel"
+import CMSPageIntro from "../../components/cms/CMSPageIntro"
 
 const ROLES = [
   { id: "tourist", label: "Tourist / Traveler" },
@@ -680,7 +681,7 @@ const AdminDashboard = () => {
               </span>
             </div>
             <h1 className="text-3xl font-extrabold text-emerald-950 mt-1 tracking-tight">
-              Nepal Tourism Admin & Moderation Sentinel
+              Nepal Yatra admin and moderation
             </h1>
             <p className="text-emerald-900/60 text-sm">
               Role-Based Access Control • Destination Approval Desk • Multi-Image Verification • Live Traveler Safety Tracking
@@ -702,6 +703,7 @@ const AdminDashboard = () => {
             </button>}
           </div>
         </motion.div>
+        <CMSPageIntro pageKey="admin-console" />
 
         <div className="lg:hidden rounded-xl border border-emerald-200 bg-white p-3">
           <label className="text-xs font-black uppercase text-emerald-800">Admin section
@@ -995,7 +997,7 @@ const AdminDashboard = () => {
                           {researchResult.destination.gallery.map((img, idx) => (
                             <div key={idx} className="rounded-2xl overflow-hidden border border-slate-600 bg-slate-900 flex flex-col justify-between">
                               <div className="h-44 w-full relative bg-black">
-                                <img src={img.external_url || img.image || img.display_url} alt={img.caption} className="w-full h-full object-cover" />
+                                <img loading="lazy" decoding="async" src={img.external_url || img.image || img.display_url} alt={img.caption} className="w-full h-full object-cover" />
                                 <span className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/70 text-amber-300 text-[10px] font-bold">
                                   {img.image_category || "Landscape"}
                                 </span>
@@ -1515,7 +1517,7 @@ const AdminDashboard = () => {
                       {/* Photo preview */}
                       {p.cover_image_url && (
                         <div className="h-44 rounded-xl overflow-hidden border border-slate-700">
-                          <img src={p.cover_image_url} alt={p.name} className="w-full h-full object-cover" />
+                          <img loading="lazy" decoding="async" src={p.cover_image_url} alt={p.name} className="w-full h-full object-cover" />
                         </div>
                       )}
 
@@ -1592,7 +1594,7 @@ const AdminDashboard = () => {
                 {pendingImages.map((img) => (
                   <div key={img.id} className="bg-slate-900/70 border border-slate-600/50 rounded-2xl overflow-hidden shadow-xl flex flex-col justify-between">
                     <div className="h-52 w-full relative overflow-hidden bg-black">
-                      <img src={img.image_url} alt={img.caption} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+                      <img loading="lazy" decoding="async" src={img.image_url} alt={img.caption} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
                       <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur text-amber-300 text-xs font-bold">
                         {img.destination_name}
                       </span>
@@ -1936,7 +1938,7 @@ const AdminDashboard = () => {
                     className="rounded-2xl bg-slate-900/60 border border-slate-700/60 overflow-hidden flex flex-col justify-between"
                   >
                     <div className="relative h-44 bg-slate-800">
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={img.url}
                         alt={img.caption || img.author}
                         className="w-full h-full object-cover"

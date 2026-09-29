@@ -4,14 +4,15 @@ FAIL (exit 1) when any critical is true:
   DEBUG=True; SECRET_KEY weak/placeholder; permissive ALLOWED_HOSTS;
   CORS_ALLOW_ALL_ORIGINS with DEBUG off; SQLite database in production;
   default/missing ML service credentials.
-WARN for: unconfigured OAuth providers, no routing provider, missing
-  backups dir or stale backups, insecure session cookies.
+WARN for: unconfigured OAuth providers, missing backups dir or stale backups,
+  insecure session cookies. FAIL for missing road-routing configuration.
 
 Usage: python manage.py validate_production_config [--json]
 """
 import json
 import os
 from pathlib import Path
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
@@ -99,6 +100,40 @@ class Command(BaseCommand):
         else:
             warns.append(f"Email backend is {email_backend or 'unset'}: verify that it performs real delivery")
 
+        weather_key = str(getattr(settings, "OPENWEATHER_API_KEY", "") or "").strip()
+        if not weather_key or weather_key.lower() in PLACEHOLDERS or weather_key.lower().startswith("your_"):
+            fails.append("OPENWEATHER_API_KEY is missing: production weather must be unavailable rather than claimed live")
+        else:
+            oks.append("Weather provider credential present: value never printed")
+
+        alert_feeds = []
+        for prefix, label in (("DHM", "DHM"), ("BIPAD", "BIPAD")):
+            feed_url = str(getattr(settings, f"{prefix}_FEED_URL", "") or "").strip()
+            feed_key = str(getattr(settings, f"{prefix}_API_KEY", "") or "").strip()
+            if not feed_url and not feed_key:
+                continue
+            parsed_feed = urlparse(feed_url)
+            if parsed_feed.scheme != "https" or not parsed_feed.netloc:
+                fails.append(f"{label}_FEED_URL must be an HTTPS URL when enabled")
+            elif not feed_key:
+                fails.append(f"{label}_API_KEY is required when {label}_FEED_URL is enabled")
+            else:
+                alert_feeds.append(label)
+        if alert_feeds:
+            oks.append("Authoritative alert feed configured: " + ", ".join(alert_feeds))
+        else:
+            fails.append("No authoritative alert feed configured: set DHM_FEED_URL plus DHM_API_KEY or BIPAD_FEED_URL plus BIPAD_API_KEY")
+
+        geoip_url = str(getattr(settings, "GEOIP_PROVIDER_URL", "") or "").strip()
+        if geoip_url:
+            parsed_geoip = urlparse(geoip_url)
+            if parsed_geoip.scheme != "https" or not parsed_geoip.netloc:
+                fails.append("GEOIP_PROVIDER_URL must be an HTTPS URL when enabled")
+            else:
+                oks.append("GeoIP provider uses HTTPS")
+        else:
+            oks.append("GeoIP fallback disabled until an HTTPS provider is configured")
+
         for provider, cid in (("Google", getattr(settings, "GOOGLE_CLIENT_ID", "")),
                               ("GitHub", getattr(settings, "GITHUB_CLIENT_ID", ""))):
             if not cid:
@@ -106,16 +141,15 @@ class Command(BaseCommand):
             else:
                 oks.append(f"{provider} OAuth credentials present")
 
-        routing_url = (getattr(settings, "ROUTING_BASE_URL", "") or getattr(settings, "ROUTING_API_URL", "")).strip()
+        routing_url = str(getattr(settings, "ROUTING_BASE_URL", "") or getattr(settings, "ROUTING_API_URL", "") or "").strip()
         if routing_url:
-            oks.append("Production road-routing provider configured")
+            parsed_routing = urlparse(routing_url)
+            if parsed_routing.scheme not in {"https", "http"} or not parsed_routing.netloc:
+                fails.append("ROUTING_BASE_URL must be a valid OSRM provider URL")
+            else:
+                oks.append("Production road-routing provider configured")
         else:
-            fails.append("ROUTING_BASE_URL/ROUTING_API_URL is empty: production navigation cannot claim verified road routing")
-
-        if not getattr(settings, "OPENWEATHER_API_KEY", ""):
-            fails.append("OPENWEATHER_API_KEY is missing: live weather cannot be verified in production")
-        if not getattr(settings, "DHM_FEED_URL", "") or not getattr(settings, "BIPAD_FEED_URL", ""):
-            fails.append("DHM_FEED_URL and BIPAD_FEED_URL are required for configured official weather/hazard feeds")
+            fails.append("ROUTING_BASE_URL is empty: production navigation cannot claim verified road routing")
 
         backups_dir = Path(str(settings.BASE_DIR)) / "backups"
         if not backups_dir.exists() or not any(backups_dir.glob("*.gz")):

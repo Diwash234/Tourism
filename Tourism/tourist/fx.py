@@ -120,6 +120,7 @@ def latest_snapshot(allow_fetch: bool = True):
     from .models import ForexRateSnapshot
 
     snap = ForexRateSnapshot.objects.order_by("-rate_date").first()
+    allow_fetch = allow_fetch and getattr(settings, "FX_AUTO_REFRESH", True)
     if allow_fetch and (snap is None or snap.rate_date < _nepal_today()) and not cache.get("fx:nrb:backoff"):
         cache.set("fx:nrb:backoff", 1, FAILED_FETCH_BACKOFF_SECONDS)
         try:

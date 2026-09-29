@@ -13,6 +13,10 @@ test.describe("Emergency directory", () => {
 
   test("pharmacy tab does not invent pharmacies", async ({ page }) => {
     await page.goto("/emergency")
+    // Facilities are destination-contextual: choose a real approved place
+    // before the category filters are shown.
+    await page.getByRole("button", { name: "Kathmandu", exact: true }).last().click()
+    await expect(page.getByRole("heading", { name: "Nearest emergency facilities" })).toBeVisible({ timeout: 20_000 })
     await expect(page.getByTestId("emergency-tab-pharmacy")).toBeVisible({ timeout: 20_000 })
     await page.getByTestId("emergency-tab-pharmacy").click()
     const invented = page.getByText(/invent pharmacies/i)
@@ -31,7 +35,7 @@ test.describe("Emergency directory", () => {
     await page.goto("/submit-service")
     await expect(page.getByTestId("submit-service-page")).toBeVisible()
     await expect(page.getByText("Help Map Local Nepal")).toBeVisible()
-    await expect(page.getByText("Admin approval is required")).toBeVisible()
+    await expect(page.getByText(/Submissions are reviewed before publication/i)).toBeVisible()
   })
 
   test("admin emergency directory desk is available", async ({ page }) => {

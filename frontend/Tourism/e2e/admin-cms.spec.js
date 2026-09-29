@@ -1,4 +1,5 @@
 import { test, expect, chromium } from "@playwright/test"
+import { browserLaunchOptions } from "./chromium.js"
 import { loginAs } from "./helpers.js"
 
 // Environment probe: some sandboxes lack the system libraries Chromium
@@ -6,7 +7,7 @@ import { loginAs } from "./helpers.js"
 // with `npx playwright install --with-deps` these tests run for real.
 let browserLaunchable = false
 try {
-  const probe = await chromium.launch()
+  const probe = await chromium.launch(await browserLaunchOptions())
   await probe.close()
   browserLaunchable = true
 } catch {
@@ -46,7 +47,7 @@ test.describe("Admin Content Lifecycle CMS (browser)", () => {
     await page.goto("/admin?section=content_lifecycle")
     await page.getByRole("button", { name: /Data Quality/ }).click()
     // >6,000 published records in the seeded snapshot
-    await expect(page.getByText("Published").locator("..")).toContainText(/6,2\d\d|6,3\d\d/)
+    await expect(page.getByText("Published").locator("..")).toContainText(/6\d{3}/)
     // clicking a quality card jumps into the filtered content view
     await page.getByText("Missing images").click()
     await expect(page.getByText("All Content — Destinations")).toBeVisible()

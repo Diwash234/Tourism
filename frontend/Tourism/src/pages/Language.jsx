@@ -244,7 +244,7 @@ const Language = () => {
 
         <div className="relative w-full sm:w-72">
           <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
+          <input aria-label="Search words or phrases"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search words or phrases..."
@@ -324,8 +324,8 @@ const Language = () => {
 
               <form onSubmit={handleAddPhrase} className="space-y-4 text-xs">
                 <div>
-                  <label className="font-semibold text-gray-700">Category</label>
-                  <select
+                  <label htmlFor="lang-1" className="font-semibold text-gray-700">Category</label>
+                  <select id="lang-1"
                     className="input-field mt-1 text-sm"
                     value={newPhrase.category}
                     onChange={(e) => setNewPhrase({ ...newPhrase, category: e.target.value })}
@@ -337,8 +337,8 @@ const Language = () => {
                 </div>
 
                 <div>
-                  <label className="font-semibold text-gray-700">English Meaning *</label>
-                  <input
+                  <label htmlFor="lang-2" className="font-semibold text-gray-700">English Meaning *</label>
+                  <input id="lang-2"
                     required
                     placeholder="e.g. Can you guide me to the sunrise viewpoint?"
                     className="input-field mt-1 text-sm"
@@ -348,8 +348,8 @@ const Language = () => {
                 </div>
 
                 <div>
-                  <label className="font-semibold text-gray-700">Nepali Translation *</label>
-                  <input
+                  <label htmlFor="lang-3" className="font-semibold text-gray-700">Nepali Translation *</label>
+                  <input id="lang-3"
                     required
                     placeholder="e.g. के मलाई सुर्योदय हेर्ने ठाउँसम्म डोहोर्याउन सक्नुहुन्छ?"
                     className="input-field mt-1 text-sm"
@@ -360,8 +360,8 @@ const Language = () => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="font-semibold text-gray-700">Newari (Optional)</label>
-                    <input
+                    <label htmlFor="lang-4" className="font-semibold text-gray-700">Newari (Optional)</label>
+                    <input id="lang-4"
                       placeholder="Newari phrase..."
                       className="input-field mt-1 text-sm"
                       value={newPhrase.new}
@@ -369,8 +369,8 @@ const Language = () => {
                     />
                   </div>
                   <div>
-                    <label className="font-semibold text-gray-700">Sherpa (Optional)</label>
-                    <input
+                    <label htmlFor="lang-5" className="font-semibold text-gray-700">Sherpa (Optional)</label>
+                    <input id="lang-5"
                       placeholder="Sherpa phrase..."
                       className="input-field mt-1 text-sm"
                       value={newPhrase.sherpa}

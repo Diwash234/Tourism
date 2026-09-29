@@ -3,8 +3,6 @@ import { motion } from "framer-motion"
 import { Link } from "react-router-dom"
 import { FiCompass, FiCalendar } from "react-icons/fi"
 import destinationApi from "../../api/destinationApi"
-import ShimmerBadge from "../ui/ShimmerBadge"
-import BorderBeamCard from "../ui/BorderBeamCard"
 import PlaceholderImage from "../common/PlaceholderImage"
 
 const AUTHENTIC_FOODS = [
@@ -116,9 +114,9 @@ export default function NepalExperienceSection({ section = null }) {
       {/* Section Header */}
       <div className="flex flex-col gap-4 border-b border-[var(--ny-border)] pb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <ShimmerBadge variant="gold" icon={FiCompass}>
+          <span className="ny-kicker"><FiCompass size={13} aria-hidden="true" />
             Authentic Nepal Culture & Terrain
-          </ShimmerBadge>
+          </span>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-2">
             {section?.title || "Himalayan treks, culinary heritage & festivals"}
           </h2>
@@ -218,7 +216,7 @@ export default function NepalExperienceSection({ section = null }) {
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         >
           {foods.map((food) => (
-            <BorderBeamCard key={food.id} className="ny-card overflow-hidden flex flex-col justify-between">
+            <div key={food.id} className="ny-card overflow-hidden flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="h-44 w-full relative overflow-hidden rounded-2xl bg-black">
                   <PlaceholderImage src={food.image} title={food.name} alt={food.name} className="h-full w-full transition-transform duration-500 hover:scale-105" />
@@ -235,7 +233,7 @@ export default function NepalExperienceSection({ section = null }) {
                   {food.desc}
                 </p>
               </div>
-            </BorderBeamCard>
+            </div>
           ))}
         </motion.div>
       )}
@@ -248,7 +246,7 @@ export default function NepalExperienceSection({ section = null }) {
           className="grid grid-cols-1 md:grid-cols-3 gap-6"
         >
           {festivals.map((fest) => (
-            <BorderBeamCard key={fest.id} className="ny-card overflow-hidden flex flex-col justify-between">
+            <div key={fest.id} className="ny-card overflow-hidden flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="h-48 w-full relative overflow-hidden rounded-2xl bg-black">
                   <PlaceholderImage src={fest.image} title={fest.name} alt={fest.name} className="h-full w-full transition-transform duration-500 hover:scale-105" />
@@ -266,7 +264,7 @@ export default function NepalExperienceSection({ section = null }) {
                   {fest.desc}
                 </p>
               </div>
-            </BorderBeamCard>
+            </div>
           ))}
         </motion.div>
       )}

@@ -12,6 +12,8 @@ import EmptyState from "../components/common/EmptyState"
 import SkeletonLoader from "../components/common/SkeletonLoader"
 import Breadcrumbs from "../components/common/Breadcrumbs"
 import PageHeader from "../components/common/PageHeader"
+import exploreApi from "../api/exploreApi"
+import { SeasonBadge, SourceLink } from "../components/explore/FactBits"
 
 const INTERESTS = [
   { key: "relaxed", label: "Relaxation", icon: FiCoffee },
@@ -40,7 +42,7 @@ const INTERESTS = [
 const SELECTS = {
   budget: [["any", "Any budget"], ["low", "Budget"], ["medium", "Mid-range"], ["high", "Premium"]],
   difficulty: [["any", "Any difficulty"], ["easy", "Easy"], ["moderate", "Moderate"], ["hard", "Hard"]],
-  season: [["any", "Any season"], ["spring", "Spring"], ["summer", "Summer / monsoon"], ["autumn", "Autumn"], ["winter", "Winter"]],
+  month: [["", "This month"], ...["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"].map((m, i) => [String(i + 1), m])],
   travelStyle: [["any", "Any group"], ["solo", "Solo"], ["couple", "Couple"], ["family", "Family"]],
 }
 
@@ -70,7 +72,7 @@ export default function Recommendation() {
   )
   const [selected, setSelected] = useState(["cultural", "nature"])
   const [showMoreInterests, setShowMoreInterests] = useState(false)
-  const [form, setForm] = useState({ days: 5, budget: "any", difficulty: "any", season: "any", travelStyle: "family", province: "" })
+  const [form, setForm] = useState({ days: 5, budget: "any", difficulty: "any", month: "", origin: "", travelStyle: "family", province: "" })
   const [explorationMode, setExplorationMode] = useState("balanced")
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(false)
@@ -81,6 +83,13 @@ export default function Recommendation() {
   const [nearMe, setNearMe] = useState(null)
   const [locating, setLocating] = useState(false)
   const [geoError, setGeoError] = useState("")
+  const [origins, setOrigins] = useState([])
+
+  useEffect(() => {
+    let alive = true
+    exploreApi.discoverOptions().then(({ data }) => { if (alive) setOrigins(data.origins || []) }).catch(() => {})
+    return () => { alive = false }
+  }, [])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -123,12 +132,13 @@ export default function Recommendation() {
     try {
       const { data } = await destinationApi.moodRecommendations({
         mood: selected.join(","), days: form.days, budget: form.budget, difficulty: form.difficulty,
-        season: form.season, travel_style: form.travelStyle, province: form.province, mode: explorationMode, limit: 18,
+        ...(form.month ? { month: form.month } : {}), ...(form.origin ? { origin: form.origin } : {}),
+        travel_style: form.travelStyle, province: form.province, mode: explorationMode, limit: 18,
         ...(nearMe ? { latitude: nearMe.lat, longitude: nearMe.lng } : {}),
       })
       const results = data.results || data.recommendations || (Array.isArray(data) ? data : [])
       setItems(Array.isArray(results) ? results : [])
-      setMeta({ source: data.source, version: data.model_version, preferences: data.preferences })
+      setMeta({ source: data.source, version: data.model_version, preferences: data.preferences, method: data.method, seasonSource: data.season_source })
     } catch {
       setItems([])
       setMeta(null)
@@ -169,7 +179,8 @@ export default function Recommendation() {
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <SelectField label="Budget level" value={form.budget} options={SELECTS.budget} onChange={(value) => update("budget", value)} />
               <SelectField label="Difficulty" value={form.difficulty} options={SELECTS.difficulty} onChange={(value) => update("difficulty", value)} />
-              <SelectField label="Travel season" value={form.season} options={SELECTS.season} onChange={(value) => update("season", value)} />
+              <SelectField label="Travel month" value={form.month} options={SELECTS.month} onChange={(value) => update("month", value)} />
+              <label className="space-y-2"><span className="text-sm font-semibold text-[var(--ny-text-secondary)]">Starting from</span><select className="input-field" value={form.origin} onChange={(event) => update("origin", event.target.value)}><option value="">{nearMe ? "My location" : "Not set"}</option>{origins.map((o) => <option key={o.slug} value={o.slug}>{o.label}</option>)}</select></label>
               <SelectField label="Travel group" value={form.travelStyle} options={SELECTS.travelStyle} onChange={(value) => update("travelStyle", value)} />
               <label className="space-y-2"><span className="text-sm font-semibold text-[var(--ny-text-secondary)]">Province</span><select className="input-field" value={form.province} onChange={(event) => update("province", event.target.value)}>{PROVINCES.map((province) => <option key={province || "all"} value={province}>{province || "All provinces"}</option>)}</select></label>
               <label className="space-y-2"><span className="text-sm font-semibold text-[var(--ny-text-secondary)]">Trip length: <strong className="text-[var(--ny-green)]">{form.days} days</strong></span><input className="mt-3 w-full accent-[var(--ny-green)]" type="range" min="1" max="21" value={form.days} onChange={(event) => update("days", Number(event.target.value))} /></label>
@@ -194,7 +205,7 @@ export default function Recommendation() {
           {loadError && <div className="mt-4 flex items-start gap-2 rounded-[var(--ny-radius-md)] border border-[#F3C7C7] bg-[var(--ny-soft-red)] p-4 text-sm text-[var(--ny-danger)]" role="alert"><FiAlertTriangle size={17} className="mt-0.5 shrink-0" aria-hidden="true" />{loadError}</div>}
         </section>
 
-        {meta && !loading && <div className={`flex items-start gap-2 rounded-[var(--ny-radius-md)] border px-4 py-3 text-sm ${meta.offline ? "border-[#E9D59A] bg-[var(--ny-soft-gold)] text-[var(--ny-text-secondary)]" : "border-[var(--ny-border)] bg-[var(--ny-soft-green)] text-[var(--ny-text-secondary)]"}`} role="status"><FiCheckCircle size={16} className={`mt-0.5 shrink-0 ${meta.offline ? "text-[var(--ny-warm-gold)]" : "text-[var(--ny-success)]"}`} aria-hidden="true" /><span>{meta.offline ? "Showing saved catalogue picks while the live recommendation service is unavailable." : `${items.length} recorded destinations matched your selected preferences.`}</span></div>}
+        {meta && !loading && <div className={`flex items-start gap-2 rounded-[var(--ny-radius-md)] border px-4 py-3 text-sm ${meta.offline ? "border-[#E9D59A] bg-[var(--ny-soft-gold)] text-[var(--ny-text-secondary)]" : "border-[var(--ny-border)] bg-[var(--ny-soft-green)] text-[var(--ny-text-secondary)]"}`} role="status"><FiCheckCircle size={16} className={`mt-0.5 shrink-0 ${meta.offline ? "text-[var(--ny-warm-gold)]" : "text-[var(--ny-success)]"}`} aria-hidden="true" /><span>{meta.offline ? "Showing saved catalogue picks while the live recommendation service is unavailable." : `${items.length} recorded destinations matched your selected preferences${meta.preferences?.month_basis ? ` · season advice for ${SELECTS.month[meta.preferences.month]?.[1] || "this month"} (${meta.preferences.month_basis})` : ""}${meta.preferences?.origin?.label ? ` · distances from ${meta.preferences.origin.label}` : ""}.`}{meta.method && <span className="mt-1 block text-xs text-[var(--ny-text-muted)]">How this is ranked: {meta.method} <SourceLink source={meta.seasonSource} /></span>}</span></div>}
 
         {loading ? <SkeletonLoader count={6} /> : hasRun && items.length ? <section aria-labelledby="recommendation-results"><div className="flex items-end justify-between gap-3"><div><p className="ny-kicker">Your matches</p><h2 id="recommendation-results" className="mt-2">Places to consider</h2></div><p className="text-sm text-[var(--ny-text-secondary)]">{items.length} results</p></div><div className="mt-5 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2 min-[1240px]:grid-cols-3">{items.map((item, index) => <RecommendationCard key={item.id || item.slug || index} item={item} onSelect={() => trackSelection(item)} />)}</div></section> : hasRun && !loadError ? <EmptyState title="No recommendations found" subtitle="Try broadening your interests or removing a preference." action={<Link to="/destinations" className="ny-btn ny-btn-primary">Browse all destinations</Link>} /> : null}
       </div>
@@ -206,5 +217,5 @@ function RecommendationCard({ item, onSelect }) {
   const image = item.cover_image_url || getDestinationImageUrl(item)
   const reasons = Array.isArray(item.why_recommended) ? item.why_recommended.filter(Boolean) : []
   const location = item.display_city || item.district || item.province
-  return <motion.article initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, delay: 0.02 }} className="ny-card flex h-full flex-col overflow-hidden"><div className="relative h-48 overflow-hidden bg-[#EAF1EE]"><PlaceholderImage src={image} title={item.name} alt={item.name} className="h-full w-full" />{item.category_name && <span className="absolute bottom-3 left-3 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-[var(--ny-green)]">{item.category_name}</span>}{item.ml_score != null && <span className="absolute right-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-[var(--ny-green)]">{Math.round(item.ml_score * 100)}% match</span>}</div><div className="flex flex-1 flex-col p-5"><h3 className="text-lg font-bold">{item.name || "Destination information unavailable"}</h3>{location && <p className="mt-1 flex items-center gap-1.5 text-sm text-[var(--ny-text-secondary)]"><FiMapPin size={14} className="text-[var(--ny-green)]" aria-hidden="true" />{location}</p>}<div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-[var(--ny-text-secondary)]"><span>{item.recommended_days ? `${item.recommended_days} day${item.recommended_days === 1 ? "" : "s"} suggested` : "Duration unavailable"}</span>{item.difficulty && <span>{item.difficulty} difficulty</span>}{item.budget_level && <span>{item.budget_level} budget</span>}</div><div className="mt-4 border-t border-[var(--ny-border)] pt-4"><p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--ny-green)]">Why we suggested this</p>{reasons.length ? <ul className="mt-2 space-y-2">{reasons.slice(0, 3).map((reason) => <li key={reason} className="flex gap-2 text-sm text-[var(--ny-text-secondary)]"><FiCheckCircle size={15} className="mt-0.5 shrink-0 text-[var(--ny-success)]" aria-hidden="true" />{reason}</li>)}</ul> : <p className="mt-2 text-sm text-[var(--ny-text-secondary)]">Matched against the interests and trip details you selected.</p>}</div>{(item.risk_summary?.level || item.recommended_season) && <p className="mt-4 text-xs text-[var(--ny-text-muted)]">{item.risk_summary?.level ? `Risk information: ${item.risk_summary.level}` : ""}{item.recommended_season ? `${item.risk_summary?.level ? " · " : ""}Best time: ${item.recommended_season}` : ""}</p>}<div className="mt-auto flex flex-wrap gap-2 pt-5">{(item.slug && !item.offline) ? <Link to={`/destinations/${item.slug}`} onClick={onSelect} className="ny-btn ny-btn-primary flex-1">View destination <FiArrowRight size={15} aria-hidden="true" /></Link> : <span className="ny-btn ny-btn-secondary flex-1 cursor-not-allowed">Details unavailable</span>}{(item.slug && !item.offline) && <Link to={`/risk-alerts?destination=${encodeURIComponent(item.slug)}`} className="ny-btn ny-btn-secondary">Safety</Link>}</div></div></motion.article>
+  return <motion.article initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, delay: 0.02 }} className="ny-card flex h-full flex-col overflow-hidden"><div className="relative h-48 overflow-hidden bg-[#EAF1EE]"><PlaceholderImage src={image} title={item.name} alt={item.name} className="h-full w-full" />{item.category_name && <span className="absolute bottom-3 left-3 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-[var(--ny-green)]">{item.category_name}</span>}{item.ml_score != null && <span className="absolute right-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-[var(--ny-green)]">{Math.round(item.ml_score * 100)}% match</span>}</div><div className="flex flex-1 flex-col p-5"><h3 className="text-lg font-bold">{item.name || "Destination information unavailable"}</h3>{location && <p className="mt-1 flex items-center gap-1.5 text-sm text-[var(--ny-text-secondary)]"><FiMapPin size={14} className="text-[var(--ny-green)]" aria-hidden="true" />{location}</p>}{item.season_fit && <div className="mt-3"><SeasonBadge season={item.season_fit} /></div>}<ul className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-medium text-slate-700" aria-label="Key facts">{item.recommended_days ? <li className="rounded-full border border-slate-200 bg-white px-2 py-0.5">{item.recommended_days} day{item.recommended_days === 1 ? "" : "s"} suggested</li> : null}<li className="rounded-full border border-slate-200 bg-white px-2 py-0.5" title={item.difficulty_basis}>{item.difficulty ? `${item.difficulty[0].toUpperCase()}${item.difficulty.slice(1)} effort` : "Effort unknown"}</li><li className="rounded-full border border-slate-200 bg-white px-2 py-0.5">{item.elevation_m != null ? `${Number(item.elevation_m).toLocaleString()} m` : "Elevation unknown"}</li>{item.official_fees?.label && <li className="rounded-full border border-slate-200 bg-white px-2 py-0.5" title={item.official_fees.basis}>{item.official_fees.label}{item.official_fees.area ? `: ${item.official_fees.area}` : ""}</li>}{item.distance_km != null && <li className="rounded-full border border-slate-200 bg-white px-2 py-0.5">{Math.round(item.distance_km)} km straight line</li>}</ul>{item.acclimatization?.minimum_days ? <p className="mt-2 text-xs text-amber-800" title={item.acclimatization.basis}>Needs at least {item.acclimatization.minimum_days} day(s) of gradual ascent above 2,500 m (NTB guidance).</p> : null}<div className="mt-4 border-t border-[var(--ny-border)] pt-4"><p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--ny-green)]">Why we suggested this</p>{reasons.length ? <ul className="mt-2 space-y-2">{reasons.slice(0, 3).map((reason) => <li key={reason} className="flex gap-2 text-sm text-[var(--ny-text-secondary)]"><FiCheckCircle size={15} className="mt-0.5 shrink-0 text-[var(--ny-success)]" aria-hidden="true" />{reason}</li>)}</ul> : <p className="mt-2 text-sm text-[var(--ny-text-secondary)]">Matched against the interests and trip details you selected.</p>}</div>{(item.risk_summary?.level || item.safety_context?.route_condition_recorded) && <p className="mt-4 text-xs text-[var(--ny-text-muted)]">{[item.risk_summary?.level && `Risk information: ${item.risk_summary.level} (${item.risk_summary.label || "indicator"})`, item.safety_context?.route_condition_recorded && `Road: ${item.safety_context.route_condition}`].filter(Boolean).join(" · ")}</p>}<div className="mt-auto flex flex-wrap gap-2 pt-5">{(item.slug && !item.offline) ? <Link to={`/destinations/${item.slug}`} onClick={onSelect} className="ny-btn ny-btn-primary flex-1">View destination <FiArrowRight size={15} aria-hidden="true" /></Link> : <span className="ny-btn ny-btn-secondary flex-1 cursor-not-allowed">Details unavailable</span>}{(item.slug && !item.offline) && <Link to={`/risk-alerts?destination=${encodeURIComponent(item.slug)}`} className="ny-btn ny-btn-secondary">Safety</Link>}</div></div></motion.article>
 }

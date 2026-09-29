@@ -227,7 +227,7 @@ const NationalSymbols = () => {
               onClick={() => setShowFullModal(true)}
             >
               {image && (
-                <img
+                <img loading="lazy" decoding="async"
                   src={image}
                   alt={label}
                   className="w-20 h-20 rounded-full object-cover mx-auto mb-2 bg-white shadow-md border-2 border-white/40"
@@ -340,7 +340,7 @@ const NationalSymbols = () => {
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
                             {s.image ? (
-                              <img src={s.image} alt={s.title} className="w-12 h-12 rounded-full object-cover border-2 border-amber-400/60 shadow" />
+                              <img loading="lazy" decoding="async" src={s.image} alt={s.title} className="w-12 h-12 rounded-full object-cover border-2 border-amber-400/60 shadow" />
                             ) : (
                               <span className="text-3xl p-2 rounded-2xl bg-slate-800 border border-slate-700">{s.icon}</span>
                             )}
@@ -442,7 +442,7 @@ const NationalSymbols = () => {
                         {DEFAULT_FOODS.map((food, i) => (
                           <div key={i} className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2 flex flex-col overflow-hidden">
                             {food.image && (
-                              <img src={food.image} alt={food.name} className="w-full h-28 object-cover rounded-xl border border-slate-700/50" />
+                              <img loading="lazy" decoding="async" src={food.image} alt={food.name} className="w-full h-28 object-cover rounded-xl border border-slate-700/50" />
                             )}
                             <div className="flex-1 space-y-1">
                               <span className="text-[10px] font-black uppercase text-amber-400">{food.nepali}</span>

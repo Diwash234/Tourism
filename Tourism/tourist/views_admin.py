@@ -2980,14 +2980,24 @@ class AdminCMSView(APIView):
                 return Response({"detail": "Page not found"}, status=404)
         url_re = _re.compile(r'href=["\']([^"\']*)["\']', _re.I)
         reports = []
-        for page in pages:
+        # Every page is checked (there was a 60-page cap, which silently left
+        # later pages out once the site had more CMS pages than that).
+        for page in pages.prefetch_related("sections"):
             warnings = []
-            sections = list(ContentSection.objects.filter(page=page).order_by("display_order", "id"))
+            sections = sorted(page.sections.all(), key=lambda s: (s.display_order, s.id))
             drafts = [s for s in sections if s.status != "published"]
             if page.status != "published" or not page.is_enabled:
                 warnings.append({"code": "page_not_published", "message": f"Page status is '{page.status}'" + ("" if page.is_enabled else " and the page is disabled")})
             if not (page.meta_description or "").strip():
                 warnings.append({"code": "missing_seo_description", "message": "No meta description (SEO)"})
+            # The public site serves the published snapshot, not the live
+            # fields: say so when they differ, or edits look "lost".
+            snap = page.published_snapshot if isinstance(page.published_snapshot, dict) else {}
+            stale = [f for f in ("route", "title", "meta_description", "seo_title", "og_image_url", "search_visible")
+                     if f in snap and snap.get(f) != getattr(page, f)]
+            if stale:
+                warnings.append({"code": "unpublished_changes",
+                                 "message": "Not yet public: " + ", ".join(stale) + " differ from the published version. Publish the page to apply them."})
             if not (page.og_image_url or "").strip():
                 warnings.append({"code": "missing_og_image", "message": "No social share (OG) image"})
             for s in sections:
@@ -3010,7 +3020,7 @@ class AdminCMSView(APIView):
                 "links": "warn" if any(w["code"] == "broken_link" for w in warnings) else "ok",
                 "seo": "warn" if any(w["code"] == "missing_seo_description" for w in warnings) else "ok",
                 "sections": "ok" if sections else "warn",
-                "published": "warn" if drafts or any(w["code"] == "page_not_published" for w in warnings) else "ok",
+                "published": "warn" if drafts or any(w["code"] in {"page_not_published", "unpublished_changes"} for w in warnings) else "ok",
             }
             reports.append({
                 "page_id": page.id, "key": page.key, "route": page.route, "title": page.title,
@@ -3817,10 +3827,43 @@ class AdminContentBlockView(APIView):
                 return False, "Package grid limit must be a whole number between 1 and 12."
         elif block_type == "map":
             try:
-                if "latitude" in data and data["latitude"] is not None: float(data["latitude"])
-                if "longitude" in data and data["longitude"] is not None: float(data["longitude"])
+                lat = float(data["latitude"]) if data.get("latitude") not in (None, "") else None
+                lng = float(data["longitude"]) if data.get("longitude") not in (None, "") else None
             except (ValueError, TypeError):
                 return False, "Map coordinates must be numeric latitude and longitude."
+            if (lat is not None and not -90 <= lat <= 90) or (lng is not None and not -180 <= lng <= 180):
+                return False, "Map coordinates are out of range (latitude -90..90, longitude -180..180)."
+            zoom = data.get("zoom")
+            if zoom not in (None, "") and (not isinstance(zoom, int) or not 1 <= zoom <= 19):
+                return False, "Map zoom must be a whole number between 1 and 19."
+        elif block_type == "gallery":
+            images = data.get("images")
+            if images is not None and not isinstance(images, list):
+                return False, "Gallery images must be a list."
+            for img in images or []:
+                url = str((img.get("url") if isinstance(img, dict) else img) or "").strip()
+                if not url:
+                    return False, "Every gallery image needs a URL."
+                if not (url.startswith("https://") or url.startswith("/")):
+                    return False, "Gallery images must be HTTPS URLs or site paths beginning with /."
+        elif block_type in {"destination_grid", "hotel_grid", "restaurant_grid"}:
+            limit = data.get("limit", 6)
+            if not isinstance(limit, int) or not 1 <= limit <= 12:
+                return False, "Grid limit must be a whole number between 1 and 12."
+            for key in ("district", "search", "category"):
+                if data.get(key) is not None and not isinstance(data.get(key), str):
+                    return False, f"Grid filter '{key}' must be text."
+        elif block_type == "statistics":
+            items = data.get("items")
+            if items is not None and not isinstance(items, list):
+                return False, "Statistics must be a list of items."
+            for item in items or []:
+                if not isinstance(item, dict) or not str(item.get("label") or "").strip() or not str(item.get("number") or "").strip():
+                    return False, "Every statistic needs a number and a label."
+        elif block_type == "list":
+            items = data.get("items")
+            if items is not None and not isinstance(items, list):
+                return False, "List items must be a list."
         return True, None
 
     def get(self, request, section_id=None):
@@ -4555,6 +4598,11 @@ class AdminMediaLibraryView(APIView):
                 check=Image.open(uploaded);check.verify();uploaded.seek(0)
                 if check.format not in {"JPEG","PNG","WEBP"}:raise ValueError()
             except Exception:return Response({"detail":"Upload a valid JPEG, PNG or WebP image"},status=400)
+        optimisation=None
+        if uploaded:
+            from .image_optimize import optimise_image_upload, wants_optimisation
+            if wants_optimisation(request.data.get("optimize")):
+                uploaded,optimisation=optimise_image_upload(uploaded)
         ordering=(destination.gallery.aggregate(value=Max("ordering"))["value"] or 0)+1
         image=DestinationImage.objects.create(destination=destination,image=uploaded if uploaded else None,
             external_url=external_url,caption=(request.data.get("caption") or "")[:200],alt_text=(request.data.get("alt_text") or "")[:255],
@@ -4563,7 +4611,9 @@ class AdminMediaLibraryView(APIView):
             ordering=ordering,verification_status=DestinationImage.ImageStatus.PENDING,is_verified=False,uploaded_by=request.user)
         from audit.models import AuditLog
         AuditLog.objects.create(user=request.user,user_email=request.user.email,actor_role=request.user.role,category="media",severity="info",source="backend",action="media.upload",message=f"Added media to {destination.name}",object_type="DestinationImage",object_id=str(image.id),extra={"destination_id":destination.id,"external":bool(external_url)})
-        return Response({"message":"Image added to the moderation queue","id":image.id},status=201)
+        body={"message":"Image added to the moderation queue","id":image.id}
+        if optimisation is not None:body["optimisation"]=optimisation
+        return Response(body,status=201)
 
     def get(self, request):
         _require_capability(request,"images","view")

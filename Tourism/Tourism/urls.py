@@ -1,7 +1,8 @@
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 
 from tourist import views_seo
+from Tourism.spa import spa_index
 from django.conf import settings
 from django.conf.urls.static import static
 from .spa import spa_index
@@ -37,10 +38,10 @@ urlpatterns = [
     path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 ]
 
-# Render serves uploaded CMS media from the persistent disk. Keep this route explicit
-# because DEBUG=False in production and WhiteNoise only serves static assets.
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-# React Router fallback. API, admin, health, sitemap and static routes are declared above.
-# This must remain last so Django never captures an API endpoint as a frontend route.
-urlpatterns += [path("", spa_index, name="spa-root"), path("<path:path>", spa_index, name="spa-fallback")]
+# Client-side routes of the built SPA (Docker image). Registered last and only
+# when a build is installed, so API 404s and tests are unaffected.
+if (settings.FRONTEND_DIST_DIR / "index.html").is_file():
+    urlpatterns += [re_path(r"^(?!api/|admin/|static/|media/|ws/)(?P<path>.*)$", spa_index, name="spa-index")]

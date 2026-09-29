@@ -76,8 +76,9 @@ export default function DestinationRiskPanel() {
         </div>
         <form onSubmit={(e) => { e.preventDefault(); assess() }} className="relative flex gap-2">
           <div className="relative flex-1">
-            <FiSearch className="absolute left-3 top-3.5 text-gray-400" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search Pokhara, Mardi Himal, Rara Lake…" className="w-full rounded-xl bg-white text-gray-900 pl-10 pr-3 py-3 text-sm" />
+            <label htmlFor="risk-destination-query" className="sr-only">Destination to check</label>
+            <FiSearch className="absolute left-3 top-3.5 text-gray-400" aria-hidden="true" />
+            <input id="risk-destination-query" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search Pokhara, Mardi Himal, Rara Lake…" className="w-full rounded-xl bg-white text-gray-900 pl-10 pr-3 py-3 text-sm" />
             {suggestions.length > 0 && <div className="absolute z-20 top-full mt-1 left-0 right-0 rounded-xl bg-white text-gray-900 shadow-xl border overflow-hidden">
               {suggestions.slice(0, 6).map((item) => <button type="button" key={item.id} onClick={() => assess(item.slug)} className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 border-b last:border-0"><b>{item.name}</b><span className="text-xs text-gray-400 ml-2">{item.district}</span></button>)}
             </div>}

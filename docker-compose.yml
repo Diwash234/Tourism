@@ -5,11 +5,13 @@ services:
       - "8000:8000"
     volumes:
       - media_data:/app/Tourism/media
-      - db_data:/app/Tourism
+      # Only the SQLite file lives on this volume. Never mount a volume over
+      # /app/Tourism: it would pin old code and the old frontend build.
+      - db_data:/app/data
     environment:
       - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
       - DEBUG=${DEBUG:-0}
-      - DATABASE_URL=${DATABASE_URL:-}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:////app/data/db.sqlite3}
       # Point Django at the ML container so itinerary/risk/recommendation work
       # out of the box (fixes "ML service not running" on a fresh clone).
       - ML_SERVICE_URL=${ML_SERVICE_URL:-http://ml:8001}

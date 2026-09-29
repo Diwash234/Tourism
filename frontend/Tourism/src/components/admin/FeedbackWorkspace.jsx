@@ -199,7 +199,7 @@ export default function FeedbackWorkspace() {
                   {selected.evidence.map((item) => (
                     item.media_type === "image" ? (
                       <a key={item.id} href={item.url} target="_blank" rel="noreferrer" className="block rounded-lg overflow-hidden border border-slate-700">
-                        <img src={item.url} alt={item.caption || "Evidence"} className="h-20 w-full object-cover" />
+                        <img loading="lazy" decoding="async" src={item.url} alt={item.caption || "Evidence"} className="h-20 w-full object-cover" />
                       </a>
                     ) : (
                       <a key={item.id} href={item.url} target="_blank" rel="noreferrer" className="p-3 bg-slate-900 border border-slate-800 rounded-lg text-amber-300 text-xs block">

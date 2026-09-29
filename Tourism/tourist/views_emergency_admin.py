@@ -341,3 +341,75 @@ class AdminEmergencyDirectoryView(APIView):
             "message": "Emergency record updated",
             "record": serialize_emergency_record(kind or getattr(obj, "category", "hospital"), obj),
         })
+
+
+class AdminNationalHotlinesView(APIView):
+    """CRUD for national hotlines without allowing safety data to vanish.
+
+    National hotlines are stored as a public SiteSetting so owners can correct
+    a source or add an operator without a migration. The five documented
+    Nepal emergency services remain protected fallbacks and cannot be deleted.
+    """
+    permission_classes = [IsAdminOrStaff]
+
+    @staticmethod
+    def _validate(row):
+        from .emergency_service import _hotline_row
+        cleaned = _hotline_row(row)
+        if not cleaned:
+            raise ValueError("type, name, phone_number, source_name and an HTTPS source_url are required")
+        return cleaned
+
+    def get(self, request):
+        _require_capability(request, "safety", "view")
+        from .emergency_service import REQUIRED_HOTLINE_TYPES, national_hotlines
+        return Response({
+            "results": national_hotlines(),
+            "protected_types": sorted(REQUIRED_HOTLINE_TYPES),
+            "notice": "Protected national emergency numbers cannot be deleted; administrators can update their verified source and wording.",
+        })
+
+    def post(self, request):
+        _require_capability(request, "safety", "add")
+        from .emergency_service import national_hotlines, save_national_hotlines
+        try:
+            row = self._validate(request.data)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        rows = national_hotlines()
+        if any(item["type"] == row["type"] for item in rows):
+            return Response({"detail": "A hotline with this type already exists; update it instead."}, status=409)
+        save_national_hotlines(rows + [row], request.user)
+        log_action(request, "emergency.hotline.add", category="admin", message=f"Added national hotline {row['name']}")
+        return Response({"message": "National hotline added", "results": national_hotlines()}, status=201)
+
+    def patch(self, request):
+        _require_capability(request, "safety", "change")
+        from .emergency_service import national_hotlines, save_national_hotlines
+        hotline_type = str(request.data.get("type") or "").strip().lower()
+        rows = national_hotlines()
+        current = next((item for item in rows if item["type"] == hotline_type), None)
+        if not current:
+            return Response({"detail": "National hotline not found"}, status=404)
+        updated = {**current, **dict(request.data)}
+        updated["type"] = hotline_type
+        try:
+            updated = self._validate(updated)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        save_national_hotlines([updated if item["type"] == hotline_type else item for item in rows], request.user)
+        log_action(request, "emergency.hotline.update", category="admin", message=f"Updated national hotline {updated['name']}")
+        return Response({"message": "National hotline updated", "results": national_hotlines()})
+
+    def delete(self, request):
+        _require_capability(request, "safety", "delete")
+        from .emergency_service import REQUIRED_HOTLINE_TYPES, national_hotlines, save_national_hotlines
+        hotline_type = str(request.data.get("type") or request.query_params.get("type") or "").strip().lower()
+        if hotline_type in REQUIRED_HOTLINE_TYPES:
+            return Response({"detail": "Protected national emergency hotlines cannot be deleted. Update them instead."}, status=400)
+        rows = national_hotlines()
+        if not any(item["type"] == hotline_type for item in rows):
+            return Response({"detail": "National hotline not found"}, status=404)
+        save_national_hotlines([item for item in rows if item["type"] != hotline_type], request.user)
+        log_action(request, "emergency.hotline.delete", category="admin", message=f"Deleted national hotline {hotline_type}")
+        return Response({"message": "National hotline deleted", "results": national_hotlines()})

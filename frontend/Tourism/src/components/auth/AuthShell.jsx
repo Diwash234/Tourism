@@ -17,12 +17,12 @@ export default function AuthShell({ portal = "tourist", title, children, footer 
         <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(4,42,36,0.94),rgba(4,42,36,0.48)_58%,rgba(4,42,36,0.82))]" />
         <div className="relative flex min-h-screen flex-col justify-between p-10 text-white xl:p-16">
           <Link to="/" className="inline-flex w-fit items-center gap-2 text-sm font-semibold text-[#C7D9D2] hover:text-white"><FiArrowLeft size={16} aria-hidden="true" /> Back to Nepal Yatra</Link>
-          <div className="max-w-xl"><span className="ny-kicker !border !border-[#63E6BE]/30 !bg-white/10 !text-[#BDEBD9]">{theme.role}</span><h1 className="mt-5 !text-4xl !text-white xl:!text-5xl">{theme.tagline}</h1><p className="mt-4 max-w-md text-base leading-7 text-[#C7D9D2]">{theme.note}</p><div className="mt-8 flex items-center gap-3 text-sm text-[#BDEBD9]"><span className="grid h-9 w-9 place-items-center rounded-full bg-white/10"><FiShield size={17} aria-hidden="true" /></span>Built for clear, practical decisions</div></div>
+          <div className="max-w-xl"><span className="ny-kicker !border !border-[#63E6BE]/30 !bg-white/10 !text-[#BDEBD9]">{theme.role}</span><p className="mt-5 font-heading text-4xl font-black leading-tight tracking-tight text-white xl:text-5xl">{theme.tagline}</p><p className="mt-4 max-w-md text-base leading-7 text-[#C7D9D2]">{theme.note}</p><div className="mt-8 flex items-center gap-3 text-sm text-[#BDEBD9]"><span className="grid h-9 w-9 place-items-center rounded-full bg-white/10"><FiShield size={17} aria-hidden="true" /></span>Built for clear, practical decisions</div></div>
         </div>
       </section>
       <main className="flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 lg:px-10">
         <div className="w-full max-w-md">
-          <div className="mb-6 flex items-center justify-center lg:hidden"><TourismLogo size="sm" /></div>
+          <div className="mb-6 flex items-center justify-center lg:hidden"><TourismLogo size="sm" darkText /></div>
           <div className="ny-panel p-6 sm:p-8"><p className="ny-kicker">{theme.name}</p><h1 className="mt-4 !text-2xl">{title}</h1><p className="mt-2 text-sm text-[var(--ny-text-secondary)]">{theme.tagline}</p><div className="mt-6">{children}</div></div>
           <div className="mt-5 text-center text-sm text-[var(--ny-text-secondary)]"><Link to="/" className="font-semibold text-[var(--ny-green)] hover:underline">← Return to the travel site</Link></div>
           {footer}

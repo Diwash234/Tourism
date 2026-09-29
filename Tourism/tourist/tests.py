@@ -962,7 +962,11 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         self.assertEqual(response.data["source"], "live_database_content_model")
         result = next(row for row in response.data["results"] if row["id"] == self.trek.id)
         self.assertTrue(result["why_recommended"])
-        self.assertEqual(result["difficulty"], "hard")
+        # Difficulty is derived from recorded facts (elevation), never echoed
+        # from the request: this trek has no measured elevation, so it stays
+        # unknown and explains why.
+        self.assertIsNone(result["difficulty"])
+        self.assertIn("elevation", result["difficulty_basis"].lower())
         self.assertIn("risk_summary", result)
 
     def test_risk_response_separates_history_current_and_prediction(self):
@@ -2108,6 +2112,30 @@ class AdminNavigationCMSAndMediaRegressionTests(APITestCase):
         self.assertEqual(response.status_code,status.HTTP_403_FORBIDDEN)
 
 
+
+    def test_media_upload_optimise_option_resizes_and_strips_metadata(self):
+        import io
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from .models import DestinationImage
+        noise=Image.effect_noise((3200,2000),60).convert("RGB")
+        exif=Image.Exif();exif[0x010F]="TestCam"
+        output=io.BytesIO();noise.save(output,format="JPEG",quality=95,exif=exif.tobytes())
+        upload=SimpleUploadedFile("big.jpg",output.getvalue(),content_type="image/jpeg")
+        response=self.client.post(reverse("admin-media-library"),{"destination_id":self.destination.id,"file":upload,"optimize":"1"},format="multipart")
+        self.assertEqual(response.status_code,status.HTTP_201_CREATED)
+        report=response.data["optimisation"]
+        self.assertTrue(report["optimised"]);self.assertEqual(max(report["width"],report["height"]),2560)
+        self.assertLess(report["stored_bytes"],report["original_bytes"])
+        stored=DestinationImage.objects.get(pk=response.data["id"]).image
+        self.assertTrue(stored.name.endswith(".webp"))
+        with stored.open("rb") as fh, Image.open(fh) as saved:
+            self.assertEqual(saved.format,"WEBP");self.assertEqual(len(saved.getexif()),0)
+        plain=io.BytesIO();Image.new("RGB",(80,60),"green").save(plain,format="JPEG")
+        untouched=self.client.post(reverse("admin-media-library"),{"destination_id":self.destination.id,"file":SimpleUploadedFile("small.jpg",plain.getvalue(),content_type="image/jpeg")},format="multipart")
+        self.assertNotIn("optimisation",untouched.data)
+        self.assertTrue(DestinationImage.objects.get(pk=untouched.data["id"]).image.name.endswith(".jpg"))
+
 class CMSStudioExtensionTests(APITestCase):
     def setUp(self):
         from .models import ManagedPage, ContentSection, DestinationImage
@@ -3143,7 +3171,8 @@ class RecordedPlaceHonestyTests(APITestCase):
         self.assertTrue(response.data["results"])
         for row in response.data["results"]:
             self.assertNotIn("estimated_daily_cost", row)
-            self.assertTrue(row.get("budget_level_is_ranking_tag"))
+            # No recorded cost data, so no budget tier is published either.
+            self.assertIsNone(row.get("budget_level"))
 
     @patch("tourist.views_ml.requests.post", side_effect=requests.RequestException("down"))
     def test_itinerary_fallback_does_not_invent_thirty_five_dollar_budget(self, _mock):
@@ -3857,6 +3886,7 @@ class OpsLayerTests(TestCase):
         "GITHUB_CLIENT_ID": "github-client-id",
         "OPENWEATHER_API_KEY": "openweather-key",
         "DHM_FEED_URL": "https://dhm.example.org/feed",
+        "DHM_API_KEY": "real-alert-key",
         "BIPAD_FEED_URL": "https://bipad.example.org/feed",
     }
     POSTGRES = {"default": {"ENGINE": "django.db.backends.postgresql", "NAME": "tourism"}}
@@ -3888,6 +3918,30 @@ class OpsLayerTests(TestCase):
         text = out.getvalue()
         self.assertIn("RESULT: FAIL", text)
         self.assertIn("SMTP", text)
+
+    def test_config_validator_blocks_missing_weather_and_alert_providers(self):
+        import io
+        from django.core.management import call_command
+        out = io.StringIO()
+        shape = {**self.PRODUCTION_SHAPE, "OPENWEATHER_API_KEY": "", "DHM_FEED_URL": "", "DHM_API_KEY": ""}
+        with self.settings(**shape, DATABASES=self.POSTGRES):
+            with self.assertRaises(SystemExit):
+                call_command("validate_production_config", stdout=out)
+        text = out.getvalue()
+        self.assertIn("OPENWEATHER_API_KEY is missing", text)
+        self.assertIn("No authoritative alert feed configured", text)
+
+    def test_config_validator_blocks_plain_http_geoip_provider(self):
+        import io
+        from django.core.management import call_command
+        out = io.StringIO()
+        shape = {**self.PRODUCTION_SHAPE, "GEOIP_PROVIDER_URL": "http://geo.example/{ip}"}
+        with self.settings(**shape, DATABASES=self.POSTGRES):
+            with self.assertRaises(SystemExit):
+                call_command("validate_production_config", stdout=out)
+        text = out.getvalue()
+        self.assertIn("RESULT: FAIL", text)
+        self.assertIn("GEOIP_PROVIDER_URL must be an HTTPS URL", text)
 
     def test_config_validator_blocks_missing_routing_provider(self):
         """Without a road-routing provider the site must not be allowed to claim

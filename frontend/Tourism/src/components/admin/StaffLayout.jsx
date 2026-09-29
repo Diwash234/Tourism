@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { Link, NavLink, Outlet } from "react-router-dom"
 import { FiBriefcase, FiCalendar, FiCoffee, FiDollarSign, FiFileText, FiHome, FiImage, FiLogOut, FiMenu, FiMessageSquare, FiShield, FiStar, FiTruck, FiX } from "react-icons/fi"
 import userApi from "../../api/userApi"
@@ -98,7 +98,7 @@ export default function StaffLayout() {
       {open && <button type="button" className="fixed inset-0 top-16 z-30 bg-black/50 lg:hidden" onClick={() => setOpen(false)} aria-label="Close overlay" />}
       <main id="staff-main" tabIndex="-1" className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-white pt-16 lg:pl-64">
         <div className="mx-auto w-full max-w-[1600px] p-3 pb-24 sm:p-6 lg:pb-6">
-          <Outlet />
+          <Suspense fallback={<div className="container-app flex min-h-[320px] items-center justify-center py-12" role="status" aria-live="polite"><span className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--ny-border)] border-t-[var(--ny-green)]" aria-hidden="true" /><span className="sr-only">Loading page</span></div>}><Outlet /></Suspense>
         </div>
       </main>
     </div>

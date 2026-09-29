@@ -3,6 +3,7 @@ import { Link } from "react-router-dom"
 import { FiPlus, FiRefreshCw, FiRadio, FiShield, FiAlertTriangle, FiEdit3 } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
+import NationalHotlinesPanel from "./NationalHotlinesPanel"
 
 const KINDS = [
   ["hospital", "Hospital / clinic"],
@@ -239,6 +240,7 @@ export default function EmergencyDirectoryPanel() {
           </div>
         </div>
       </div>
+      <NationalHotlinesPanel />
       {editing && (
         <div className="fixed inset-0 z-[100] grid place-items-center bg-black/60 p-4">
           <form onSubmit={saveEdit} className="w-full max-w-2xl space-y-3 rounded-2xl bg-white p-6 text-slate-900 shadow-2xl">

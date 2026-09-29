@@ -1,0 +1,53 @@
+{
+  "dataset": "season_guidance",
+  "version": 1,
+  "retrieved_at": "2026-09-26",
+  "disclaimer": "General seasonal guidance transcribed from the Nepal Tourism Board. It describes typical conditions, not a forecast. Check live weather and official alerts before travelling.",
+  "sources": {
+    "ntb_climate": {
+      "title": "Climate - Plan Your Trip - Nepal Tourism Board",
+      "url": "https://ntb.gov.np/plan-your-trip/about-nepal/climate",
+      "publisher": "Nepal Tourism Board"
+    },
+    "ntb_mountain_safety": {
+      "title": "Safety in the Mountains - Nepal Tourism Board",
+      "url": "https://ntb.gov.np/plan-your-trip/before-you-come/safety-in-the-mountains",
+      "publisher": "Nepal Tourism Board"
+    },
+    "dhm": {
+      "title": "Department of Hydrology and Meteorology",
+      "url": "http://www.dhm.gov.np/",
+      "publisher": "Government of Nepal"
+    }
+  },
+  "facts": {
+    "year_round": "There is no seasonal constraint on traveling in and through Nepal. Nepal can be visited the whole year round.",
+    "best_trekking": "As with most of the trekking areas in Nepal, the best time to visit are during spring and autumn.",
+    "spring": "Spring is the time for rhododendrons to bloom.",
+    "autumn": "The clearest skies are found after the monsoon in October and November.",
+    "monsoon": "Eighty percent of all the rain in Nepal is received during the monsoon (June-September).",
+    "winter": "Even in December and January, when winter is at its severest, there are compensating bright sun and brilliant views. In mountainous regions, hills and valleys winter temperatures can plummet to sub zero.",
+    "winter_west": "Winter rains are more pronounced in the western hills.",
+    "rain_shadow": "Some places like Manang and Mustang fall in the rain-shadow behind the mountains and are mostly dry. The average annual rainfall is 1,600 mm, but it varies, such as 3,345 mm in Pokhara and below 300 mm in Mustang.",
+    "tarai_summer": "In the Tarai (southern Nepal), summer temperatures exceed 40 C and above 45 in some areas, while winter temperatures range from 7 C to 23 C.",
+    "lapse_rate": "Average temperatures in Nepal drop 6 C for every 1,000 m you gain in altitude."
+  },
+  "months": {
+    "1": "winter", "2": "winter", "3": "spring", "4": "spring", "5": "summer", "6": "monsoon",
+    "7": "monsoon", "8": "monsoon", "9": "monsoon", "10": "autumn", "11": "autumn", "12": "winter"
+  },
+  "month_note": "Monsoon (June-September), autumn clear skies (October-November) and the summer (May, June, July) / winter (December, January, February) groupings are the ones NTB uses. March-April is treated as spring, the remaining months between winter and summer.",
+  "rain_shadow_districts": ["mustang", "manang"],
+  "lapse_rate_c_per_1000m": 6.0,
+  "reference_stations": {
+    "kathmandu": {"elevation_m": 1400, "summer": {"max_c": 28.1, "min_c": 19.5, "rain_mm": 312}, "winter": {"max_c": 19.3, "min_c": 3.0, "rain_mm": 15.4}},
+    "pokhara": {"summer": {"max_c": 29.7, "min_c": 21.3, "rain_mm": 829.7}, "winter": {"max_c": 20.3, "min_c": 7.7, "rain_mm": 26.3}},
+    "chitwan": {"summer": {"max_c": 33.0, "min_c": 25.3, "rain_mm": 404.0}, "winter": {"max_c": 24.1, "min_c": 8.3, "rain_mm": 13.8}}
+  },
+  "reference_note": "Average temperatures and rainfall during peak summer (May-July) and winter (December-February), as published by NTB.",
+  "zones": {
+    "tarai_max_m": 500,
+    "high_altitude_min_m": 3000,
+    "zone_note": "Zones are derived from each destination's measured elevation (Copernicus DEM via Open-Meteo, or the recorded altitude). 500 m and 3,000 m are this site's thresholds for applying NTB's Tarai-heat and mountain-winter statements; they are not official boundaries."
+  }
+}

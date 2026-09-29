@@ -6,6 +6,7 @@ import EmptyState from "../components/common/EmptyState"
 import userApi from "../api/userApi"
 import useAuth from "../hooks/useAuth"
 import useToast from "../hooks/useToast"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 const LABELS = {
   requested: "Requested",
@@ -81,6 +82,7 @@ export default function TripStatus() {
         icon={FiClipboard}
         theme="gold"
       />
+      <CMSPageIntro pageKey="trip-status" />
       <form onSubmit={lookup} className="card-base p-5 max-w-xl grid sm:grid-cols-[1fr_1fr_auto] gap-2" data-testid="trip-lookup-form">
         <input className="input-field" name="reference" aria-label="Request reference" data-testid="trip-reference" placeholder="Reference (e.g. NP260823ABC123)" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} />
         <input className="input-field" type="email" name="email" aria-label="Email used at checkout" data-testid="trip-email" placeholder="Email used at checkout" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />

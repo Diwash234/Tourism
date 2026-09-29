@@ -1349,6 +1349,14 @@ class Hospital(models.Model):
     coordinate_status = models.CharField(max_length=20, blank=True, default="")
     coordinate_retrieved_at = models.DateTimeField(null=True, blank=True)
 
+    def save(self, *args, **kwargs):
+        # Imports left "nan" / templated filler in this column; store "" so
+        # a missing number is never displayed as if it were callable.
+        from .phone_quality import usable_phone
+
+        self.phone = usable_phone(self.phone)
+        super().save(*args, **kwargs)
+
 
 class PoliceStation(models.Model):
 
@@ -1382,6 +1390,14 @@ class PoliceStation(models.Model):
     coordinate_source = models.CharField(max_length=120, blank=True, default="")
     coordinate_status = models.CharField(max_length=20, blank=True, default="")
     coordinate_retrieved_at = models.DateTimeField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        # Imports left "nan" / templated filler in this column; store "" so
+        # a missing number is never displayed as if it were callable.
+        from .phone_quality import usable_phone
+
+        self.phone = usable_phone(self.phone)
+        super().save(*args, **kwargs)
 
 
 class BudgetEstimation(models.Model):
@@ -2315,6 +2331,10 @@ class TravelPlan(TimeStampedModel):
     generation_source = models.CharField(max_length=20, choices=[("manual", "Manual"), ("ml", "ML assisted")], default="manual")
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT, db_index=True)
     notes = models.TextField(blank=True)
+    # Read-only public sharing. The token is the only credential, so it is a
+    # random UUID; revoking clears it, which breaks every copy of the old link.
+    share_token = models.UUIDField(null=True, blank=True, unique=True, editable=False)
+    shared_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-updated_at"]

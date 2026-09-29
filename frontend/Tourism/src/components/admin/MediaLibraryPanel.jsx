@@ -73,6 +73,7 @@ export default function MediaLibraryPanel() {
   const [showUpload, setShowUpload] = useState(false)
   const [upload, setUpload] = useState(emptyUpload)
   const [file, setFile] = useState(null)
+  const [optimize, setOptimize] = useState(true)
   const [busy, setBusy] = useState(false)
 
   // Edit / Replace Image Modal State
@@ -179,18 +180,21 @@ export default function MediaLibraryPanel() {
     const body = new FormData()
     Object.entries({ ...upload, destination_id: uploadDestination.id }).forEach(([key, value]) => value && body.append(key, value))
     if (file) body.append("file", file)
+    if (file && optimize) body.append("optimize", "1")
     setBusy(true)
     try {
       const { data: created } = await adminApi.uploadMediaLibrary(body)
+      const opt = created?.optimisation
+      const saved = opt?.optimised ? ` Optimised to WebP: ${Math.round(opt.original_bytes / 1024)} KB → ${Math.round(opt.stored_bytes / 1024)} KB.` : ""
       if (publishNow && created?.id) {
         // Approve + make it the cover in one step, so the photo is on the
         // public destination page immediately (otherwise it waits, pending,
         // in the moderation queue and the public site keeps the old image).
         await adminApi.updateMediaLibrary({ ids: [created.id], action: "approve" })
         const { data: cover } = await adminApi.updateMediaLibrary({ id: created.id, action: "set_cover" })
-        showToast(cover?.message || "Photo approved and set as the cover", "success")
+        showToast((cover?.message || "Photo approved and set as the cover") + saved, "success")
       } else {
-        showToast("Image added to the moderation queue — approve it to publish", "success")
+        showToast("Image added to the moderation queue. Approve it to publish." + saved, "success")
       }
       setUpload(emptyUpload)
       setUploadDestination(null)
@@ -331,11 +335,17 @@ export default function MediaLibraryPanel() {
             <div className="block text-xs font-bold">Destination
               <DestinationPicker value={uploadDestination} onChange={setUploadDestination} />
             </div>
-            <label className="block cursor-pointer rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50 p-5 text-center">
+            <label className="block cursor-pointer rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50 p-5 text-center focus-within:ring-2 focus-within:ring-emerald-600 focus-within:ring-offset-2">
               <FiUpload className="mx-auto mb-2" />Browse computer for JPEG, PNG or WebP
-              <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+              <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => setFile(e.target.files?.[0] || null)} />
               {file && <span className="mt-2 block font-bold text-emerald-800">{file.name}</span>}
             </label>
+            {file && (
+              <label className="flex items-start gap-2 text-xs text-slate-700">
+                <input type="checkbox" className="mt-0.5" checked={optimize} onChange={(e) => setOptimize(e.target.checked)} />
+                <span><strong>Optimise before saving</strong>: resize to at most 2560 px, convert to WebP and remove photo metadata (including GPS location). The original is kept if it is already smaller.</span>
+              </label>
+            )}
             <div className="text-center text-xs font-bold text-slate-400">OR</div>
             <label className="block text-xs font-bold">External HTTPS image URL
               <input type="url" className="input-field mt-1" value={upload.external_url} onChange={(e) => setUpload({ ...upload, external_url: e.target.value })} placeholder="https://…" />
@@ -368,7 +378,7 @@ export default function MediaLibraryPanel() {
             </div>
 
             <div className="flex gap-3 items-center p-3 rounded-2xl bg-slate-50 border border-slate-200">
-              <img src={editingMedia.url} alt="Current" className="w-20 h-16 object-cover rounded-xl shrink-0" />
+              <img loading="lazy" decoding="async" src={editingMedia.url} alt="Current" className="w-20 h-16 object-cover rounded-xl shrink-0" />
               <div className="text-xs text-slate-600">
                 <p className="font-bold text-slate-900">{editingMedia.caption || "Current image"}</p>
                 <p className="text-[11px]">Source: {editingMedia.source || "Database"}</p>

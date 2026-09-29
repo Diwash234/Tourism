@@ -29,12 +29,12 @@ export default function FeaturedEditorialGrid({ destinations = [], featuredCards
   const cardLink = (item, className, children, large = false) => {
     const content = (
       <>
-        <PlaceholderImage src={item.image} title={item.title} alt={item.title} className="absolute inset-0 h-full w-full transition-transform duration-500 group-hover:scale-[1.03]" />
+        <PlaceholderImage src={item.image} title={item.title} alt={item.title} labelPlacement="top" className="absolute inset-0 h-full w-full transition-transform duration-500 group-hover:scale-[1.03]" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#042A24] via-[#042A24]/45 to-transparent" aria-hidden="true" />
         <div className="relative z-10 flex h-full flex-col justify-end p-5 sm:p-6">
           <div className="flex flex-wrap items-center gap-2">
             {item.location && <span className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-[var(--ny-green)]">{item.location}</span>}
-            {item.rating != null && <span className="inline-flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-xs font-semibold text-white"><FiStar size={12} className="fill-[var(--ny-gold)] text-[var(--ny-gold)]" aria-hidden="true" /> {item.rating}</span>}
+            {Number(item.rating) > 0 && <span className="inline-flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-xs font-semibold text-white"><FiStar size={12} className="fill-[var(--ny-gold)] text-[var(--ny-gold)]" aria-hidden="true" /> {item.rating}</span>}
           </div>
           <h3 className={`mt-3 font-bold text-white ${large ? "text-2xl sm:text-3xl" : "text-xl"}`}>{item.title}</h3>
           {item.description && <p className="mt-2 line-clamp-2 text-sm leading-6 text-[#EAF2EF]">{item.description}</p>}

@@ -21,6 +21,7 @@ import {
 } from "react-icons/fi"
 
 import itineraryApi from "../api/itineraryApi"
+import SharePlanButton from "../components/itinerary/SharePlanButton"
 import axiosClient from "../api/axiosClient"
 import { formatDistance, formatDuration } from "../utils/formatDistance"
 import useToast from "../hooks/useToast"
@@ -138,6 +139,11 @@ const Itinerary = () => {
     () => (linkedPlace ? { ...DEFAULT_FORM, start_city: linkedPlace } : DEFAULT_FORM)
   )
   const [generatedKey, setGeneratedKey] = useState(null)
+  const [prevLinkedPlace, setPrevLinkedPlace] = useState(linkedPlace)
+  if (linkedPlace !== prevLinkedPlace) {
+    setPrevLinkedPlace(linkedPlace)
+    if (linkedPlace) setForm((old) => ({ ...old, start_city: linkedPlace }))
+  }
 
   const [plan, setPlan] = useState(null)
 
@@ -201,11 +207,16 @@ const Itinerary = () => {
 
   }
 
+  const [savedPlan, setSavedPlan] = useState(null)
   const savePlan = async () => {
     try {
-      await itineraryApi.savePlan({ title: `${form.start_city} ${form.days}-day itinerary`, travelers: form.travelers,
+      // generation_source must be one of the model's choices ("manual" | "ml");
+      // the planner's own `source` tag (e.g. "internal_db_engine") is kept
+      // inside itinerary_data.
+      const { data: saved } = await itineraryApi.savePlan({ title: `${form.start_city} ${form.days}-day itinerary`, travelers: form.travelers,
         budget_npr: plan?.total_estimated_npr || form.budget_npr || null, interests: form.interests,
-        itinerary_data: plan, generation_source: plan?.source || "planner", notes: `${form.travel_style} · ${form.travel_type}${notes.length ? ` · Cost notes: ${notes.map((note) => `${note.label} (NPR ${note.amount})`).join("; ")}` : ""}` })
+        itinerary_data: plan, generation_source: "ml", notes: `${form.travel_style} · ${form.travel_type}${notes.length ? ` · Cost notes: ${notes.map((note) => `${note.label} (NPR ${note.amount})`).join("; ")}` : ""}` })
+      setSavedPlan({ id: saved?.id, key: generatedKey, share_token: saved?.share_token || null })
       showToast("Travel plan saved to your account", "success")
     } catch (saveError) {
       showToast(saveError.response?.status === 401 ? "Sign in to save this travel plan" : "Could not save travel plan", "error")
@@ -429,7 +440,7 @@ const Itinerary = () => {
 
         <div>
 
-          <label className="block text-xs font-semibold text-gray-600 mb-1">
+          <label htmlFor="itin-days" className="block text-xs font-semibold text-gray-600 mb-1">
             Days
           </label>
 
@@ -441,7 +452,7 @@ const Itinerary = () => {
             />
 
 
-            <input
+            <input id="itin-days"
 
               type="number"
 
@@ -491,7 +502,7 @@ const Itinerary = () => {
 
         <div>
 
-          <label className="block text-xs font-semibold text-gray-600 mb-1">
+          <label htmlFor="itin-travelers" className="block text-xs font-semibold text-gray-600 mb-1">
             Travelers
           </label>
 
@@ -504,7 +515,7 @@ const Itinerary = () => {
             />
 
 
-            <input
+            <input id="itin-travelers"
 
               type="number"
 
@@ -553,7 +564,7 @@ const Itinerary = () => {
         <div>
 
 
-          <label className="block text-xs font-semibold text-gray-600 mb-1">
+          <label htmlFor="itin-budget" className="block text-xs font-semibold text-gray-600 mb-1">
             Budget (NPR, optional)
           </label>
 
@@ -566,7 +577,7 @@ const Itinerary = () => {
             />
 
 
-            <input
+            <input id="itin-budget"
 
               type="number"
 
@@ -608,7 +619,7 @@ const Itinerary = () => {
         <div>
 
 
-          <label className="block text-xs font-semibold text-gray-600 mb-1">
+          <label htmlFor="itin-start" className="block text-xs font-semibold text-gray-600 mb-1">
             Start city
           </label>
 
@@ -621,7 +632,7 @@ const Itinerary = () => {
             />
 
 
-            <input
+            <input id="itin-start"
 
               value={form.start_city}
 
@@ -660,12 +671,12 @@ const Itinerary = () => {
         <div>
 
 
-          <label className="block text-xs font-semibold text-gray-600 mb-1">
+          <label htmlFor="itin-1" className="block text-xs font-semibold text-gray-600 mb-1">
             Budget level
           </label>
 
 
-          <select
+          <select id="itin-1"
 
             value={form.budget_level}
 
@@ -996,12 +1007,12 @@ const Itinerary = () => {
                 <p className="text-xs text-gray-500">Add custom lodge rates or local flight quotes to your trip total.</p>
               </div>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                <select className="input-field bg-white text-xs" value={noteForm.category} onChange={(e) => setNoteForm({ ...noteForm, category: e.target.value })}>
+                <select aria-label="Cost category" className="input-field bg-white text-xs" value={noteForm.category} onChange={(e) => setNoteForm({ ...noteForm, category: e.target.value })}>
                   {NOTE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
                 </select>
-                <input className="input-field bg-white text-xs sm:col-span-1 lg:col-span-2" placeholder="e.g. Annapurna View Hotel" value={noteForm.label} onChange={(e) => setNoteForm({ ...noteForm, label: e.target.value })} />
+                <input aria-label="Item, for example a lodge or flight" className="input-field bg-white text-xs sm:col-span-1 lg:col-span-2" placeholder="e.g. Annapurna View Hotel" value={noteForm.label} onChange={(e) => setNoteForm({ ...noteForm, label: e.target.value })} />
                 <div className="flex gap-2">
-                  <input type="number" min="0" step="1" className="input-field bg-white text-xs" placeholder="रू" value={noteForm.amount} onChange={(e) => setNoteForm({ ...noteForm, amount: e.target.value })} />
+                  <input aria-label="Amount in rupees" type="number" min="0" step="1" className="input-field bg-white text-xs" placeholder="रू" value={noteForm.amount} onChange={(e) => setNoteForm({ ...noteForm, amount: e.target.value })} />
                   <button onClick={addNote} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-himalaya-600 text-white hover:bg-himalaya-700" aria-label="Add cost note"><FiPlus /></button>
                 </div>
               </div>
@@ -1051,9 +1062,17 @@ const Itinerary = () => {
             className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4 mb-8"
 
           >
-            <button onClick={savePlan} className="card-base p-4 text-left border-2 border-emerald-300 hover:bg-emerald-50">
-              <FiCheckCircle className="text-emerald-600 mb-1"/><b className="text-emerald-800">Save this plan</b><p className="text-xs text-gray-500">Keep the generated itinerary in your account</p>
-            </button>
+            {savedPlan?.id && savedPlan.key === generatedKey ? (
+              <div className="card-base p-4 text-left border-2 border-emerald-300">
+                <FiCheckCircle className="text-emerald-600 mb-1"/><b className="text-emerald-800">Saved to your account</b>
+                <p className="mb-2 text-xs text-gray-500">Share a read-only copy (no name, email or notes).</p>
+                <SharePlanButton planId={savedPlan.id} initialToken={savedPlan.share_token} compact />
+              </div>
+            ) : (
+              <button onClick={savePlan} className="card-base p-4 text-left border-2 border-emerald-300 hover:bg-emerald-50">
+                <FiCheckCircle className="text-emerald-600 mb-1"/><b className="text-emerald-800">Save this plan</b><p className="text-xs text-gray-500">Keep the generated itinerary in your account, then share it</p>
+              </button>
+            )}
 
             <div className="card-base p-4">
 

@@ -63,7 +63,7 @@ const DestinationGallery = ({ coverImageUrl, gallery = [], destinationId, destin
                   onClick={() => openLightbox(allImagesIndex)}
                   className="relative h-full w-full cursor-pointer group"
                 >
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={url}
                     alt={`${destinationName} ${i + 2}`}
                     className="h-full w-full object-cover group-hover:opacity-90 transition-opacity"

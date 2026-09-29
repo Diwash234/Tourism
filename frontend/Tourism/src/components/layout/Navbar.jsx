@@ -15,7 +15,7 @@ import useTheme from "../../context/ThemeContext"
 import { resolveNavbarFeatures } from "../../utils/navbarFeatures"
 
 const PUBLIC_NAV_PATHS = new Set([
-  "/", "/destinations", "/recommendation", "/gallery", "/compare", "/explore-map", "/discover-nepal",
+  "/", "/destinations", "/recommendation", "/gallery", "/compare", "/explore-map", "/discover-nepal", "/discover", "/decide", "/search",
   "/itinerary", "/budget-estimator", "/before-you-travel", "/hotels/search", "/emergency", "/risk-alerts", "/navigation",
   "/distances", "/language", "/translation", "/nearby-places", "/packages", "/guides", "/guide-portal",
   "/tourism-jobs", "/guide-bookings", "/collaborate", "/chatbot", "/travel", "/about", "/contact", "/support",
@@ -130,6 +130,7 @@ const Navbar = () => {
             header (the old always-inline box squeezed to an unreadable
             sliver at ~1024–1300px widths). */}
         {features.search && <form
+          role="search"
           onSubmit={handleSmartSearch}
           className="nav-search-form hidden min-[1400px]:flex flex-1 min-w-0 max-w-md items-center gap-1.5"
         >
@@ -142,6 +143,9 @@ const Navbar = () => {
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              type="search"
+              aria-label="Search destinations"
+              enterKeyHint="search"
               placeholder="Search destinations…"
               className="w-full text-sm rounded-full border border-white/20 bg-white/10 text-white placeholder:text-[#AFC5BC] pl-9 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             />
@@ -302,6 +306,7 @@ const Navbar = () => {
         {searchOpen && (
           <div className="min-[1400px]:hidden absolute top-full inset-x-0 bg-[var(--ny-green-deepest)] backdrop-blur border-b border-emerald-800 shadow-lg shadow-emerald-950/40 px-3 py-2.5 z-50">
             <form
+              role="search"
               onSubmit={(e) => { setSearchOpen(false); handleSmartSearch(e) }}
               className="relative"
             >
@@ -310,6 +315,9 @@ const Navbar = () => {
                 autoFocus
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                type="search"
+                aria-label="Search destinations"
+                enterKeyHint="search"
                 placeholder="Search destinations…"
                 className="w-full text-sm rounded-full border border-white/20 bg-white/10 text-white placeholder:text-[#AFC5BC] pl-9 pr-10 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />

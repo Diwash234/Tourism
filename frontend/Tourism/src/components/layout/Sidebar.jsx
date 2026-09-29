@@ -139,7 +139,7 @@ export default function Sidebar() {
     "/", "/destinations", "/recommendation", "/gallery", "/compare", "/nearby-places",
     "/distances", "/itinerary", "/explore-map", "/discover-nepal", "/packages", "/guides", "/guide-portal", "/tourism-jobs", "/guide-bookings", "/collaborate", "/hotels/search",
     "/emergency", "/risk-alerts", "/budget-estimator", "/before-you-travel", "/navigation", "/language", "/translation", "/chatbot", "/travel",
-    "/about", "/contact", "/support", "/how-it-works", "/privacy", "/terms", "/login", "/register"
+    "/about", "/contact", "/support", "/how-it-works", "/privacy", "/terms", "/privacy-policy", "/terms-of-service", "/cookie-policy", "/data-deletion", "/unsubscribe", "/login", "/register"
   ])
 
   const managedByRoute = new Map(managedItems.filter(item => String(item.route).startsWith("/")).map(item => [item.route, item]))

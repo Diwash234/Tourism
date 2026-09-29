@@ -38,6 +38,7 @@ import budgetApi from "../api/budgetApi"
 import userApi from "../api/userApi"
 import emergencyApi from "../api/emergencyApi"
 import itineraryApi from "../api/itineraryApi"
+import SharePlanButton from "../components/itinerary/SharePlanButton"
 import bookingApi from "../api/bookingApi"
 import axiosClient from "../api/axiosClient"
 
@@ -69,6 +70,12 @@ function unwrapList(response) {
 }
 
 // scoreFromAlerts moved to utils/safetyScore.js (shared with RiskAlertDashboard)
+
+// Saved TravelPlan rows keep their details in itinerary_data (planner output)
+// plus budget_npr; derive display values from there.
+const planDays = (plan) => plan?.itinerary_data?.days ?? (Array.isArray(plan?.itinerary_data?.itinerary) ? plan.itinerary_data.itinerary.length : null)
+const planBudget = (plan) => plan?.budget_npr ?? plan?.itinerary_data?.total_estimated_npr ?? null
+const planStyle = (plan) => plan?.itinerary_data?.travel_style || null
 
 const Dashboard = () => {
   const { user } = useAuth()
@@ -546,7 +553,7 @@ const Dashboard = () => {
                     {travelPlans[0].title || travelPlans[0].destination_name || "Your Upcoming Nepal Journey"}
                   </h3>
                   <p className="text-xs text-emerald-200 mt-0.5">
-                    {travelPlans[0].num_days != null ? `${travelPlans[0].num_days} days` : "Duration unavailable"} • {travelPlans[0].estimated_cost_npr != null ? `Budget NPR ${Number(travelPlans[0].estimated_cost_npr).toLocaleString()}` : "Budget unavailable"} • {travelPlans[0].travel_style || "Travel style not recorded"}
+                    {[planDays(travelPlans[0]) != null && `${planDays(travelPlans[0])} days`, planBudget(travelPlans[0]) != null && `Budget NPR ${Number(planBudget(travelPlans[0])).toLocaleString()}`, planStyle(travelPlans[0])].filter(Boolean).join(" • ") || "Saved plan"}
                   </p>
                 </div>
 
@@ -758,9 +765,11 @@ const Dashboard = () => {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">
-                            {plan.travel_style || "Trip style unavailable"}
-                          </span>
+                          {planStyle(plan) && (
+                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">
+                              {planStyle(plan)}
+                            </span>
+                          )}
                           <span className="text-xs text-slate-500 font-mono">
                             ID #{plan.id}
                           </span>
@@ -769,7 +778,7 @@ const Dashboard = () => {
                           {plan.title || plan.destination_name || "Custom Nepal Trip Plan"}
                         </h3>
                         <p className="text-xs text-slate-500 mt-0.5">
-                          {plan.num_days != null ? `${plan.num_days} day${plan.num_days === 1 ? "" : "s"}` : "Duration unavailable"} • {plan.estimated_cost_npr != null ? `Estimated budget: NPR ${Number(plan.estimated_cost_npr).toLocaleString()}` : "Estimated budget unavailable"}
+                          {[planDays(plan) != null && `${planDays(plan)} day${planDays(plan) === 1 ? "" : "s"}`, planBudget(plan) != null && `Estimated budget: NPR ${Number(planBudget(plan)).toLocaleString()}`, `Saved ${new Date(plan.created_at).toLocaleDateString()}`].filter(Boolean).join(" • ")}
                         </p>
                       </div>
 
@@ -792,6 +801,10 @@ const Dashboard = () => {
                           Full details
                         </Link>
                       </div>
+                    </div>
+                    <div className="mt-3">
+                      <SharePlanButton planId={plan.id} initialToken={plan.share_token} compact
+                        onChange={(token) => setTravelPlans((list) => list.map((p) => (p.id === plan.id ? { ...p, share_token: token } : p)))} />
                     </div>
 
                     {/* Day-by-day stops preview if available */}
@@ -1100,7 +1113,7 @@ const Dashboard = () => {
                     className="card-base p-4 cursor-pointer hover:border-emerald-500"
                   >
                     {place.cover_image_url && (
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={place.cover_image_url}
                         alt={place.name}
                         className="w-full h-32 object-cover rounded-xl mb-3"

@@ -81,7 +81,7 @@ export default function Checkout() {
           <p className="text-slate-600">{result.message}</p>
           <p className="font-bold">Total {result.order?.total_npr != null ? `NPR ${Number(result.order.total_npr).toLocaleString()}` : "unavailable"}</p>
           {form.payment_method === "external" && (
-            <p className="text-sm text-slate-600">Payment will be completed securely through the partner.</p>
+            <p className="text-sm text-slate-600">You will pay the partner directly on their own website.</p>
           )}
           {(result.external_links || []).length > 0 && (
             <div className="space-y-2">
@@ -136,7 +136,7 @@ export default function Checkout() {
               </label>
               <label className="flex gap-2 items-start">
                 <input type="radio" name="pay" checked={form.payment_method === "external"} onChange={() => setForm({ ...form, payment_method: "external" })} />
-                <span>Payment will be completed securely through the partner (HTTPS site only).</span>
+                <span>You will pay the partner directly on their own website (HTTPS only).</span>
               </label>
             </fieldset>
             <p className="text-xs text-slate-500">Do not enter card numbers, CVV or PAN here. Those fields are rejected on purpose.</p>

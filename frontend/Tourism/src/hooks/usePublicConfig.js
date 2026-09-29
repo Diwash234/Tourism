@@ -33,7 +33,7 @@ const load = lang => {
   if (!pending.has(lang)) pending.set(lang, configApi.getPublicConfig(lang).then(({ data }) => {
     if (data?.oauth_client_ids) setPublicOAuthIds(data.oauth_client_ids)
     caches.set(lang, data); (listeners.get(lang) || new Set()).forEach(fn => fn(data)); return data
-  }).catch(() => fallback).finally(() => pending.delete(lang)))
+  }).catch(() => ({ ...fallback, failed: true })).finally(() => pending.delete(lang)))
   return pending.get(lang)
 }
 
@@ -59,11 +59,8 @@ function applyBranding(branding = {}) {
   Object.entries(vars).forEach(([key, value]) => value && root.style.setProperty(key, value))
   root.dataset.themePreset = branding.theme_preset || "himalayan"
   root.dataset.density = branding.density || "comfortable"
-  // Legacy brand guard: any DB/backup that still carries the old platform
-  // name is rendered as "Nepal Yatra" (spec: single brand everywhere).
-  const dropLegacyBrand = (value) =>
-    String(value || "").replace(/Digital Nepal Tourism( Platform)?/g, "Nepal Yatra")
-  if (branding.site_title) document.title = dropLegacyBrand(branding.site_title)
+  // The document title is owned by the page/layout (useRouteSeo + useSeo);
+  // writing it here raced with them and left every page titled the same.
   if (branding.favicon_url) {
     let icon = document.querySelector("link[rel='icon']")
     if (!icon) { icon = document.createElement("link"); icon.rel = "icon"; document.head.appendChild(icon) }
@@ -104,5 +101,6 @@ export default function usePublicConfig() {
     const extras = (page?.sections || []).filter(item => !knownKeys.includes(item.key))
     return { page, managed, block, showBlock, copy, extras }
   }
-  return { ...data, branding, section, pageOf, pageCMS }
+  // `loaded`: the request finished (even if it failed), so "no such page" is final.
+  return { ...data, loaded: data !== fallback, branding, section, pageOf, pageCMS }
 }

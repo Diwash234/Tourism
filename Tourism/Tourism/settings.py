@@ -248,6 +248,16 @@ STORAGES = {
     },
 }
 
+# Built React app (Dockerfile copies frontend/Tourism/dist here). When it is
+# present WhiteNoise serves it from the site root and Tourism/spa.py returns
+# index.html for client-side routes. Absent in development/tests.
+FRONTEND_DIST_DIR = Path(config("FRONTEND_DIST_DIR", default=str(BASE_DIR / "frontend_dist")))
+if (FRONTEND_DIST_DIR / "index.html").is_file():
+    WHITENOISE_ROOT = FRONTEND_DIST_DIR
+WHITENOISE_MIMETYPES = {".webmanifest": "application/manifest+json"}
+# Vite content-hashes everything under /assets/, so those files never change.
+WHITENOISE_IMMUTABLE_FILE_TEST = r"^/assets/.+-[A-Za-z0-9_-]{8,}\.\w+$"
+
 MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(config("MEDIA_ROOT", default=str(BASE_DIR / "media")))
 
@@ -356,6 +366,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "auth": "10/min",
         "password_reset": "5/min",
+        "newsletter": "10/min",
     },
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
 }
@@ -453,12 +464,22 @@ DEFAULT_LANGUAGE_CODE = config("DEFAULT_LANGUAGE_CODE", default="en")
 # ------------------------------------------------------------------
 # GeoIP (IP based geolocation fallback when browser GPS is unavailable)
 # ------------------------------------------------------------------
-GEOIP_PROVIDER_URL = config("GEOIP_PROVIDER_URL", default="http://ip-api.com/json/{ip}")
+# Optional IP geolocation fallback. It is disabled unless the operator provides
+# an HTTPS endpoint; never silently send visitor IPs over plain HTTP.
+GEOIP_PROVIDER_URL = config("GEOIP_PROVIDER_URL", default="")
 
 # ------------------------------------------------------------------
 # Weather / Alerts external API (OpenWeatherMap etc.)
 # ------------------------------------------------------------------
 OPENWEATHER_API_KEY = config("OPENWEATHER_API_KEY", default="")
+
+# Official NRB forex: refresh automatically (at most hourly) when the stored
+# rate is older than today. Disabled under `manage.py test` so the suite never
+# depends on the live network or on today's rates.
+import sys as _sys
+FX_AUTO_REFRESH = config(
+    "FX_AUTO_REFRESH", default=not (len(_sys.argv) > 1 and _sys.argv[1] == "test"), cast=bool
+)
 
 # ------------------------------------------------------------------
 # External place/image data sources — all optional. Each client function
@@ -543,7 +564,7 @@ ROUTING_API_URL = config("ROUTING_API_URL", default="")
 # unreachable the endpoints fall back to the bundled tourism graph and,
 # last, to an explicitly-labelled straight-line estimate.
 ROUTING_PROVIDER = config("ROUTING_PROVIDER", default="osrm")
-ROUTING_BASE_URL = config("ROUTING_BASE_URL", default="")
+ROUTING_BASE_URL = config("ROUTING_BASE_URL", default=ROUTING_API_URL)
 ROUTING_TIMEOUT = config("ROUTING_TIMEOUT", default=6, cast=float)
 ROUTING_MAX_RETRIES = config("ROUTING_MAX_RETRIES", default=2, cast=int)
 ROUTING_CACHE_TTL = config("ROUTING_CACHE_TTL", default=600, cast=int)

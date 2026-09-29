@@ -7,6 +7,7 @@ import authApi from "../../api/authApi"
 import useToast from "../../hooks/useToast"
 import TourismLogo from "../../components/branding/TourismLogo"
 import NepalSceneBackground from "../../components/branding/NepalSceneBackground"
+import CMSPageIntro from "../../components/cms/CMSPageIntro"
 
 /**
  * ResetPassword — reached from the email link the backend sends via
@@ -139,6 +140,7 @@ const ResetPassword = () => {
             </form>
           </>
         )}
+        <CMSPageIntro pageKey="auth-reset-password" compact />
       </motion.div>
     </div>
   )

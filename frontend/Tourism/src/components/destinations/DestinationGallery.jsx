@@ -63,7 +63,7 @@ export default function DestinationGallery({ images = [], name = "Destination" }
                 : "border-transparent opacity-60 hover:opacity-100"
             }`}
           >
-            <img src={imgUrl} alt={`Thumb ${idx + 1}`} className="w-full h-full object-cover" />
+            <img loading="lazy" decoding="async" src={imgUrl} alt={`Thumb ${idx + 1}`} className="w-full h-full object-cover" />
           </button>
         ))}
       </div>

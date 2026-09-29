@@ -218,16 +218,17 @@ async function main() {
   // =========================================================================
   // COOKIE CONSENT BANNER (§17) — real component, fixture-driven public config
   // =========================================================================
-  const consentSel = '[aria-label="Cookie consent"]'
+  const consentSel = '[aria-labelledby="ny-cookie-title"]'
   const consentStorage = window.localStorage
 
-  // --- no setting saved yet: banner shows with privacy link ------------------
+  // --- no setting saved yet: banner shows with the real media choice --------
   consentStorage.removeItem("tourism_cookie_consent")
   entry.setPublicConfigFixture({ settings: {}, pages: [], navigation: [] })
   const c1 = entry.mountCookieBanner()
   await settle()
   check("cookie: shown by default when no setting saved", !!$(c1.container, consentSel))
-  check("cookie: links the privacy policy", !!$(c1.container, 'a[href="/privacy"]'))
+  check("cookie: links the cookie policy", !!$(c1.container, 'a[href="/cookie-policy"]'))
+  check("cookie: essential-only and allow-video choices are both present", c1.container.querySelectorAll("button").length === 2)
   c1.unmount()
 
   // --- CMS disables it: hidden ------------------------------------------------
@@ -244,21 +245,21 @@ async function main() {
   check("cookie: custom CMS message rendered", /Custom wording here/.test(c3.container.textContent))
   c3.unmount()
 
-  // --- Accept hides it and persists the choice --------------------------------
+  // --- Essential-only hides it and persists the non-dark-pattern choice ------
   entry.setPublicConfigFixture({ settings: { cookie_consent: { enabled: true } }, pages: [], navigation: [] })
   const c4 = entry.mountCookieBanner()
   await settle()
-  const acceptBtn = [...c4.container.querySelectorAll("button")].find((b) => /Accept/.test(b.textContent))
-  check("cookie: Accept button present", !!acceptBtn)
-  await click(acceptBtn)
-  check("cookie: Accept hides the banner", !$(c4.container, consentSel))
-  check("cookie: Accept persisted to localStorage", consentStorage.getItem("tourism_cookie_consent") === "accepted")
+  const essentialBtn = [...c4.container.querySelectorAll("button")].find((b) => /Essential only/.test(b.textContent))
+  check("cookie: Essential only button present", !!essentialBtn)
+  await click(essentialBtn)
+  check("cookie: Essential only hides the banner", !$(c4.container, consentSel))
+  check("cookie: Essential only persisted with media disabled", JSON.parse(consentStorage.getItem("tourism_cookie_consent") || "null")?.media === false)
   c4.unmount()
 
-  // --- a visitor who already accepted never sees it again ---------------------
+  // --- a visitor who already chose never sees it again ------------------------
   const c5 = entry.mountCookieBanner()
   await settle()
-  check("cookie: stays hidden after a prior Accept", !$(c5.container, consentSel))
+  check("cookie: stays hidden after a prior choice", !$(c5.container, consentSel))
   c5.unmount()
   consentStorage.removeItem("tourism_cookie_consent")
 
@@ -463,7 +464,7 @@ async function main() {
   await settle()
   const txt7 = n7.container.textContent
   check("nearby: hospitals tab renders real hospital rows",
-    /Ciwec Hospital/.test(txt7) && /0\.5 km away/.test(txt7))
+    /Ciwec Hospital/.test(txt7) && /0\.5 km straight-line/.test(txt7))
   check("nearby: hospital rows expose a callable phone link",
     !!n7.container.querySelector('a[href="tel:01-4424111"]'))
   check("nearby: hospital rows offer directions from recorded coordinates",

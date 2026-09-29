@@ -1,6 +1,7 @@
 from django.http import JsonResponse
 from .models import Hospital, PoliceStation
 from math import radians, sin, cos, sqrt, atan2
+from .phone_quality import usable_phone
 
 
 def calculate_distance(lat1, lon1, lat2, lon2):
@@ -97,7 +98,7 @@ def nearest_emergency(request):
 
         "address": nearest.address,
 
-        "phone": nearest.phone,
+        "phone": usable_phone(nearest.phone),
 
         "latitude": float(nearest.latitude),
 

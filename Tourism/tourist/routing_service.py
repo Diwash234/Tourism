@@ -37,7 +37,7 @@ def provider_config():
         api_key = str(row.value.get("api_key") or "")
         enabled = bool(row.value.get("enabled", True)) and base.startswith("https://")
         return {"enabled": enabled, "base_url": base, "api_key": api_key, "source": "admin_setting"}
-    base = (getattr(settings, "ROUTING_API_URL", "") or "").strip().rstrip("/")
+    base = (getattr(settings, "ROUTING_BASE_URL", "") or getattr(settings, "ROUTING_API_URL", "") or "").strip().rstrip("/")
     api_key = getattr(settings, "ROUTING_API_KEY", "") or ""
     return {"enabled": bool(base), "base_url": base, "api_key": api_key, "source": "environment"}
 

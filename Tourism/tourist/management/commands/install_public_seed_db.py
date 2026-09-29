@@ -284,8 +284,9 @@ class Command(BaseCommand):
         self.stdout.write("")
         self.stdout.write(
             "Hotels, hospitals, police stations and restaurants are imported as "
-            "unverified candidates and stay hidden from the public API until a "
-            "staff member verifies them in the admin. That is expected."
+            "sourced but unverified listings. The public site shows them with an "
+            "\"Unverified listing\" badge and their source, after verified records, "
+            "until a staff member verifies them in the admin. That is expected."
         )
         self.stdout.write(
             "No accounts are included. Create your own login with: "
