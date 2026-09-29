@@ -2,29 +2,38 @@ import { useEffect, Suspense } from "react"
 import useSidebarState from "../../hooks/useSidebarState"
 import { Outlet, useLocation } from "react-router-dom"
 import useRouteSeo from "../../hooks/useRouteSeo"
+import useKeyboardShortcuts from "../../hooks/useKeyboardShortcuts"
 import Navbar from "./Navbar"
 import Sidebar from "./Sidebar"
 import Footer from "./Footer"
 import FloatingChatbot from "../common/FloatingChatbot"
 import CookieConsentBanner from "../common/CookieConsentBanner"
 import MobileBottomNav from "./MobileBottomNav"
+import ScrollToTop from "../common/ScrollToTop"
+import KeyboardShortcutsModal from "../common/KeyboardShortcutsModal"
+import QuickActions from "../common/QuickActions"
+import ReadingProgress from "../common/ReadingProgress"
 import { ElevationScrollProgress } from "../common/MotionSystem"
 
 
 const MainLayout = () => {
   const [sidebarOpen] = useSidebarState()
-  // The desktop rail is always present — expanded (64) or icon-only (16) —
-  // so content padding must always match the visible rail width (brief §12/§24).
   const desktopPad = sidebarOpen ? "lg:pl-64" : "lg:pl-16"
   const location = useLocation()
 
-
   useRouteSeo()
+  useKeyboardShortcuts()
+
+  // Scroll to top on route change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" })
+  }, [location.pathname])
 
   return (
     <div className="ny-app-shell flex min-h-screen w-full flex-col overflow-x-hidden bg-[var(--ny-bg)] text-[var(--ny-text)] dark:bg-[#0B1714] dark:text-[#EAF2EF]">
       <a href="#main-content" className="ny-skip-link">Skip to main content</a>
       <ElevationScrollProgress />
+      <ReadingProgress />
       <Navbar />
       <Sidebar />
       <main
@@ -40,6 +49,9 @@ const MainLayout = () => {
       <MobileBottomNav />
       <FloatingChatbot />
       <CookieConsentBanner />
+      <ScrollToTop />
+      <QuickActions />
+      <KeyboardShortcutsModal />
     </div>
   )
 }
