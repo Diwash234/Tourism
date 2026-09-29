@@ -261,6 +261,33 @@ WHITENOISE_IMMUTABLE_FILE_TEST = r"^/assets/.+-[A-Za-z0-9_-]{8,}\.\w+$"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(config("MEDIA_ROOT", default=str(BASE_DIR / "media")))
 
+# Production media storage (S3/Cloudinary) — Render containers are ephemeral,
+# so user uploads must go to external storage to survive redeployments.
+# Set MEDIA_STORAGE_BACKEND=s3 to enable, or leave as "local" for development.
+MEDIA_STORAGE_BACKEND = config("MEDIA_STORAGE_BACKEND", default="local")
+AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID", default="")
+AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY", default="")
+AWS_STORAGE_BUCKET_NAME = config("AWS_STORAGE_BUCKET_NAME", default="")
+AWS_S3_REGION_NAME = config("AWS_S3_REGION_NAME", default="")
+AWS_S3_CUSTOM_DOMAIN = config("AWS_S3_CUSTOM_DOMAIN", default="")
+AWS_DEFAULT_ACL = "private"
+AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "max-age=86400"}
+
+# Cloudinary alternative
+CLOUDINARY_CLOUD_NAME = config("CLOUDINARY_CLOUD_NAME", default="")
+CLOUDINARY_API_KEY = config("CLOUDINARY_API_KEY", default="")
+CLOUDINARY_API_SECRET = config("CLOUDINARY_API_SECRET", default="")
+
+if MEDIA_STORAGE_BACKEND == "s3" and AWS_STORAGE_BUCKET_NAME:
+    STORAGES["default"] = {
+        "BACKEND": "storages.backends.s3.S3Boto3Storage",
+    }
+    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN or f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'}/"
+elif MEDIA_STORAGE_BACKEND == "cloudinary" and CLOUDINARY_CLOUD_NAME:
+    STORAGES["default"] = {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    }
+
 # ---------------------------------------------------------------------------
 # STANDALONE IMAGE SERVER
 # ---------------------------------------------------------------------------
