@@ -52,9 +52,6 @@ COPY downloads/nepal-tourism-seed.sqlite3.gz downloads/nepal-tourism-seed.sqlite
 COPY docker/entrypoint.sh /usr/local/bin/ny-entrypoint
 RUN chmod +x /usr/local/bin/ny-entrypoint
 
-# Copy compiled React frontend into Django static directory
-COPY --from=frontend /app/frontend/dist /app/Tourism/frontend_dist/
-
 # Move into Django project
 WORKDIR /app/Tourism
 

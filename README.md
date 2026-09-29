@@ -224,9 +224,9 @@ phone OTP ➔ verify; password reset; OAuth callbacks). Whether a message is
 | **SMS** (phone OTP, SOS) | No Twilio keys ➔ honest no-op; the OTP is **logged** in the server console so you can still finish sign-up in dev | Put real `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_FROM_NUMBER` in `.env`. Placeholder `your_*` values are ignored automatically. |
 | **OAuth** (Google / GitHub buttons) | Client IDs empty ➔ buttons render in an honest "disabled until configured" state | Create OAuth credentials (Google Cloud Console / GitHub OAuth App) with redirect URI `https://<your-domain>/api/v1/auth/google/callback/` (or `/github/callback/`), then set `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` and `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` in `.env`. The frontend reads the client IDs automatically from `/api/v1/config/public/`. |
 
-> **Demo credentials** (seeded): admin `admin@tourism.gov.np` / `Admin@12345`,
-> staff `staff@tourism.gov.np` / `Staff@12345` (see
-> `tourist/management/commands/seed_e2e_features.py`). Change them in production.
+> **Demo accounts** are seeded for testing. Create your own admin account
+> with `python manage.py createsuperuser` and change or remove any seeded
+> accounts before going to production.
 
 ## 🖼️ Real, Diverse Destination Images
 
