@@ -1486,6 +1486,28 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
                     {["default", "compact", "wide", "cards", "hero", "split"].map((item) => <option key={item}>{item}</option>)}
                   </select>
                 </label>
+                <div className="sm:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <label className="font-semibold text-slate-300">Content width
+                    <select className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.config?.max_width || "container"} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), max_width: e.target.value } })}>
+                      <option value="narrow">Narrow</option><option value="container">Container</option><option value="wide">Wide</option><option value="full">Full width</option>
+                    </select>
+                  </label>
+                  <label className="font-semibold text-slate-300">Horizontal alignment
+                    <select className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.config?.align || "left"} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), align: e.target.value } })}>
+                      <option value="left">Left</option><option value="center">Center</option><option value="right">Right</option>
+                    </select>
+                  </label>
+                  <label className="font-semibold text-slate-300">Row gap
+                    <select className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.config?.row_gap || "normal"} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), row_gap: e.target.value } })}>
+                      <option value="compact">Compact</option><option value="normal">Normal</option><option value="large">Large</option>
+                    </select>
+                  </label>
+                  <label className="font-semibold text-slate-300">Mobile columns
+                    <select className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.config?.mobile_columns || 1} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), mobile_columns: Number(e.target.value) } })}>
+                      <option value={1}>1</option><option value={2}>2</option>
+                    </select>
+                  </label>
+                </div>
                 <label className="sm:col-span-2 font-semibold text-slate-300">Body Content
                   <RichTextEditor value={draft.body || ""} onChange={(html) => setDraft({ ...draft, body: html })} />
                 </label>
