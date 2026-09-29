@@ -1,7 +1,7 @@
 import re
 
 from django.contrib.auth import get_user_model
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Count, Sum, F, Q, Max
 from django.utils import timezone
 from django.conf import settings
@@ -1012,6 +1012,15 @@ class AdminDestinationDetailView(APIView):
             "bookings_count": getattr(destination, "bookings", None).__class__ and destination.bookings.count() if hasattr(destination, "bookings") else 0,
             "reviews_count": destination.reviews.count() if hasattr(destination, "reviews") else 0,
             "views_count": destination.views_count,
+            "attached_data": {
+                "images": destination.gallery.count(),
+                "hotels": destination.hotels.count() if hasattr(destination, "hotels") else 0,
+                "hospitals": destination.hospitals.count() if hasattr(destination, "hospitals") else 0,
+                "police_stations": destination.police_stations.count() if hasattr(destination, "police_stations") else 0,
+                "restaurants": destination.restaurants.count() if hasattr(destination, "restaurants") else 0,
+                "reviews": destination.reviews.count() if hasattr(destination, "reviews") else 0,
+                "risk_incidents": destination.risk_incidents.count(),
+            },
             "created_at": destination.created_at,
             "updated_at": destination.updated_at,
         })
@@ -1968,6 +1977,59 @@ class AdminDataExplorerView(APIView):
             return None
         return apps.get_model(self.RESOURCES[resource][0])
 
+    def _bulk_action(self, request, resource, model):
+        """Apply safe workflow actions to up to 100 selected records."""
+        if not model or resource not in self.MODELS:
+            return Response({"detail": "Unsupported CMS resource"}, status=400)
+        ids = request.data.get("ids") or []
+        if not isinstance(ids, list) or not ids:
+            return Response({"detail": "Select one or more records"}, status=400)
+        ids = list(dict.fromkeys(ids))[:100]
+        action = str(request.data.get("bulk_action") or "").strip()
+        if action not in {"publish", "unpublish", "archive", "activate", "deactivate"}:
+            return Response({"detail": "Unsupported bulk action"}, status=400)
+        capability = "approve" if action in {"publish", "unpublish"} else "change"
+        module = self.RESOURCE_CAPABILITIES.get(resource, ("content", "view"))[0]
+        _require_capability(request, module, capability)
+        objects = list(model.objects.filter(pk__in=ids))
+        found = {str(obj.pk) for obj in objects}
+        missing = [value for value in ids if str(value) not in found]
+        if missing:
+            return Response({"detail": "Some selected records no longer exist.", "missing_ids": missing}, status=404)
+        blockers = []
+        if action == "publish":
+            for obj in objects:
+                gate = self._publication_gate(resource, obj)
+                if not gate["ok"]:
+                    row = self._row(resource, obj)
+                    blockers.append({"id": obj.pk, "name": row.get("title") or row.get("label") or str(obj.pk), "publication_gate": gate})
+            if blockers:
+                return Response({"detail": "Bulk publish blocked: fix all selected records first.", "blocked": blockers}, status=409)
+        now = timezone.now()
+        with transaction.atomic():
+            for obj in objects:
+                if action == "publish":
+                    if resource == "pages": obj.status, obj.is_enabled, obj.published_at, obj.scheduled_publish_at = "published", True, now, None
+                    elif resource == "sections": obj.status, obj.is_visible, obj.published_at, obj.scheduled_publish_at = "published", True, now, None
+                    elif resource == "navigation": obj.is_active = True
+                    elif resource == "media": obj.verification_status, obj.is_verified = "approved", True
+                elif action == "unpublish":
+                    if resource == "pages": obj.status, obj.is_enabled, obj.published_at = "draft", False, None
+                    elif resource == "sections": obj.status, obj.is_visible, obj.published_at = "draft", False, None
+                    elif resource == "navigation": obj.is_active = False
+                    elif resource == "media": obj.verification_status, obj.is_verified = "rejected", False
+                elif action in {"archive", "deactivate"}:
+                    field = "is_archived" if hasattr(obj, "is_archived") else ("is_active" if hasattr(obj, "is_active") else "is_visible")
+                    setattr(obj, field, False)
+                elif action == "activate":
+                    field = "is_active" if hasattr(obj, "is_active") else ("is_visible" if hasattr(obj, "is_visible") else "is_enabled")
+                    setattr(obj, field, True)
+                if hasattr(obj, "updated_by"): obj.updated_by = request.user
+                obj.save()
+                if action == "publish": self._sync_published_record(resource, obj)
+                self._revision(resource, obj, request.user, action if action in {"publish", "unpublish"} else "update")
+        self._invalidate_public_caches()
+        return Response({"message": f"{len(objects)} {resource} record(s) {action} complete", "updated": len(objects), "ids": [obj.pk for obj in objects]})
     def patch(self, request):
         """Generic row editing for every explorer resource.
 
@@ -2596,6 +2658,19 @@ class AdminCMSView(APIView):
         "translations": CMSContentTranslation,
         "destinations": Destination,
         "announcements": VisitorNotice,
+        # Operational records are editable through the same CMS control plane.
+        # They remain subject to their dedicated module capabilities and are
+        # never treated as arbitrary frontend JSON.
+        "hotels": Hotel,
+        "hospitals": Hospital,
+        "police_stations": PoliceStation,
+        "media": DestinationImage,
+    }
+    RESOURCE_CAPABILITIES = {
+        "hotels": ("hotels", "view"),
+        "hospitals": ("safety", "view"),
+        "police_stations": ("safety", "view"),
+        "media": ("images", "view"),
     }
     FIELDS = {
         "settings": {"key", "value", "description", "is_public"},
@@ -2605,12 +2680,40 @@ class AdminCMSView(APIView):
         "translations": {"target_resource", "object_id", "language_code", "content"},
         "destinations": {"name", "slug", "description", "short_description", "district", "province", "city_english", "latitude", "longitude", "status", "seo_title", "meta_description", "og_image_url"},
         "announcements": {"title", "message", "level", "is_active"},
+        "hotels": {"destination_id", "name", "phone", "price_per_night", "currency", "rating", "booking_status", "booking_url", "external_image_url", "facilities", "address", "latitude", "longitude", "source", "source_url", "website", "is_verified", "is_active"},
+        "hospitals": {"destination_id", "name", "address", "phone", "latitude", "longitude", "district", "opening_hours", "emergency_available", "source_name", "source_url", "website", "is_verified", "is_archived"},
+        "police_stations": {"destination_id", "name", "address", "phone", "latitude", "longitude", "opening_hours", "emergency_available", "source_name", "source_url", "website", "is_verified", "is_archived"},
+        "media": {"destination_id", "external_url", "source_url", "caption", "alt_text", "photographer", "license_type", "verification_status", "is_verified", "is_cover", "ordering"},
     }
     PUBLICATION_FIELDS = {"status", "scheduled_publish_at", "published_at", "is_enabled", "is_visible", "is_active", "route", "key"}
     WORKFLOW_ACTIONS = {"publish", "unpublish", "schedule", "approve", "request_changes", "rollback"}
 
     def _validate_payload(self, resource, payload):
         import re
+        if resource in self.RESOURCE_CAPABILITIES:
+            # Resource-specific validation prevents the generic CMS editor from
+            # becoming an unrestricted database JSON endpoint.
+            if payload.get("destination_id") is not None and not Destination.objects.filter(pk=payload["destination_id"]).exists():
+                raise ValueError("destination_id does not reference an existing destination")
+            for field in ("latitude", "longitude"):
+                if field in payload and payload[field] not in (None, ""):
+                    try:
+                        value = float(payload[field])
+                    except (TypeError, ValueError):
+                        raise ValueError(f"{field} must be numeric")
+                    if not (-90 <= value <= 90 if field == "latitude" else -180 <= value <= 180):
+                        raise ValueError(f"{field} is outside the valid coordinate range")
+            for field in ("source_url", "website", "booking_url", "external_image_url"):
+                if field in payload and payload[field] and not str(payload[field]).startswith(("https://", "/")):
+                    raise ValueError(f"{field} must be an HTTPS URL or an internal path")
+        if resource == "media":
+            for field in ("external_url", "source_url"):
+                if field in payload and payload[field] and not str(payload[field]).startswith("https://"):
+                    raise ValueError(f"{field} must use HTTPS")
+            if "destination_id" in payload and payload["destination_id"] and not Destination.objects.filter(pk=payload["destination_id"]).exists():
+                raise ValueError("destination_id does not reference an existing destination")
+            if "verification_status" in payload and str(payload["verification_status"]) not in {"pending", "approved", "rejected"}:
+                raise ValueError("Invalid media verification status")
         if resource in {"pages", "navigation"} and payload.get("route") and not str(payload["route"]).startswith("/"):
             raise ValueError("Only validated internal routes beginning with / are allowed")
         if resource == "sections" and payload.get("cta_url") and not str(payload["cta_url"]).startswith("/"):
@@ -2668,6 +2771,22 @@ class AdminCMSView(APIView):
             row["category_name"] = cat.name if cat else None
             slug_val = getattr(obj, "slug", None) or obj.pk
             row["route"] = f"/destinations/{slug_val}"
+        if resource in {"hotels", "hospitals", "police_stations"}:
+            destination = getattr(obj, "destination", None)
+            row["destination_id"] = getattr(obj, "destination_id", None)
+            row["destination_name"] = getattr(destination, "name", None)
+            image_field = getattr(obj, "cover_image", None) or getattr(obj, "image", None)
+            if image_field:
+                try:
+                    row["image_url"] = image_field.url
+                except Exception:
+                    row["image_url"] = ""
+            elif resource == "hotels":
+                row["image_url"] = getattr(obj, "external_image_url", "") or ""
+        if resource == "media":
+            row["destination_id"] = getattr(obj, "destination_id", None)
+            row["destination_name"] = getattr(getattr(obj, "destination", None), "name", None)
+            row["image_url"] = getattr(obj, "external_url", "") or (obj.image.url if getattr(obj, "image", None) else "")
         if resource == "sections":
             page = getattr(obj, "page", None)
             row["published_snapshot"] = obj.published_snapshot
@@ -2721,6 +2840,99 @@ class AdminCMSView(APIView):
             sync_published_snapshot(obj)
 
     @staticmethod
+    def _publication_gate(resource, obj):
+        """Return publish blockers/warnings from the current persisted draft.
+
+        This is deliberately deterministic and local: publishing must never
+        depend on an external HTTP request succeeding. Hard blockers protect
+        the public site from structurally invalid CMS records; warnings are
+        surfaced to the editor but do not prevent an explicit publish.
+        """
+        blockers = []
+        warnings = []
+
+        def issue(code, message, severity="blocker", **extra):
+            item = {"code": code, "message": message, "severity": severity}
+            item.update(extra)
+            (blockers if severity == "blocker" else warnings).append(item)
+
+        if resource == "pages":
+            title = str(getattr(obj, "title", "") or "").strip()
+            route = str(getattr(obj, "route", "") or "").strip()
+            key = str(getattr(obj, "key", "") or "").strip()
+            meta = str(getattr(obj, "meta_description", "") or "").strip()
+            seo_title = str(getattr(obj, "seo_title", "") or "").strip()
+            if not title:
+                issue("missing_title", "Page title is required.")
+            if not key:
+                issue("missing_key", "Page key is required.")
+            if not route or not route.startswith("/"):
+                issue("invalid_route", "Page route must be an internal path beginning with '/'.")
+            if not meta:
+                issue("missing_seo_description", "Meta description is required before publishing.")
+            elif len(meta) > 160:
+                issue("seo_description_too_long", "Meta description is longer than 160 characters.", "warning")
+            if not seo_title:
+                issue("missing_seo_title", "SEO title is missing.", "warning")
+            elif len(seo_title) > 70:
+                issue("seo_title_too_long", "SEO title is longer than 70 characters.", "warning")
+            if not str(getattr(obj, "og_image_url", "") or "").strip():
+                issue("missing_og_image", "No social/OG image is configured.", "warning")
+            sections = list(obj.sections.all().order_by("display_order", "id"))
+            published = [section for section in sections if section.status == "published" and section.is_visible]
+            if not published:
+                issue("no_published_sections", "At least one visible published section is required.")
+            for section in sections:
+                if section.status != "published" or not section.is_visible:
+                    continue
+                section_title = str(section.title or "").strip()
+                body = str(section.body or "").strip()
+                image = str(section.image_url or "").strip()
+                if not section_title and not body and not image and not section.blocks.filter(is_visible=True).exists():
+                    issue("empty_section", f"Published section '{section.key}' has no visible content.", "blocker", section_id=section.id)
+                if section.cta_url and not str(section.cta_url).strip().startswith(("/", "https://", "mailto:", "tel:")):
+                    issue("invalid_cta_url", f"Section '{section.key}' has an invalid CTA URL.", "blocker", section_id=section.id)
+                for href in re.findall(r"""href=["']([^"']*)["']""", body, re.I):
+                    href = href.strip()
+                    if href in {"", "#"} or href.lower().startswith("javascript:"):
+                        issue("broken_link", f"Section '{section.key}' contains a dead link.", "blocker", section_id=section.id)
+                for url in re.findall(r"""(?:src|href)=["']([^"']+)["']""", body, re.I):
+                    if url.lower().startswith(("javascript:", "data:")):
+                        issue("unsafe_media_url", f"Section '{section.key}' contains an unsafe media URL.", "blocker", section_id=section.id)
+            if sections and any(section.status != "published" for section in sections):
+                issue("unpublished_sections", "Some page sections are still draft/unpublished; they will not appear publicly.", "warning")
+        elif resource == "navigation":
+            label = str(getattr(obj, "label", "") or "").strip()
+            route = str(getattr(obj, "route", "") or "").strip()
+            location = str(getattr(obj, "location", "") or "").strip()
+            if not label:
+                issue("missing_label", "Navigation label is required.")
+            if location not in {"navbar", "sidebar", "footer"}:
+                issue("invalid_location", "Navigation location must be navbar, sidebar, or footer.")
+            if not route or not route.startswith(("/", "https://")):
+                issue("invalid_route", "Navigation route must be an internal path or HTTPS URL.")
+            parent = getattr(obj, "parent", None)
+            if parent and parent.pk == obj.pk:
+                issue("self_parent", "Navigation item cannot be its own parent.")
+            if parent and parent.location != location:
+                issue("parent_location_mismatch", "Navigation parent must use the same location.")
+        elif resource == "sections":
+            page = getattr(obj, "page", None)
+            if not page:
+                issue("missing_parent_page", "Section must belong to a page.")
+            else:
+                if page.status != "published" or not page.is_enabled:
+                    issue("parent_page_unpublished", "Parent page is not currently published; this section will remain unavailable publicly.", "warning")
+            if not str(obj.title or "").strip() and not str(obj.body or "").strip() and not str(obj.image_url or "").strip() and not obj.blocks.filter(is_visible=True).exists():
+                issue("empty_section", "Section needs a title, body, image, or visible content block.")
+            if obj.cta_url and not str(obj.cta_url).strip().startswith(("/", "https://", "mailto:", "tel:")):
+                issue("invalid_cta_url", "CTA URL must be an internal path, HTTPS URL, mailto, or tel link.")
+            for href in re.findall(r"""href=["']([^"']*)["']""", str(obj.body or ""), re.I):
+                if href.strip() in {"", "#"} or href.lower().startswith("javascript:"):
+                    issue("broken_link", "Section contains a dead or unsafe link.")
+        return {"ok": not blockers, "blockers": blockers, "warnings": warnings}
+
+    @staticmethod
     def _validate_publication_request(resource, payload, action):
         publication_fields = {"status", "scheduled_publish_at", "published_at", "is_enabled", "is_active"}
         if resource in {"pages", "sections"} and action == "update":
@@ -2768,7 +2980,7 @@ class AdminCMSView(APIView):
                 return Response({"detail": "Page not found"}, status=404)
         url_re = _re.compile(r'href=["\']([^"\']*)["\']', _re.I)
         reports = []
-        for page in pages[:60]:
+        for page in pages:
             warnings = []
             sections = list(ContentSection.objects.filter(page=page).order_by("display_order", "id"))
             drafts = [s for s in sections if s.status != "published"]
@@ -2807,7 +3019,7 @@ class AdminCMSView(APIView):
             })
         if page_id:
             return Response(reports[0])
-        return Response({"results": reports, "count": len(reports)})
+        return Response({"results": reports, "count": len(reports), "scanned_pages": len(reports)})
 
     def get(self, request):
         _require_capability(request, "content", "view")
@@ -2818,6 +3030,73 @@ class AdminCMSView(APIView):
             queryset = ContentSection.objects.filter(is_reusable=True).select_related("page")
             return Response({"resource": "sections", "results": [self._row("sections", obj) for obj in queryset[:200]]})
         resource = request.query_params.get("resource", "pages")
+        if resource == "reusable_components":
+            sections = ContentSection.objects.filter(is_reusable=True).select_related("page").order_by("page_id", "display_order", "id")
+            results = []
+            for section in sections:
+                row = self._row("sections", section)
+                row["page_id"] = section.page_id
+                row["page_title"] = getattr(section.page, "title", "")
+                row["page_route"] = getattr(section.page, "route", "")
+                results.append(row)
+            return Response({"resource": "reusable_components", "count": len(results), "results": results})
+        if resource in {"dependencies", "page_dependencies"}:
+            pages = ManagedPage.objects.all().prefetch_related("sections")
+            results = []
+            for page in pages:
+                section_rows = list(page.sections.all().order_by("display_order", "id"))
+                links = []
+                for section in section_rows:
+                    config = section.config if isinstance(section.config, dict) else {}
+                    for key in ("route", "url", "href", "target_route"):
+                        value = config.get(key)
+                        if value and isinstance(value, str):
+                            links.append({"source": f"section:{section.id}", "type": key, "value": value})
+                    if section.cta_url:
+                        links.append({"source": f"section:{section.id}", "type": "cta_url", "value": section.cta_url})
+                results.append({
+                    "id": page.id, "title": page.title, "route": page.route,
+                    "status": page.status, "section_count": len(section_rows),
+                    "navigation_items": list(ManagedNavigationItem.objects.filter(route=page.route).values("id", "label", "location", "is_active")),
+                    "links": links,
+                    "seo": {"title": page.seo_title or "", "description": page.meta_description or "", "og_image": page.og_image_url or ""},
+                    "publication_gate": self._publication_gate("pages", page),
+                })
+            return Response({"resource": "dependencies", "count": len(results), "results": results})
+        if resource in {"content_map", "site_map"}:
+            pages = ManagedPage.objects.all().prefetch_related("sections").order_by("route", "id")
+            query = str(request.query_params.get("q") or "").strip().lower()
+            status_filter = str(request.query_params.get("status") or "").strip().lower()
+            items = []
+            for page in pages:
+                sections = list(page.sections.all().order_by("display_order", "id"))
+                section_rows = [{
+                    "id": section.id, "key": section.key, "title": section.title,
+                    "status": section.status, "is_visible": section.is_visible,
+                    "section_type": section.section_type, "display_order": section.display_order,
+                    "image_url": section.image_url or "", "cta_url": section.cta_url or "",
+                } for section in sections]
+                gate = self._publication_gate("pages", page)
+                item = {
+                    "id": page.id, "resource": "pages", "title": page.title, "key": page.key,
+                    "route": page.route, "status": page.status, "is_enabled": page.is_enabled,
+                    "search_visible": page.search_visible, "seo_title": page.seo_title or "",
+                    "meta_description": page.meta_description or "", "og_image_url": page.og_image_url or "",
+                    "section_count": len(sections),
+                    "published_sections": sum(1 for section in sections if section.status == "published" and section.is_visible),
+                    "draft_sections": sum(1 for section in sections if section.status != "published"),
+                    "sections": section_rows,
+                    "publication_gate": {"ok": gate["ok"], "blockers": len(gate["blockers"]), "warnings": len(gate["warnings"])},
+                }
+                haystack = " ".join([str(item["title"]), str(item["key"]), str(item["route"]) ] + [str(x["title"]) + " " + str(x["key"]) for x in section_rows]).lower()
+                if query and query not in haystack:
+                    continue
+                if status_filter and status_filter != "all" and item["status"].lower() != status_filter:
+                    continue
+                items.append(item)
+            return Response({"resource": "content_map", "count": len(items), "results": items})
+        if resource in self.RESOURCE_CAPABILITIES:
+            _require_capability(request, *self.RESOURCE_CAPABILITIES[resource])
         if resource == "health":
             return self._health_report(request)
         model = self.MODELS.get(resource)
@@ -2839,6 +3118,10 @@ class AdminCMSView(APIView):
                 data["sections"] = [self._row("sections", section) for section in obj.sections.all()]
             return Response({"preview": data, "notice": "Administrative preview; draft content is not public."})
         queryset = model.objects.all()
+        if resource == "hotels":
+            queryset = queryset.select_related("destination")
+        elif resource in {"hospitals", "police_stations"}:
+            queryset = queryset.select_related("destination")
         if resource == "sections" and request.query_params.get("page_id"):
             queryset = queryset.filter(page_id=request.query_params["page_id"])
         if resource == "sections":
@@ -2846,8 +3129,11 @@ class AdminCMSView(APIView):
         return Response({"resource": resource, "results": [self._row(resource, obj) for obj in queryset[:2000]]})
 
     def post(self, request):
-        _require_capability(request, "content", "add")
         resource = request.data.get("resource")
+        if resource in self.RESOURCE_CAPABILITIES:
+            _require_capability(request, self.RESOURCE_CAPABILITIES[resource][0], "add")
+        else:
+            _require_capability(request, "content", "add")
         model = self.MODELS.get(resource)
         if not model:
             return Response({"detail": "Unknown CMS resource"}, status=400)
@@ -3196,14 +3482,23 @@ class AdminCMSView(APIView):
         return Response({"message": f"Archived “{label}”" + (f" and its {cascade} section(s)" if cascade else ""), "record": self._row(resource, obj)})
 
     def patch(self, request):
-        _require_capability(request, "content", "change")
+        resource = request.data.get("resource")
+        if resource in self.RESOURCE_CAPABILITIES:
+            _require_capability(request, self.RESOURCE_CAPABILITIES[resource][0], "change")
+        else:
+            _require_capability(request, "content", "change")
         # Role-differentiated workflow (spec §11): editing and submitting for
         # review need content.change; approving/publishing/rollback need the
         # stronger content.publish capability (admins always pass).
         if request.data.get("action") in {"publish", "unpublish", "approve", "schedule", "rollback"}:
-            _require_capability(request, "content", "publish")
+            if resource in self.RESOURCE_CAPABILITIES:
+                _require_capability(request, self.RESOURCE_CAPABILITIES[resource][0], "approve")
+            else:
+                _require_capability(request, "content", "publish")
         resource = request.data.get("resource")
         model = self.MODELS.get(resource)
+        if request.data.get("action") == "bulk":
+            return self._bulk_action(request, resource, model)
         obj = model.objects.filter(pk=request.data.get("id")).first() if model else None
         if not obj:
             return Response({"detail": "CMS record not found"}, status=404)
@@ -3302,6 +3597,12 @@ class AdminCMSView(APIView):
             elif resource not in {"pages", "sections"}:
                 return Response({"detail": "Publication workflow applies to pages, sections, or navigation"}, status=400)
             elif action == "schedule":
+                gate = self._publication_gate(resource, obj)
+                if not gate["ok"]:
+                    return Response({
+                        "detail": "Scheduling is blocked until the required CMS checks pass.",
+                        "publication_gate": gate,
+                    }, status=409)
                 from django.utils.dateparse import parse_datetime
                 scheduled = parse_datetime(str(request.data.get("scheduled_publish_at", "")))
                 if scheduled and timezone.is_naive(scheduled):
@@ -3310,6 +3611,12 @@ class AdminCMSView(APIView):
                     return Response({"detail": "Choose a valid future publication time"}, status=400)
                 payload = {"status": "scheduled", "scheduled_publish_at": scheduled, "published_at": None}
             elif action == "publish":
+                gate = self._publication_gate(resource, obj)
+                if not gate["ok"]:
+                    return Response({
+                        "detail": "Publishing is blocked until the required CMS checks pass.",
+                        "publication_gate": gate,
+                    }, status=409)
                 payload = {"status": "published", "published_at": timezone.now(), "scheduled_publish_at": None}
                 if resource == "pages":
                     payload["is_enabled"] = True

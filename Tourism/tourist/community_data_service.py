@@ -452,6 +452,7 @@ def serialize_emergency_record(kind, obj):
         "latitude": float(obj.latitude),
         "longitude": float(obj.longitude),
         "source_url": getattr(obj, "source_url", "") or "",
+        "website": getattr(obj, "website", "") or "",
         "source_name": getattr(obj, "source_name", "") or "",
         "emergency_available": bool(getattr(obj, "emergency_available", False)),
         "image_url": image_url,
@@ -498,6 +499,9 @@ def publish_official_emergency(data, reviewer=None, verified=False):
     province = str(data.get("province") or "").strip()[:120]
     city = str(data.get("city") or data.get("destination") or "").strip()[:120]
     source_url = str(data.get("source_url") or "").strip()
+    website = str(data.get("website") or "").strip()
+    if website and not website.startswith("https://"):
+        raise ValueError("website must use HTTPS")
     if source_url and not source_url.startswith("https://"):
         raise ValueError("source_url must use HTTPS")
     opening_hours = str(data.get("opening_hours") or "")[:160]
@@ -525,7 +529,7 @@ def publish_official_emergency(data, reviewer=None, verified=False):
                 phone=phone, latitude=latitude, longitude=longitude,
                 district=district or (destination.district or ""),
                 opening_hours=opening_hours, source_name="Admin Control Center",
-                source_url=source_url, is_verified=False, verified_at=None, is_archived=False,
+                source_url=source_url, website=str(data.get("website") or "").strip()[:600], is_verified=False, verified_at=None, is_archived=False,
             )
         elif kind == "police":
             obj = PoliceStation.objects.create(
@@ -538,7 +542,7 @@ def publish_official_emergency(data, reviewer=None, verified=False):
             obj = OSMEssentialService.objects.create(
                 osm_id=f"admin/{kind}/{uuid.uuid4().hex[:12]}", category=kind, name=name[:255],
                 phone=phone, latitude=latitude, longitude=longitude, address=address,
-                source_name="Admin Control Center", source_url=source_url,
+                source_name="Admin Control Center", source_url=source_url, website=website[:600],
                 is_verified=False, verified_at=None, opening_hours=opening_hours, is_archived=False,
                 emergency_available=kind in {"fire_station", "ambulance", "blood_bank"},
                 raw_tags={"district": district, "province": province, "city": city, "source": "admin"},
@@ -553,7 +557,7 @@ def publish_official_emergency(data, reviewer=None, verified=False):
                 phone=phone, latitude=latitude, longitude=longitude,
                 district=district or (destination.district or ""),
                 opening_hours=opening_hours, source_name="Admin Control Center",
-                source_url=source_url, is_verified=verified, verified_at=now if verified else None, is_archived=False,
+                source_url=source_url, website=website[:600], is_verified=verified, verified_at=now if verified else None, is_archived=False,
             )
         hospital_fields = [
             "hospital_name", "address", "phone", "latitude", "longitude",
@@ -576,7 +580,7 @@ def publish_official_emergency(data, reviewer=None, verified=False):
                 destination=destination, name=name[:200], address=address or district or "Nepal",
                 phone=phone, latitude=latitude, longitude=longitude,
                 opening_hours=opening_hours, source_name="Admin Control Center",
-                source_url=source_url, is_verified=verified, verified_at=now if verified else None, is_archived=False,
+                source_url=source_url, website=website[:600], is_verified=verified, verified_at=now if verified else None, is_archived=False,
             )
         police_path = ROOT / "Tourism" / "dataset" / "police_station_cleaned.csv"
         police_fields = [
@@ -598,7 +602,7 @@ def publish_official_emergency(data, reviewer=None, verified=False):
             obj = OSMEssentialService.objects.create(
                 osm_id=f"admin/{kind}/{uuid.uuid4().hex[:12]}", category=kind, name=name[:255],
                 phone=phone, latitude=latitude, longitude=longitude, address=address,
-                source_name="Admin Control Center", source_url=source_url,
+                source_name="Admin Control Center", source_url=source_url, website=website[:600],
                 is_verified=verified, verified_at=now if verified else None, opening_hours=opening_hours, is_archived=False,
                 emergency_available=kind in {"fire_station", "ambulance", "blood_bank"},
                 raw_tags={"district": district, "province": province, "city": city, "source": "admin"},
@@ -613,7 +617,7 @@ def publish_official_emergency(data, reviewer=None, verified=False):
     ]
     community_row = {
         "submission_id": f"admin-{kind}-{obj.id}", "place_type": kind, "name": name,
-        "phone": phone, "website": source_url, "address": address, "city": city,
+        "phone": phone, "website": website, "address": address, "city": city,
         "municipality": "", "municipality_type": "", "ward_number": "",
         "district": district, "province": province, "latitude": latitude, "longitude": longitude,
         "destination": destination.name if destination else city,

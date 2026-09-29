@@ -2397,6 +2397,71 @@ class HomepageCMSDraftPublishTests(TestCase):
         self.assertEqual(self._public_section()["title"], "Why travel with Nepal Portal")
 
 
+class CMSBulkAndMediaTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(email='cmsbulk@test.local', password='Pass@12345')
+        self.client.force_authenticate(user=self.admin)
+        self.destination = Destination.objects.create(name='CMS Media Test', slug='cms-media-test')
+        self.media = DestinationImage.objects.create(destination=self.destination, external_url='https://example.com/original.jpg', verification_status='pending')
+        self.page = ManagedPage.objects.create(route='/bulk-test', key='bulk-test', title='Bulk Test', meta_description='A valid page for bulk CMS testing.', seo_title='Bulk Test | Nepal Tourism', og_image_url='https://example.com/og.jpg', status='draft', is_enabled=False, updated_by=self.admin)
+        ContentSection.objects.create(page=self.page, key='hero', title='Hero', body='Valid content', status='published', is_visible=True, updated_by=self.admin)
+
+    def test_media_resource_accepts_https_image_source(self):
+        response = self.client.patch(reverse('admin-cms'), {'resource': 'media', 'id': self.media.id, 'external_url': 'https://images.example.com/nepal.jpg', 'source_url': 'https://example.com/source', 'alt_text': 'Nepal destination', 'caption': 'Verified source'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        self.media.refresh_from_db()
+        self.assertEqual(self.media.external_url, 'https://images.example.com/nepal.jpg')
+
+    def test_media_resource_rejects_non_https_source(self):
+        response = self.client.patch(reverse('admin-cms'), {'resource': 'media', 'id': self.media.id, 'external_url': 'http://bad.example/image.jpg'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_bulk_publish_uses_publication_gate(self):
+        response = self.client.patch(reverse('admin-cms'), {'resource': 'pages', 'action': 'bulk', 'bulk_action': 'publish', 'ids': [self.page.id]}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT, response.content)
+
+class CMSContentMapTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(email="cmsmap@test.local", password="Pass@12345")
+        self.client.force_authenticate(user=self.admin)
+        self.page = ManagedPage.objects.create(
+            route="/content-map-test", key="content-map-test", title="Content Map Test",
+            meta_description="Valid CMS map test", status="draft", is_enabled=False, updated_by=self.admin,
+        )
+        ContentSection.objects.create(
+            page=self.page, key="hero", title="Hero section", body="Map test content",
+            status="published", is_visible=True, display_order=10, updated_by=self.admin,
+        )
+
+    def test_content_map_returns_pages_and_sections(self):
+        response = self.client.get(reverse("admin-cms"), {"resource": "content_map", "q": "content-map-test"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        self.assertEqual(response.data["count"], 1)
+        page = response.data["results"][0]
+        self.assertEqual(page["route"], "/content-map-test")
+        self.assertEqual(page["section_count"], 1)
+        self.assertEqual(page["sections"][0]["title"], "Hero section")
+
+class CMSWorkspaceMapTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(email="cmsworkspace@test.local", password="Pass@12345")
+        self.client.force_authenticate(user=self.admin)
+        self.page = ManagedPage.objects.create(route="/workspace-map", key="workspace-map", title="Workspace Map", status="published", is_enabled=True, meta_description="Workspace map test", updated_by=self.admin)
+        self.section = ContentSection.objects.create(page=self.page, key="shared-hero", title="Shared Hero", body="Reusable content", is_reusable=True, status="published", is_visible=True, cta_url="/destinations", updated_by=self.admin)
+        ManagedNavigationItem.objects.create(location="header", label="Workspace Map", route="/workspace-map", is_active=True)
+
+    def test_reusable_components_resource(self):
+        response = self.client.get(reverse("admin-cms"), {"resource": "reusable_components"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        self.assertTrue(any(item["id"] == self.section.id for item in response.data["results"]))
+
+    def test_dependency_resource_exposes_navigation_and_links(self):
+        response = self.client.get(reverse("admin-cms"), {"resource": "dependencies"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        page = next(item for item in response.data["results"] if item["id"] == self.page.id)
+        self.assertTrue(any(item["route"] == "/workspace-map" for item in page["navigation_items"]))
+        self.assertTrue(any(item["value"] == "/destinations" for item in page["links"]))
+
 class HomepageCMSBlockTypesTests(TestCase):
     """card_grid + packages block types and the seeded draft homepage
     sections (CMS prompt §8/§9): validation, draft gating, publish flow."""
@@ -4492,3 +4557,63 @@ class SeededCmsPlaceholderTests(TestCase):
         untouched.refresh_from_db(); edited_title.refresh_from_db()
         self.assertEqual((untouched.status, untouched.is_visible), ("draft", False))
         self.assertEqual((edited_title.status, edited_title.is_visible), ("published", True))
+
+
+class AdminOperationalCMSRegressionTests(TestCase):
+    """The generic CMS must expose operational records without bypassing
+    their module permissions or accepting unsafe location data."""
+
+    def setUp(self):
+        self.admin = make_superuser()
+        self.client_admin = APIClient()
+        self.client_admin.force_authenticate(user=self.admin)
+        self.category = Category.objects.create(name="CMS Hotel Test", slug="cms-hotel-test")
+        self.destination = Destination.objects.create(
+            name="CMS Operational Place", slug="cms-operational-place",
+            category=self.category, description="Regression destination",
+            latitude=27.7172, longitude=85.3240, status=Destination.SubmissionStatus.APPROVED,
+            is_active=True,
+        )
+
+    def test_hotel_is_editable_through_cms(self):
+        hotel = Hotel.objects.create(destination=self.destination, name="Old Hotel")
+        resp = self.client_admin.patch(
+            "/api/v1/admin/cms/",
+            {"resource": "hotels", "id": hotel.id, "name": "Updated Hotel",
+             "phone": "+977-9800000000", "latitude": 27.718, "longitude": 85.325},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 200, resp.content)
+        hotel.refresh_from_db()
+        self.assertEqual(hotel.name, "Updated Hotel")
+        self.assertEqual(hotel.phone, "+977-9800000000")
+
+    def test_hospital_is_editable_and_coordinates_are_validated(self):
+        hospital = Hospital.objects.create(
+            destination=self.destination, name="Test Hospital", address="Test address",
+            phone="+977-9800000000", latitude=27.7172, longitude=85.3240, district="Kathmandu",
+        )
+        bad = self.client_admin.patch(
+            "/api/v1/admin/cms/",
+            {"resource": "hospitals", "id": hospital.id, "latitude": 999},
+            format="json",
+        )
+        self.assertEqual(bad.status_code, 400)
+        good = self.client_admin.patch(
+            "/api/v1/admin/cms/",
+            {"resource": "hospitals", "id": hospital.id, "phone": "+977-9811111111"},
+            format="json",
+        )
+        self.assertEqual(good.status_code, 200, good.content)
+        hospital.refresh_from_db()
+        self.assertEqual(hospital.phone, "+977-9811111111")
+
+    def test_police_station_is_listed_by_cms(self):
+        PoliceStation = __import__("tourist.models", fromlist=["PoliceStation"]).PoliceStation
+        station = PoliceStation.objects.create(
+            destination=self.destination, name="Test Police", address="Test address",
+            phone="100", latitude=27.7172, longitude=85.3240, district="Kathmandu",
+        )
+        resp = self.client_admin.get("/api/v1/admin/cms/", {"resource": "police_stations"})
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(any(row["id"] == station.id for row in resp.json()["results"]))

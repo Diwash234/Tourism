@@ -35,6 +35,7 @@ class ImageHit:
     thumbnail: str = ""
     source: str = "wikimedia"          # wikimedia | duckduckgo | openverse
     source_page: str = ""
+    source_page_url: str = ""
     author: str = ""
     license: str = ""
     title: str = ""
@@ -170,59 +171,95 @@ def search_openverse(query: str, limit: int = 20, api_key: str = "") -> List[Ima
 # ---------------------------------------------------------------------------
 # Matching / scoring
 # ---------------------------------------------------------------------------
+def _norm(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", (value or "").lower()).strip()
+
+
+def _tokens(value: str) -> set[str]:
+    return {x for x in _norm(value).split() if len(x) >= 3}
+
+
+def _specific_name_tokens(destination) -> set[str]:
+    # The destination's own name is the primary identity. District/province
+    # are context, never substitutes for the destination.
+    return _tokens(getattr(destination, "name", ""))
+
+
 def _build_keywords(destination) -> List[str]:
-    parts = [destination.name, getattr(destination, "district", ""),
-             getattr(destination, "province", ""), getattr(destination, "city", ""),
-             getattr(destination, "municipality", "")]
+    parts = [
+        getattr(destination, "name", ""),
+        getattr(destination, "aliases", ""),
+        getattr(destination, "locality", ""),
+        getattr(destination, "municipality", ""),
+        getattr(destination, "city", ""),
+        getattr(destination, "district", ""),
+        getattr(destination, "province", ""),
+    ]
     cat = destination.category.name if getattr(destination, "category_id", None) else ""
     if cat:
         parts.append(cat)
     return [p.lower().strip() for p in parts if p and len(p.strip()) > 2]
 
 
+def _evidence(hit: ImageHit) -> str:
+    return _norm(" ".join([
+        hit.title or "", hit.source_page or "", hit.source_page_url or "",
+        hit.author or "",
+    ]))
+
+
 def score_hit(hit: ImageHit, destination) -> float:
-    """How likely is this image actually of this destination (0..1)."""
-    kws = _build_keywords(destination)
-    hay = " ".join([hit.title or "", hit.author or "", hit.source_page or "",
-                    hit.license or ""]).lower()
-    if not kws:
-        return 0.4
-    name = kws[0]
-    score = 0.0
-    # exact destination name in title/url is the strongest signal
-    if name in hay:
-        score += 0.55
-    # any other keyword (district / province) adds confidence
-    hits_kw = sum(1 for k in kws[1:] if k and k in hay)
-    score += min(0.35, 0.12 * hits_kw)
-    # source reliability bonus
-    if hit.source == "wikimedia":
-        score += 0.15
-    elif hit.source == "openverse":
-        score += 0.08
-    # width sanity (avoid tiny icons)
-    if hit.width and hit.width >= 600:
-        score += 0.05
-    return min(1.0, score)
+    """Score place identity, with exact/locality evidence required.
+
+    A district-only hit is intentionally insufficient. This fixes the old
+    behavior where every Pokhara locality could inherit a generic Pokhara photo.
+    """
+    own = _specific_name_tokens(destination)
+    aliases = _tokens(getattr(destination, "aliases", ""))
+    locality = _tokens(getattr(destination, "locality", ""))
+    municipality = _tokens(getattr(destination, "municipality", ""))
+    hay_tokens = _tokens(_evidence(hit))
+
+    exact = own and own <= hay_tokens
+    alias = aliases and aliases <= hay_tokens
+    local = locality and locality <= hay_tokens
+
+    if exact or alias or local:
+        score = 0.82
+        if exact:
+            score += 0.08
+        if local and not exact:
+            score += 0.03
+        if hit.source == "wikimedia":
+            score += 0.05
+        elif hit.source == "openverse":
+            score += 0.03
+        if hit.width >= 600:
+            score += 0.02
+        return min(1.0, score)
+
+    # Municipality/city/district/province alone cannot identify a distinct
+    # destination. Keep these as context only and do not return them as safe.
+    return 0.0
 
 
-# ---------------------------------------------------------------------------
-# Public entry point
-# ---------------------------------------------------------------------------
+def _search_query(destination) -> str:
+    name = (getattr(destination, "name", "") or "").strip()
+    locality = (getattr(destination, "locality", "") or "").strip()
+    municipality = (getattr(destination, "municipality", "") or "").strip()
+    district = (getattr(destination, "district", "") or "").strip()
+    # Put the most specific identity first. Do not start with just the
+    # district/city because providers then return generic district imagery.
+    context = locality or municipality or district
+    return f'"{name}" Nepal' + (f' "{context}"' if context and context.lower() != name.lower() else "")
+
+
 def search_destination_images(destination, per_source: int = 12,
                                min_score: float = 0.35,
                                sources=("wikimedia", "duckduckgo", "openverse"),
                                openverse_key: str = "") -> List[ImageHit]:
-    """
-    Search every source, deduplicate, score against the destination, and
-    return only images that pass the match threshold. This guarantees an
-    image for Mustang is actually about Mustang, not Janakpur.
-    """
-    name = destination.name
-    # Use a more specific query than just the name when we have region info.
-    region_bits = [b for b in (getattr(destination, "district", ""),
-                               getattr(destination, "province", "")) if b]
-    query = name + (f", {region_bits[0]}" if region_bits else "")
+    """Search and return only images with destination-level identity evidence."""
+    query = _search_query(destination)
 
     all_hits: List[ImageHit] = []
     source_fns = []
@@ -241,7 +278,6 @@ def search_destination_images(destination, per_source: int = 12,
             except Exception:  # noqa: BLE001
                 pass
 
-    # dedupe by url
     seen = set()
     unique = []
     for h in all_hits:
@@ -250,13 +286,11 @@ def search_destination_images(destination, per_source: int = 12,
         seen.add(h.url)
         unique.append(h)
 
-    # score and filter
     scored = []
     for h in unique:
         h.match_score = score_hit(h, destination)
-        if h.match_score >= min_score:
+        if h.match_score >= max(min_score, 0.85):
             scored.append(h)
-
     scored.sort(key=lambda h: h.match_score, reverse=True)
     return scored
 

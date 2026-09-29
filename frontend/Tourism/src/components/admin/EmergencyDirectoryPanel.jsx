@@ -15,12 +15,13 @@ const KINDS = [
 
 const empty = {
   kind: "hospital", name: "", phone: "", address: "", city: "",
-  district: "", province: "", latitude: "", longitude: "", source_url: "", opening_hours: "",
+  district: "", province: "", latitude: "", longitude: "", source_url: "", website: "", opening_hours: "",
 }
 
 export default function EmergencyDirectoryPanel() {
   const { showToast } = useToast()
   const [form, setForm] = useState(empty)
+  const [formImage, setFormImage] = useState(null)
   const [rows, setRows] = useState([])
   const [pending, setPending] = useState([])
   const [coverage, setCoverage] = useState({})
@@ -30,6 +31,7 @@ export default function EmergencyDirectoryPanel() {
   const [pages, setPages] = useState(1)
   const [editing, setEditing] = useState(null)
   const [editForm, setEditForm] = useState({})
+  const [editImage, setEditImage] = useState(null)
   const [loading, setLoading] = useState(true)
   const [lastUpdatedSec, setLastUpdatedSec] = useState(0)
 
@@ -83,9 +85,11 @@ export default function EmergencyDirectoryPanel() {
   const save = async (event) => {
     event.preventDefault()
     try {
-      const { data } = await adminApi.createEmergencyDirectory(form)
+      const payload = formImage ? (() => { const body = new FormData(); Object.entries(form).forEach(([key, value]) => { if (value !== "" && value != null) body.append(key, value) }); body.append("image", formImage); return body })() : form
+      const { data } = await adminApi.createEmergencyDirectory(payload)
       showToast(data.message || "Saved", "success")
       setForm(empty)
+      setFormImage(null)
       load()
     } catch (error) {
       if (error.response?.status === 409) {
@@ -101,7 +105,7 @@ export default function EmergencyDirectoryPanel() {
     setEditForm({
       name: row.name || "", phone: row.phone || "", address: row.address || "",
       district: row.district || "", opening_hours: row.opening_hours || "",
-      source_name: row.source_name || "", source_url: row.source_url || "",
+      source_name: row.source_name || "", source_url: row.source_url || "", website: row.website || "", image_url: row.image_url || "",
       latitude: row.latitude ?? "", longitude: row.longitude ?? "",
     })
   }
@@ -109,9 +113,10 @@ export default function EmergencyDirectoryPanel() {
   const saveEdit = async (event) => {
     event.preventDefault()
     try {
-      await adminApi.updateEmergencyDirectory({ kind: editing.kind, id: editing.id, ...editForm, action: "update" })
+      const payload = editImage ? (() => { const body = new FormData(); Object.entries({ kind: editing.kind, id: editing.id, ...editForm, action: "update" }).forEach(([key, value]) => { if (value !== "" && value != null && key !== "image_url") body.append(key, value) }); body.append("image", editImage); return body })() : { kind: editing.kind, id: editing.id, ...editForm, action: "update" }; await adminApi.updateEmergencyDirectory(payload)
       showToast("Emergency record updated", "success")
       setEditing(null)
+      setEditImage(null)
       load(page)
     } catch (error) {
       showToast(error.response?.data?.detail || "Could not update record", "error")
@@ -199,6 +204,8 @@ export default function EmergencyDirectoryPanel() {
             <input className="input-field" required placeholder="Latitude" value={form.latitude} onChange={(e) => setForm({ ...form, latitude: e.target.value })} />
             <input className="input-field" required placeholder="Longitude" value={form.longitude} onChange={(e) => setForm({ ...form, longitude: e.target.value })} />
           </div>
+          <input type="file" accept="image/jpeg,image/png,image/webp" className="input-field" onChange={(e) => setFormImage(e.target.files?.[0] || null)} />
+          <input className="input-field" placeholder="Official website (https://…)" value={form.website || ""} onChange={(e) => setForm({ ...form, website: e.target.value })} />
           <input className="input-field" placeholder="HTTPS source URL (optional)" value={form.source_url} onChange={(e) => setForm({ ...form, source_url: e.target.value })} />
           <button type="submit" className="w-full rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black py-2 flex items-center justify-center gap-2">
             <FiPlus /> Save to database & CSV
@@ -212,7 +219,7 @@ export default function EmergencyDirectoryPanel() {
               <div key={`${row.kind}-${row.id}`} className="rounded-xl border border-slate-200 p-3">
                 <p className="font-bold text-slate-900">{row.name}</p>
                 <p className="text-xs text-slate-500">{row.kind} · {row.district || row.destination_name || "Nepal"} · {row.phone || "no phone"}{row.is_archived ? " · archived" : ""}{row.verified ? " · verified" : ""}</p>
-                <p className="text-xs text-slate-500">{row.latitude}, {row.longitude}</p>
+                <p className="text-xs text-slate-500">{row.latitude}, {row.longitude}</p>{row.website && <a href={row.website} target="_blank" rel="noreferrer" className="text-xs font-semibold text-blue-700 underline">Official website</a>}
                  <p className="text-[10px] text-slate-400">Source: {row.source_name || "Not recorded"} · Updated {row.updated_at ? new Date(row.updated_at).toLocaleString() : "unknown"}</p>
                  <div className="flex gap-2 mt-2">
                    <button type="button" onClick={() => openEdit(row)} className="inline-flex items-center gap-1 text-xs font-bold text-slate-700"><FiEdit3 /> Edit</button>
@@ -246,7 +253,7 @@ export default function EmergencyDirectoryPanel() {
               <label className="text-xs font-bold">District<input className="input-field mt-1" value={editForm.district} onChange={(e) => setEditForm({ ...editForm, district: e.target.value })} /></label>
               <label className="text-xs font-bold">Opening hours<input className="input-field mt-1" value={editForm.opening_hours} onChange={(e) => setEditForm({ ...editForm, opening_hours: e.target.value })} /></label>
               <label className="text-xs font-bold">Source name<input className="input-field mt-1" value={editForm.source_name} onChange={(e) => setEditForm({ ...editForm, source_name: e.target.value })} /></label>
-              <label className="text-xs font-bold">Source URL<input type="url" className="input-field mt-1" value={editForm.source_url} onChange={(e) => setEditForm({ ...editForm, source_url: e.target.value })} /></label>
+              <label className="text-xs font-bold">Facility image<input type="file" accept="image/jpeg,image/png,image/webp" className="input-field mt-1" onChange={(e) => setEditImage(e.target.files?.[0] || null)} /></label><label className="text-xs font-bold">Official website<input type="url" className="input-field mt-1" value={editForm.website} onChange={(e) => setEditForm({ ...editForm, website: e.target.value })} placeholder="https://hospital.example.np" /></label><label className="text-xs font-bold">Source URL<input type="url" className="input-field mt-1" value={editForm.source_url} onChange={(e) => setEditForm({ ...editForm, source_url: e.target.value })} /></label>
               <label className="text-xs font-bold">Latitude<input required type="number" step="any" className="input-field mt-1" value={editForm.latitude} onChange={(e) => setEditForm({ ...editForm, latitude: e.target.value })} /></label>
               <label className="text-xs font-bold">Longitude<input required type="number" step="any" className="input-field mt-1" value={editForm.longitude} onChange={(e) => setEditForm({ ...editForm, longitude: e.target.value })} /></label>
             </div>

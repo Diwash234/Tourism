@@ -340,7 +340,7 @@ class RestaurantSerializer(UsablePhoneMixin, serializers.ModelSerializer):
         model = Restaurant
         fields = ["id", "destination", "destination_name", "name", "cuisine_types", "description", "address",
                   "phone", "website", "opening_hours", "price_range", "latitude", "longitude",
-                  "vegetarian_friendly", "image_url", "source_name", "source_url", "is_verified", "status", "updated_at"]
+                  "vegetarian_friendly", "image_url", "source_name", "source_url", "website", "is_verified", "status", "updated_at"]
         read_only_fields = ["is_verified", "status", "updated_at"]
 
 
@@ -970,8 +970,8 @@ def is_destination_specific_image(destination, photo):
     conflicts = {place for place in known_places if place in evidence and place not in allowed}
     if conflicts and not own_match:
         return False
-    # Unknown/hash-based external URLs remain visible as destination-linked,
-    # but retain their pending/unverified badge for admin moderation.
+    # Unknown/hash-based URLs remain visible only as a fallback. They are
+    # never promoted over an exact verified place match.
     return True
 
 

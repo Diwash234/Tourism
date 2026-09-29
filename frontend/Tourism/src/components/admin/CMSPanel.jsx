@@ -6,10 +6,31 @@ import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
 import RichTextEditor from "./RichTextEditor"
 import CMSBlock, { CMSExtras } from "../cms/CMSBlock"
-import SafeHtml from "../cms/SafeHtml"
 
-const resources = ["pages", "sections", "navigation", "settings", "translations"]
-const RESOURCE_LABELS = { pages: "Pages", sections: "Sections", navigation: "Header, Navigation & Menus", settings: "Site Settings & Branding", translations: "Translations" }
+const resources = ["content_map", "dependencies", "reusable_components", "pages", "sections", "navigation", "settings", "translations", "media", "destinations", "announcements", "hotels", "hospitals", "police_stations"]
+const resourceGroups = [{ label: "Website", items: ["content_map", "dependencies", "reusable_components", "pages", "sections", "navigation", "settings", "translations", "media"] }, { label: "Travel Content", items: ["destinations", "announcements"] }, { label: "Travel & Hospitality", items: ["hotels"] }, { label: "Safety & Emergency", items: ["hospitals", "police_stations"] }]
+
+const workflowBar = (current) => (
+  <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-emerald-100 bg-emerald-50 p-2">
+    {CMS_WORKFLOW_STEPS.map((step, index) => (
+      <div key={step} className={`rounded-lg px-2.5 py-1 text-[10px] font-black ${index === current ? "bg-emerald-700 text-white" : "text-emerald-900/60"}`}>
+        {index + 1}. {step}
+      </div>
+    ))}
+  </div>
+)
+
+const CMS_FIELD_GROUPS = {
+  pages: ["title", "slug", "route", "status", "seo_title", "meta_description", "hero_image_url", "is_indexable"],
+  sections: ["page_id", "title", "section_type", "sort_order", "is_visible"],
+  hotels: ["destination_id", "name", "address", "phone", "website", "latitude", "longitude", "price_per_night", "rating", "is_verified", "is_active"],
+  hospitals: ["destination_id", "name", "address", "phone", "latitude", "longitude", "opening_hours", "emergency_available", "is_verified"],
+  police_stations: ["destination_id", "name", "address", "phone", "latitude", "longitude", "opening_hours", "emergency_available", "is_verified"],
+}
+
+const CMS_WORKFLOW_STEPS = ["Edit", "Validate", "Preview", "Publish"]
+
+const RESOURCE_LABELS = { content_map: "Site Content Map", dependencies: "Page Dependencies", reusable_components: "Reusable Components", pages: "Pages", sections: "Sections", navigation: "Header, Navigation & Menus", settings: "Site Settings & Branding", translations: "Translations", media: "Media Library & Image Sources", destinations: "Destinations", announcements: "Visitor Notices", hotels: "Hotels", hospitals: "Hospitals", police_stations: "Police Stations" }
 const sectionTypes = ["text", "heading", "image", "gallery", "cards", "faq", "cta", "map", "video", "audio", "marquee", "animation", "media", "form", "table", "figure", "testimonials", "contact", "breadcrumbs", "search"]
 const fallbackTemplates = {
   blank: { label: "Blank" },
@@ -22,11 +43,18 @@ const fallbackTemplates = {
   footer: { label: "Site Footer" },
 }
 const templates = {
+  content_map: {},
   settings: { key: "", value: {}, description: "", is_public: true },
   pages: { route: "/", key: "new-page", title: "New page", meta_description: "", seo_title: "", og_image_url: "", search_visible: true, is_enabled: true, status: "draft" },
   sections: { page_id: null, key: "new-section", title: "New section", subtitle: "", body: "", image_url: "", cta_text: "", cta_url: "", icon: "", section_type: "text", layout_variant: "default", config: {}, display_order: 0, is_visible: true, is_reusable: false, status: "draft" },
   navigation: { location: "navbar", label: "New link", route: "/", icon: "", parent_id: null, allowed_roles: [], display_order: 0, is_active: true },
   translations: { target_resource: "pages", object_id: null, language_code: "ne", content: { title: "" } },
+  hotels: { destination_id: null, name: "", phone: "", price_per_night: "", currency: "NPR", rating: "", booking_status: "unknown", booking_url: "", external_image_url: "", facilities: [], address: "", latitude: "", longitude: "", source: "manual", source_url: "", website: "", is_verified: false, is_active: true },
+  hospitals: { destination_id: null, name: "", address: "", phone: "", latitude: "", longitude: "", district: "", opening_hours: "", emergency_available: false, source_name: "", source_url: "", website: "", is_verified: false, is_archived: false },
+  police_stations: { destination_id: null, name: "", address: "", phone: "", latitude: "", longitude: "", opening_hours: "", emergency_available: false, source_name: "", source_url: "", website: "", is_verified: false, is_archived: false },
+  media: { destination_id: null, external_url: "", source_url: "", caption: "", alt_text: "", photographer: "", license_type: "", verification_status: "pending", is_verified: false, is_cover: false, ordering: 0 },
+  destinations: { name: "", slug: "", description: "", short_description: "", district: "", province: "", city_english: "", latitude: "", longitude: "", status: "draft", seo_title: "", meta_description: "", og_image_url: "" },
+  announcements: { title: "", message: "", level: "info", is_active: true },
 }
 const clean = (row) => Object.fromEntries(Object.entries(row || {}).filter(([key]) => !["updated_at", "published_at", "scheduled_publish_at"].includes(key)))
 const displayName = (row) => {
@@ -35,21 +63,14 @@ const displayName = (row) => {
   return name
 }
 
-// Dashboard sections that open this editor on a specific resource. Anything
-// unknown falls back to Pages instead of requesting a resource the CMS API
-// does not have (which used to render an empty, broken editor).
-const RESOURCE_ALIASES = { seo_metadata: "pages", publishing: "pages", global_content: "settings", announcements: "sections" }
-const resolveResource = (value) => {
-  const name = RESOURCE_ALIASES[value] || value
-  return resources.includes(name) ? name : "pages"
-}
-
-export default function CMSPanel({ defaultResource = "pages" }) {
+export default function CMSPanel() {
   const { showToast } = useToast()
-  const [resource, setResource] = useState(() => resolveResource(defaultResource))
+  const [resource, setResource] = useState("pages")
   const [rows, setRows] = useState([])
   const [pageRows, setPageRows] = useState([])
   const [sectionPageId, setSectionPageId] = useState("")
+  const [selectedIds, setSelectedIds] = useState([])
+  const [bulkBusy, setBulkBusy] = useState(false)
   // Record-list search / status filter / sort (brief §22/§88) — client-side
   // over the loaded rows; reordering always operates on the FULL row order.
   const [listQuery, setListQuery] = useState("")
@@ -108,7 +129,31 @@ export default function CMSPanel({ defaultResource = "pages" }) {
   const [cloneSource, setCloneSource] = useState("")
   const [builderTick, setBuilderTick] = useState(0)
   const [layoutUrl, setLayoutUrl] = useState("")
+  const autosaveKey = selected?.id ? `tourism-cms-draft:${resource}:${selected.id}` : null
+  const [autosaveAt, setAutosaveAt] = useState(null)
+  const [autosaveEnabled, setAutosaveEnabled] = useState(true)
+  const [bulkSelected, setBulkSelected] = useState([])
+  const [focusMode, setFocusMode] = useState(false)
+  const [contentMap, setContentMap] = useState([])
   const dirty = Boolean(selected) && json !== savedJson
+
+  useEffect(() => {
+    if (!autosaveEnabled || !autosaveKey || !dirty) return
+    const timer = window.setTimeout(() => {
+      try {
+        localStorage.setItem(autosaveKey, json)
+        setAutosaveAt(new Date().toISOString())
+      } catch { /* local autosave is best-effort */ }
+    }, 1200)
+    return () => window.clearTimeout(timer)
+  }, [json, dirty, autosaveEnabled, autosaveKey])
+
+  const toggleBulk = (id) => setBulkSelected((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])
+  const toggleAllVisible = () => {
+    const ids = rows.map((row) => row.id).filter(Boolean)
+    setBulkSelected((prev) => ids.every((id) => prev.includes(id)) ? prev.filter((id) => !ids.includes(id)) : Array.from(new Set([...prev, ...ids])))
+  }
+
   const dirtyRef = useRef(false)
   // Refs must not be written during render (react-hooks/refs); mirror the
   // dirty flag in an effect — callbacks below read it outside of render.
@@ -117,6 +162,18 @@ export default function CMSPanel({ defaultResource = "pages" }) {
   const confirmLeave = () => !dirtyRef.current || window.confirm("You have unsaved changes.\n\nStay on this record or discard the changes?")
 
   const applyRow = (row) => {
+    const draftKey = row?.id ? `tourism-cms-draft:${resource}:${row.id}` : null
+    if (draftKey) {
+      try {
+        const localDraft = localStorage.getItem(draftKey)
+        if (localDraft && localDraft !== JSON.stringify(clean(row), null, 2) && window.confirm("A newer local autosave exists for this record. Restore it?")) {
+          setSelected(row)
+          setJson(localDraft)
+          setSavedJson(JSON.stringify(clean(row), null, 2))
+          return
+        }
+      } catch { /* local autosave is best-effort */ }
+    }
     const next = JSON.stringify(clean(row), null, 2)
     // Loading a different record starts a fresh undo history.
     pastRef.current = []
@@ -141,8 +198,9 @@ export default function CMSPanel({ defaultResource = "pages" }) {
 
   const load = async (keepId) => {
     try {
-      const { data } = await adminApi.getCMS(resource, resource === "sections" && sectionPageId ? { page_id: sectionPageId } : undefined)
+      const { data } = await adminApi.getCMS(resource === "content_map" ? "content_map" : resource, resource === "sections" && sectionPageId ? { page_id: sectionPageId } : undefined)
       setRows(data.results || [])
+      if (resource === "content_map") setContentMap(data.results || [])
       if (resource === "pages") setPageRows(data.results || [])
       if (keepId) {
         const current = (data.results || []).find(row => row.id === keepId)
@@ -166,6 +224,7 @@ export default function CMSPanel({ defaultResource = "pages" }) {
     setListQuery("")
     setStatusFilter("all")
     setSortMode("default")
+    setSelectedIds([])
     load()
     }, 0)
     return () => clearTimeout(t)
@@ -201,8 +260,29 @@ export default function CMSPanel({ defaultResource = "pages" }) {
     setResource(next)
   }
 
+  const toggleSelected = (id) => setSelectedIds((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id])
+  const bulkAction = async (action) => {
+    if (!selectedIds.length || !window.confirm(`Apply “${action}” to ${selectedIds.length} selected ${RESOURCE_LABELS[resource]} record(s)?`)) return
+    setBulkBusy(true)
+    try {
+      const response = await adminApi.runCMSAction({ resource, action: "bulk", ids: selectedIds, bulk_action: action })
+      showToast(response.data?.message || "Bulk action complete", "success")
+      setSelectedIds([])
+      await load()
+      notifyCmsUpdated()
+    } catch (error) {
+      const blocked = error.response?.data?.blocked
+      showToast(blocked?.length ? `${blocked.length} record(s) failed the publication gate` : error.response?.data?.detail || "Bulk action failed", "error")
+    } finally { setBulkBusy(false) }
+  }
+
   const choose = (row) => {
     if (!confirmLeave()) return
+    if (resource === "content_map") {
+      setResource("pages")
+      window.setTimeout(() => applyRow({ ...row, resource: "pages" }), 0)
+      return
+    }
     applyRow(row)
   }
 
@@ -225,6 +305,43 @@ export default function CMSPanel({ defaultResource = "pages" }) {
     } finally {
       setBusy(false)
     }
+  }
+
+  const openReusableComponent = (component) => {
+    if (!confirmLeave()) return
+    setResource("sections")
+    setSectionPageId("")
+    applyRow({
+      ...component,
+      is_reusable: true,
+      section_type: component.section_type || "custom",
+      config: component.config || {},
+      body: component.body || "",
+    })
+  }
+
+  const dedicatedModules = [
+    ["homepage_manager", "Homepage / Hero", "Homepage sections, featured content and hero controls"],
+    ["header_navbar", "Header & Navbar", "Global navigation, menus and header controls"],
+    ["redirects", "Redirects & URLs", "301/302 redirects and old routes"],
+    ["branding", "Branding & Theme", "Colors, typography, logo and global theme"],
+    ["media_library", "Central Media Library", "Search, review and manage site media"],
+    ["images", "Image Verification", "Destination image verification and metadata"],
+    ["emergency_directory", "Emergency Directory", "Hospitals, police and emergency contacts"],
+    ["safety_management", "Safety & Alerts", "Risk alerts and safety content"],
+    ["visitor_desk", "Visitor Notices", "Notices, closures, festivals and featured places"],
+    ["content_translations", "Translations", "Multilingual content management"],
+  ]
+  const openDedicatedModule = (section) => {
+    if (!confirmLeave()) return
+    window.location.assign(`/admin?section=${section}`)
+  }
+
+  const jumpToSection = (page, section) => {
+    if (!confirmLeave()) return
+    setResource("sections")
+    setSectionPageId(String(page.id))
+    window.setTimeout(() => applyRow({ ...section, page_id: page.id, page_title: page.title, page_route: page.route }), 0)
   }
 
   const createNew = () => {
@@ -289,9 +406,31 @@ export default function CMSPanel({ defaultResource = "pages" }) {
     "Published live to user site!"
   )
   const workflow = (action, extra = {}) => execute(
-    () => adminApi.runCMSAction({ resource, id: selected.id, action, ...extra }),
-    `${action} complete`
+    async () => {
+      const response = await adminApi.runCMSAction({ resource, id: selected.id, action, ...extra })
+      if (action === "publish") notifyCmsUpdated()
+      return response
+    },
+    "CMS workflow action complete"
   )
+  const supportsWorkflow = ["pages", "sections"].includes(resource) && selected?.id
+
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault()
+        if (dirty) save()
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "enter") {
+        event.preventDefault()
+        if (selected?.id && supportsWorkflow) workflow("publish")
+      }
+      if (event.key === "Escape") setFocusMode(false)
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [dirty, selected?.id, resource])
+
   const showPreview = async () => {
     if (!selected?.id) return showToast("Save this draft before previewing it", "info")
     try {
@@ -331,8 +470,6 @@ export default function CMSPanel({ defaultResource = "pages" }) {
     showHistory()
   }
 
-  const supportsWorkflow = ["pages", "sections"].includes(resource) && selected?.id
-
   // Filtered/sorted view of the record list (brief §22/§88). Reordering and
   // saving always use the full `rows` array — this is display-only.
   const statuses = ["all", ...Array.from(new Set(rows.map((r) => r.status).filter(Boolean)))]
@@ -351,23 +488,120 @@ export default function CMSPanel({ defaultResource = "pages" }) {
     })
 
   return (
-    <div className="space-y-4 text-slate-900">
+    <div className="space-y-5 text-slate-900">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs">
+        <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
+          <div className="mb-3">
+            <h2 className="text-sm font-black text-emerald-950">Dedicated Website Controls</h2>
+            <p className="text-[11px] text-emerald-900/70">Use purpose-built modules for global website controls instead of searching page JSON.</p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2">
+            {dedicatedModules.map(([id, label, description]) => (
+              <button key={id} type="button" onClick={() => openDedicatedModule(id)} className="rounded-xl border border-emerald-200 bg-white p-3 text-left hover:border-emerald-500 hover:shadow-sm">
+                <div className="text-[11px] font-black text-emerald-900">{label}</div>
+                <div className="mt-1 text-[10px] leading-4 text-slate-500">{description}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {resource === "dependencies" && (
+          <div className="mb-4 rounded-2xl border border-sky-200 bg-white p-4 shadow-sm">
+            <h2 className="text-base font-black text-sky-950">Page Dependencies</h2>
+            <p className="mb-3 text-xs text-slate-500">See routes, navigation entries, CTAs and SEO dependencies before changing a page.</p>
+            <div className="space-y-2">
+              {rows.map((page) => (
+                <div key={page.id} className="rounded-xl border border-slate-200 p-3">
+                  <div className="flex flex-wrap justify-between gap-2">
+                    <button onClick={() => { setResource("pages"); applyRow(page) }} className="text-left">
+                      <div className="text-sm font-black">{page.title}</div>
+                      <div className="text-[11px] text-slate-500">{page.route} · {page.status}</div>
+                    </button>
+                    <span className="text-[10px] font-bold text-slate-500">{page.navigation_items.length} navigation link(s) · {page.links.length} content link(s)</span>
+                  </div>
+                  {page.navigation_items.length > 0 && <div className="mt-2 flex flex-wrap gap-1">{page.navigation_items.map(item => <span key={item.id} className="rounded-full bg-emerald-50 px-2 py-1 text-[10px]">{item.label} · {item.location}</span>)}</div>}
+                  {page.links.length > 0 && <div className="mt-2 space-y-1">{page.links.slice(0, 8).map((link, index) => <div key={index} className="truncate text-[10px] text-slate-500">{link.source} → {link.value}</div>)}</div>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {resource === "reusable_components" && (
+          <div className="mb-4 rounded-2xl border border-violet-200 bg-white p-4 shadow-sm">
+            <h2 className="text-base font-black text-violet-950">Reusable Components</h2>
+            <p className="mb-3 text-xs text-slate-500">Reusable published sections can become shared building blocks for multiple pages.</p>
+            <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+              {rows.filter(row => row.is_reusable).map(row => (
+                <button key={row.id} onClick={() => openReusableComponent(row)} className="rounded-xl border border-slate-200 p-3 text-left hover:border-violet-400">
+                  <div className="text-sm font-black">{row.title || row.key}</div>
+                  <div className="text-[10px] text-slate-500">{row.section_type} · {row.status} · {row.key}</div>
+                </button>
+              ))}
+              {rows.filter(row => row.is_reusable).length === 0 && <div className="text-xs text-slate-500">No reusable components yet. Mark a section as reusable from the section editor.</div>}
+            </div>
+          </div>
+        )}
+
+        {resource === "content_map" && (
+          <div className="mb-4 rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 className="text-base font-black text-emerald-950">Site Content Map</h2>
+                <p className="text-xs text-slate-500">Search the entire managed website without opening pages one by one.</p>
+              </div>
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">{contentMap.length} pages</span>
+            </div>
+            <div className="space-y-2">
+              {contentMap.map((page) => (
+                <div key={page.id} className="rounded-xl border border-slate-200 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <button type="button" onClick={() => choose(page)} className="text-left">
+                      <div className="text-sm font-black">{page.title || page.key}</div>
+                      <div className="text-[11px] text-slate-500">{page.route} · {page.section_count} sections</div>
+                    </button>
+                    <div className="flex gap-1 text-[10px] font-bold">
+                      <span className="rounded-full bg-slate-100 px-2 py-1">{page.status}</span>
+                      <span className={`rounded-full px-2 py-1 ${page.publication_gate.ok ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>{page.publication_gate.ok ? "Publish ready" : `${page.publication_gate.blockers} blockers`}</span>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {page.sections.map((section) => (
+                      <button key={section.id} type="button" onClick={() => jumpToSection(page, section)} className="rounded-lg border bg-slate-50 px-2 py-1 text-[10px] hover:bg-emerald-50">
+                        {section.display_order}. {section.title || section.key} · {section.status}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-black text-slate-700">Editor controls</span>
+          <label className="flex items-center gap-1.5"><input type="checkbox" checked={autosaveEnabled} onChange={(e) => setAutosaveEnabled(e.target.checked)} /> Autosave local draft</label>
+          <button type="button" onClick={() => setFocusMode((v) => !v)} className="rounded-lg border px-2 py-1 font-bold hover:bg-slate-50">{focusMode ? "Exit focus mode" : "Focus mode"}</button>
+        </div>
+        <span className="text-slate-400">{autosaveAt ? `Autosaved ${new Date(autosaveAt).toLocaleTimeString()}` : "Autosave waiting for edits"} · Ctrl/Cmd+S save · Ctrl/Cmd+Enter publish</span>
+      </div>
+      {workflowBar(dirty ? 0 : 1)}
       <header>
-        <h2 className="text-2xl font-black">Pages, sections and navigation</h2>
-        <p className="text-xs text-slate-500">Edit website content without code. Draft, preview, publish, and restore previous versions.</p>
+        <h2 className="text-2xl font-black">Advanced CMS Workspace</h2>
+        <p className="text-xs text-slate-500">Central control for website content, layouts, navigation, hospitality and safety records. Draft, preview, publish, schedule and restore changes with audit history.</p>
         {dirty && <p className="mt-2 text-xs font-bold text-amber-700">You have unsaved changes.</p>}
       </header>
       <div className="grid lg:grid-cols-[180px_240px_1fr] xl:grid-cols-[220px_300px_1fr] gap-4">
         <aside className="bg-white border border-emerald-200 rounded-2xl p-3 h-fit">
-          {resources.map(item => (
+          {resourceGroups.map((group) => <div key={group.label} className="mb-4 last:mb-0"><div className="px-2 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-400">{group.label}</div>{group.items.map(item => (
             <button
               key={item}
               onClick={() => switchResource(item)}
-              className={`block w-full text-left capitalize px-3 py-2.5 rounded-xl mb-1 ${resource === item ? "bg-emerald-700 text-white font-black" : "text-slate-700 hover:bg-emerald-50"}`}
+              className={`block w-full text-left capitalize px-3 py-2.5 rounded-xl mb-1 ${resource === item ? "bg-emerald-700 text-white font-black" : "text-slate-300 hover:bg-emerald-50"}`}
             >
               {RESOURCE_LABELS[item]}
             </button>
-          ))}
+          ))}</div>)}
           <button onClick={createNew} className="mt-4 w-full px-3 py-2.5 bg-emerald-700 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2">
             <FiFilePlus /> New {resource.slice(0, -1)}
           </button>
@@ -411,11 +645,26 @@ export default function CMSPanel({ defaultResource = "pages" }) {
               <p className="text-[10px] font-bold text-slate-500">Showing {visibleRows.length} of {rows.length}</p>
             )}
           </div>
+          {visibleRows.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 border-b border-emerald-100 bg-emerald-50 p-2">
+              <button type="button" onClick={toggleAllVisible} className="rounded-lg border bg-white px-2 py-1 text-[10px] font-bold">
+                {visibleRows.length && visibleRows.every((row) => selectedIds.includes(row.id)) ? "Clear visible" : "Select visible"}
+              </button>
+              {selectedIds.length > 0 && <span className="text-[10px] font-black text-emerald-800">{selectedIds.length} selected</span>}
+              {selectedIds.length > 0 && <button disabled={bulkBusy} onClick={() => bulkAction("publish")} className="rounded-lg bg-emerald-700 px-2 py-1 text-[10px] font-bold text-white">Publish</button>}
+              {selectedIds.length > 0 && <button disabled={bulkBusy} onClick={() => bulkAction("unpublish")} className="rounded-lg bg-amber-700 px-2 py-1 text-[10px] font-bold text-white">Unpublish</button>}
+              {selectedIds.length > 0 && <button disabled={bulkBusy} onClick={() => bulkAction("activate")} className="rounded-lg bg-sky-700 px-2 py-1 text-[10px] font-bold text-white">Activate</button>}
+              {selectedIds.length > 0 && <button disabled={bulkBusy} onClick={() => bulkAction("deactivate")} className="rounded-lg bg-slate-700 px-2 py-1 text-[10px] font-bold text-white">Deactivate</button>}
+            </div>
+          )}
           <div className="overflow-y-auto max-h-[58vh] p-2 space-y-1">
             {rows.length === 0 && <p className="p-6 text-center text-sm text-slate-500">No records found.</p>}
             {rows.length > 0 && visibleRows.length === 0 && <p className="p-6 text-center text-sm text-slate-500">No records match the filter.</p>}
             {visibleRows.map((row) => (
               <div key={row.id} className="flex items-stretch gap-1">
+                <label className="flex items-center px-1" onClick={(event) => event.stopPropagation()}>
+                  <input type="checkbox" checked={selectedIds.includes(row.id)} onChange={() => toggleSelected(row.id)} aria-label={`Select ${displayName(row)}`} />
+                </label>
                 <button onClick={() => choose(row)} className={`block flex-1 min-w-0 text-left p-3 rounded-xl text-xs ${selected?.id === row.id ? "bg-emerald-50 ring-1 ring-emerald-600" : "bg-slate-50 hover:bg-emerald-50"}`}>
                   <span className="font-bold text-slate-900">{displayName(row)}</span>
                   <span className="flex justify-between mt-1 text-[10px] text-slate-500">
@@ -553,7 +802,7 @@ export default function CMSPanel({ defaultResource = "pages" }) {
                         <CMSExtras sections={preview.sections} />
                       </div>
                     )}
-                    {!preview.sections && <SafeHtml html={preview.body || ""} className="prose prose-sm mt-5" />}
+                    {!preview.sections && <div className="prose prose-sm mt-5" dangerouslySetInnerHTML={{ __html: preview.body || "" }} />}
                   </div>
                 )}
               </div>
@@ -620,6 +869,21 @@ export default function CMSPanel({ defaultResource = "pages" }) {
             <p className="text-xs text-slate-500 mt-1 mb-4">
               {health.section_count} section(s) · {health.draft_sections} draft(s) · {health.warning_count} warning(s)
             </p>
+            {health.publication_gate && (
+              <div className={`mb-4 rounded-xl border p-3 ${health.publication_gate.ok ? "border-emerald-200 bg-emerald-50" : "border-rose-200 bg-rose-50"}`}>
+                <p className="text-xs font-black">{health.publication_gate.ok ? "Publication gate ready" : "Publication blocked"}</p>
+                {!!health.publication_gate.blockers?.length && (
+                  <ul className="mt-2 space-y-1 text-[11px] text-rose-800">
+                    {health.publication_gate.blockers.map((item) => <li key={item.code}>✕ {item.message}</li>)}
+                  </ul>
+                )}
+                {!!health.publication_gate.warnings?.length && (
+                  <ul className="mt-2 space-y-1 text-[11px] text-amber-800">
+                    {health.publication_gate.warnings.map((item) => <li key={item.code}>⚠ {item.message}</li>)}
+                  </ul>
+                )}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-2 mb-4">
               {Object.entries(health.checks || {}).map(([name, state]) => (
                 <div key={name} className={`rounded-xl border px-3 py-2 text-xs font-bold capitalize ${state === "ok" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-300 bg-amber-50 text-amber-800"}`}>
@@ -957,6 +1221,42 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
     </div>
   )
   if (resource === "navigation") return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2"><label className="text-xs font-semibold text-slate-700">Location<select className="input-field mt-1" value={value.location || "navbar"} onChange={e => set("location", e.target.value)}><option>navbar</option><option>sidebar</option><option>footer</option></select></label>{field("label", "Visible label")}{field("route", "Internal route")}{field("parent_id", "Parent item ID")}{field("icon", "Icon")}{field("display_order", "Display order", "number")}<label className="text-xs font-semibold text-slate-700">Allowed roles (comma separated)<input className="input-field mt-1" value={(value.allowed_roles || []).join(", ")} onChange={e => set("allowed_roles", e.target.value.split(",").map(x => x.trim()).filter(Boolean))} /></label>{field("is_active", "Active", "checkbox")}</div>
+  if (["hotels", "hospitals", "police_stations"].includes(resource)) {
+    const isHotel = resource === "hotels"
+    return (
+      <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">
+        {field("destination_id", "Destination ID", "number")}
+        {field("name", isHotel ? "Hotel name" : resource === "hospitals" ? "Hospital name" : "Police station name")}
+        {field("address", "Address")}
+        {field("phone", "Phone number", "tel")}
+        {field("latitude", "Latitude", "number")}
+        {field("longitude", "Longitude", "number")}
+        {!isHotel && field("district", "District")}
+        {field("opening_hours", "Opening / availability hours")}
+        {field("website", "Website URL")}
+        {field("source_url", "Verification/source URL")}
+        {field("source_name", "Source / authority")}
+        {isHotel && <>
+          {field("price_per_night", "Price per night", "number")}
+          {field("currency", "Currency")}
+          {field("rating", "Rating", "number")}
+          <label className="text-xs font-semibold text-slate-700">Booking status
+            <select className="input-field mt-1" value={value.booking_status || "unknown"} onChange={e => set("booking_status", e.target.value)}>
+              <option value="unknown">Unknown</option><option value="available">Available</option><option value="unavailable">Unavailable</option>
+            </select>
+          </label>
+          {field("booking_url", "Booking URL")}
+          {field("external_image_url", "Hotel image URL")}
+          <label className="text-xs font-semibold text-slate-700 sm:col-span-2">Facilities (JSON array)
+            <textarea rows="3" className="input-field mt-1 font-mono" value={JSON.stringify(value.facilities || [], null, 2)} onChange={e => { try { set("facilities", JSON.parse(e.target.value)) } catch { /* keep until valid */ } }} />
+          </label>
+        </>}
+        <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={Boolean(value.emergency_available)} onChange={e => set("emergency_available", e.target.checked)} /> Emergency service available</label>
+        <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={Boolean(value.is_verified)} onChange={e => set("is_verified", e.target.checked)} /> Verified</label>
+        <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={Boolean(isHotel ? value.is_active : !value.is_archived)} onChange={e => set(isHotel ? "is_active" : "is_archived", isHotel ? e.target.checked : !e.target.checked)} /> Public/active</label>
+      </div>
+    )
+  }
   if (resource === "translations") return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">{field("target_resource", "Target type")}{field("object_id", "Target record ID", "number")}{field("language_code", "Language code")}<label className="text-xs font-semibold text-slate-700">Translated fields<textarea rows="5" className="input-field mt-1 font-mono" value={JSON.stringify(value.content || {}, null, 2)} onChange={e => { try { set("content", JSON.parse(e.target.value)) } catch { /* keep until valid */ } }} /></label></div>
   return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">{field("key", "Setting key")}{field("description", "Description")}{field("is_public", "Public setting", "checkbox")}<label className="text-xs font-semibold text-slate-700">Structured value<textarea rows="6" className="input-field mt-1 font-mono" value={JSON.stringify(value.value || {}, null, 2)} onChange={e => { try { set("value", JSON.parse(e.target.value)) } catch { /* keep until valid */ } }} /></label></div>
 }
@@ -1362,11 +1662,11 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
         resource: "sections",
         id: draft.id,
         ...draft,
-        status: "published",
+        status: draft.status || "draft",
         is_visible: Boolean(draft.is_visible),
       })
       notifyCmsUpdated()
-      onToast("Section saved & published live!", "success")
+      onToast(draft.status === "published" ? "Section published live" : "Section saved as draft", "success")
       setOpenId(null)
       setDraft(null)
       loadSections()
@@ -1423,7 +1723,7 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
               <span className="font-black text-emerald-800">{index + 1}</span>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-bold">{section.title || section.key}</p>
-                <p className="text-[10px] uppercase tracking-widest text-slate-500">{section.key} · {section.section_type || "text"} · {section.status}{section.is_visible === false ? " · hidden" : ""}</p>
+                <p className="text-[10px] uppercase tracking-widest text-slate-500">{section.key} · {section.section_type || "text"} · {section.status || "draft"}{section.is_visible === false ? " · hidden" : ""}</p>
               </div>
               <button type="button" onClick={() => setPreviewId(previewId === section.id ? null : section.id)} className="rounded bg-white px-2 py-1 font-bold">Preview</button>
               <button type="button" onClick={() => { setOpenId(openId === section.id ? null : section.id); setDraft({ ...section }) }} className="rounded bg-white px-2 py-1 font-bold">Edit</button>
@@ -1435,7 +1735,7 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
                 <h4 className="text-base font-black">{section.title}</h4>
                 <p className="text-slate-500">{section.subtitle}</p>
                 {section.image_url && <img src={section.image_url} alt="" className="mt-2 max-h-40 w-full rounded-lg object-cover" />}
-                <SafeHtml html={section.body || ""} className="prose prose-sm mt-2" />
+                <div className="prose prose-sm mt-2" dangerouslySetInnerHTML={{ __html: section.body || "" }} />
               </article>
             )}
             {openId === section.id && draft && (
@@ -1473,6 +1773,28 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
                     {["default", "compact", "wide", "cards", "hero", "split"].map((item) => <option key={item}>{item}</option>)}
                   </select>
                 </label>
+                <div className="sm:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <label className="font-semibold text-slate-300">Content width
+                    <select className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.config?.max_width || "container"} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), max_width: e.target.value } })}>
+                      <option value="narrow">Narrow</option><option value="container">Container</option><option value="wide">Wide</option><option value="full">Full width</option>
+                    </select>
+                  </label>
+                  <label className="font-semibold text-slate-300">Horizontal alignment
+                    <select className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.config?.align || "left"} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), align: e.target.value } })}>
+                      <option value="left">Left</option><option value="center">Center</option><option value="right">Right</option>
+                    </select>
+                  </label>
+                  <label className="font-semibold text-slate-300">Row gap
+                    <select className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.config?.row_gap || "normal"} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), row_gap: e.target.value } })}>
+                      <option value="compact">Compact</option><option value="normal">Normal</option><option value="large">Large</option>
+                    </select>
+                  </label>
+                  <label className="font-semibold text-slate-300">Mobile columns
+                    <select className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.config?.mobile_columns || 1} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), mobile_columns: Number(e.target.value) } })}>
+                      <option value={1}>1</option><option value={2}>2</option>
+                    </select>
+                  </label>
+                </div>
                 <label className="sm:col-span-2 font-semibold text-slate-300">Body Content
                   <RichTextEditor value={draft.body || ""} onChange={(html) => setDraft({ ...draft, body: html })} />
                 </label>
@@ -1481,7 +1803,7 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
                 </div>
                 <label className="flex items-center gap-2 font-semibold text-slate-300"><input type="checkbox" checked={Boolean(draft.is_visible)} onChange={(e) => setDraft({ ...draft, is_visible: e.target.checked })} /> Visible on traveller page</label>
                 <div className="flex gap-2 self-end">
-                  <button type="button" onClick={saveSection} className="rounded-lg bg-amber-400 text-slate-950 font-black px-4 py-2 text-xs shadow">Save & Publish Section</button>
+                  <div className="flex gap-2">\n                    <button type="button" onClick={() => { setDraft({ ...draft, status: "draft" }); setTimeout(saveSection, 0) }} className="rounded-lg bg-slate-700 text-white font-black px-3 py-2 text-xs">Save Draft</button>\n                    <button type="button" onClick={() => { setDraft({ ...draft, status: "draft" }); setTimeout(saveSection, 0) }} className="rounded-lg bg-slate-700 text-white font-black px-3 py-2 text-xs">Save Draft</button><button type="button" onClick={() => { setDraft({ ...draft, status: "published" }); setTimeout(saveSection, 0) }} className="rounded-lg bg-amber-400 text-slate-950 font-black px-4 py-2 text-xs shadow">Publish Section</button>\n                  </div>
                   <button type="button" onClick={() => { setOpenId(null); setDraft(null) }} className="rounded-lg bg-slate-800 text-slate-300 px-3 py-2 text-xs font-bold">Cancel</button>
                 </div>
               </div>

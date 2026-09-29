@@ -4,6 +4,7 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from audit.logging_services import log_action
 from .community_data_service import (
@@ -106,6 +107,7 @@ def _submission_row(item):
 
 class AdminEmergencyDirectoryView(APIView):
     permission_classes = [IsAdminOrStaff]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get(self, request):
         _require_capability(request, "safety", "view")
@@ -230,6 +232,10 @@ class AdminEmergencyDirectoryView(APIView):
             return Response(payload, status=409)
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)
+        uploaded_image = request.FILES.get("image") or request.FILES.get("file")
+        if uploaded_image is not None and hasattr(obj, "image"):
+            obj.image = uploaded_image
+            obj.save(update_fields=["image"])
         kind = _normalize_kind(request.data.get("kind")) or getattr(obj, "category", "hospital")
         log_action(
             request, "emergency.create", category="admin",
@@ -275,7 +281,7 @@ class AdminEmergencyDirectoryView(APIView):
             obj.is_archived = True
         elif action == "restore":
             obj.is_archived = False
-        for field in ("name", "phone", "address", "opening_hours", "source_name"):
+        for field in ("name", "phone", "address", "opening_hours", "source_name", "website"):
             if field in request.data:
                 value = str(request.data.get(field) or "").strip()
                 if field == "phone" and kind in {"hospital", "police"} and not value:
@@ -288,6 +294,16 @@ class AdminEmergencyDirectoryView(APIView):
             if source_url and not source_url.startswith("https://"):
                 return Response({"detail": "source_url must use HTTPS"}, status=400)
             obj.source_url = source_url
+        if "website" in request.data:
+            website = str(request.data.get("website") or "").strip()
+            if website and not website.startswith("https://"):
+                return Response({"detail": "website must use HTTPS"}, status=400)
+            obj.website = website[:600]
+        uploaded_image = request.FILES.get("image") or request.FILES.get("file")
+        if uploaded_image is not None:
+            if not hasattr(obj, "image"):
+                return Response({"detail": "This emergency record does not support image uploads."}, status=400)
+            obj.image = uploaded_image
         if "latitude" in request.data or "longitude" in request.data:
             try:
                 latitude = float(request.data.get("latitude", obj.latitude))

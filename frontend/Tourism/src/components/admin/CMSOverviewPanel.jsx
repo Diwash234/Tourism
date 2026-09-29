@@ -28,6 +28,7 @@ export default function CMSOverviewPanel() {
   const [counts, setCounts] = useState(null)
   const [recent, setRecent] = useState([])
   const [health, setHealth] = useState(null)
+  const [operational, setOperational] = useState({ hotels: null, hospitals: null, police_stations: null })
 
   useEffect(() => {
     let cancelled = false
@@ -48,11 +49,14 @@ export default function CMSOverviewPanel() {
         .catch(() => mark("notices", false))
 
       try {
-        const [pagesRes, sectionsRes, navRes, healthRes] = await Promise.all([
+        const [pagesRes, sectionsRes, navRes, healthRes, hotelsRes, hospitalsRes, policeRes] = await Promise.all([
           adminApi.getCMS("pages"),
           adminApi.getCMS("sections"),
           adminApi.getCMS("navigation"),
           adminApi.getCMSHealth().catch(() => null),
+adminApi.getCMS("hotels").catch(() => null),
+adminApi.getCMS("hospitals").catch(() => null),
+adminApi.getCMS("police_stations").catch(() => null),
         ])
         if (cancelled) return
         mark("cmsApi", true)
@@ -147,13 +151,16 @@ export default function CMSOverviewPanel() {
       </div>
 
       {/* Content counts */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-3">
         {stat(<FiFileText size={18} />, "Pages", counts?.pages)}
         {stat(<FiCheckCircle size={18} />, "Published", counts?.published)}
         {stat(<FiLayers size={18} />, "Drafts", counts?.drafts)}
         {stat(<FiLayers size={18} />, "Sections", counts?.sections)}
         {stat(<FiImage size={18} />, "Media", counts?.media)}
         {stat(<FiRadio size={18} />, "Announcements", counts?.notices)}
+{stat(<FiLayers size={18} />, "Hotels", operational.hotels)}
+{stat(<FiLayers size={18} />, "Hospitals", operational.hospitals)}
+{stat(<FiLayers size={18} />, "Police stations", operational.police_stations)}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
