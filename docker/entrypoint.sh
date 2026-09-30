@@ -61,12 +61,13 @@ PY
     # Try to load from a JSON fixture if one exists
     if [ -f "/app/Tourism/load.json" ]; then
       echo "entrypoint: loading data from load.json"
-      python manage.py loaddata /app/Tourism/load.json --noinput
+      python manage.py loaddata /app/Tourism/load.json
     elif [ -f "/app/Tourism/dataset/data.json" ]; then
       echo "entrypoint: converting dataset/data.json to fixture format"
-      python manage.py convert_dataset_to_fixture
-      echo "entrypoint: loading data from generated load.json"
-      python manage.py loaddata /app/Tourism/load.json --noinput
+      python manage.py convert_dataset_to_fixture --output /tmp/tourism-load.json
+      echo "entrypoint: loading data from generated transient fixture"
+      python manage.py loaddata /tmp/tourism-load.json
+      rm -f /tmp/tourism-load.json --noinput
     elif [ -f "/app/downloads/nepal-tourism-seed.sqlite3.gz" ]; then
       echo "entrypoint: no load.json found, using SQLite seed database as fallback"
       python manage.py install_public_seed_db --skip-checksum
