@@ -30,7 +30,6 @@ export default function DestinationCompare({ destinations = [] }) {
       { key: "recommended_duration", label: "Duration", icon: FiClock, format: (v) => v || "—" },
       { key: "category", label: "Category", icon: null, format: (v) => v || "—" },
       { key: "risk_level", label: "Risk Level", icon: null, format: (v) => v || "—" },
-      { key: "best_season", label: "Best Season", icon: null, format: (v) => v || "—" },
       { key: "elevation", label: "Elevation", icon: null, format: (v) => v ? `${v}m` : "—" },
     ]
 
