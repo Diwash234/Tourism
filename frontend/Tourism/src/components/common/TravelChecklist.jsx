@@ -7,27 +7,23 @@ const DEFAULT_ITEMS = [
   { id: 2, text: "Travel Insurance", category: "Documents", checked: false },
   { id: 3, text: "Flight Tickets", category: "Documents", checked: false },
   { id: 4, text: "Hotel Bookings", category: "Documents", checked: false },
-  { id: 5, text: "First Aid Kit", category: "Health", checked: false },
-  { id: 6, text: "Prescription Medicines", category: "Health", checked: false },
-  { id: 7, text: "Sunscreen & Sunglasses", category: "Health", checked: false },
-  { id: 8, text: "Power Bank", category: "Electronics", checked: false },
-  { id: 9, text: "Universal Adapter", category: "Electronics", checked: false },
-  { id: 10, text: "Camera", category: "Electronics", checked: false },
-  { id: 11, text: "Comfortable Walking Shoes", category: "Clothing", checked: false },
-  { id: 12, text: "Rain Jacket", category: "Clothing", checked: false },
-  { id: 13, text: "Local Currency", category: "Finance", checked: false },
-  { id: 14, text: "Credit/Debit Cards", category: "Finance", checked: false },
-  { id: 15, text: "Guidebook / Maps", category: "Misc", checked: false },
-  { id: 16, text: "Reusable Water Bottle", category: "Misc", checked: false },
+  { id: 5, text: "Chargers & Power Bank", category: "Electronics", checked: false },
+  { id: 6, text: "Camera", category: "Electronics", checked: false },
+  { id: 7, text: "Medications", category: "Health", checked: false },
+  { id: 8, text: "First Aid Kit", category: "Health", checked: false },
+  { id: 9, text: "Comfortable Walking Shoes", category: "Clothing", checked: false },
+  { id: 10, text: "Rain Jacket", category: "Clothing", checked: false },
+  { id: 11, text: "Sunscreen & Sunglasses", category: "Health", checked: false },
+  { id: 12, text: "Reusable Water Bottle", category: "Misc", checked: false },
 ]
 
-const CATEGORIES = ["All", "Documents", "Health", "Electronics", "Clothing", "Finance", "Misc"]
+const CATEGORIES = ["All", "Documents", "Electronics", "Health", "Clothing", "Misc"]
 
 /**
  * Interactive travel checklist with categories, progress tracking,
  * and localStorage persistence.
  */
-export default function TravelChecklist({ destinationName = "" }) {
+export default function TravelChecklist() {
   const { t } = useTranslation()
   const [items, setItems] = useState(() => {
     try {
@@ -78,7 +74,7 @@ export default function TravelChecklist({ destinationName = "" }) {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <FiCheck size={16} className="text-[var(--ny-green)]" />
-          Travel Checklist {destinationName && `— ${destinationName}`}
+          Travel Checklist
         </h3>
         <button
           type="button"
@@ -169,7 +165,7 @@ export default function TravelChecklist({ destinationName = "" }) {
         <select
           value={newItemCategory}
           onChange={(e) => setNewItemCategory(e.target.value)}
-          className="text-xs rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-2 text-gray-700 dark:text-gray-300"
+          className="text-xs rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
         >
           {CATEGORIES.filter(c => c !== "All").map(cat => (
             <option key={cat} value={cat}>{cat}</option>

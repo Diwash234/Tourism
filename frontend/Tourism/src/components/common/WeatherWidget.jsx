@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react"
 import { FiSun, FiCloud, FiCloudRain, FiCloudSnow, FiWind, FiDroplets, FiThermometer } from "react-icons/fi"
+import { useTranslation } from "../../hooks/useTranslation"
 
 /**
  * Weather widget showing current conditions for a destination.
  * Uses OpenWeatherMap API when key is configured, otherwise shows placeholder.
  */
 export default function WeatherWidget({ lat, lng, destinationName }) {
+  const { t } = useTranslation()
   const [weather, setWeather] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -51,9 +53,10 @@ export default function WeatherWidget({ lat, lng, destinationName }) {
   const getIcon = (iconCode) => {
     if (!iconCode) return <FiCloud size={32} />
     if (iconCode.includes("01")) return <FiSun size={32} className="text-amber-400" />
-    if (iconCode.includes("02") || iconCode.includes("03") || iconCode.includes("04")) return <FiCloud size={32} className="text-gray-400" />
-    if (iconCode.includes("09") || iconCode.includes("10")) return <FiCloudRain size={32} className="text-blue-400" />
-    if (iconCode.includes("13")) return <FiCloudSnow size={32} className="text-blue-200" />
+    if (iconCode.includes("02") || iconCode.includes("03") || iconCode.includes("04")) return <FiCloud size={32} />
+    if (iconCode.includes("09") || iconCode.includes("10")) return <FiCloudRain size={32} />
+    if (iconCode.includes("11")) return <FiCloudRain size={32} />
+    if (iconCode.includes("13")) return <FiCloudSnow size={32} />
     return <FiCloud size={32} />
   }
 
