@@ -1,5 +1,5 @@
 from decimal import Decimal
-from .phone_quality import is_unusable_phone
+from .phone_quality import is_unusable_phone, normalize_phone_artifact
 
 from django.conf import settings
 from django.core.cache import cache
