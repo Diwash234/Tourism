@@ -54,6 +54,7 @@ import GuideVerificationPanel from "../../components/admin/GuideVerificationPane
 import AdminReportManagerPanel from "../../components/admin/AdminReportManagerPanel"
 import RoutingProviderPanel from "../../components/admin/RoutingProviderPanel"
 import UserDashboardControlPanel from "../../components/admin/UserDashboardControlPanel"
+import CuratedPlansPanel from "../../components/admin/CuratedPlansPanel"
 import CMSPageIntro from "../../components/cms/CMSPageIntro"
 
 const ROLES = [
@@ -2108,6 +2109,7 @@ const AdminDashboard = () => {
           </div>
         )}
         {activeTab === "hotel_bookings" && <HotelBookingPanel />}
+        {activeTab === "curated_plans" && <CuratedPlansPanel />}
         {activeTab === "marketplace" && <MarketplacePanel />}
         {activeTab === "travel_services" && <TravelServicesPanel />}
         {activeTab === "review_moderation" && <ReviewModerationPanel />}
