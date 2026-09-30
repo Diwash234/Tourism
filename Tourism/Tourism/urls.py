@@ -5,7 +5,6 @@ from tourist import views_seo
 from tourist.health import DetailedHealthView
 from tourist.dashboard import DashboardStatsView, PublicStatsView
 from tourist.search import SearchAutocompleteView, FacetedSearchView
-from Tourism.spa import spa_index
 from django.conf import settings
 from django.conf.urls.static import static
 from .spa import spa_index
@@ -85,4 +84,4 @@ if settings.DEBUG:
 # Client-side routes of the built SPA (Docker image). Registered last and only
 # when a build is installed, so API 404s and tests are unaffected.
 if (settings.FRONTEND_DIST_DIR / "index.html").is_file():
-    urlpatterns += [re_path(r"^(?!api/|admin/|static/|media/|ws/)(?P<path>.*)$", spa_index, name="spa-index")]
+    urlpatterns += [re_path(r"^(?!api/|admin/|static/|media/|ws/|assets/|images/|icons/|uploads/|favicon\\.ico$|manifest\\.webmanifest$|sw\\.js$)(?P<path>.*)$", spa_index, name="spa-index")]
