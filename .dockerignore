@@ -72,7 +72,6 @@ test-results/
 
 # Misc
 reports/
-downloads/
 image-search/
 image-server/
 mock_osrm.py
