@@ -3453,53 +3453,6 @@ class WebhookDelivery(models.Model):
 
     def __str__(self):
         return f"{self.event_type} -> {self.webhook.name} ({self.status})"
-    display_order = models.PositiveIntegerField(
-        default=0,
-        db_index=True,
-        help_text="Ordering position in featured carousel/grid.",
-    )
-    is_published = models.BooleanField(
-        default=True,
-        db_index=True,
-        help_text="Publishing status toggle.",
-    )
-    publish_start = models.DateTimeField(
-        null=True,
-        blank=True,
-        help_text="Optional start time for scheduled publishing.",
-    )
-    publish_end = models.DateTimeField(
-        null=True,
-        blank=True,
-        help_text="Optional end time for scheduled publishing.",
-    )
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="featured_destinations_created",
-    )
-    updated_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="featured_destinations_updated",
-    )
-
-    class Meta:
-        ordering = ["display_order", "-updated_at"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["destination"],
-                name="unique_featured_destination_ref",
-            )
-        ]
-        indexes = [
-            models.Index(fields=["is_published", "display_order"]),
-            models.Index(fields=["publish_start", "publish_end"]),
-        ]
 
     def __str__(self):
         return f"Featured: {self.title or self.destination.name} (Order: {self.display_order})"

@@ -16,16 +16,15 @@ class CustomUserAdmin(UserAdmin):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ("name", "slug", "is_active", "ordering")
-    list_filter = ("is_active",)
+    list_display = ("name", "slug", "icon")
     search_fields = ("name", "slug")
     prepopulated_fields = {"slug": ("name",)}
 
 
 @admin.register(Destination)
 class DestinationAdmin(admin.ModelAdmin):
-    list_display = ("name", "slug", "category", "district", "province", "is_published", "is_featured")
-    list_filter = ("is_published", "is_featured", "category", "province", "district")
+    list_display = ("name", "slug", "category", "district", "province", "status")
+    list_filter = ("status", "category", "province", "district")
     search_fields = ("name", "slug", "description")
     prepopulated_fields = {"slug": ("name",)}
     raw_id_fields = ("created_by", "category")
@@ -40,6 +39,6 @@ class DestinationImageAdmin(admin.ModelAdmin):
 
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "destination", "rating", "is_approved", "created_at")
-    list_filter = ("rating", "is_approved", "created_at")
+    list_display = ("id", "user", "destination", "moderation_status", "is_flagged", "created_at")
+    list_filter = ("moderation_status", "is_flagged", "created_at")
     search_fields = ("user__email", "destination__name", "comment")
