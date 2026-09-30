@@ -44,6 +44,11 @@ export default function Settings() {
     userApi.getLanguages().then(({ data }) => setLanguages(data?.results || data || [])).catch(() => setLanguages([]))
   }, [])
 
+  useEffect(() => {
+    document.documentElement.classList.toggle("reduce-motion", reducedMotion)
+    try { localStorage.setItem("ny_reduced_motion", String(reducedMotion)) } catch { /* ignore */ }
+  }, [reducedMotion])
+
   const saveAccount = async (event) => {
     event.preventDefault()
     setSavingAccount(true)
