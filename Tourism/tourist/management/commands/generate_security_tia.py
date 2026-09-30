@@ -1,5 +1,5 @@
 """
-Management command to generate security TIA template.
+Management command to generate TIA template.
 """
 from pathlib import Path
 
@@ -7,41 +7,59 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
-    help = "Generate security TIA template"
+    help = "Generate TIA template"
 
     def handle(self, *args, **options):
-        self.stdout.write("Generating security TIA template...")
+        self.stdout.write("Generating TIA template...")
 
         docs_dir = Path("docs/security")
         docs_dir.mkdir(parents=True, exist_ok=True)
 
-        content = """# Transfer Impact Assessment
+        content = """# Transfer Impact Assessment Template
 
-## Transfer Details
+## 1. Transfer Details
 
-- Data exporter: [Exporter]
-- Data importer: Nepal Tourism Platform
-- Destination country: [Country]
+- **Data exporter:**
+- **Data importer:**
+- **Destination country:**
+- **Date:**
 
-## Legal Framework
+## 2. Data Being Transferred
 
-- Adequacy decision: [yes/no]
-- Appropriate safeguards: [list]
+- **Categories of data:**
+- **Volume of data:**
+- **Frequency of transfer:**
+- **Sensitivity of data:**
 
-## Assessment
+## 3. Legal Framework
 
-| Factor | Finding | Risk |
-|--------|---------|------|
-| Government access | [finding] | [risk] |
-| Judicial redress | [finding] | [risk] |
-| Data protection laws | [finding] | [risk] |
+- **Adequacy decision:** [yes/no]
+- **Appropriate safeguards:** [list]
+- **Derogations:** [list]
 
-## Conclusion
+## 4. Assessment
 
-[Overall assessment and recommendations]
+| Factor | Finding | Risk Level |
+|--------|---------|------------|
+| Government access | | |
+| Judicial redress | | |
+| Data protection laws | | |
+| Oversight mechanisms | | |
+
+## 5. Supplementary Measures
+
+- **Technical measures:**
+- **Organizational measures:**
+- **Contractual measures:**
+
+## 6. Conclusion
+
+- **Overall risk:**
+- **Approval:**
+- **Review date:**
 """
 
-        with open(docs_dir / "TIA.md", "w") as f:
+        with open(docs_dir / "TIA_TEMPLATE.md", "w") as f:
             f.write(content)
 
-        self.stdout.write(self.style.SUCCESS(f"Security TIA template generated at {docs_dir / 'TIA.md'}"))
+        self.stdout.write(self.style.SUCCESS(f"TIA template generated at {docs_dir / 'TIA_TEMPLATE.md'}"))

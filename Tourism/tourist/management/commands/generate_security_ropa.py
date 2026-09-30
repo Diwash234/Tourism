@@ -1,5 +1,5 @@
 """
-Management command to generate security ROPA template.
+Management command to generate ROPA template.
 """
 from pathlib import Path
 
@@ -7,40 +7,52 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
-    help = "Generate security ROPA template"
+    help = "Generate ROPA template"
 
     def handle(self, *args, **options):
-        self.stdout.write("Generating security ROPA template...")
+        self.stdout.write("Generating ROPA template...")
 
         docs_dir = Path("docs/security")
         docs_dir.mkdir(parents=True, exist_ok=True)
 
-        content = """# Record of Processing Activities
+        content = """# Record of Processing Activities Template
 
 ## Controller Information
 
-- Name: Nepal Tourism Platform
-- Contact: dpo@your-domain.com
+- **Name:**
+- **Contact:**
+- **DPO:**
 
-## Processing Activities
+## Processing Activity 1
 
-| Activity | Purpose | Data Categories | Data Subjects | Retention |
-|----------|---------|-----------------|---------------|-----------|
-| User accounts | Authentication | Email, name | Users | Account lifetime |
-| Reviews | Content | Comments, ratings | Users | 2 years |
-| Analytics | Improvement | Usage data | Users | 1 year |
+- **Activity name:**
+- **Purpose:**
+- **Categories of data subjects:**
+- **Categories of personal data:**
+- **Recipients:**
+- **Retention period:**
+- **Security measures:**
+- **Lawful basis:**
 
-## Recipients
+## Processing Activity 2
 
-- Internal: Development team
-- External: Hosting provider, analytics provider
+- **Activity name:**
+- **Purpose:**
+- **Categories of data subjects:**
+- **Categories of personal data:**
+- **Recipients:**
+- **Retention period:**
+- **Security measures:**
+- **Lawful basis:**
 
 ## International Transfers
 
-- None / SCCs in place
+| Destination | Safeguards | Documentation |
+|-------------|------------|---------------|
+| | | |
 """
 
-        with open(docs_dir / "ROPA.md", "w") as f:
+        with open(docs_dir / "ROPA_TEMPLATE.md", "w") as f:
             f.write(content)
 
-        self.stdout.write(self.style.SUCCESS(f"Security ROPA template generated at {docs_dir / 'ROPA.md'}"))
+        self.stdout.write(self.style.SUCCESS(f"ROPA template generated at {docs_dir / 'ROPA_TEMPLATE.md'}"))
