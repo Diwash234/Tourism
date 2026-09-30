@@ -51,9 +51,8 @@ COPY Tourism/ /app/Tourism/
 # /, /assets/*, /sw.js, /manifest.webmanifest; deep links fall back to
 # index.html via Tourism/spa.py.
 COPY --from=frontend /app/frontend/dist /app/Tourism/frontend_dist/
-# Published seed database (installed on first start by the entrypoint when the
-# SQLite volume is empty) and the start-up script.
-COPY downloads/nepal-tourism-seed.sqlite3.gz downloads/nepal-tourism-seed.sqlite3.gz.sha256 /app/downloads/
+# Production startup script. Render uses PostgreSQL, so the production image
+# does not depend on a SQLite seed file being present in the Docker context.
 COPY docker/entrypoint.sh /usr/local/bin/ny-entrypoint
 RUN chmod +x /usr/local/bin/ny-entrypoint
 
