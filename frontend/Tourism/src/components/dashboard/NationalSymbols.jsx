@@ -210,7 +210,7 @@ const NationalSymbols = () => {
 
             <Link
               to="/discover-nepal"
-              className="ny-btn min-h-11 justify-center border border-white/25 bg-white/10 px-4 text-xs text-white hover:bg-white/20 sm:text-sm"
+              className="ny-btn min-h-11 justify-center border border-white/25 bg-black/40 px-4 text-xs text-white hover:bg-black/60 sm:text-sm"
             >
               <FiCompass size={14} /> Discover Page
             </Link>

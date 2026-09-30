@@ -122,7 +122,7 @@ const FloatingChatbot = () => {
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="grid h-11 w-11 place-items-center rounded-[var(--ny-radius-sm)] text-white transition-colors hover:bg-white/15"
+                className="grid h-11 w-11 place-items-center rounded-[var(--ny-radius-sm)] bg-black/40 text-white transition-colors hover:bg-black/60"
                 aria-label="Close travel assistant"
               >
                 <FiX size={18} />

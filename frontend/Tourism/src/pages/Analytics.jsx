@@ -91,8 +91,8 @@ const StatCard = ({ icon: Icon, label, value, change, positive, color }) => (
       <Icon size={22} />
     </div>
     <div className="min-w-0 flex-1">
-      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>
-      <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</p>
+      <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{value}</p>
       {change !== undefined && (
         <p className={`text-xs mt-1 flex items-center gap-1 ${positive ? "text-emerald-600" : "text-red-500"}`}>
           {positive ? <FiArrowUp size={12} /> : <FiArrowDown size={12} />}

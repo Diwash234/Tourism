@@ -23,12 +23,12 @@ const paths = Object.fromEntries(Object.keys(names).map(key => [key, `/staff/${k
 const permits = (caps, module, action) => caps?.[module]?.includes(action) || caps?.[module]?.includes("*")
 
 const STATUS_STYLE = {
-  pending: "bg-slate-100 text-slate-600",
-  in_progress: "bg-sky-100 text-sky-700",
-  blocked: "bg-rose-100 text-rose-700",
-  in_review: "bg-amber-100 text-amber-800",
-  completed: "bg-emerald-100 text-emerald-700",
-  cancelled: "bg-slate-100 text-slate-400 line-through",
+  pending: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+  in_progress: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
+  blocked: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
+  in_review: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+  completed: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  cancelled: "bg-slate-100 text-slate-400 line-through dark:bg-slate-800 dark:text-slate-500",
 }
 const NOTE_ACTIONS = {
   complete: { label: "Complete task", placeholder: "What did you accomplish? (required)", cta: "Mark Completed" },

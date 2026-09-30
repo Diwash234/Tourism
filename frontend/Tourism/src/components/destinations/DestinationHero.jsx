@@ -59,7 +59,7 @@ export default function DestinationHero({ destination, onNavigate, onShare }) {
             type="button"
             onClick={handleLike}
             className={`p-2.5 rounded-full backdrop-blur-sm transition-all ${
-              liked ? "bg-red-500 text-white" : "bg-white/20 text-white hover:bg-white/30"
+              liked ? "bg-red-500 text-white" : "bg-black/40 text-white hover:bg-black/60"
             }`}
             aria-label={liked ? "Remove from favorites" : "Add to favorites"}
           >
@@ -68,7 +68,7 @@ export default function DestinationHero({ destination, onNavigate, onShare }) {
           <button
             type="button"
             onClick={handleShare}
-            className="p-2.5 rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/30 transition-all"
+            className="p-2.5 rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60 transition-all"
             aria-label="Share destination"
           >
             <FiShare2 size={18} />

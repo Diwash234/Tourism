@@ -83,7 +83,7 @@ export default function LiveNavigationPanel({ destination, mode = "driving", sto
         <div className="flex items-center gap-2">
           <FiNavigation className="text-[#1D5146]" />
           <h3 className="font-extrabold text-sm text-gray-900">Live Turn-by-Turn (road routing)</h3>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-[#1D5146]">{state}</span>
+          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-[#1D5146] dark:bg-emerald-900/30 dark:text-emerald-300">{state}</span>
         </div>
         <div className="flex gap-2">
           {state === NAV_STATES.IDLE && (

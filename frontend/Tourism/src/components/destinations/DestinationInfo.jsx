@@ -25,7 +25,7 @@ export default function DestinationInfo({ destination }) {
               <Icon size={16} />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{label}</p>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{label}</p>
               <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{value}</p>
             </div>
           </div>

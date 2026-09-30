@@ -124,7 +124,7 @@ export default function GettingThereCard({ destination }) {
                     onClick={() => { setOriginPick(row); setOriginQuery(row.name); setResult(null) }}
                     className="w-full text-left px-3 py-2 text-sm hover:bg-emerald-50 dark:hover:bg-slate-800 font-semibold text-slate-800 dark:text-slate-200"
                   >
-                    {row.name} <span className="text-[10px] text-slate-400">{row.district || row.province}</span>
+                    {row.name} <span className="text-xs text-slate-500 dark:text-slate-400">{row.district || row.province}</span>
                   </button>
                 </li>
               ))}

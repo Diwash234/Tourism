@@ -97,13 +97,13 @@ export default function DestinationCard({ destination, onFavorite, className = "
             {tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-[var(--ny-soft-green)] text-[var(--ny-green)]"
+                className="px-2 py-0.5 text-xs font-medium rounded-full bg-[var(--ny-soft-green)] text-[var(--ny-green)]"
               >
                 {tag}
               </span>
             ))}
             {tags.length > 3 && (
-              <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400">
+              <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400">
                 +{tags.length - 3}
               </span>
             )}

@@ -113,7 +113,7 @@ export default function DestinationReviews({ destination, reviews = [], onSubmit
                   <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{review.user_name || review.user}</p>
                   <div className="flex items-center gap-2">
                     <StarRating value={review.rating} size="sm" />
-                    <span className="text-[10px] text-gray-400">{review.date || review.created_at}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{review.date || review.created_at}</span>
                   </div>
                 </div>
                 {review.verified && <Badge variant="success" size="sm">Verified</Badge>}

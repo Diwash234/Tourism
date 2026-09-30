@@ -18,7 +18,7 @@ export default function ReviewSection({ reviews = [], onAddReview }) {
     <div className="card-base p-6 sm:p-8 space-y-6 shadow-lg border border-[#E5E0D5] rounded-3xl bg-white">
       <div className="flex justify-between items-center border-b pb-4">
         <div>
-          <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider">
+          <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black uppercase tracking-wider">
             Published traveller reviews
           </span>
           <h3 className="font-extrabold text-xl text-gray-900 mt-1 flex items-center gap-2">

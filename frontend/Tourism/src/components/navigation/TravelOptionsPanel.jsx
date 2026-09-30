@@ -72,7 +72,7 @@ export default function TravelOptionsPanel({ originPayload, destinationName, des
   if (!destinationName) return null;
   if (loading && !data) {
     return (
-      <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-xs text-slate-400">
+      <div className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300">
         Comparing ways to get there…
       </div>
     );

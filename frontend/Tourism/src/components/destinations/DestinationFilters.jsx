@@ -64,7 +64,7 @@ export default function DestinationFilters({ destinations, onFilterChange, class
           <FiFilter size={16} className="text-[var(--ny-green)]" />
           <span className="text-sm font-bold text-gray-900 dark:text-white">Filters</span>
           {activeCount > 0 && (
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--ny-green)] text-[10px] font-bold text-white">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--ny-green)] text-xs font-bold text-white">
               {activeCount}
             </span>
           )}
