@@ -218,7 +218,7 @@ const SocialShare = ({
                     <button
                       key={link.id}
                       onClick={() => handleShare(link.id)}
-                      className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-colors"
+                      className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                     >
                       <div
                         className="w-12 h-12 rounded-full flex items-center justify-center text-white"
@@ -226,7 +226,7 @@ const SocialShare = ({
                       >
                         <Icon size={20} />
                       </div>
-                      <span className="text-xs font-medium text-gray-700">{link.label}</span>
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{link.label}</span>
                     </button>
                   )
                 })}
@@ -234,16 +234,16 @@ const SocialShare = ({
 
               {/* Copy Link */}
               <div className="flex items-center gap-2">
-                <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                   <FiLink size={14} className="text-gray-400 flex-shrink-0" />
-                  <span className="text-sm text-gray-600 truncate">{shareUrl}</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-300 truncate">{shareUrl}</span>
                 </div>
                 <button
                   onClick={handleCopyLink}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     copied
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                   }`}
                 >
                   {copied ? <FiCheck size={16} /> : "Copy"}

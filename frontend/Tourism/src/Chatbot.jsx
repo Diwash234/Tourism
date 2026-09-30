@@ -330,13 +330,13 @@ export default function ChatBot() {
                         <div key={i} className="rounded-xl overflow-hidden border border-primary-100 bg-white shadow-sm flex flex-col justify-between">
                           <div className="h-24 w-full relative bg-slate-900 overflow-hidden">
                             <PlaceholderImage src={img.url} title={img.caption} alt={img.caption} className="h-full w-full transition-transform hover:scale-105" />
-                            <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/70 text-amber-300 text-[9px] font-bold">
+                            <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/70 text-amber-300 text-xs font-bold">
                               {img.category}
                             </span>
                           </div>
-                          <div className="p-1.5 text-[9px] text-gray-500">
-                            <p className="font-bold text-gray-800 truncate">{img.caption}</p>
-                            <p className="text-[11px] text-emerald-600 truncate">{[img.photographer, img.license].filter(Boolean).join(" · ") || "Attribution unavailable"}</p>
+                          <div className="p-1.5 text-xs text-gray-500 dark:text-gray-400">
+                            <p className="font-bold text-gray-800 dark:text-gray-200 truncate">{img.caption}</p>
+                            <p className="text-xs text-emerald-600 truncate">{[img.photographer, img.license].filter(Boolean).join(" · ") || "Attribution unavailable"}</p>
                           </div>
                         </div>
                       ))}
@@ -363,17 +363,17 @@ export default function ChatBot() {
                             <h4 className="font-bold text-xs text-gray-900 leading-tight">{card.name}</h4>
                             <span className="text-xs text-amber-600 font-bold">{card.rating != null && card.rating !== "" ? `★ ${card.rating}` : "Rating unavailable"}</span>
                           </div>
-                          <p className="text-[10px] text-gray-500">{card.city || "Location unavailable"} · <b>{card.budget != null && card.budget !== "" ? card.budget : "Budget unavailable"}</b></p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{card.city || "Location unavailable"} · <b>{card.budget != null && card.budget !== "" ? card.budget : "Budget unavailable"}</b></p>
                           <div className="flex gap-1.5 pt-1">
                             <Link
                               to={`/destinations/${card.slug}`}
-                              className="flex-1 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-center text-[10px] font-bold transition-colors"
+                              className="flex-1 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-center text-xs font-bold transition-colors"
                             >
                               View Details
                             </Link>
                             <Link
                               to={`/navigation?dest=${encodeURIComponent(card.name)}`}
-                              className="px-2.5 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-500 text-gray-950 text-center text-[10px] font-black transition-colors"
+                              className="px-2.5 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-500 text-gray-950 text-center text-xs font-black transition-colors"
                             >
                               Route ➔
                             </Link>
