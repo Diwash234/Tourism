@@ -5,6 +5,9 @@ import PageHeader from "../components/common/PageHeader"
 import travelApi from "../api/travelApi"
 import { NATIONALITY_OPTIONS } from "../utils/currency"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
+import LocalTrailSecrets from "../components/itinerary/LocalTrailSecrets"
+import TippingAndCurrencyGuide from "../components/itinerary/TippingAndCurrencyGuide"
+import PrintableTravelBrief from "../components/itinerary/PrintableTravelBrief"
 
 // "Before you travel" -- visa, TIMS, permits, park & heritage fees,
 // altitude safety, insurance and official contacts. Every figure comes from
@@ -66,6 +69,11 @@ export default function BeforeYouTravel() {
   const [error, setError] = useState("")
   const [offlineCopy, setOfflineCopy] = useState(false)
 
+  // Trekker field utilities modal states
+  const [showSecrets, setShowSecrets] = useState(false)
+  const [showTipping, setShowTipping] = useState(false)
+  const [showPrintBrief, setShowPrintBrief] = useState(false)
+
   useEffect(() => {
     let alive = true
     travelApi.requirements(nationality)
@@ -80,6 +88,45 @@ export default function BeforeYouTravel() {
     <div className="ny-page container-app py-6 sm:py-8">
       <PageHeader title="Before you travel" subtitle="Visa, trekking permits, park and heritage fees, altitude safety and insurance — from official Government of Nepal and Nepal Tourism Board sources." icon={FiFileText} />
       <CMSPageIntro pageKey="before-you-travel" />
+
+      {/* Trekker Field Utilities Quick Bar */}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-900 text-white shadow-md border border-emerald-800/40">
+        <div>
+          <span className="text-xs font-black uppercase tracking-wider text-emerald-400 block">
+            🏔️ Himalayan Field Readiness Kit
+          </span>
+          <p className="text-xs text-slate-300 mt-0.5">
+            Practical mountain tools, tipping calculators, cultural rules & offline emergency dossier
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowSecrets(true)}
+            className="px-3.5 py-2 rounded-xl bg-amber-400 text-slate-950 hover:bg-amber-300 text-xs font-black transition flex items-center gap-1.5 shadow-sm"
+          >
+            <span>🏔️</span>
+            <span>Trail Secrets & Etiquette</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowTipping(true)}
+            className="px-3.5 py-2 rounded-xl bg-emerald-500 text-slate-950 hover:bg-emerald-400 text-xs font-black transition flex items-center gap-1.5 shadow-sm"
+          >
+            <span>💵</span>
+            <span>Tipping & Cash Guide</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowPrintBrief(true)}
+            className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+          >
+            <span>🖨️</span>
+            <span>Offline SOS Dossier</span>
+          </button>
+        </div>
+      </div>
+
       {offlineCopy && (
         <p role="status" className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           You appear to be offline. This is the copy saved on this device from an earlier visit; fees and rules may have changed since.
@@ -182,6 +229,24 @@ export default function BeforeYouTravel() {
           </Section>
         </div>
       )}
+
+      {/* Local Trail Secrets & Mountain Wisdom Modal */}
+      <LocalTrailSecrets
+        isOpen={showSecrets}
+        onClose={() => setShowSecrets(false)}
+      />
+
+      {/* Guide & Porter Tipping & Cash Guide Modal */}
+      <TippingAndCurrencyGuide
+        isOpen={showTipping}
+        onClose={() => setShowTipping(false)}
+      />
+
+      {/* Printable Travel Brief & SOS Medical Card */}
+      <PrintableTravelBrief
+        isOpen={showPrintBrief}
+        onClose={() => setShowPrintBrief(false)}
+      />
     </div>
   )
 }
