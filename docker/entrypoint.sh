@@ -32,8 +32,34 @@ if [ -n "$DB_FILE" ]; then
     python manage.py migrate --noinput
   fi
 else
-  # PostgreSQL: run migrations, then import data if the database is empty
-  echo "entrypoint: PostgreSQL detected - running migrations"
+  # PostgreSQL: wait for connection, run migrations, then import data if database is empty
+  echo "entrypoint: PostgreSQL detected - waiting for database connection to be ready..."
+  MAX_RETRIES=30
+  COUNT=0
+  until python - <<'PY' 2>/dev/null
+import os, sys
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Tourism.settings")
+import django
+django.setup()
+from django.db import connection
+try:
+    connection.ensure_connection()
+    sys.exit(0)
+except Exception:
+    sys.exit(1)
+PY
+  do
+    COUNT=$((COUNT + 1))
+    if [ $COUNT -ge $MAX_RETRIES ]; then
+      echo "entrypoint: timed out waiting for PostgreSQL after ${MAX_RETRIES} attempts"
+      exit 1
+    fi
+    echo "entrypoint: waiting for PostgreSQL to accept connections (${COUNT}/${MAX_RETRIES})..."
+    sleep 2
+  done
+  echo "entrypoint: PostgreSQL connection established successfully!"
+
+  echo "entrypoint: running database migrations"
   python manage.py migrate --noinput
 
   # Check if data already exists (destinations table)

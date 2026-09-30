@@ -32,18 +32,21 @@ import CuratedItineraryShowcase from "../components/itinerary/CuratedItinerarySh
 import AltitudeSafetyModal from "../components/itinerary/AltitudeSafetyModal"
 import CostBreakdownModal from "../components/itinerary/CostBreakdownModal"
 import PackingChecklistModal from "../components/itinerary/PackingChecklistModal"
+import LocalTrailSecrets from "../components/itinerary/LocalTrailSecrets"
+import PrintableTravelBrief from "../components/itinerary/PrintableTravelBrief"
+import TippingAndCurrencyGuide from "../components/itinerary/TippingAndCurrencyGuide"
 import { NATIONALITY_OPTIONS } from "../utils/currency"
 
 
 const NOTE_CATEGORIES = ["Hotel", "Transport", "Food", "Activity", "Other"]
 
 const AI_MODIFICATIONS = [
-  ["cheaper", "Make it more affordable"],
-  ["luxurious", "Add more comfort"],
-  ["more_culture", "Add more culture"],
-  ["more_nature", "Add more nature"],
-  ["slower_pace", "Slow the pace"],
-  ["replan", "Replan around conditions"],
+  ["cheaper", "Budget-Friendly (कम खर्च)"],
+  ["luxurious", "Extra Comfort & Boutique (आरामदायी)"],
+  ["more_culture", "Deep Cultural Heritage (संस्कृति)"],
+  ["more_nature", "Scenic Viewpoints (प्रकृति दृश्य)"],
+  ["slower_pace", "Gentle Acclimatization (सुस्त गति)"],
+  ["replan", "Trail & Weather Adapt (मौसम अनुकूल)"],
 ]
 
 
@@ -178,6 +181,9 @@ const Itinerary = () => {
   const [showSafetyModal, setShowSafetyModal] = useState(false)
   const [showCostModal, setShowCostModal] = useState(false)
   const [showPackingModal, setShowPackingModal] = useState(false)
+  const [showSecretsModal, setShowSecretsModal] = useState(false)
+  const [showPrintModal, setShowPrintModal] = useState(false)
+  const [showTippingModal, setShowTippingModal] = useState(false)
   const [notes, setNotes] = useState([])
   const [noteForm, setNoteForm] = useState({ category: "Hotel", label: "", amount: "" })
 
@@ -190,7 +196,7 @@ const Itinerary = () => {
     try {
       const { data } = await axiosClient.post("/ml/itinerary/modify/", { action, itinerary_data: plan })
       setPlan((prev) => ({ ...prev, itinerary: data.itinerary || prev.itinerary, total_estimated_npr: null, total_estimated_usd: null, per_person_npr: null, per_person_usd: null, fits_budget: null, modificationNote: data.modification_note }))
-      showToast(data.modification_note || `AI modification applied: ${action}`, "success")
+      showToast(data.modification_note || "Route customized successfully", "success")
     } catch {
       showToast("Could not modify itinerary.", "error")
     } finally {
@@ -1068,38 +1074,70 @@ const Itinerary = () => {
               className="ny-btn ny-btn-secondary text-xs flex items-center gap-1.5 py-2 px-3.5 rounded-xl border-blue-300 bg-blue-50 text-blue-900 hover:bg-blue-100 font-bold shadow-2xs"
             >
               <FiCheckSquare size={14} className="text-blue-700" />
-              <span>Gear & Packing Checklist ({plan.packing_checklist_detailed.total_items} items)</span>
+              <span>Gear Checklist ({plan.packing_checklist_detailed.total_items} items)</span>
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={() => setShowSecretsModal(true)}
+            className="ny-btn ny-btn-secondary text-xs flex items-center gap-1.5 py-2 px-3.5 rounded-xl border-amber-300 bg-amber-50 text-amber-950 hover:bg-amber-100 font-bold shadow-2xs"
+          >
+            <span>🏔️</span>
+            <span>Trail Secrets & Etiquette (स्थानीय संस्कार)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowTippingModal(true)}
+            className="ny-btn ny-btn-secondary text-xs flex items-center gap-1.5 py-2 px-3.5 rounded-xl border-teal-300 bg-teal-50 text-teal-950 hover:bg-teal-100 font-bold shadow-2xs"
+          >
+            <span>💵</span>
+            <span>Tipping & Mountain Cash (टिपिङ र नगद)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowPrintModal(true)}
+            className="ny-btn ny-btn-secondary text-xs flex items-center gap-1.5 py-2 px-3.5 rounded-xl border-slate-300 bg-slate-100 text-slate-900 hover:bg-slate-200 font-bold shadow-2xs"
+          >
+            <span>🖨️</span>
+            <span>Printable Field Dossier (अफलाइन गाइड)</span>
+          </button>
         </div>
       )}
 
-            {/* AI Itinerary Refinement + Trip Cost Notepad (merged from TripPlanner) */}
+      {/* Route Adaptation & Journey Customizer + Trip Cost Notepad */}
       {
         plan && !error && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
             <div className="card-base p-5 space-y-3">
               <div className="flex justify-between items-center text-xs font-bold text-gray-800">
-                <span className="flex items-center gap-1.5"><FiSliders className="text-amber-500" /> AI Itinerary Refinement</span>
-                {modifying && <span className="text-emerald-600 animate-pulse">Modifying plan…</span>}
+                <span className="flex items-center gap-1.5">
+                  <FiSliders className="text-amber-500" /> Route Adaptation & Journey Customizer (यात्रा अनुकूलन)
+                </span>
+                {modifying && <span className="text-emerald-600 animate-pulse">Adapting journey schedule…</span>}
               </div>
+              <p className="text-[11px] text-slate-500">
+                Tailor this route dynamically according to your pace, preferences, and Himalayan trail conditions:
+              </p>
               <div className="flex flex-wrap gap-1.5 text-xs">
                 {AI_MODIFICATIONS.map(([act, label]) => (
                   <button
                     key={act}
                     disabled={modifying}
                     onClick={() => handleApplyAIModification(act)}
-                    className="min-h-11 rounded-xl border border-[var(--ny-border)] bg-white px-2.5 py-2 text-gray-800 font-bold transition hover:border-[var(--ny-green)] hover:bg-[var(--ny-soft-green)]"
+                    className="min-h-10 rounded-xl border border-[var(--ny-border)] bg-white px-3 py-1.5 text-gray-800 font-bold transition hover:border-[var(--ny-green)] hover:bg-[var(--ny-soft-green)]"
                   >
                     {label}
                   </button>
                 ))}
               </div>
               {plan.modificationNote && (
-                <p className="text-[11px] text-emerald-700 font-bold bg-emerald-50 p-2 rounded-xl border border-emerald-200">✓ {plan.modificationNote}</p>
+                <p className="text-[11px] text-emerald-700 font-bold bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">✓ {plan.modificationNote}</p>
               )}
               {focusDestination && (
-                <p className="text-[11px] text-himalaya-600 font-bold bg-himalaya-50 p-2 rounded-xl border border-himalaya-100">🎯 Planning focus: {focusDestination}</p>
+                <p className="text-[11px] text-himalaya-600 font-bold bg-himalaya-50 p-2.5 rounded-xl border border-himalaya-100">🎯 Planning focus: {focusDestination}</p>
               )}
             </div>
 
@@ -1647,6 +1685,27 @@ const Itinerary = () => {
         packingData={plan?.packing_checklist_detailed}
         title={plan?.title}
         slug={plan?.slug || plan?.title?.toLowerCase()?.replace(/\s+/g, "-")}
+      />
+
+      {/* Local Trail Secrets & Mountain Wisdom Modal */}
+      <LocalTrailSecrets
+        isOpen={showSecretsModal}
+        onClose={() => setShowSecretsModal(false)}
+      />
+
+      {/* Guide & Porter Tipping and Currency Guide Modal */}
+      <TippingAndCurrencyGuide
+        isOpen={showTippingModal}
+        onClose={() => setShowTippingModal(false)}
+        defaultDays={plan?.days || form.days}
+        defaultTravelers={plan?.travelers || form.travelers}
+      />
+
+      {/* Printable Travel Brief & SOS Medical Card */}
+      <PrintableTravelBrief
+        isOpen={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+        plan={plan}
       />
     </div>
 

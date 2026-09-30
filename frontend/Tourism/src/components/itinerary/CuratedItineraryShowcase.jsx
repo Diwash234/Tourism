@@ -26,6 +26,9 @@ import CuratedCompareModal from "./CuratedCompareModal"
 import AltitudeSafetyModal from "./AltitudeSafetyModal"
 import CostBreakdownModal from "./CostBreakdownModal"
 import PackingChecklistModal from "./PackingChecklistModal"
+import LocalTrailSecrets from "./LocalTrailSecrets"
+import PrintableTravelBrief from "./PrintableTravelBrief"
+import TippingAndCurrencyGuide from "./TippingAndCurrencyGuide"
 
 const PERSONA_TABS = [
   { id: "all", label: "All Journeys", labelNe: "सबै यात्रा", icon: "✨" },
@@ -73,6 +76,26 @@ export default function CuratedItineraryShowcase({ onSelectPlan, currentNational
   const [activePackingSlug, setActivePackingSlug] = useState("")
   const [isPackingOpen, setIsPackingOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+
+  // Human Trail Wisdom, Offline Print & Tipping States
+  const [isSecretsOpen, setIsSecretsOpen] = useState(false)
+  const [isTippingOpen, setIsTippingOpen] = useState(false)
+  const [isPrintOpen, setIsPrintOpen] = useState(false)
+  const [activePrintPlan, setActivePrintPlan] = useState(null)
+  const [loadingPrintSlug, setLoadingPrintSlug] = useState(null)
+
+  const handleOpenPrintBrief = async (slug, title) => {
+    setLoadingPrintSlug(slug)
+    try {
+      const { data } = await itineraryApi.getCuratedDetail(slug)
+      setActivePrintPlan(data)
+      setIsPrintOpen(true)
+    } catch (err) {
+      showToast("Unable to open offline field brief", "error")
+    } finally {
+      setLoadingPrintSlug(null)
+    }
+  }
 
   useEffect(() => {
     let alive = true
@@ -256,6 +279,26 @@ export default function CuratedItineraryShowcase({ onSelectPlan, currentNational
             <span className="px-2 py-1 bg-white rounded-lg shadow-xs text-emerald-800">100% Verified Routes</span>
             <span className="px-2 py-1">Dual Persona: 🇳🇵 Nepali & 🌍 Foreign</span>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setIsSecretsOpen(true)}
+            className="ny-btn bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold py-1.5 px-3 rounded-xl flex items-center gap-1.5 shadow-2xs transition"
+            title="Read authentic Sherpa trail rules, Dal Bhat culture, and Devanagari phrasebook"
+          >
+            <span>🏔️</span>
+            <span>Trail Wisdom & Etiquette</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsTippingOpen(true)}
+            className="ny-btn bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold py-1.5 px-3 rounded-xl flex items-center gap-1.5 shadow-2xs transition"
+            title="Guide & porter tipping norms, envelope customs, and mountain cash realities"
+          >
+            <span>💵</span>
+            <span>Tipping & Cash Guide</span>
+          </button>
         </div>
       </div>
 
@@ -450,6 +493,17 @@ export default function CuratedItineraryShowcase({ onSelectPlan, currentNational
                           <FiCheckSquare size={11} />
                           <span>Gear Checklist</span>
                         </button>
+
+                        <button
+                          type="button"
+                          disabled={loadingPrintSlug === item.slug}
+                          onClick={() => handleOpenPrintBrief(item.slug, item.title)}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 border border-slate-300 text-slate-800 text-[10px] font-bold hover:bg-slate-200 transition"
+                          title="Generate printable field dossier & emergency SOS card"
+                        >
+                          <span>🖨️</span>
+                          <span>{loadingPrintSlug === item.slug ? "Preparing…" : "Field Dossier"}</span>
+                        </button>
                       </div>
 
                       {/* Highlights */}
@@ -611,6 +665,25 @@ export default function CuratedItineraryShowcase({ onSelectPlan, currentNational
         packingData={activePackingData}
         title={activePackingTitle}
         slug={activePackingSlug}
+      />
+
+      {/* Local Trail Secrets & Mountain Wisdom */}
+      <LocalTrailSecrets
+        isOpen={isSecretsOpen}
+        onClose={() => setIsSecretsOpen(false)}
+      />
+
+      {/* Tipping & Mountain Cash Guide */}
+      <TippingAndCurrencyGuide
+        isOpen={isTippingOpen}
+        onClose={() => setIsTippingOpen(false)}
+      />
+
+      {/* Printable Travel Brief & SOS Field Dossier */}
+      <PrintableTravelBrief
+        isOpen={isPrintOpen}
+        onClose={() => setIsPrintOpen(false)}
+        plan={activePrintPlan}
       />
     </section>
   )
