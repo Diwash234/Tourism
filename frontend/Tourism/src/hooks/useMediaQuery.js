@@ -1,27 +1,22 @@
-import { useCallback, useSyncExternalStore } from "react"
+import { useState, useEffect } from "react"
 
 /**
- * Single reusable viewport hook for the whole app (brief §24: one responsive
- * detection system, no scattered window.innerWidth/resize listeners and no
- * device/userAgent sniffing — behavior keys off available viewport width).
- *
- *   const isDesktop = useMediaQuery("(min-width: 1024px)")
- *
- * Built on useSyncExternalStore: subscribes to the MediaQueryList directly,
- * so it is render-safe (no effect-phase setState) and tearing-free.
+ * useMediaQuery — reactive media query hook.
+ * Returns true when the query matches, false otherwise.
  */
 export default function useMediaQuery(query) {
-  const subscribe = useCallback(
-    (onChange) => {
-      const mql = window.matchMedia(query)
-      mql.addEventListener("change", onChange)
-      return () => mql.removeEventListener("change", onChange)
-    },
-    [query]
-  )
+  const [matches, setMatches] = useState(() => {
+    if (typeof window === "undefined") return false
+    return window.matchMedia(query).matches
+  })
 
-  const getSnapshot = useCallback(() => window.matchMedia(query).matches, [query])
-  const getServerSnapshot = useCallback(() => false, [])
+  useEffect(() => {
+    const mql = window.matchMedia(query)
+    const onChange = (e) => setMatches(e.matches)
+    setMatches(mql.matches)
+    mql.addEventListener("change", onChange)
+    return () => mql.removeEventListener("change", onChange)
+  }, [query])
 
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  return matches
 }
