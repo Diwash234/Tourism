@@ -30,8 +30,8 @@ export default function ChatBot() {
     {
       role: "assistant",
       content:
-        "Namaste! I am Himal AI, your Nepal travel companion.\n\n" +
-        "I can help you discover recorded destinations, published packages and practical trip information. Missing fields stay unavailable.",
+        "Namaste! I am Himal, your Nepal travel companion and local route guide.\n\n" +
+        "I can help you discover recorded destinations, published packages, mountain customs, and practical trip information.",
       destination_cards: [],
       image_cards: [],
       itinerary_cards: null,
@@ -175,15 +175,15 @@ export default function ChatBot() {
       <div className="mx-auto w-full max-w-6xl space-y-5">
         <div className="text-center">
           <span className="ny-kicker !border !border-[var(--ny-border)] !bg-[var(--ny-soft-green)] !text-[var(--ny-green)]">
-            AI Travel Companion
+            Local Mountain Companion · स्थानीय सहयोगी
           </span>
-          <PageHeader title="Himal AI Assistant & Visual Guide" subtitle="Ask about destinations, safety, permits and more." icon={FiMessageCircle} />
+          <PageHeader title="Himal Travel Assistant & Visual Guide (हिमाल सहयोगी)" subtitle="Ask about trekking routes, cultural etiquette, weather seasons, and permits." icon={FiMessageCircle} />
           <p className="text-gray-500 text-sm mt-1">
-            Recorded destinations, published packages and practical trip information
+            Recorded destinations, published packages, mountain customs, and practical trip information
           </p>
           <div className="mt-3 flex flex-wrap items-center justify-center gap-2 bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold">
             <span className="w-2 h-2 rounded-full bg-emerald-500 opacity-70" />
-            <span>Recorded data first: I use available catalogue records and clearly mark missing details.</span><button type="button" onClick={requestLocation} disabled={locating} className="ny-btn ny-btn-secondary min-h-11 text-xs"><FiMapPin size={14} aria-hidden="true" />{position ? "Location shared" : locating ? "Finding location…" : "Use my location"}</button>
+            <span>Verified data first: I use authentic Nepal catalogue records and official Himalayan guidelines.</span><button type="button" onClick={requestLocation} disabled={locating} className="ny-btn ny-btn-secondary min-h-11 text-xs"><FiMapPin size={14} aria-hidden="true" />{position ? "Location shared" : locating ? "Finding location…" : "Use my location"}</button>
           </div>
         </div>
 
@@ -208,10 +208,10 @@ export default function ChatBot() {
           <div className="flex items-center justify-between bg-[var(--ny-green-dark)] px-5 py-4 text-white shadow-sm sm:px-6">
             <div>
               <h2 className="font-extrabold text-base flex items-center gap-2">
-                Himal AI travel assistant
+                Himal Travel Guide (हिमाल स्थानीय सहयोगी)
               </h2>
               <p className="text-xs text-primary-100">
-                Available catalogue and route tools
+                Authentic trail insights & travel guidance
               </p>
             </div>
             {position && (
@@ -421,7 +421,7 @@ export default function ChatBot() {
             {sending && (
               <div className="flex items-center gap-2 text-xs text-primary-700 font-bold italic">
                 <span className="w-2 h-2 rounded-full bg-primary-600 animate-bounce"></span>
-                Himal AI is looking through available records…
+                Himal is consulting local routes and travel records…
               </div>
             )}
           </div>

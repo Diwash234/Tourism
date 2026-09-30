@@ -13,7 +13,7 @@ const FloatingChatbot = () => {
     {
       role: "assistant",
       content:
-        "Namaste! I am Himal AI, your Nepal travel assistant. I can help you discover recorded places, compare published packages and plan a route. Missing details stay unavailable.",
+        "Namaste! I am Himal, your Nepal travel companion. I can help you discover recorded places, compare itineraries, and share mountain guidance.",
     },
   ])
   const [input, setInput] = useState("")

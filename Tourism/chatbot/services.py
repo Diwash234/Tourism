@@ -300,14 +300,14 @@ def get_chatbot_reply(
     longitude: float = None
 ) -> Dict[str, Any]:
     """
-    Main entry point for Himal AI.
-    Executes AI providers and packages rich visual cards, itineraries, and distance metrics.
+    Main entry point for Himal.
+    Executes providers and packages rich visual cards, itineraries, and distance metrics.
     """
     if not history:
         return {
             "reply": (
-                "Namaste! I am **Himal AI**, your Nepal travel companion.\n\n"
-                "I can help you discover recorded destinations, compare published packages and shape an itinerary. "
+                "Namaste! I am **Himal**, your Nepal travel companion and local route guide.\n\n"
+                "I can help you discover recorded destinations, published packages, mountain customs, and shape an itinerary. "
                 "For urgent help, use the Emergency page and its available directory records.\n"
                 "Try: *'Show me recorded places in Pokhara'*, *'Help me compare two destinations'* or *'Plan a five-day trip'*."
             ),

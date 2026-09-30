@@ -162,7 +162,7 @@ export default function CustomerSupport() {
             activeTab === "himal" ? "border-[var(--ny-green)] text-[var(--ny-green)]" : "border-transparent text-slate-500 hover:text-slate-800"
           }`}
         >
-          <FiHeadphones size={18} /> Himal AI Assistant
+          <FiHeadphones size={18} /> Himal Travel Assistant
         </button>
 
         <button
@@ -272,7 +272,7 @@ export default function CustomerSupport() {
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-purple-400"
                   >
                     <option value="general">💬 General Traveler Support & Inquiries</option>
-                    <option value="trip_planner">🗺️ AI Trip Planner & Itinerary Help</option>
+                    <option value="trip_planner">🗺️ Itinerary Planner & Route Guidance</option>
                     <option value="booking">Hotel & booking support</option>
                     <option value="budget">💵 Budget & Expenditure Questions</option>
                     <option value="risk">⚠️ Safety & Transport Alerts</option>
@@ -414,7 +414,7 @@ export default function CustomerSupport() {
         </div>
       )}
 
-      {/* Tab 2: Himal AI Assistant */}
+      {/* Tab 2: Himal Travel Assistant */}
       {activeTab === "himal" && (
         <div className="p-8 rounded-3xl bg-white border border-slate-200/80 shadow-sm space-y-6">
           <div className="flex items-center gap-3">
@@ -422,19 +422,19 @@ export default function CustomerSupport() {
               <FiHeadphones size={28} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900">Travel assistant</h2>
-              <p className="text-xs text-slate-600">Use the assistant to discover recorded places and plan a route. It is not an emergency dispatch service.</p>
+              <h2 className="text-xl font-bold text-slate-900">Himal Travel Assistant (हिमाल ट्राभल सहयोगी)</h2>
+              <p className="text-xs text-slate-600">Explore authentic destinations, plan your route, and learn mountain customs. Not an emergency dispatch service.</p>
             </div>
           </div>
           <div className="p-6 rounded-2xl bg-slate-950 text-white space-y-4">
             <p className="text-sm text-slate-300 leading-relaxed">
-              The assistant can help you discover destinations, compare recorded details and shape an itinerary. Check the linked records for current operational information.
+              Your digital local guide for Nepal. Ask about trekking permits, best seasonal travel windows, teahouse dining etiquette, and bus vs flight connections.
             </p>
             <a
               href="/chatbot"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm shadow"
             >
-              <FiSend size={16} /> Open Himal AI Chat Room ➔
+              <FiSend size={16} /> Open Himal Travel Guide ➔
             </a>
           </div>
         </div>

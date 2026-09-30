@@ -367,7 +367,7 @@ const Dashboard = () => {
                 />
               </div>
               <button type="submit" className="btn-gradient flex items-center justify-center gap-2 whitespace-nowrap text-xs font-bold py-3 px-5">
-                <FiSearch size={14} /> AI Search
+                <FiSearch size={14} /> Search Nepal
               </button>
             </form>
           </div>
@@ -618,7 +618,7 @@ const Dashboard = () => {
                   ))}
                 </div>
               ) : (
-                <EmptyState title="No recommendations yet" subtitle="Explore destinations to receive personalized AI recommendations." />
+                <EmptyState title="No recommendations yet" subtitle="Explore destinations to receive personalized suggestions based on your travel interests." />
               )}
             </section>
           )}
@@ -697,17 +697,17 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* TAB 2: MY TRIPS & AI REPLANNER */}
+      {/* TAB 2: MY TRIPS & ROUTE ADAPTER */}
       {activeTab === "itineraries" && (
         <div className="space-y-6">
           <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h2 className="section-title flex items-center gap-2">
-                  <FiCalendar className="text-blue-700" /> My saved travel plans & replanner
+                  <FiCalendar className="text-blue-700" /> My saved travel plans & route adapter
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Read, review, and modify your custom Nepal itineraries with 1-click AI actions.
+                  Read, review, and adapt your custom Nepal itineraries with instant schedule adjustments.
                 </p>
               </div>
 
@@ -719,19 +719,19 @@ const Dashboard = () => {
               </Link>
             </div>
 
-            {/* AI Modification Toolbar */}
+            {/* Route Adaptation Toolbar */}
             <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-900 to-slate-900 text-white space-y-3">
               <p className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
-                <FiZap /> Quick itinerary actions (applied to the selected plan):
+                <FiZap /> Quick itinerary adaptations (applied to the selected plan):
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 {[
-                  { prompt: "Make it cheaper", label: "Make it more affordable" },
-                  { prompt: "Make it luxurious", label: "✨ Make It Luxurious" },
+                  { prompt: "Make it cheaper", label: "Budget-Friendly (कम खर्च)" },
+                  { prompt: "Make it luxurious", label: "✨ Extra Comfort & Boutique" },
                   { prompt: "Add culture", label: "🎨 Add Cultural Heritage" },
                   { prompt: "Add hidden nature", label: "🌿 Add Nature & Views" },
-                  { prompt: "Slow down pace", label: "🧘 Slow Down Pace" },
-                  { prompt: "🌦️ Weather / Impact Replan", label: "🌦️ Weather Impact Replan" },
+                  { prompt: "Slow down pace", label: "🧘 Gentle Rest & Acclimatization" },
+                  { prompt: "🌦️ Weather / Impact Replan", label: "🌦️ Trail & Weather Adapt" },
                 ].map((act, i) => (
                   <button
                     key={i}
@@ -749,7 +749,7 @@ const Dashboard = () => {
             {travelPlans.length === 0 ? (
               <EmptyState
                 title="No saved travel plans yet"
-                subtitle="Use our AI Trip Planner to build and save custom Nepal itineraries."
+                subtitle="Use our Itinerary Planner to build and save custom Nepal itineraries."
               />
             ) : (
               <div className="space-y-4">
