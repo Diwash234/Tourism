@@ -22,8 +22,16 @@ PY
 if [ -n "$DB_FILE" ]; then
   mkdir -p "$(dirname "$DB_FILE")"
   if [ ! -s "$DB_FILE" ]; then
-    echo "entrypoint: no database at $DB_FILE - installing the published seed database"
-    python manage.py install_public_seed_db
+    echo "entrypoint: SQLite database is empty"
+    if [ -f "/app/downloads/nepal-tourism-seed.sqlite3.gz" ]; then
+      echo "entrypoint: installing the published SQLite seed database"
+      python manage.py install_public_seed_db
+    else
+      echo "entrypoint: no SQLite seed bundled; running migrations only"
+      python manage.py migrate --noinput
+    fi
+  else
+    python manage.py migrate --noinput
   fi
 else
   # PostgreSQL: run migrations, then import data if the database is empty
