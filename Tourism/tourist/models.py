@@ -1291,7 +1291,10 @@ class LocationHistory(TimeStampedModel):
     class Meta:
         ordering = ["-recorded_at"]
         indexes = [
-            models.Index(fields=["user", "recorded_at"]),
+            # Names pinned to 0095_render_schema_sync (already applied in
+            # production): Django would otherwise regenerate a different hash
+            # and `makemigrations --check` would keep proposing an index rename.
+            models.Index(fields=["user", "recorded_at"], name="tourist_loc_user_id_8f5f0a_idx"),
         ]
         verbose_name_plural = "Location history"
 
@@ -3536,8 +3539,10 @@ class WebhookDelivery(models.Model):
     class Meta:
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=["status", "next_retry_at"]),
-            models.Index(fields=["event_type", "created_at"]),
+            # Pinned to the names in 0095_render_schema_sync so the migration
+            # state and the deployed database stay in sync.
+            models.Index(fields=["status", "next_retry_at"], name="tourist_web_status_4a8b7e_idx"),
+            models.Index(fields=["event_type", "created_at"], name="tourist_web_event_9e7f3b_idx"),
         ]
 
     def __str__(self):
