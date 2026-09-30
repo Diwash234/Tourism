@@ -62,13 +62,14 @@ WORKDIR /app/Tourism
 # Create directories required by the application
 RUN mkdir -p /var/lib/tourism/media \
     /var/lib/tourism/data \
-    /app/Tourism/media
+    /app/Tourism/media \
+    /app/Tourism/staticfiles
 
 # Collect Django static files
 RUN python manage.py collectstatic --noinput
 
-# Render exposes the PORT environment variable
-EXPOSE 8000
+# Render exposes the PORT environment variable (default 10000 on Render, 8000 local)
+EXPOSE 8000 10000
 
 # ASGI (daphne) so the live-chat WebSocket at /ws/chat/<id>/ works; HTTP is
 # the same Django app. CHANNEL_LAYERS is in-memory, so run ONE process per

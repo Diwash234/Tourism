@@ -35,7 +35,7 @@ services:
   - type: web
     name: tourism-recommendation
     runtime: docker
-    plan: 0.5c-512mb
+    plan: free
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /health/
@@ -45,7 +45,7 @@ services:
           name: tourism_db
           property: connectionString
       - key: DATABASE_SSL_REQUIRE
-        value: "true"
+        value: "false"
 ```
 
 Render resolves `DATABASE_URL` to the private connection string. Never store database credentials in Git.

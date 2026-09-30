@@ -10,28 +10,17 @@ set -e
 cd /app/Tourism
 
 # Ensure media directory exists and is writable
-mkdir -p /app/Tourism/media /var/lib/tourism/media /var/lib/tourism/data 2>/dev/null || true
+mkdir -p /app/Tourism/media /app/Tourism/staticfiles /var/lib/tourism/media /var/lib/tourism/data 2>/dev/null || true
 
-DB_FILE=$(python - <<'PY'
-import os
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Tourism.settings")
-import django
-django.setup()
-from django.db import connection
-print(connection.settings_dict["NAME"] if connection.vendor == "sqlite" else "")
-PY
-)
+# Determine whether PostgreSQL or SQLite is the active database engine
+IS_POSTGRES=0
+if [ -n "$DATABASE_URL" ] && echo "$DATABASE_URL" | grep -qE '^postgres(ql)?://'; then
+  IS_POSTGRES=1
+elif [ "$DB_ENGINE" = "postgres" ] || [ "$DB_ENGINE" = "postgresql" ]; then
+  IS_POSTGRES=1
+fi
 
-if [ -n "$DB_FILE" ]; then
-  mkdir -p "$(dirname "$DB_FILE")"
-  if [ ! -s "$DB_FILE" ]; then
-    echo "entrypoint: no database at $DB_FILE - installing the published seed database"
-    python manage.py install_public_seed_db
-  else
-    echo "entrypoint: existing SQLite database found - applying any pending migrations"
-    python manage.py migrate --noinput
-  fi
-else
+if [ "$IS_POSTGRES" = "1" ]; then
   # PostgreSQL: wait for connection, run migrations, then import data if database is empty
   echo "entrypoint: PostgreSQL detected - waiting for database connection to be ready..."
   MAX_RETRIES=30
@@ -104,6 +93,30 @@ PY
   else
     echo "entrypoint: PostgreSQL database already has $DATA_EXISTS destinations - ensuring sequences are synchronized"
     python manage.py import_render_data --noinput --sync-sequences-only 2>/dev/null || true
+  fi
+else
+  # SQLite: locate target database file
+  DB_FILE=$(python - <<'PY'
+import os
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Tourism.settings")
+import django
+django.setup()
+from django.db import connection
+print(connection.settings_dict["NAME"] if connection.vendor == "sqlite" else "")
+PY
+  )
+
+  if [ -z "$DB_FILE" ]; then
+    DB_FILE="/var/lib/tourism/data/db.sqlite3"
+  fi
+
+  mkdir -p "$(dirname "$DB_FILE")"
+  if [ ! -s "$DB_FILE" ]; then
+    echo "entrypoint: no database at $DB_FILE - installing the published seed database"
+    python manage.py install_public_seed_db
+  else
+    echo "entrypoint: existing SQLite database found - applying any pending migrations"
+    python manage.py migrate --noinput
   fi
 fi
 

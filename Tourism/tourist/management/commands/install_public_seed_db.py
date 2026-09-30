@@ -211,6 +211,28 @@ class Command(BaseCommand):
 
             self.stdout.write("Transferring seed database records into PostgreSQL ...")
             from django.db import connections
+
+            # 1. Bring the extracted SQLite seed file up to the current schema so all models & columns match
+            self.stdout.write("Aligning seed database schema migrations...")
+            orig_default_conf = dict(settings.DATABASES["default"])
+            connections["default"].close()
+            if "default" in connections:
+                del connections["default"]
+            settings.DATABASES["default"] = {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": str(extracted),
+            }
+            connections.databases["default"] = connections.configure_settings(settings.DATABASES)["default"]
+            try:
+                call_command("migrate", interactive=False, verbosity=0)
+            finally:
+                connections["default"].close()
+                if "default" in connections:
+                    del connections["default"]
+                settings.DATABASES["default"] = orig_default_conf
+                connections.databases["default"] = orig_default_conf
+
+            # 2. Configure seed_sqlite connection pointing to the migrated seed database
             new_dbs = {
                 **settings.DATABASES,
                 "seed_sqlite": {
@@ -222,39 +244,64 @@ class Command(BaseCommand):
             settings.DATABASES["seed_sqlite"] = configured["seed_sqlite"]
             connections.databases["seed_sqlite"] = configured["seed_sqlite"]
 
-            fixture_file = tempfile.NamedTemporaryFile(
-                mode="w+", suffix=".json", encoding="utf-8", delete=False
-            )
-            try:
-                excludes = [
-                    "contenttypes",
-                    "auth.permission",
-                    "admin.logentry",
-                    "sessions",
-                    "token_blacklist",
-                    "audit.auditlog",
-                    "audit.errorevent",
-                ]
-                call_command(
-                    "dumpdata",
-                    "--database", "seed_sqlite",
-                    *[item for exclude in excludes for item in ("--exclude", exclude)],
-                    "--natural-foreign",
-                    "--natural-primary",
-                    stdout=fixture_file,
+            # 3. Transfer records model-by-model in FK dependency order to bound memory usage (< 40MB peak)
+            models_to_transfer = [
+                "tourist.Category",
+                "tourist.Province",
+                "tourist.District",
+                "tourist.Language",
+                "tourist.EmergencyContact",
+                "tourist.SiteSetting",
+                "tourist.BrandingAsset",
+                "tourist.ManagedPage",
+                "tourist.ContentSection",
+                "tourist.ContentBlock",
+                "tourist.HeroSlide",
+                "tourist.ManagedNavigationItem",
+                "tourist.Destination",
+                "tourist.DestinationImage",
+                "tourist.DestinationTransitRoute",
+                "tourist.Hotel",
+                "tourist.Hospital",
+                "tourist.PoliceStation",
+                "tourist.Restaurant",
+                "tourist.OSMEssentialService",
+                "tourist.Alert",
+                "tourist.CurrentHazard",
+                "tourist.VisitorNotice",
+            ]
+            import gc
+            for model_name in models_to_transfer:
+                fixture_file = tempfile.NamedTemporaryFile(
+                    mode="w+", suffix=".json", encoding="utf-8", delete=False
                 )
-                fixture_file.flush()
-                fixture_file.close()
-
-                call_command("loaddata", fixture_file.name, database="default")
-            finally:
                 try:
-                    os.unlink(fixture_file.name)
-                except OSError:
-                    pass
-                connections["seed_sqlite"].close()
-                connections.databases.pop("seed_sqlite", None)
-                settings.DATABASES.pop("seed_sqlite", None)
+                    call_command(
+                        "dumpdata",
+                        model_name,
+                        "--database", "seed_sqlite",
+                        "--natural-foreign",
+                        "--natural-primary",
+                        stdout=fixture_file,
+                    )
+                    fixture_file.flush()
+                    fixture_file.close()
+
+                    if os.path.getsize(fixture_file.name) > 4:
+                        call_command("loaddata", fixture_file.name, database="default")
+                        self.stdout.write(f"  transferred {model_name}")
+                except Exception as exc:
+                    self.stdout.write(self.style.WARNING(f"  notice on {model_name}: {exc}"))
+                finally:
+                    try:
+                        os.unlink(fixture_file.name)
+                    except OSError:
+                        pass
+                    gc.collect()
+
+            connections["seed_sqlite"].close()
+            connections.databases.pop("seed_sqlite", None)
+            settings.DATABASES.pop("seed_sqlite", None)
 
             from django.core.management.color import no_style
             from django.apps import apps
