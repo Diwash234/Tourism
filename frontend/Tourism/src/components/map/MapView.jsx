@@ -270,14 +270,14 @@ const MapView = ({
       {measureMode && (
         <div className="absolute bottom-3 left-3 z-[1000] max-w-[calc(100%-5rem)] bg-slate-950/90 text-white border border-amber-400/50 rounded-xl p-2.5 text-xs shadow-xl space-y-1">
           <p className="font-bold text-amber-300">Click points on the map to measure geodesic distance</p>
-          <p className="text-[11px] text-slate-200">
+          <p className="text-xs text-slate-200">
             Measured: <b className="text-white text-sm">{totalMeasuredKm.toFixed(2)} km</b> ({ (totalMeasuredKm * 0.621371).toFixed(2) } mi)
           </p>
           {measurePoints.length > 0 && (
             <button
               type="button"
               onClick={() => setMeasurePoints([])}
-              className="text-[10px] text-amber-300 underline font-bold"
+              className="text-xs text-amber-300 underline font-bold"
             >
               Clear points ({measurePoints.length})
             </button>
@@ -287,7 +287,7 @@ const MapView = ({
 
       {/* Mapillary Badge */}
       {mapillaryToken && layers.mapillary && (
-        <div className="absolute right-3 top-20 z-[1000] sm:top-3 rounded-lg bg-white/90 px-3 py-1 text-[10px] font-semibold text-gray-700 shadow-sm">
+        <div className="absolute right-3 top-20 z-[1000] sm:top-3 rounded-lg bg-white/90 px-3 py-1 text-xs font-semibold text-gray-700 shadow-sm">
           Mapillary enabled
         </div>
       )}
