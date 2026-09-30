@@ -106,6 +106,9 @@ jobs:
           finally:
               connection.close()
           PY
+      - name: Run project readiness audit
+        working-directory: Tourism
+        run: python manage.py project_readiness --strict
       - name: Run backend tests
         working-directory: Tourism
         run: python manage.py test --parallel 1
