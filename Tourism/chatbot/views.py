@@ -1,5 +1,8 @@
 import logging
 
+import requests
+from django.conf import settings
+
 from rest_framework import permissions, status
 
 logger = logging.getLogger(__name__)
@@ -18,7 +21,26 @@ from .services import get_chatbot_reply
 
 from rest_framework.permissions import AllowAny
 
-from ml_service.services.emergency_service import nearest_facilities
+
+def nearest_facilities(latitude, longitude, category=None, limit=5):
+    """Call the ML service to find nearby emergency facilities."""
+    try:
+        ml_url = getattr(settings, "ML_SERVICE_URL", "http://localhost:8001")
+        resp = requests.get(
+            f"{ml_url}/emergency/nearest",
+            params={
+                "latitude": latitude,
+                "longitude": longitude,
+                "category": category,
+                "limit": limit,
+            },
+            timeout=getattr(settings, "ML_SERVICE_TIMEOUT", 5),
+        )
+        resp.raise_for_status()
+        return resp.json().get("facilities", [])
+    except Exception as e:
+        logger.warning("ML service call failed: %s", e)
+        return []
 
 
 class NearbyEmergencyView(APIView):
