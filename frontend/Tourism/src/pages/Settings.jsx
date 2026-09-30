@@ -20,7 +20,7 @@ const TABS = [
 export default function Settings() {
   const { user, updateUser } = useAuth()
   const { showToast } = useToast()
-  const { theme, toggleTheme } = useTheme()
+  const { theme, setTheme } = useTheme()
   const { lang, setLang } = useI18n()
   const [activeTab, setActiveTab] = useState("account")
   const [account, setAccount] = useState({ first_name: "", last_name: "", phone_number: "" })
@@ -30,6 +30,9 @@ export default function Settings() {
   const [languages, setLanguages] = useState([])
   const [languageId, setLanguageId] = useState("")
   const [loaded, setLoaded] = useState(false)
+  const [reducedMotion, setReducedMotion] = useState(() => {
+    try { return localStorage.getItem("ny_reduced_motion") === "true" } catch { return false }
+  })
 
   useEffect(() => {
     setAccount({ first_name: user?.first_name || "", last_name: user?.last_name || "", phone_number: user?.phone_number || "" })
@@ -126,7 +129,31 @@ export default function Settings() {
           {activeTab === "language" && (
             <div className="space-y-6">
               <div className="ny-card p-5 sm:p-6"><div className="flex items-start justify-between gap-4"><div><h2 className="text-lg font-bold">Language</h2><p className="mt-1 text-sm text-[var(--ny-text-secondary)]">Change the interface language. Your selection is remembered in this browser.</p></div><FiGlobe className="text-[var(--ny-green)]" aria-hidden="true" /></div><div className="mt-5 grid gap-3 sm:grid-cols-3">{ALL_LANGS.map((item) => <button key={item.code} type="button" onClick={() => selectLanguage(item.code)} aria-pressed={lang === item.code} className={`rounded-xl border p-4 text-left transition ${lang === item.code ? "border-[var(--ny-green)] bg-[var(--ny-soft-green)]" : "border-[var(--ny-border)] hover:bg-[var(--ny-soft-green)]"}`}><span className="text-lg">{item.flag}</span><span className="mt-2 block text-sm font-bold">{item.label}</span><span className="block text-xs text-[var(--ny-text-muted)]">{item.native}</span></button>)}</div><p className="mt-4 text-xs text-[var(--ny-text-muted)]">Current language: {currentLanguage?.native || "English"}{languages.length ? " · Account preference can also be synced when a matching server language is available." : ""}</p></div>
-              <div className="ny-card p-5 sm:p-6"><div className="flex items-center justify-between gap-4"><div><h2 className="text-lg font-bold">Appearance</h2><p className="mt-1 text-sm text-[var(--ny-text-secondary)]">Use a light or dark interface. The choice is stored locally and survives refreshes.</p></div><button type="button" onClick={toggleTheme} role="switch" aria-checked={theme === "dark"} aria-label="Toggle dark mode" className={`grid h-11 w-20 grid-cols-2 items-center rounded-full p-1 transition ${theme === "dark" ? "bg-[var(--ny-green)]" : "bg-slate-200"}`}><span className={`grid h-9 w-9 place-items-center rounded-full bg-white text-slate-700 shadow-sm transition ${theme === "dark" ? "translate-x-9" : ""}`}>{theme === "dark" ? <FiMoon size={16} /> : <FiSun size={16} />}</span></button></div></div>
+              <div className="ny-card p-5 sm:p-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div><h2 className="text-lg font-bold">Appearance</h2><p className="mt-1 text-sm text-[var(--ny-text-secondary)]">Choose Light, Dark, or System. System follows your device preference and all choices persist on this browser.</p></div>
+                  {theme === "dark" ? <FiMoon className="text-[var(--ny-green)]" aria-hidden="true" /> : <FiSun className="text-[var(--ny-green)]" aria-hidden="true" />}
+                </div>
+                <div className="mt-5 grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Color theme">
+                  {[["light","Light",FiSun],["dark","Dark",FiMoon],["system","System",FiGlobe]].map(([value,label,Icon]) => (
+                    <button key={value} type="button" onClick={() => setTheme(value)} role="radio" aria-checked={theme === value}
+                      className={`flex min-h-12 items-center gap-3 rounded-xl border p-3 text-left font-semibold transition ${theme === value ? "border-[var(--ny-green)] bg-[var(--ny-soft-green)] text-[var(--ny-green)]" : "border-[var(--ny-border)] hover:bg-[var(--ny-soft-green)]"}`}>
+                      <Icon size={17} aria-hidden="true" /><span>{label}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-5 flex items-center justify-between gap-4 border-t border-[var(--ny-border)] pt-4">
+                  <div><p className="font-semibold">Reduce motion</p><p className="mt-1 text-xs text-[var(--ny-text-secondary)]">Limit animations and transitions for a calmer interface.</p></div>
+                  <button type="button" role="switch" aria-checked={reducedMotion} onClick={() => {
+                    const next = !reducedMotion
+                    setReducedMotion(next)
+                    document.documentElement.classList.toggle("reduce-motion", next)
+                    try { localStorage.setItem("ny_reduced_motion", String(next)) } catch {}
+                  }} className={`relative h-7 w-12 rounded-full transition ${reducedMotion ? "bg-[var(--ny-green)]" : "bg-slate-300"}`} aria-label="Toggle reduced motion">
+                    <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${reducedMotion ? "left-6" : "left-1"}`} />
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
