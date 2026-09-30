@@ -58,7 +58,7 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
       <div className="bg-slate-950 border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl text-white">
         <div className="flex justify-between items-start border-b border-slate-800 pb-3">
           <div>
-            <span className="text-[10px] font-black uppercase text-emerald-400">Budget Tracker</span>
+            <span className="text-xs font-black uppercase text-emerald-400">Budget Tracker</span>
             <h3 className="text-lg font-black mt-0.5">Log Quick Expenditure</h3>
           </div>
           <button type="button" onClick={onClose} className="p-1.5 rounded-full bg-slate-800 text-slate-400 hover:text-white">

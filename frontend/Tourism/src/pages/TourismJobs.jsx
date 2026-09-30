@@ -88,7 +88,7 @@ export default function TourismJobs() {
       <div className="container-app max-w-6xl space-y-5 pb-10">
         <div className="bg-white rounded-3xl border shadow-sm p-4 flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search jobs by title, description or city…" aria-label="Search jobs"
               className="input-field pl-10" />
           </div>
@@ -101,7 +101,7 @@ export default function TourismJobs() {
 
         {loadError && <p className="rounded-[var(--ny-radius-md)] border border-[#E9B9B9] bg-[var(--ny-soft-red)] p-4 text-sm text-[var(--ny-danger)]" role="alert">{loadError} <button type="button" onClick={load} className="ml-2 font-semibold underline">Try again</button></p>}
          <div className="flex items-center justify-between mt-6 mb-3">
-          <p className="text-sm text-slate-600"><b>{data.count}</b> open position{data.count === 1 ? "" : "s"}</p>
+          <p className="text-sm text-slate-600 dark:text-slate-400"><b>{data.count}</b> open position{data.count === 1 ? "" : "s"}</p>
           <Link to="/guide-portal" className="text-sm font-bold text-[#1D5146] hover:underline">Apply as a guide →</Link>
         </div>
 

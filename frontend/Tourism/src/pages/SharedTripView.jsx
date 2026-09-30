@@ -73,7 +73,7 @@ const SharedTripView = () => {
 
       {ping ? (
         <>
-          <p className="text-sm text-gray-500 mb-4 flex items-center gap-1">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-1">
             <FiClock size={14} /> Last updated: {new Date(ping.recorded_at).toLocaleTimeString()}
             <span className="inline-block h-2 w-2 rounded-full bg-forest-500 ml-2 opacity-70" />
           </p>

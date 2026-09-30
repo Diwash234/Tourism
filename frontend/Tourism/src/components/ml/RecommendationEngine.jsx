@@ -33,10 +33,10 @@ export default function RecommendationEngine() {
     <div className="card-base p-6 space-y-4 bg-gradient-to-br from-white to-purple-50/50 border border-[#E5E0D5] rounded-3xl shadow-xl">
       <div className="flex items-center justify-between border-b pb-3">
         <div>
-          <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
+          <h3 className="font-bold text-base text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <FiCompass className="text-emerald-700" /> Recorded destination picks
           </h3>
-          <p className="text-xs text-gray-500">Live featured destinations from the database. No invented match scores.</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Live featured destinations from the database. No invented match scores.</p>
         </div>
       </div>
 

@@ -18,7 +18,7 @@ export default function TripPlanner() {
   return (
     <div className="card-base p-6 shadow-xl border border-[#E5E0D5] rounded-3xl space-y-4">
       <div className="flex items-center justify-between border-b pb-3">
-        <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
+        <h3 className="font-bold text-base text-gray-900 dark:text-gray-100 flex items-center gap-2">
           <FiCalendar className="text-emerald-700" /> Nepal Custom Trip Planner
         </h3>
         <span className="text-xs font-semibold text-[#102A2E]">{trips.length} Trips</span>

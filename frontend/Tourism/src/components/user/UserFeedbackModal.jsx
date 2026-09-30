@@ -119,7 +119,7 @@ export default function UserFeedbackModal({ isOpen, onClose, destination = null 
               <button
                 type="button"
                 onClick={() => { setActiveTab("submit"); setSelectedThread(null) }}
-                className={`px-3 py-1 rounded-full text-xs font-bold ${activeTab === "submit" ? "bg-amber-400 text-slate-950" : "bg-slate-800 text-slate-300"}`}
+                className={`px-3 py-1 rounded-full text-xs font-bold ${activeTab === "submit" ? "bg-amber-400 text-slate-950" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}
               >
                 + New Support Ticket
               </button>

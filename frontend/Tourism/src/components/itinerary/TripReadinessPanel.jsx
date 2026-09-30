@@ -36,7 +36,7 @@ function AltitudeProfile({ profile }) {
           </li>
         ))}
       </ul>
-      <p className="mt-2 text-[11px] leading-4 text-[var(--ny-text-muted)]">
+      <p className="mt-2 text-xs leading-4 text-[var(--ny-text-muted)]">
         {profile.note}{profile.stops_without_elevation ? ` ${profile.stops_without_elevation} stop(s) have no recorded elevation.` : ""}
       </p>
     </div>

@@ -77,7 +77,7 @@ export default function NearYouSection({ destinations = [] }) {
               <article key={destination.id || destination.slug || destination.name} className="ny-card flex h-full flex-col overflow-hidden transition-transform hover:-translate-y-1">
                 <div className="relative h-36 bg-[var(--ny-soft-green)]">
                   <PlaceholderImage src={image} title={destination.name || "Destination"} alt={destination.name || "Destination"} className="h-full w-full" />
-                  <span className="absolute left-2 top-2 rounded-full bg-[var(--ny-green-deepest)] px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur">{kmLabel(destination.distanceKm)}</span>
+                  <span className="absolute left-2 top-2 rounded-full bg-[var(--ny-green-deepest)] px-2.5 py-1 text-xs font-bold text-white backdrop-blur">{kmLabel(destination.distanceKm)}</span>
                   <span className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-white/90 text-xs font-bold text-[var(--ny-green)] shadow-sm" aria-label={`Nearby destination ${index + 1}`}>{index + 1}</span>
                 </div>
                 <div className="flex flex-1 flex-col p-4">

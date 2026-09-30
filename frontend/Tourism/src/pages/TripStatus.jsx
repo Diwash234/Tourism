@@ -66,10 +66,10 @@ export default function TripStatus() {
         <h2 className="text-xl font-black">{titles || row.headline}</h2>
         <p className="text-[var(--ny-text-secondary)]">{row.duration_days ? `${row.duration_days} day${row.duration_days === 1 ? "" : "s"}` : "Duration unavailable"}{row.total_npr != null ? ` · NPR ${Number(row.total_npr).toLocaleString()}` : " · Total unavailable"}</p>
         <p className="font-bold">Status: {LABELS[row.status] || row.status_label || row.status || "Status unavailable"}</p>
-        <ul className="text-sm text-slate-600 space-y-1">
+        <ul className="text-sm text-slate-600 dark:text-slate-400 space-y-1">
           {(row.items || []).map((item) => <li key={item.id}>{item.quantity} × {item.title}</li>)}
         </ul>
-        <p className="text-xs text-slate-500">No payment is processed on Nepal Yatra. Confirm payment arrangements directly with the operator.</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">No payment is processed on Nepal Yatra. Confirm payment arrangements directly with the operator.</p>
       </article>
     )
   }

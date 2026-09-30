@@ -5,7 +5,7 @@ import { FiX } from "react-icons/fi"
  * Accessible modal dialog with focus trap, escape to close,
  * and backdrop click to dismiss.
  */
-export default function Modal({ open, onClose, title, children, size = "md" }) {
+export default function Modal({ open, onClose, title, children, size = "md", className = "" }) {
   const dialogRef = useRef(null)
   const previousFocus = useRef(null)
 
@@ -59,7 +59,7 @@ export default function Modal({ open, onClose, title, children, size = "md" }) {
       <div
         ref={dialogRef}
         tabIndex={-1}
-        className={`relative w-full ${sizeClasses[size] || sizeClasses.md} rounded-2xl bg-white dark:bg-slate-800 shadow-2xl border border-gray-200 dark:border-slate-700 p-6 outline-none`}
+        className={`relative w-full ${sizeClasses[size] || sizeClasses.md} rounded-2xl bg-white dark:bg-slate-800 shadow-2xl border border-gray-200 dark:border-slate-700 p-6 outline-none ${className}`}
       >
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h2>

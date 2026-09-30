@@ -89,7 +89,7 @@ const VerifyPhone = () => {
   if (!user?.phone_number) {
     return (
       <div className="ny-page container-app section-space text-center">
-        <p className="text-gray-500">No phone number is on file. Add one in Settings first.</p>
+        <p className="text-gray-500 dark:text-gray-400">No phone number is on file. Add one in Settings first.</p>
       </div>
     )
   }

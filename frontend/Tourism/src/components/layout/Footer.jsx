@@ -109,7 +109,7 @@ const Footer = () => {
                 <div className="mx-auto grid h-14 w-14 place-items-center overflow-hidden rounded-full border border-[#63E6BE]/30 bg-white/10 transition group-hover:border-[#63E6BE] group-hover:bg-white/15">
                   <img src={image} alt={title} loading="lazy" className="h-full w-full object-cover transition duration-200 group-hover:scale-105" />
                 </div>
-                <p className="mt-2 text-[11px] leading-4 text-[#C7D9D2]">{title}</p>
+                <p className="mt-2 text-xs leading-4 text-[#C7D9D2]">{title}</p>
               </div>
             ))}
           </div>

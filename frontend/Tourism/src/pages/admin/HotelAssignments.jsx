@@ -83,7 +83,7 @@ const HotelAssignments = () => {
         <SearchSelect label="Hotel" options={hotels} value={hotelId} onChange={setHotelId} placeholder="Search hotel by name…" />
         <SearchSelect label="Admin / Manager" options={admins} value={adminId} onChange={setAdminId} placeholder="Search admin by email…" />
         <div>
-          <label className="text-xs font-medium text-gray-500">Notes (optional)</label>
+          <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Notes (optional)</label>
           <input className="input-field mt-1" value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
         <button type="submit" disabled={!hotelId || !adminId} className="btn-primary self-end flex items-center justify-center gap-2 disabled:opacity-50">

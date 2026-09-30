@@ -42,7 +42,7 @@ export function ToastProvider({ children }) {
             <button
               type="button"
               onClick={() => removeToast(toast.id)}
-              className="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              className="p-1 rounded text-gray-400 hover:text-gray-600"
               aria-label="Dismiss"
             >
               <FiX size={14} />

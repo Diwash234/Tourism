@@ -68,10 +68,10 @@ const BudgetCalculator = ({ itinerary, onUpdate }) => {
       </div>
       <div className="mt-4 pt-4 border-t border-gray-100">
         <div className="flex justify-between items-center">
-          <span className="font-medium text-gray-900">Total Budget</span>
+          <span className="font-medium text-gray-900 dark:text-gray-100">Total Budget</span>
           <span className="text-xl font-bold text-emerald-600">NPR {total.toLocaleString()}</span>
         </div>
-        <div className="flex justify-between items-center mt-2 text-sm text-gray-500">
+        <div className="flex justify-between items-center mt-2 text-sm text-gray-500 dark:text-gray-400">
           <span>Per day ({days} days)</span>
           <span>NPR {perDay.toLocaleString()}</span>
         </div>

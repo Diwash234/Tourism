@@ -116,7 +116,7 @@ const Tasks = () => {
             placeholder="Search hotel by name…"
           />
           <div>
-            <label className="text-xs font-medium text-gray-500">Priority</label>
+            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Priority</label>
             <select
               className="input-field mt-1"
               value={form.priority}

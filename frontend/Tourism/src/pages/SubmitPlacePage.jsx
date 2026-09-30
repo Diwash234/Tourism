@@ -270,7 +270,7 @@ export default function SubmitPlacePage() {
           All 77 Districts & 753 Local Bodies
         </span>
         <PageHeader title="Submit a New Nepal Destination" subtitle="Share a place with evidence. Submissions are reviewed before they appear publicly." icon={FiMapPin} />
-        <p className="text-gray-500 text-sm max-w-2xl mx-auto mt-1">
+        <p className="text-gray-500 dark:text-gray-400 text-sm max-w-2xl mx-auto mt-1">
           Select or manually enter a district, municipality, village or ward, attach photos, and submit the record for review. Leave a field blank when it is not known.
         </p>
       </div>

@@ -239,7 +239,7 @@ const MapView = ({
       className="rounded-xl overflow-hidden shadow-card relative"
     >
       {/* Map Style Selector & Ruler Tool */}
-      <div className="absolute left-3 right-3 top-3 z-[1000] flex max-h-24 flex-wrap items-center gap-1.5 overflow-y-auto rounded-[var(--ny-radius-md)] border border-slate-200 bg-white/95 p-1.5 text-[11px] font-bold shadow-md backdrop-blur">
+      <div className="absolute left-3 right-3 top-3 z-[1000] flex max-h-24 flex-wrap items-center gap-1.5 overflow-y-auto rounded-[var(--ny-radius-md)] border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 p-1.5 text-xs font-bold shadow-md backdrop-blur">
         {Object.entries(TILE_PROVIDERS).map(([key, provider]) => (
           <button
             key={key}

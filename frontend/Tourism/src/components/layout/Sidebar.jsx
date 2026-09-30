@@ -242,7 +242,7 @@ export default function Sidebar() {
               </div>
               <div className={`min-w-0 ${iconMode ? "lg:hidden" : ""}`}>
                 <p className="font-bold text-xs text-white truncate">{userDisplayName(user)}</p>
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-emerald-800 text-[#BDEBD9]">
+                <span className="text-xs font-extrabold uppercase px-2 py-0.5 rounded-md bg-emerald-800 text-[#BDEBD9]">
                   {userRoleLabel(user)}
                 </span>
               </div>

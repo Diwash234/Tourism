@@ -87,7 +87,7 @@ export default function ProfileMenu({ variant = "light" }) {
             </div>
           </div>
           {user?.role && (
-            <p className={`mx-3 mb-1 text-[10px] font-black uppercase tracking-wide ${admin ? "text-emerald-300" : "text-gray-400 dark:text-gray-500"}`}>
+            <p className={`mx-3 mb-1 text-xs font-black uppercase tracking-wide ${admin ? "text-emerald-300" : "text-gray-400 dark:text-gray-500"}`}>
               {user.role}
             </p>
           )}

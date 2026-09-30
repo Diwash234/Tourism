@@ -120,7 +120,7 @@ const UserManagement = () => {
                 <tr key={u.id} className="border-t border-gray-100">
                   <td className="p-3">
                     <p className="font-medium">{u.first_name} {u.last_name}</p>
-                    <p className="text-xs text-gray-400">{u.email}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{u.email}</p>
                   </td>
                   <td className="p-3">
                     <select
