@@ -67,7 +67,7 @@ PY
       python manage.py convert_dataset_to_fixture --output /tmp/tourism-load.json
       echo "entrypoint: loading data from generated transient fixture"
       python manage.py loaddata /tmp/tourism-load.json
-      rm -f /tmp/tourism-load.json --noinput
+      rm -f /tmp/tourism-load.json
     elif [ -f "/app/downloads/nepal-tourism-seed.sqlite3.gz" ]; then
       echo "entrypoint: no load.json found, using SQLite seed database as fallback"
       python manage.py install_public_seed_db --skip-checksum
