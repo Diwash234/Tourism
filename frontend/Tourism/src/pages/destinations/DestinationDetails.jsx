@@ -1171,26 +1171,31 @@ export default function DestinationDetails() {
 
                 {/* 2. Emergency directory links */}
                 <div className="p-4 rounded-2xl bg-rose-50/70 border border-rose-100 space-y-2">
-                  <h4 className="font-bold text-sm text-rose-900 flex items-center gap-1.5">
-                    <FiShield /> Emergency contacts (see directory)
-                  </h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-sm text-rose-900 flex items-center gap-1.5">
+                      <FiShield /> 24/7 National Emergency & Rescue Hotlines
+                    </h4>
+                    <Link to={`/emergency?destination=${destination.slug}`} className="text-[11px] font-bold text-rose-700 hover:underline">
+                      View local facilities →
+                    </Link>
+                  </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono">
-                    <div className="bg-white p-2 rounded-xl border border-rose-200">
+                    <a href="tel:1144" className="bg-white p-2 rounded-xl border border-rose-200 hover:bg-rose-50 transition block">
                       <span className="text-[10px] text-gray-500 block">Tourist Police</span>
-                      <b className="text-rose-700 text-sm">See directory</b>
-                    </div>
-                    <div className="bg-white p-2 rounded-xl border border-rose-200">
+                      <b className="text-rose-700 text-sm">1144</b>
+                    </a>
+                    <a href="tel:100" className="bg-white p-2 rounded-xl border border-rose-200 hover:bg-rose-50 transition block">
                       <span className="text-[10px] text-gray-500 block">Nepal Police</span>
-                      <b className="text-rose-700 text-sm">See directory</b>
-                    </div>
-                    <div className="bg-white p-2 rounded-xl border border-rose-200">
+                      <b className="text-rose-700 text-sm">100</b>
+                    </a>
+                    <a href="tel:102" className="bg-white p-2 rounded-xl border border-rose-200 hover:bg-rose-50 transition block">
                       <span className="text-[10px] text-gray-500 block">Ambulance</span>
-                      <b className="text-rose-700 text-sm">See directory</b>
-                    </div>
-                    <div className="bg-white p-2 rounded-xl border border-rose-200">
-                      <span className="text-[10px] text-gray-500 block">Local rescue</span>
-                      <b className="text-rose-700 text-sm">{destination.nearest_hospital_info || INFO_UNAVAILABLE}</b>
-                    </div>
+                      <b className="text-rose-700 text-sm">102</b>
+                    </a>
+                    <a href="tel:1114" className="bg-white p-2 rounded-xl border border-rose-200 hover:bg-rose-50 transition block">
+                      <span className="text-[10px] text-gray-500 block">APF Mountain Rescue</span>
+                      <b className="text-rose-700 text-sm">1114</b>
+                    </a>
                   </div>
                 </div>
 

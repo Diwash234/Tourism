@@ -10,7 +10,8 @@ import useGeolocation from "../hooks/useGeolocation"
 import {
   FiNavigation, FiMapPin, FiShield,
   FiCompass, FiTarget, FiRadio, FiLayers, FiRepeat,
-  FiCheckCircle, FiAlertTriangle, FiPhoneCall, FiSun, FiZap, FiTruck, FiCoffee
+  FiCheckCircle, FiAlertTriangle, FiPhoneCall, FiSun, FiZap, FiTruck, FiCoffee,
+  FiPrinter
 } from "react-icons/fi"
 import { TurnIcon } from "../utils/uiIcons"
 import navigationApi from "../api/navigationApi"
@@ -53,6 +54,15 @@ const TRANSPORT_MODES = [
   { id: "Motorcycle", label: "Motorcycle", avgSpeed: 45 },
   { id: "Flight", label: "Mountain flight", avgSpeed: 250 },
   { id: "Walking / Trek", label: "Walking / trek", avgSpeed: 5 },
+]
+
+const NEPAL_CORRIDORS = [
+  { label: "Kathmandu ➔ Pokhara", origin: "Kathmandu", dest: "Pokhara", icon: "🏔️", hwy: "Prithvi Hwy (200 km)" },
+  { label: "Kathmandu ➔ Chitwan", origin: "Kathmandu", dest: "Chitwan National Park", icon: "🐅", hwy: "Narayangarh (148 km)" },
+  { label: "Pokhara ➔ Muktinath", origin: "Pokhara", dest: "Muktinath", icon: "🛕", hwy: "Mustang (3,800m)" },
+  { label: "Kathmandu ➔ Lumbini", origin: "Kathmandu", dest: "Lumbini", icon: "☸️", hwy: "East-West Hwy (285 km)" },
+  { label: "Kathmandu ➔ Nagarkot", origin: "Kathmandu", dest: "Nagarkot", icon: "🌄", hwy: "Valley Rim (28 km)" },
+  { label: "Pokhara ➔ Nayapul", origin: "Pokhara", dest: "Nayapul", icon: "🥾", hwy: "Annapurna Trailhead (42 km)" },
 ]
 
 const haversineKm = (lat1, lng1, lat2, lng2) => {
@@ -556,8 +566,56 @@ export default function Navigation() {
         </motion.div>
       )}
 
+      {/* Emergency Rescue Quick Bar */}
+      <div className="p-3.5 rounded-2xl bg-slate-900 text-white flex flex-wrap items-center justify-between gap-3 text-xs border border-slate-800 shadow-md">
+        <div className="flex items-center gap-2">
+          <FiShield className="text-amber-400 w-4 h-4 shrink-0" />
+          <span className="font-bold text-amber-300 text-xs">Himalayan Emergency Speed-Dial:</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 text-xs font-bold">
+          <a href="tel:1144" className="text-white hover:text-amber-300 transition-colors">👮 Tourist Police: <span className="text-amber-400">1144</span></a>
+          <span className="text-slate-600">·</span>
+          <a href="tel:1114" className="text-white hover:text-amber-300 transition-colors">🚁 APF Mountain Rescue: <span className="text-amber-400">1114</span></a>
+          <span className="text-slate-600">·</span>
+          <a href="tel:100" className="text-white hover:text-amber-300 transition-colors">🚔 Police: <span className="text-amber-400">100</span></a>
+          <span className="text-slate-600">·</span>
+          <a href="tel:102" className="text-white hover:text-amber-300 transition-colors">🚑 Ambulance: <span className="text-amber-400">102</span></a>
+          <span className="text-slate-600">·</span>
+          <a href="tel:+97714440292" className="text-white hover:text-amber-300 transition-colors">🏔️ HRA Rescue: <span className="text-amber-400">+977-1-4440292</span></a>
+        </div>
+      </div>
+
       {/* ROUTE SEARCH FORM: ORIGIN -> DESTINATION */}
       <div className="card-base p-5 border border-[#E5E0D5] rounded-3xl space-y-4 bg-white shadow-md">
+        {/* Curated Highway Corridors */}
+        <div className="border-b border-slate-100 pb-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-black uppercase text-slate-500 tracking-wider">
+              🏔️ Iconic Nepal Travel Corridors (1-Click Routes)
+            </span>
+          </div>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+            {NEPAL_CORRIDORS.map((c) => (
+              <button
+                key={c.label}
+                type="button"
+                onClick={() => {
+                  setOriginQuery(c.origin)
+                  setDestinationQuery(c.dest)
+                  handleGetRoute(c.dest, c.origin)
+                }}
+                className="shrink-0 px-3 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100 text-left transition-all group"
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm">{c.icon}</span>
+                  <span className="text-xs font-bold text-emerald-950 group-hover:text-emerald-700">{c.label}</span>
+                </div>
+                <span className="text-[10px] text-emerald-700 block mt-0.5">{c.hwy}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -711,6 +769,15 @@ export default function Navigation() {
               )}
               <button
                 type="button"
+                onClick={() => window.print()}
+                disabled={steps.length === 0}
+                className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs whitespace-nowrap disabled:opacity-40 flex items-center gap-1.5"
+                title="Print turn-by-turn route guide for offline dead-zone mountain travel"
+              >
+                <FiPrinter size={13} /> Print Route
+              </button>
+              <button
+                type="button"
                 onClick={handleShareRoute}
                 disabled={!destinationQuery.trim()}
                 className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs whitespace-nowrap disabled:opacity-40"
@@ -729,6 +796,23 @@ export default function Navigation() {
           </div>
         </form>
       </div>
+
+      {/* High-Altitude Mountain & AMS Advisory */}
+      {destination?.altitude && Number(destination.altitude) >= 2500 && (
+        <div className="p-4 rounded-3xl bg-amber-50 border-2 border-amber-300 text-amber-950 flex items-start gap-3 shadow-sm">
+          <FiAlertTriangle className="text-amber-600 w-5 h-5 mt-0.5 shrink-0" />
+          <div className="space-y-1">
+            <h4 className="font-black text-sm text-amber-900 flex items-center gap-2">
+              🏔️ High-Altitude Mountain Zone ({destination.altitude}m recorded)
+            </h4>
+            <p className="text-xs text-amber-800 leading-relaxed">
+              You are navigating into high elevation territory above 2,500m. 
+              Ascend gradually (≤ 500m sleeping altitude gain per day), stay hydrated with 4L water daily, and never ignore early signs of AMS (headache, nausea, dizziness). 
+              In an altitude emergency, descend immediately or contact Himalayan Rescue (+977-1-4440292).
+            </p>
+          </div>
+        </div>
+      )}
 
       {offlineMode && (
         <div role="status" className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-xs font-bold text-amber-800">

@@ -17,9 +17,25 @@ export default function PrintableTravelBrief({
   onClose,
   plan
 }) {
+  const effectivePlan = plan || {
+    title: "Nepal Emergency Safety Dossier & Field Brief",
+    summary: "Official emergency contact directory, traveler medical ID card, and mountain preparedness guidelines for travel across Nepal.",
+    days: "Expedition / Travel Record",
+    pace: "Safety-First",
+    best_season: "Spring / Autumn",
+    estimated_cost: "NPR 0",
+    altitude_safety: {
+      max_elevation_m: 5545,
+      acclimatization_days: 2,
+      risk_level: "Moderate to High",
+      advice: "Drink 4-5 liters of water daily. Never ascend more than 500m per day above 2,500m. If AMS symptoms develop, descend immediately."
+    },
+    itinerary: []
+  }
+
   const [personalDetails, setPersonalDetails] = useState({
     fullName: "",
-    nationality: plan?.nationality || "Nepali",
+    nationality: effectivePlan.nationality || "Nepali",
     bloodGroup: "",
     emergencyContactName: "",
     emergencyContactPhone: "",
@@ -27,10 +43,10 @@ export default function PrintableTravelBrief({
     insurancePolicyNumber: "",
   })
 
-  if (!isOpen || !plan) return null
+  if (!isOpen) return null
 
-  const days = plan.itinerary || []
-  const maxElev = plan.altitude_safety?.max_elevation_m || plan.max_elevation_m
+  const days = effectivePlan.itinerary || []
+  const maxElev = effectivePlan.altitude_safety?.max_elevation_m || effectivePlan.max_elevation_m
 
   const handlePrint = () => {
     window.print()
@@ -89,10 +105,10 @@ export default function PrintableTravelBrief({
                     Nepal National Tourism Expedition Record · यात्रा विवरण
                   </span>
                   <h1 className="text-2xl font-black tracking-tight mt-1">
-                    {plan.title}
+                    {effectivePlan.title}
                   </h1>
-                  {plan.title_nepali && (
-                    <p className="text-sm font-bold text-slate-600 mt-0.5">{plan.title_nepali}</p>
+                  {effectivePlan.title_nepali && (
+                    <p className="text-sm font-bold text-slate-600 mt-0.5">{effectivePlan.title_nepali}</p>
                   )}
                 </div>
                 <div className="text-right text-xs shrink-0">
@@ -108,7 +124,7 @@ export default function PrintableTravelBrief({
               <div className="grid grid-cols-4 gap-3 mt-4 pt-3 border-t border-slate-200 text-xs">
                 <div>
                   <span className="text-[10px] text-slate-500 uppercase font-black block">Duration</span>
-                  <span className="font-black text-sm">{plan.days || days.length} Days</span>
+                  <span className="font-black text-sm">{effectivePlan.days || days.length || "Expedition"} Days</span>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-500 uppercase font-black block">Max Elevation</span>
@@ -119,13 +135,13 @@ export default function PrintableTravelBrief({
                 <div>
                   <span className="text-[10px] text-slate-500 uppercase font-black block">Nationality Tier</span>
                   <span className="font-bold text-sm capitalize">
-                    {plan.nationality === "nepali" ? "Domestic (नेपाली)" : plan.nationality || "International"}
+                    {effectivePlan.nationality === "nepali" ? "Domestic (नेपाली)" : effectivePlan.nationality || "International"}
                   </span>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-500 uppercase font-black block">Total Estimated Cost</span>
                   <span className="font-mono font-bold text-sm">
-                    {plan.total_budget_npr ? `NPR ${plan.total_budget_npr.toLocaleString()}` : "Market Rate"}
+                    {effectivePlan.total_budget_npr ? `NPR ${effectivePlan.total_budget_npr.toLocaleString()}` : "Market Rate"}
                   </span>
                 </div>
               </div>
