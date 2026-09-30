@@ -6,16 +6,13 @@ const STORAGE_KEY = "ny_recent_searches"
 const MAX_RECENT = 5
 
 export function useRecentSearches() {
-  const [searches, setSearches] = useState([])
-
-  useEffect(() => {
+  const [searches, setSearches] = useState(() => {
     try {
-      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]")
-      setSearches(stored)
+      return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]")
     } catch {
-      setSearches([])
+      return []
     }
-  }, [])
+  })
 
   const addSearch = (query) => {
     if (!query?.trim()) return

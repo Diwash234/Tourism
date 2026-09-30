@@ -59,7 +59,24 @@ export default function CuratedPlansPanel() {
   }
 
   useEffect(() => {
-    loadPlans()
+    let alive = true
+    itineraryApi.getCuratedList({ persona: "all" })
+      .then(({ data }) => {
+        if (alive) {
+          setPlans(data.results || [])
+          setLoading(false)
+        }
+      })
+      .catch(() => {
+        if (alive) {
+          showToast("Failed to load curated plans.", "error")
+          setPlans([])
+          setLoading(false)
+        }
+      })
+    return () => {
+      alive = false
+    }
   }, [])
 
   const handleInspectPlan = async (slug) => {

@@ -29,13 +29,20 @@ export default function PackingChecklistModal({
 
   useEffect(() => {
     if (!isOpen) return
-    try {
-      const saved = localStorage.getItem(storageKey)
-      if (saved) {
-        setPackedItems(JSON.parse(saved))
+    let active = true
+    Promise.resolve().then(() => {
+      if (!active) return
+      try {
+        const saved = localStorage.getItem(storageKey)
+        if (saved) {
+          setPackedItems(JSON.parse(saved))
+        }
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
+    })
+    return () => {
+      active = false
     }
   }, [isOpen, storageKey])
 

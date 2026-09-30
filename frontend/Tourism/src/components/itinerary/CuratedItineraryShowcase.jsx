@@ -99,7 +99,9 @@ export default function CuratedItineraryShowcase({ onSelectPlan, currentNational
 
   useEffect(() => {
     let alive = true
-    setLoading(true)
+    Promise.resolve().then(() => {
+      if (alive) setLoading(true)
+    })
     const isCategory = ["trekking", "pilgrimage", "wildlife", "weekend"].includes(activeTab)
     const params = isCategory ? { category: activeTab } : { persona: activeTab }
 

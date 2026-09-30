@@ -31,6 +31,25 @@ function Recenter({ trigger, position }) {
   return null
 }
 
+function NormalizeLeafletControls() {
+  const map = useMap()
+  useEffect(() => {
+    const controls = map.getContainer().querySelectorAll('.leaflet-control-zoom a[href="#"]')
+    controls.forEach((control) => {
+      control.removeAttribute("href")
+      control.setAttribute("role", "button")
+      control.setAttribute("tabindex", "0")
+      if (!control.getAttribute("aria-label")) {
+        control.setAttribute(
+          "aria-label",
+          control.classList.contains("leaflet-control-zoom-in") ? "Zoom in" : "Zoom out",
+        )
+      }
+    })
+  }, [map])
+  return null
+}
+
 const fmtDist = (m) => (m == null ? "—" : m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`)
 const fmtDur = (s) => (s == null ? "—" : s >= 60 ? `${Math.max(1, Math.round(s / 60))} min` : `${Math.round(s)} s`)
 const fmtEta = (s) => {
@@ -198,6 +217,7 @@ export default function LiveNavigationPanel({ destination, mode = "driving", sto
                 <Recenter trigger={recenterTrigger} position={position} />
               </>
             )}
+            <NormalizeLeafletControls />
           </MapContainer>
         </div>
       )}
