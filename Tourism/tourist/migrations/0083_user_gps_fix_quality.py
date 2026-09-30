@@ -3,6 +3,61 @@
 from django.db import migrations, models
 
 
+def add_gps_fields_if_missing(apps, schema_editor):
+    """Add GPS fields only if they don't already exist (idempotent)."""
+    with schema_editor.connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name = 'tourist_user' AND column_name = 'gps_accuracy_m'
+        """)
+        if not cursor.fetchone():
+            schema_editor.add_field(
+                model=apps.get_model('tourist', 'User'),
+                field=models.FloatField(blank=True, help_text='Device-reported accuracy in metres', null=True),
+                name='gps_accuracy_m',
+            )
+        cursor.execute("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name = 'tourist_user' AND column_name = 'gps_recorded_at'
+        """)
+        if not cursor.fetchone():
+            schema_editor.add_field(
+                model=apps.get_model('tourist', 'User'),
+                field=models.DateTimeField(blank=True, help_text='When the device took the fix', null=True),
+                name='gps_recorded_at',
+            )
+        cursor.execute("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name = 'tourist_user' AND column_name = 'gps_validated_at'
+        """)
+        if not cursor.fetchone():
+            schema_editor.add_field(
+                model=apps.get_model('tourist', 'User'),
+                field=models.DateTimeField(blank=True, null=True),
+                name='gps_validated_at',
+            )
+        cursor.execute("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name = 'tourist_user' AND column_name = 'gps_validation_reasons'
+        """)
+        if not cursor.fetchone():
+            schema_editor.add_field(
+                model=apps.get_model('tourist', 'User'),
+                field=models.JSONField(blank=True, default=list),
+                name='gps_validation_reasons',
+            )
+        cursor.execute("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name = 'tourist_user' AND column_name = 'gps_validation_state'
+        """)
+        if not cursor.fetchone():
+            schema_editor.add_field(
+                model=apps.get_model('tourist', 'User'),
+                field=models.CharField(blank=True, help_text='precise / approximate / unusable', max_length=20),
+                name='gps_validation_state',
+            )
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -10,29 +65,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='user',
-            name='gps_accuracy_m',
-            field=models.FloatField(blank=True, help_text='Device-reported accuracy in metres', null=True),
-        ),
-        migrations.AddField(
-            model_name='user',
-            name='gps_recorded_at',
-            field=models.DateTimeField(blank=True, help_text='When the device took the fix', null=True),
-        ),
-        migrations.AddField(
-            model_name='user',
-            name='gps_validated_at',
-            field=models.DateTimeField(blank=True, null=True),
-        ),
-        migrations.AddField(
-            model_name='user',
-            name='gps_validation_reasons',
-            field=models.JSONField(blank=True, default=list),
-        ),
-        migrations.AddField(
-            model_name='user',
-            name='gps_validation_state',
-            field=models.CharField(blank=True, help_text='precise / approximate / unusable', max_length=20),
-        ),
+        migrations.RunPython(add_gps_fields_if_missing, migrations.RunPython.noop),
     ]
