@@ -7,23 +7,23 @@ const DEFAULT_ITEMS = [
   { id: 2, text: "Travel Insurance", category: "Documents", checked: false },
   { id: 3, text: "Flight Tickets", category: "Documents", checked: false },
   { id: 4, text: "Hotel Bookings", category: "Documents", checked: false },
-  { id: 5, text: "Chargers & Power Bank", category: "Electronics", checked: false },
-  { id: 6, text: "Camera", category: "Electronics", checked: false },
-  { id: 7, text: "Medications", category: "Health", checked: false },
-  { id: 8, text: "First Aid Kit", category: "Health", checked: false },
-  { id: 9, text: "Comfortable Walking Shoes", category: "Clothing", checked: false },
-  { id: 10, text: "Rain Jacket", category: "Clothing", checked: false },
-  { id: 11, text: "Sunscreen & Sunglasses", category: "Health", checked: false },
+  { id: 5, text: "First Aid Kit", category: "Health", checked: false },
+  { id: 6, text: "Prescription Medicines", category: "Health", checked: false },
+  { id: 7, text: "Sunscreen & Sunglasses", category: "Health", checked: false },
+  { id: 8, text: "Chargers & Power Bank", category: "Electronics", checked: false },
+  { id: 9, text: "Camera", category: "Electronics", checked: false },
+  { id: 10, text: "Comfortable Walking Shoes", category: "Clothing", checked: false },
+  { id: 11, text: "Rain Jacket", category: "Clothing", checked: false },
   { id: 12, text: "Reusable Water Bottle", category: "Misc", checked: false },
 ]
 
-const CATEGORIES = ["All", "Documents", "Electronics", "Health", "Clothing", "Misc"]
+const CATEGORIES = ["All", "Documents", "Health", "Electronics", "Clothing", "Misc"]
 
 /**
  * Interactive travel checklist with categories, progress tracking,
  * and localStorage persistence.
  */
-export default function TravelChecklist() {
+export default function TravelChecklist({ destinationName = "" }) {
   const { t } = useTranslation()
   const [items, setItems] = useState(() => {
     try {
@@ -74,7 +74,7 @@ export default function TravelChecklist() {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <FiCheck size={16} className="text-[var(--ny-green)]" />
-          Travel Checklist
+          Travel Checklist {destinationName && `— ${destinationName}`}
         </h3>
         <button
           type="button"
@@ -174,8 +174,8 @@ export default function TravelChecklist() {
         <button
           type="button"
           onClick={addItem}
-          className="px-3 py-2 rounded-lg bg-[var(--ny-green)] text-white hover:bg-[var(--ny-emerald)] transition-colors"
-          aria-label="Add item"
+          disabled={!newItemText.trim()}
+          className="px-3 py-2 rounded-lg bg-[var(--ny-green)] text-white text-sm font-semibold hover:bg-[var(--ny-emerald)] transition-colors disabled:opacity-50"
         >
           <FiPlus size={16} />
         </button>

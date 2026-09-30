@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react"
+import { Link } from "react-router-dom"
 import { FiBell, FiX, FiCheck, FiAlertTriangle, FiInfo, FiTrash2 } from "react-icons/fi"
+import { useTranslation } from "../../hooks/useTranslation"
 
 const NOTIFICATION_TYPES = {
   alert: { icon: FiAlertTriangle, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/30" },
@@ -16,6 +18,7 @@ const NOTIFICATION_TYPES = {
  * - localStorage persistence
  */
 export default function NotificationCenter() {
+  const { t } = useTranslation()
   const [notifications, setNotifications] = useState(() => {
     try {
       const stored = localStorage.getItem("ny-notifications")
@@ -155,7 +158,7 @@ export default function NotificationCenter() {
                 return (
                   <div
                     key={notification.id}
-                    className={`flex items-start gap-3 px-4 py-3 border-b border-gray-50 dark:border-slate-700/50 last:border-0 transition-colors ${
+                    className={`flex items-start gap-3 px-4 py-3 border-b border-gray-50 dark:border-slate-700/50 last:border-0 ${
                       !notification.read ? "bg-[var(--ny-soft-green)]" : ""
                     }`}
                   >
@@ -182,7 +185,7 @@ export default function NotificationCenter() {
                         type="button"
                         onClick={() => removeNotification(notification.id)}
                         className="p-1 rounded text-gray-400 hover:text-red-500"
-                        aria-label="Remove notification"
+                        aria-label="Remove"
                       >
                         <FiX size={12} />
                       </button>

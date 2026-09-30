@@ -1,16 +1,13 @@
 import { useState, useEffect } from "react"
 import { FiSun, FiCloud, FiCloudRain, FiCloudSnow, FiWind, FiDroplets, FiThermometer } from "react-icons/fi"
-import { useTranslation } from "../../hooks/useTranslation"
 
 /**
  * Weather widget showing current conditions for a destination.
  * Uses OpenWeatherMap API when key is configured, otherwise shows placeholder.
  */
 export default function WeatherWidget({ lat, lng, destinationName }) {
-  const { t } = useTranslation()
   const [weather, setWeather] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
 
   useEffect(() => {
     if (!lat || !lng) {
@@ -38,10 +35,9 @@ export default function WeatherWidget({ lat, lng, destinationName }) {
           windSpeed: data.wind.speed,
           description: data.weather[0]?.description || "",
           icon: data.weather[0]?.icon || "01d",
-          city: data.name,
         })
       } catch (err) {
-        setError(err.message)
+        console.error("Weather fetch failed:", err)
       } finally {
         setLoading(false)
       }
@@ -51,12 +47,11 @@ export default function WeatherWidget({ lat, lng, destinationName }) {
   }, [lat, lng])
 
   const getIcon = (iconCode) => {
-    if (!iconCode) return <FiCloud size={32} />
+    if (!iconCode) <FiCloud size={32} />
     if (iconCode.includes("01")) return <FiSun size={32} className="text-amber-400" />
-    if (iconCode.includes("02") || iconCode.includes("03") || iconCode.includes("04")) return <FiCloud size={32} />
-    if (iconCode.includes("09") || iconCode.includes("10")) return <FiCloudRain size={32} />
-    if (iconCode.includes("11")) return <FiCloudRain size={32} />
-    if (iconCode.includes("13")) return <FiCloudSnow size={32} />
+    if (iconCode.includes("02") || iconCode.includes("03") || iconCode.includes("04")) return <FiCloud size={32} className="text-gray-400" />
+    if (iconCode.includes("09") || iconCode.includes("10")) return <FiCloudRain size={32} className="text-blue-400" />
+    if (iconCode.includes("13")) return <FiCloudSnow size={32} className="text-cyan-200" />
     return <FiCloud size={32} />
   }
 
@@ -70,12 +65,12 @@ export default function WeatherWidget({ lat, lng, destinationName }) {
     )
   }
 
-  if (error || !weather) {
+  if (!weather) {
     return (
       <div className="bg-white dark:bg-slate-800 border border-[var(--ny-border)] rounded-2xl p-5">
         <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2">Weather</h3>
         <p className="text-xs text-gray-500 dark:text-gray-400">
-          Weather data is not available for this location. Check local conditions before traveling.
+          Weather data is not available for {destinationName || "this location"}. Check local conditions before traveling.
         </p>
       </div>
     )
@@ -85,7 +80,7 @@ export default function WeatherWidget({ lat, lng, destinationName }) {
     <div className="bg-white dark:bg-slate-800 border border-[var(--ny-border)] rounded-2xl p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-bold text-gray-900 dark:text-white">Weather</h3>
-        <span className="text-[10px] text-gray-400 uppercase tracking-wider">{weather.city}</span>
+        <span className="text-[10px] text-gray-400 uppercase tracking-wider">{destinationName}</span>
       </div>
       <div className="flex items-center gap-4">
         <div className="flex-shrink-0">{getIcon(weather.icon)}</div>

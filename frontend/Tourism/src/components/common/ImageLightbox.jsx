@@ -130,6 +130,7 @@ export default function ImageLightbox({ images = [], initialIndex = 0, onClose }
           >
             <FiShare2 size={18} />
           </button>
+          <div className="w-px h-6 bg-white/20 mx-1" />
           <button
             type="button"
             onClick={onClose}
