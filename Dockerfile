@@ -67,14 +67,14 @@ RUN mkdir -p /var/lib/tourism/media \
 RUN python manage.py collectstatic --noinput
 
 # Render exposes the PORT environment variable
-EXPOSE 8000
+EXPOSE ${PORT:-8000}
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8000/health/ || exit 1
+    CMD curl -f http://localhost:${PORT:-8000}/health/ || exit 1
 
 # ASGI (daphne) so the live-chat WebSocket at /ws/chat/<id>/ works; HTTP is
 # the same Django app. CHANNEL_LAYERS is in-memory, so run ONE process per
 # container (scale with more containers + a Redis channel layer).
 ENTRYPOINT ["ny-entrypoint"]
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "Tourism.asgi:application"]
+CMD ["sh", "-c", "daphne -b 0.0.0.0 -p ${PORT:-8000} Tourism.asgi:application"]
