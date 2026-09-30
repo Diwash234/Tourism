@@ -252,13 +252,13 @@ const SocialShare = ({
 
               {/* QR Code */}
               {showQR && (
-                <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
+                <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
                   <div data-qr-svg>
                     <QRCode value={shareUrl} size={100} />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">Scan to share on mobile</p>
-                    <p className="text-xs text-gray-500 mt-1">Point your camera at the QR code to open this page on your phone.</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Scan to share on mobile</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Point your camera at the QR code to open this page on your phone.</p>
                     <button
                       onClick={handleDownloadQR}
                       className="mt-2 text-xs text-emerald-600 font-medium flex items-center gap-1 hover:underline"
@@ -272,7 +272,7 @@ const SocialShare = ({
               {/* OG Preview */}
               {showOGPreview && (
                 <div>
-                  <p className="text-xs font-medium text-gray-500 mb-2">Preview</p>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Preview</p>
                   <OGPreview url={shareUrl} title={title} description={description} image={image} />
                 </div>
               )}

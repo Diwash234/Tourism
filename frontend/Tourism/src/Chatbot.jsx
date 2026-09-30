@@ -199,7 +199,7 @@ export default function ChatBot() {
               className="ny-card min-h-11 px-4 py-3 text-left"
             >
               <span className="block text-xs font-bold text-primary-900">{qp.label}</span>
-              <span className="block text-[11px] text-gray-500 mt-0.5 line-clamp-1">{qp.prompt}</span>
+              <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">{qp.prompt}</span>
             </button>
           ))}
         </div>
@@ -400,13 +400,13 @@ export default function ChatBot() {
                         <div key={i} className="p-2 bg-white rounded-xl border border-rose-100 flex justify-between items-center text-xs">
                           <div>
                             <p className="font-bold text-gray-900 truncate">{em.name}</p>
-                            <span className="text-[10px] text-gray-500">{em.type} ({em.district})</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">{em.type} ({em.district})</span>
                           </div>
                           <a
                             href={em.phone && !em.phone_is_national_fallback ? `tel:${em.phone}` : "#"}
                              onClick={(event) => { if (!em.phone || em.phone_is_national_fallback) event.preventDefault() }}
                              aria-disabled={!em.phone || Boolean(em.phone_is_national_fallback)}
-                            className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] flex items-center gap-1 shadow"
+                            className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1 shadow"
                           >
                             <FiPhoneCall size={10} /> {em.phone && !em.phone_is_national_fallback ? `Call ${em.phone}` : "No local phone recorded"}
                           </a>
