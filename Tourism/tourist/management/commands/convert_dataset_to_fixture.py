@@ -36,6 +36,8 @@ class Command(BaseCommand):
             data = json.load(f)
 
         destinations = data.get("destinations", {})
+        if isinstance(destinations, list):
+            destinations = {str(item.get("id")): item for item in destinations if item.get("id") is not None}
         self.stdout.write(f"Found {len(destinations)} destinations")
 
         # Convert to Django fixture format
