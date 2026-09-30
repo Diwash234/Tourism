@@ -13,6 +13,7 @@ from .models import (
     SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, CMSContentTranslation, DestinationFeatureProfile, StaffCapabilityProfile,
     Restaurant, DestinationTransitRoute, TravelPlan, TravelPlanStop, HeroSlide,
     TravelerDocument, RedirectRule, NewsletterSignup, MLInsight,
+    FeaturedDestination,
 )
 
 
@@ -459,9 +460,68 @@ class UpdatePreferencesSerializer(serializers.Serializer):
 # Admin Serializers
 # ---------------------------------------------------------------------------
 class FeaturedDestinationSerializer(serializers.ModelSerializer):
+    """Admin Featured Content Studio serializer.
+
+    This targets the FeaturedDestination model. Commit d1a59e9 replaced it with
+    a two-liner declaring `model = Destination` plus a field list that exists on
+    neither model, so every admin create/update of a featured card died with
+    ImproperlyConfigured. Restored to the version the admin panel and the
+    FeaturedDestinationTests were written against.
+    """
+
+    destination = serializers.PrimaryKeyRelatedField(queryset=Destination.objects.all())
+    destination_name = serializers.ReadOnlyField(source="destination.name")
+    destination_slug = serializers.ReadOnlyField(source="destination.slug")
+    destination_city = serializers.ReadOnlyField(source="destination.city")
+    destination_province = serializers.ReadOnlyField(source="destination.province")
+    destination_district = serializers.ReadOnlyField(source="destination.district")
+    destination_rating = serializers.ReadOnlyField(source="destination.average_rating")
+
+    effective_title = serializers.ReadOnlyField()
+    effective_description = serializers.ReadOnlyField()
+    effective_image_url = serializers.ReadOnlyField()
+    effective_cta_url = serializers.ReadOnlyField()
+
+    created_by_email = serializers.ReadOnlyField(source="created_by.email")
+    updated_by_email = serializers.ReadOnlyField(source="updated_by.email")
+
     class Meta:
-        model = Destination
-        fields = ["id", "name", "slug", "city", "country", "is_featured", "featured_media", "featured_media_url", "cta_label", "cta_url"]
+        model = FeaturedDestination
+        fields = [
+            "id", "destination", "destination_name", "destination_slug",
+            "destination_city", "destination_province", "destination_district", "destination_rating",
+            "title", "short_description", "featured_media", "featured_media_url",
+            "effective_title", "effective_description", "effective_image_url", "effective_cta_url",
+            "cta_label", "cta_url", "display_order", "is_published",
+            "publish_start", "publish_end", "created_at", "updated_at",
+            "created_by", "created_by_email", "updated_by", "updated_by_email",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at", "created_by", "updated_by"]
+
+    def to_internal_value(self, data):
+        # The admin panel (and the API tests) send `destination_id`; the model
+        # relation is `destination`.
+        data = data.copy() if hasattr(data, "copy") else dict(data)
+        if "destination_id" in data and "destination" not in data:
+            data["destination"] = data["destination_id"]
+        return super().to_internal_value(data)
+
+    def validate(self, attrs):
+        destination = attrs.get("destination") or (self.instance.destination if self.instance else None)
+        if not destination:
+            raise serializers.ValidationError({"destination": "An existing destination must be selected."})
+
+        if not self.instance:
+            existing = FeaturedDestination.objects.filter(destination=destination).first()
+            if existing:
+                raise serializers.ValidationError({"destination": f"Destination '{destination.name}' is already configured as featured (ID #{existing.id})."})
+
+        p_start = attrs.get("publish_start") or (self.instance.publish_start if self.instance else None)
+        p_end = attrs.get("publish_end") or (self.instance.publish_end if self.instance else None)
+        if p_start and p_end and p_start >= p_end:
+            raise serializers.ValidationError({"publish_end": "publish_end must be later than publish_start."})
+
+        return attrs
 
 
 class InfrastructureSubmissionSerializer(serializers.ModelSerializer):

@@ -821,6 +821,10 @@ class DestinationImage(TimeStampedModel):
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="gallery", db_index=True)
     image = models.ImageField(upload_to="destinations/gallery/", blank=True, null=True)
     external_url = models.URLField(
+        # Wikimedia/Unsplash thumbnails run long: 640 of the 9,607 seeded photo
+        # URLs exceed 200 characters (longest is 697), and PostgreSQL rejects
+        # anything past the column length instead of silently truncating.
+        max_length=700,
         blank=True, help_text="Used instead of `image` for externally-hosted photos (Unsplash/Wikimedia/etc.)"
     )
     thumbnail_url = models.URLField(blank=True, help_text="Optimized thumbnail for fast web delivery")
@@ -3387,6 +3391,91 @@ class FeaturedDestination(TimeStampedModel):
         blank=True,
         help_text="Custom internal path override (e.g., /destinations/pokhara). Blank defaults to destination route.",
     )
+    display_order = models.PositiveIntegerField(
+        default=0,
+        db_index=True,
+        help_text="Ordering position in featured carousel/grid.",
+    )
+    is_published = models.BooleanField(
+        default=True,
+        db_index=True,
+        help_text="Publishing status toggle.",
+    )
+    publish_start = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Optional start time for scheduled publishing.",
+    )
+    publish_end = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Optional end time for scheduled publishing.",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="featured_destinations_created",
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="featured_destinations_updated",
+    )
+
+    class Meta:
+        ordering = ["display_order", "-updated_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["destination"],
+                name="unique_featured_destination_ref",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["is_published", "display_order"]),
+            models.Index(fields=["publish_start", "publish_end"]),
+        ]
+
+    def __str__(self):
+        return f"Featured: {self.title or self.destination.name} (Order: {self.display_order})"
+
+    @property
+    def effective_title(self):
+        return self.title.strip() if self.title and self.title.strip() else self.destination.name
+
+    @property
+    def effective_description(self):
+        if self.short_description and self.short_description.strip():
+            return self.short_description.strip()
+        return self.destination.short_description or self.destination.description or ""
+
+    @property
+    def effective_image_url(self):
+        if self.featured_media_url and self.featured_media_url.strip():
+            return self.featured_media_url.strip()
+        if self.featured_media:
+            if self.featured_media.image:
+                try:
+                    return self.featured_media.image.url
+                except (ValueError, AttributeError):
+                    pass
+            if self.featured_media.external_url:
+                return self.featured_media.external_url
+        if self.destination.cover_image:
+            try:
+                return self.destination.cover_image.url
+            except (ValueError, AttributeError):
+                return str(self.destination.cover_image)
+        return getattr(self.destination, "external_image_url", "") or ""
+
+    @property
+    def effective_cta_url(self):
+        if self.cta_url and self.cta_url.strip():
+            return self.cta_url.strip()
+        return f"/destinations/{self.destination.slug}"
 
 
 # ---------------------------------------------------------------------------
@@ -3453,44 +3542,6 @@ class WebhookDelivery(models.Model):
 
     def __str__(self):
         return f"{self.event_type} -> {self.webhook.name} ({self.status})"
-
-    def __str__(self):
-        return f"Featured: {self.title or self.destination.name} (Order: {self.display_order})"
-
-    @property
-    def effective_title(self):
-        return self.title.strip() if self.title and self.title.strip() else self.destination.name
-
-    @property
-    def effective_description(self):
-        if self.short_description and self.short_description.strip():
-            return self.short_description.strip()
-        return self.destination.short_description or self.destination.description or ""
-
-    @property
-    def effective_image_url(self):
-        if self.featured_media_url and self.featured_media_url.strip():
-            return self.featured_media_url.strip()
-        if self.featured_media:
-            if self.featured_media.image:
-                try:
-                    return self.featured_media.image.url
-                except (ValueError, AttributeError):
-                    pass
-            if self.featured_media.external_url:
-                return self.featured_media.external_url
-        if self.destination.cover_image:
-            try:
-                return self.destination.cover_image.url
-            except (ValueError, AttributeError):
-                return str(self.destination.cover_image)
-        return getattr(self.destination, "external_image_url", "") or ""
-
-    @property
-    def effective_cta_url(self):
-        if self.cta_url and self.cta_url.strip():
-            return self.cta_url.strip()
-        return f"/destinations/{self.destination.slug}"
 
 
 class MarketplacePartner(TimeStampedModel):

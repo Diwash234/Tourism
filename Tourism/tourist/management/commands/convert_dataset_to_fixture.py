@@ -10,6 +10,13 @@ from django.core.management.base import BaseCommand
 class Command(BaseCommand):
     help = "Convert dataset/data.json to Django fixture format (load.json)"
 
+    # Destination and DestinationImage both inherit TimeStampedModel, whose
+    # created_at/updated_at are auto_now fields. loaddata saves with raw=True,
+    # so Django does not fill those columns in - the fixture has to provide real
+    # timestamps or every insert fails with a NOT NULL constraint violation.
+    # The dataset always carries updated_at; this only guards a partial file.
+    FALLBACK_TIMESTAMP = "2026-01-01T00:00:00+00:00"
+
     def add_arguments(self, parser):
         parser.add_argument(
             "--input",
@@ -43,6 +50,11 @@ class Command(BaseCommand):
         # Convert to Django fixture format
         fixture = []
         for dest_id, dest_data in destinations.items():
+            timestamp = (
+                dest_data.get("created_at")
+                or dest_data.get("updated_at")
+                or self.FALLBACK_TIMESTAMP
+            )
             fixture.append({
                 "model": "tourist.destination",
                 "pk": dest_data["id"],
@@ -62,21 +74,28 @@ class Command(BaseCommand):
                     "description": dest_data.get("description", ""),
                     "short_description": dest_data.get("short_description", ""),
                     "status": dest_data.get("status", "approved"),
-                    "updated_at": dest_data.get("updated_at", ""),
+                    "created_at": timestamp,
+                    "updated_at": dest_data.get("updated_at") or timestamp,
                 },
             })
 
-            # Add images
+            # Add images. The photo URL belongs in external_url: DestinationImage
+            # has no "image_url" field, and loaddata rejects unknown fields.
             for img in dest_data.get("images", []):
+                img_timestamp = img.get("created_at") or timestamp
                 fixture.append({
                     "model": "tourist.destinationimage",
                     "pk": img["id"],
                     "fields": {
                         "destination": dest_data["id"],
-                        "image_url": img["url"],
+                        "external_url": img["url"],
                         "caption": img.get("caption", ""),
                         "is_cover": img.get("is_cover", False),
-                        "status": img.get("status", "approved"),
+                        # DestinationImage has no "status" column; review state
+                        # lives in verification_status (approved/pending/rejected).
+                        "verification_status": img.get("status", "approved"),
+                        "created_at": img_timestamp,
+                        "updated_at": img.get("updated_at") or img_timestamp,
                     },
                 })
 
