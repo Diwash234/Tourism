@@ -19,8 +19,8 @@ services:
         fromDatabase:
           name: tourism_db
           property: connectionString
-      - key: DATABASE_SSL_REQUIRE
-        value: "true"
+      - key: DATABASE_SSLMODE
+        value: "require"
       - key: PUBLIC_SITE_URL
         sync: false
       - key: VITE_SITE_URL

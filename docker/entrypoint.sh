@@ -62,6 +62,9 @@ PY
     if [ -f "/app/Tourism/load.json" ]; then
       echo "entrypoint: loading data from load.json"
       python manage.py loaddata /app/Tourism/load.json --noinput
+    elif [ -f "/app/Tourism/data.json" ]; then
+      echo "entrypoint: loading data from data.json"
+      python manage.py loaddata /app/Tourism/data.json --noinput
     elif [ -f "/app/downloads/nepal-tourism-seed.sqlite3.gz" ]; then
       echo "entrypoint: no load.json found, using SQLite seed database as fallback"
       python manage.py install_public_seed_db --skip-checksum
