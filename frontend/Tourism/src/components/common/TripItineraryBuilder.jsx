@@ -1,88 +1,144 @@
 import { useState, useCallback } from "react"
-import { FiPlus, FiTrash2, FiGripVertical, FiClock, FiMapPin, FiDollarSign, FiCalendar } from "react-icons/fi"
-import { useTranslation } from "../../hooks/useTranslation"
+import { FiPlus, FiTrash2, FiGripVertical, FiDollarSign, FiChevronUp, FiChevronDown } from "react-icons/fi"
 
 /**
- * Interactive trip itinerary builder with drag-and-drop ordering,
- * day-by-day planning, and budget tracking.
+ * Interactive trip itinerary builder with day-by-day planning and budget tracking.
+ * Keeps the plan locally so an unfinished trip survives a page refresh.
  */
-export default function TripItineraryBuilder({ destinations = [], onSave }) {
-  const { t } = useTranslation()
+export default function TripItineraryBuilder({ onSave }) {
   const [tripName, setTripName] = useState("")
   const [days, setDays] = useState([
     { id: 1, date: "", activities: [] }
   ])
-  const [budget, setBudget] = useState({ accommodation: 0, food: 0, transport: 0, activities: 0 })
+  const [budget, setBudget] = useState({
+    accommodation: 0,
+    food: 0,
+    transport: 0,
+    activities: 0,
+  })
 
   const addDay = useCallback(() => {
-    setDays(prev => [...prev, { id: Date.now(), date: "", activities: [] }])
+    setDays((prev) => [
+      ...prev,
+      { id: Date.now(), date: "", activities: [] },
+    ])
   }, [])
 
   const removeDay = useCallback((dayId) => {
-    setDays(prev => prev.filter(d => d.id !== dayId))
+    setDays((prev) => {
+      if (prev.length === 1) return prev
+      return prev.filter((day) => day.id !== dayId)
+    })
   }, [])
 
   const addActivity = useCallback((dayId) => {
-    setDays(prev => prev.map(d => d.id === dayId ? {
-      ...d,
-      activities: [...d.activities, { id: Date.now(), time: "", title: "", description: "", cost: 0, location: "" }]
-    } : d))
+    setDays((prev) => prev.map((day) => (
+      day.id === dayId
+        ? {
+            ...day,
+            activities: [
+              ...day.activities,
+              {
+                id: Date.now(),
+                time: "09:00",
+                title: "",
+                description: "",
+                cost: 0,
+                location: "",
+              },
+            ],
+          }
+        : day
+    )))
   }, [])
 
   const updateActivity = useCallback((dayId, activityId, field, value) => {
-    setDays(prev => prev.map(d => d.id === dayId ? {
-      ...d,
-      activities: d.activities.map(a => a.id === activityId ? { ...a, [field]: value } : a)
-    } : d))
+    setDays((prev) => prev.map((day) => (
+      day.id === dayId
+        ? {
+            ...day,
+            activities: day.activities.map((activity) => (
+              activity.id === activityId
+                ? { ...activity, [field]: value }
+                : activity
+            )),
+          }
+        : day
+    )))
   }, [])
 
   const removeActivity = useCallback((dayId, activityId) => {
-    setDays(prev => prev.map(d => d.id === dayId ? {
-      ...d,
-      activities: d.activities.filter(a => a.id !== activityId)
-    } : d))
+    setDays((prev) => prev.map((day) => (
+      day.id === dayId
+        ? { ...day, activities: day.activities.filter((activity) => activity.id !== activityId) }
+        : day
+    )))
   }, [])
 
   const moveActivity = useCallback((dayId, fromIndex, toIndex) => {
-    setDays(prev => prev.map(d => {
-      if (d.id !== dayId) return d
-      const activities = [...d.activities]
+    setDays((prev) => prev.map((day) => {
+      if (day.id !== dayId) return day
+
+      const activities = [...day.activities]
+      if (
+        fromIndex < 0 ||
+        toIndex < 0 ||
+        fromIndex >= activities.length ||
+        toIndex >= activities.length
+      ) {
+        return day
+      }
+
       const [moved] = activities.splice(fromIndex, 1)
       activities.splice(toIndex, 0, moved)
-      return { ...d, activities }
+      return { ...day, activities }
     }))
   }, [])
 
-  const totalBudget = Object.values(budget).reduce((sum, val) => sum + (Number(val) || 0), 0)
+  const totalBudget = Object.values(budget).reduce(
+    (sum, value) => sum + (Number(value) || 0),
+    0
+  )
 
   const handleSave = () => {
-    const trip = { name: tripName, days, budget, totalBudget }
-    localStorage.setItem("ny-trip-plan", JSON.stringify(trip))
+    const trip = {
+      name: tripName.trim() || "My Nepal Trip",
+      days,
+      budget,
+      totalBudget,
+    }
+
+    try {
+      localStorage.setItem("ny-trip-plan", JSON.stringify(trip))
+    } catch {
+      // Saving through onSave still works when browser storage is unavailable.
+    }
+
     onSave?.(trip)
   }
 
   return (
     <div className="space-y-6">
-      {/* Trip Header */}
-      <div className="bg-white dark:bg-slate-800 border border-[var(--ny-border)] rounded-2xl p-5">
-        <div className="flex flex-col sm:flex-row gap-4">
+      <div className="ny-card p-5">
+        <div className="flex flex-col gap-4 sm:flex-row">
           <div className="flex-1">
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1.5">
+            <label htmlFor="trip-name" className="ny-field-label">
               Trip Name
             </label>
             <input
+              id="trip-name"
               type="text"
               value={tripName}
-              onChange={(e) => setTripName(e.target.value)}
+              onChange={(event) => setTripName(event.target.value)}
               placeholder="My Nepal Adventure"
-              className="w-full text-sm rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full"
             />
           </div>
           <div className="flex items-end">
             <button
               type="button"
               onClick={handleSave}
-              className="px-6 py-2.5 rounded-lg bg-[var(--ny-green)] text-white text-sm font-semibold hover:bg-[var(--ny-emerald)] transition-colors"
+              className="ny-btn ny-btn-primary w-full sm:w-auto"
             >
               Save Trip
             </button>
@@ -90,128 +146,192 @@ export default function TripItineraryBuilder({ destinations = [], onSave }) {
         </div>
       </div>
 
-      {/* Budget Overview */}
-      <div className="bg-white dark:bg-slate-800 border border-[var(--ny-border)] rounded-2xl p-5">
-        <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-          <FiDollarSign size={16} className="text-[var(--ny-green)]" />
+      <div className="ny-card p-5">
+        <h2 className="mb-4 flex items-center gap-2 text-base font-bold">
+          <FiDollarSign size={17} className="text-[var(--ny-green)]" aria-hidden="true" />
           Budget Planner
-        </h4>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        </h2>
+
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[
             { key: "accommodation", label: "Accommodation" },
             { key: "food", label: "Food & Drinks" },
             { key: "transport", label: "Transport" },
             { key: "activities", label: "Activities" },
-          ].map(item => (
+          ].map((item) => (
             <div key={item.key}>
-              <label className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">
+              <label htmlFor={`budget-${item.key}`} className="ny-field-label text-xs">
                 {item.label}
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">NPR</span>
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[var(--ny-text-muted)]">
+                  NPR
+                </span>
                 <input
+                  id={`budget-${item.key}`}
                   type="number"
+                  min="0"
+                  inputMode="decimal"
                   value={budget[item.key]}
-                  onChange={(e) => setBudget(prev => ({ ...prev, [item.key]: e.target.value }))}
-                  className="w-full text-sm rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 pl-12 pr-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  onChange={(event) => setBudget((prev) => ({
+                    ...prev,
+                    [item.key]: event.target.value,
+                  }))}
+                  className="w-full pl-12"
                 />
               </div>
             </div>
           ))}
         </div>
-        <div className="mt-4 pt-4 border-t border-[var(--ny-border)] flex items-center justify-between">
-          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Total Budget</span>
-          <span className="text-lg font-bold text-[var(--ny-green)]">NPR {totalBudget.toLocaleString()}</span>
+
+        <div className="mt-4 flex items-center justify-between border-t border-[var(--ny-border)] pt-4">
+          <span className="text-sm font-semibold">Total Budget</span>
+          <span className="text-lg font-bold text-[var(--ny-green)]">
+            NPR {totalBudget.toLocaleString()}
+          </span>
         </div>
       </div>
 
-      {/* Days */}
       {days.map((day, dayIndex) => (
-        <div key={day.id} className="bg-white dark:bg-slate-800 border border-[var(--ny-border)] rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--ny-green)] text-white text-xs font-bold">
+        <section key={day.id} className="ny-card p-5" aria-labelledby={`trip-day-${day.id}`}>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[var(--ny-green)] text-xs font-bold text-white">
                 {dayIndex + 1}
               </span>
-              <div>
-                <h4 className="text-sm font-bold text-gray-900 dark:text-white">Day {dayIndex + 1}</h4>
+              <div className="min-w-0">
+                <h2 id={`trip-day-${day.id}`} className="text-sm font-bold">
+                  Day {dayIndex + 1}
+                </h2>
+                <label htmlFor={`day-date-${day.id}`} className="sr-only">
+                  Date for day {dayIndex + 1}
+                </label>
                 <input
+                  id={`day-date-${day.id}`}
                   type="date"
                   value={day.date}
-                  onChange={(e) => setDays(prev => prev.map(d => d.id === day.id ? { ...d, date: e.target.value } : d))}
-                  className="text-xs text-gray-500 dark:text-gray-400 bg-transparent border-none focus:outline-none"
+                  onChange={(event) => setDays((prev) => prev.map((item) => (
+                    item.id === day.id ? { ...item, date: event.target.value } : item
+                  )))}
+                  className="mt-1 min-h-8 border-0 bg-transparent p-0 text-xs shadow-none focus:ring-0"
                 />
               </div>
             </div>
+
             <button
               type="button"
               onClick={() => removeDay(day.id)}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-              aria-label="Remove day"
+              disabled={days.length === 1}
+              className="rounded-lg p-2 text-[var(--ny-text-muted)] transition hover:bg-[var(--ny-soft-red)] hover:text-[var(--ny-danger)] disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label={days.length === 1 ? "At least one trip day is required" : `Remove day ${dayIndex + 1}`}
             >
-              <Trash2 size={14} />
+              <FiTrash2 size={16} aria-hidden="true" />
             </button>
           </div>
 
-          {/* Activities */}
           <div className="space-y-2">
-            {day.activities.map((activity, actIndex) => (
-              <div key={actIndex} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-slate-700/50 border border-[var(--ny-border)]">
-                <GripVertical size={14} className="text-gray-300 dark:text-gray-600 shrink-0" />
+            {day.activities.map((activity, activityIndex) => (
+              <div
+                key={activity.id}
+                className="grid gap-3 rounded-xl border border-[var(--ny-border)] bg-[var(--ny-soft-green)]/40 p-3 sm:grid-cols-[auto_auto_1fr_7rem_auto]"
+              >
+                <div className="flex items-center text-[var(--ny-text-muted)]" aria-hidden="true">
+                  <FiGripVertical size={16} />
+                </div>
+
+                <label className="sr-only" htmlFor={`activity-time-${activity.id}`}>
+                  Activity time
+                </label>
                 <input
+                  id={`activity-time-${activity.id}`}
                   type="time"
                   value={activity.time}
-                  onChange={(e) => {
-                    const updated = [...days]
-                    updated[dayIndex].activities[actIndex].time = e.target.value
-                    setDays(updated)
-                  }}
-                  className="text-xs rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  onChange={(event) => updateActivity(day.id, activity.id, "time", event.target.value)}
+                  className="min-h-10"
                 />
-                <input
-                  type="text"
-                  value={activity.title}
-                  onChange={(e) => {
-                    const updated = [...days]
-                    updated[dayIndex].activities[actIndex].title = e.target.value
-                    setDays(updated)
-                  }}
-                  placeholder="Activity name"
-                  className="flex-1 text-sm rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-1.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                />
-                <input
-                  type="number"
-                  value={activity.cost}
-                  onChange={(e) => {
-                    const updated = [...days]
-                    updated[dayIndex].activities[actIndex].cost = Number(e.target.value)
-                    setDays(updated)
-                  }}
-                  placeholder="Cost"
-                  className="w-20 text-xs rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                />
+
+                <div className="min-w-0">
+                  <label className="sr-only" htmlFor={`activity-title-${activity.id}`}>
+                    Activity name
+                  </label>
+                  <input
+                    id={`activity-title-${activity.id}`}
+                    type="text"
+                    value={activity.title}
+                    onChange={(event) => updateActivity(day.id, activity.id, "title", event.target.value)}
+                    placeholder="Activity name"
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="relative">
+                  <label className="sr-only" htmlFor={`activity-cost-${activity.id}`}>
+                    Activity cost
+                  </label>
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[var(--ny-text-muted)]">
+                    NPR
+                  </span>
+                  <input
+                    id={`activity-cost-${activity.id}`}
+                    type="number"
+                    min="0"
+                    inputMode="decimal"
+                    value={activity.cost}
+                    onChange={(event) => updateActivity(day.id, activity.id, "cost", event.target.value)}
+                    placeholder="Cost"
+                    className="w-full pl-12"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-1">
+                  <button
+                    type="button"
+                    onClick={() => moveActivity(day.id, activityIndex, activityIndex - 1)}
+                    disabled={activityIndex === 0}
+                    className="rounded-lg p-2 text-[var(--ny-text-muted)] hover:bg-white hover:text-[var(--ny-green)] disabled:opacity-30"
+                    aria-label="Move activity up"
+                  >
+                    <FiChevronUp size={16} aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveActivity(day.id, activityIndex, activityIndex + 1)}
+                    disabled={activityIndex === day.activities.length - 1}
+                    className="rounded-lg p-2 text-[var(--ny-text-muted)] hover:bg-white hover:text-[var(--ny-green)] disabled:opacity-30"
+                    aria-label="Move activity down"
+                  >
+                    <FiChevronDown size={16} aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeActivity(day.id, activity.id)}
+                    className="rounded-lg p-2 text-[var(--ny-text-muted)] hover:bg-[var(--ny-soft-red)] hover:text-[var(--ny-danger)]"
+                    aria-label={`Remove ${activity.title || `activity ${activityIndex + 1}`}`}
+                  >
+                    <FiTrash2 size={16} aria-hidden="true" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
 
           <button
             type="button"
-            onClick={() => addActivity(dayIndex, { time: "09:00", title: "", description: "", cost: 0, location: "" })}
-            className="mt-3 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-[var(--ny-green)] hover:bg-[var(--ny-soft-green)] transition-colors"
+            onClick={() => addActivity(day.id)}
+            className="ny-btn ny-btn-secondary ny-btn-sm mt-3"
           >
-            <Plus size={14} />
+            <FiPlus size={15} aria-hidden="true" />
             Add Activity
           </button>
-        </div>
+        </section>
       ))}
 
-      {/* Add Day Button */}
       <button
         type="button"
         onClick={addDay}
-        className="flex w-full items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-gray-300 dark:border-slate-600 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:border-[var(--ny-green)] hover:text-[var(--ny-green)] transition-colors"
+        className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--ny-border)] py-3 text-sm font-semibold text-[var(--ny-text-secondary)] transition hover:border-[var(--ny-green)] hover:bg-[var(--ny-soft-green)] hover:text-[var(--ny-green)]"
       >
-        <Plus size={16} />
+        <FiPlus size={16} aria-hidden="true" />
         Add Day
       </button>
     </div>
