@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from "react"
-import { FiRefreshCw } from "react-icons/fi"
+import { useState, useEffect, useCallback, useRef } from "react"
+import LoadingSpinner from "./LoadingSpinner"
 
 /**
- * Infinite scroll component that loads more content when the user
+ * Infinite scroll component — loads more content when the user
  * scrolls near the bottom of the page.
  */
 export default function InfiniteScroll({
@@ -13,40 +13,42 @@ export default function InfiniteScroll({
   threshold = 200,
   className = "",
 }) {
-  const [isLoading, setIsLoading] = useState(false)
+  const observerRef = useRef(null)
+  const loadMoreRef = useRef(null)
 
-  const handleScroll = useCallback(() => {
-    if (isLoading || loading || !hasMore) return
-
-    const scrollTop = window.scrollY
-    const docHeight = document.documentElement.scrollHeight
-    const winHeight = window.innerHeight
-
-    if (scrollTop + winHeight >= docHeight - threshold) {
-      setIsLoading(true)
-      onLoadMore?.().finally(() => setIsLoading(false))
-    }
-  }, [isLoading, loading, hasMore, threshold, onLoadMore])
+  const handleObserver = useCallback(
+    (entries) => {
+      const [target] = entries
+      if (target.isIntersecting && hasMore && !loading) {
+        onLoadMore?.()
+      }
+    },
+    [hasMore, loading, onLoadMore]
+  )
 
   useEffect(() => {
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [handleScroll])
+    const element = loadMoreRef.current
+    if (!element) return undefined
+
+    observerRef.current = new IntersectionObserver(handleObserver, {
+      root: null,
+      rootMargin: `${threshold}px`,
+      threshold: 0,
+    })
+
+    observerRef.current.observe(element)
+    return () => observerRef.current?.disconnect()
+  }, [handleObserver, threshold])
 
   return (
     <div className={className}>
       {children}
-      {(isLoading || loading) && (
-        <div className="flex items-center justify-center py-8">
-          <FiRefreshCw className="animate-spin text-[var(--ny-green)]" size={24} />
-          <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">Loading more...</span>
-        </div>
-      )}
-      {!hasMore && (
-        <div className="text-center py-8">
+      <div ref={loadMoreRef} className="flex justify-center py-6">
+        {loading && <LoadingSpinner size="md" label="Loading more..." />}
+        {!hasMore && !loading && (
           <p className="text-sm text-gray-400 dark:text-gray-500">No more content to load</p>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
