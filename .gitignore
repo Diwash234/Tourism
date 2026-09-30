@@ -1,5 +1,6 @@
 # Large data files
 Tourism/load.json
+Tourism/data.json
 
 # Python
 __pycache__/
