@@ -67,9 +67,9 @@ RUN mkdir -p /var/lib/tourism/media \
 RUN python manage.py collectstatic --noinput
 
 # Render exposes the PORT environment variable
-EXPOSE ${PORT:-8000}
+EXPOSE 8000
 
-# Health check
+# Health check (shell form so $PORT is expanded at runtime)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:${PORT:-8000}/health/ || exit 1
 
