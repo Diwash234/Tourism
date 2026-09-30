@@ -27,7 +27,7 @@ export default function PlaceApproval({ pendingPlaces = [], onApprove, onReject 
             <div className="space-y-3">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-400 text-gray-950">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-400 text-gray-950">
                     {p.category_name}
                   </span>
                   <h4 className="text-xl font-bold text-white mt-1">{p.name}</h4>
@@ -35,7 +35,7 @@ export default function PlaceApproval({ pendingPlaces = [], onApprove, onReject 
                     📍 {p.municipality || p.district} {p.ward_number ? `(Ward ${p.ward_number})` : ""}, {p.province}
                   </p>
                 </div>
-                <span className="text-[11px] text-orange-300 font-medium">By: {p.created_by}</span>
+                <span className="text-xs text-orange-300 font-medium">By: {p.created_by}</span>
               </div>
 
               {p.cover_image_url && (
