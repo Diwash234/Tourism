@@ -1,14 +1,80 @@
+# Git
 .git
+.gitignore
 .github
-node_modules
-frontend/Tourism/node_modules
-frontend/Tourism/dist
-frontend/Tourism/.vite
-Tourism/db.sqlite3
-Tourism/media
-Tourism/staticfiles
-image-server/images
+
+# Python
 __pycache__
 *.pyc
-.venv
-.env
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.npm
+.yarn
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+Tourism/db.sqlite3
+Tourism/staticfiles/
+Tourism/media/
+Tourism/frontend_dist/
+Tourism/load.json
+Tourism/data.json
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+
+# Docker
+Dockerfile
+Dockerfile.ml
+docker-compose.yml
+.dockerignore
+
+# Docs
+docs/
+*.md
+!README.md
+
+# Tests
+tests/
+test-results/
+tests-nav/
+playwright-report/
+test-results/
+
+# Misc
+reports/
+downloads/
+image-search/
+image-server/
+mock_osrm.py
+run_all.sh
+run.sh

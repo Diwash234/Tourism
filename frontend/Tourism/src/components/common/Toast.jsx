@@ -1,93 +1,61 @@
-import React from "react";
-import { motion } from "framer-motion";
-import {
-  FiCheckCircle,
-  FiXCircle,
-  FiInfo,
-  FiAlertTriangle,
-} from "react-icons/fi";
+import { createContext, useContext, useState, useCallback } from "react"
+import { FiCheckCircle, FiXCircle, FiAlertTriangle, FiInfo, FiX } from "react-icons/fi"
 
+const ToastContext = createContext(null)
 
-const icons = {
-  success: (
-    <FiCheckCircle
-      className="text-forest-500"
-      size={20}
-    />
-  ),
+let toastId = 0
 
-  error: (
-    <FiXCircle
-      className="text-nepalred-500"
-      size={20}
-    />
-  ),
+export function ToastProvider({ children }) {
+  const [toasts, setToasts] = useState([])
 
-  warning: (
-    <FiAlertTriangle
-      className="text-saffron-500"
-      size={20}
-    />
-  ),
+  const addToast = useCallback((message, type = "info", duration = 4000) => {
+    const id = ++toastId
+    setToasts(prev => [...prev, { id, message, type }])
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id))
+    }, duration)
+  }, [])
 
-  info: (
-    <FiInfo
-      className="text-himalaya-500"
-      size={20}
-    />
-  ),
-};
+  const removeToast = useCallback((id) => {
+    setToasts(prev => prev.filter(t => t.id !== id))
+  }, [])
 
-
-const Toast = ({ message, type = "info" }) => {
+  const icons = {
+    success: <FiCheckCircle size={18} className="text-emerald-500" />,
+    error: <FiXCircle size={18} className="text-red-500" />,
+    warning: <FiAlertTriangle size={18} className="text-amber-500" />,
+    info: <FiInfo size={18} className="text-blue-500" />,
+  }
 
   return (
+    <ToastContext.Provider value={{ addToast }}>
+      {children}
+      <div className="fixed top-20 right-4 z-[100] flex flex-col gap-2 max-w-sm" role="region" aria-label="Notifications">
+        {toasts.map(toast => (
+          <div
+            key={toast.id}
+            className="flex items-start gap-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-lg animate-in slide-in-from-right"
+            role="alert"
+          >
+            {icons[toast.type] || icons.info}
+            <p className="flex-1 text-sm text-gray-700 dark:text-gray-300">{toast.message}</p>
+            <button
+              type="button"
+              onClick={() => removeToast(toast.id)}
+              className="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              aria-label="Dismiss"
+            >
+              <FiX size={14} />
+            </button>
+          </div>
+        ))}
+      </div>
+    </ToastContext.Provider>
+  )
+}
 
-    <motion.div
-      initial={{
-        opacity: 0,
-        x: 50,
-      }}
-
-      animate={{
-        opacity: 1,
-        x: 0,
-      }}
-
-      exit={{
-        opacity: 0,
-        x: 50,
-      }}
-
-      role={type === "error" ? "alert" : "status"}
-      aria-live={type === "error" ? "assertive" : "polite"}
-      className="
-        flex
-        items-center
-        gap-3
-        bg-white
-        shadow-hover
-        rounded-xl
-        px-4
-        py-3
-        min-w-[260px]
-        border
-        border-gray-100
-      "
-    >
-
-      {icons[type] || icons.info}
-
-
-      <span className="text-sm text-dark">
-        {message}
-      </span>
-
-
-    </motion.div>
-
-  );
-};
-
-
-export default Toast;
+export function useToast() {
+  const context = useContext(ToastContext)
+  if (!context) throw new Error("useToast must be used within ToastProvider")
+  return context
+}

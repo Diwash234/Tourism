@@ -46,7 +46,7 @@ COPY Tourism/requirements.txt /app/Tourism/
 RUN pip install --no-cache-dir -r /app/Tourism/requirements.txt
 
 # Copy Django project
-COPY Tourism/ /App/Tourism/
+COPY Tourism/ /app/Tourism/
 # The built SPA is served from the site root by WhiteNoise (WHITENOISE_ROOT):
 # /, /assets/*, /sw.js, /manifest.webmanifest; deep links fall back to
 # index.html via Tourism/spa.py.
