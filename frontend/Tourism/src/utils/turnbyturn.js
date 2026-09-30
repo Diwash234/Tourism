@@ -75,7 +75,7 @@ export function getTurnByTurnDirections(routeCoords) {
   const last = routeCoords[routeCoords.length - 2]
   const dest = routeCoords[routeCoords.length - 1]
   steps.push({
-    instruction: "Arrive acd t destination",
+    instruction: "Arrive at destination",
     distanceKm: last ? haversineKm(last, dest) : 0,
     icon: "finish",
   })
