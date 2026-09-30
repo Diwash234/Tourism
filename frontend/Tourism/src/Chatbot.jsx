@@ -249,12 +249,12 @@ export default function ChatBot() {
                       <h4 className="font-extrabold text-xs text-amber-300 flex items-center gap-1.5">
                         <FiTruck /> {message.distance_cards.origin} ➔ {message.distance_cards.destination}
                       </h4>
-                      <span className="px-2 py-0.5 rounded bg-amber-400 text-gray-950 text-[10px] font-black">
+                      <span className="px-2 py-0.5 rounded bg-amber-400 text-gray-950 text-xs font-black">
                         Road Transit Route
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                       <div className="bg-primary-900/40 p-2 rounded-xl border border-primary-800">
                         <span className="text-primary-200">Road Distance:</span>
                         <p className="font-black text-white text-xs mt-0.5">{message.distance_cards.road_distance_km} km</p>
@@ -293,13 +293,13 @@ export default function ChatBot() {
                         <h4 className="font-bold text-xs text-primary-900 flex items-center gap-1.5">
                           <FiCalendar /> {message.itinerary_cards.days_count}-Day Plan: {message.itinerary_cards.destination}
                         </h4>
-                        <p className="text-[10px] text-gray-500">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                           Planning estimate: <b>{message.itinerary_cards.total_estimated_npr != null ? `NPR ${message.itinerary_cards.total_estimated_npr.toLocaleString()}` : "Information unavailable"}</b>
                         </p>
                       </div>
                       <Link
                         to="/itinerary"
-                        className="px-3 py-1 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[10px] font-bold"
+                        className="px-3 py-1 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold"
                       >
                         Customize Itinerary ➔
                       </Link>

@@ -8,7 +8,7 @@ import useToast from "../hooks/useToast"
 
 // ─── Share Count Display ─────────────────────────────────────────────────────
 const ShareCount = ({ count, label = "shares" }) => (
-  <div className="flex items-center gap-1.5 text-xs text-gray-500">
+  <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
     <FiShare2 size={12} />
     <span>{count.toLocaleString()} {label}</span>
   </div>
@@ -74,9 +74,9 @@ const OGPreview = ({ url, title, description, image }) => (
       </div>
     )}
     <div className="p-3">
-      <p className="text-xs text-gray-500 truncate">{url}</p>
-      <p className="text-sm font-semibold text-gray-900 truncate">{title}</p>
-      <p className="text-xs text-gray-500 line-clamp-2">{description}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{url}</p>
+      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{title}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{description}</p>
     </div>
   </div>
 )
