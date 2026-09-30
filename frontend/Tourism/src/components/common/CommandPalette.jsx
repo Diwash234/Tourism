@@ -85,11 +85,11 @@ const COMMAND_ITEMS = [
   },
   {
     id: "chatbot",
-    title: "Himal AI Assistant",
-    category: "AI",
+    title: "Himal Travel Guide",
+    category: "Guide",
     path: "/chatbot",
     icon: MessageSquare,
-    description: "Ask natural language questions about Nepal travel, weather, and permits."
+    description: "Ask questions about Nepal trekking routes, local etiquette, weather, and permits."
   },
   {
     id: "admin",

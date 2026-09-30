@@ -60,7 +60,7 @@ const GROUPS = [
       { to: "/navigation", label: "Location", tk: "sidebar.navigation", icon: "navigate", color: "sky" },
       { to: "/language", label: "Phrasebook", tk: "sidebar.phrasebook", icon: "quote", color: "emerald" },
       { to: "/translation", label: "Live Translation", tk: "sidebar.translation", icon: "translate", color: "cyan" },
-      { to: "/chatbot", label: "Himal AI Assistant", tk: "sidebar.chatbot", icon: "robot", color: "terracotta" },
+      { to: "/chatbot", label: "Himal Travel Guide", tk: "sidebar.chatbot", icon: "compass", color: "terracotta" },
     ],
   },
   {
