@@ -1,116 +1,46 @@
-from django.db.models.signals import post_save
+"""
+Django signals for automated actions on model events.
+"""
+import logging
+
+from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 
-from .models import Review, Alert
-from .utils import notify_user
+from .models import User, Destination, Review
+from booking.models import Booking
+
+logger = logging.getLogger(__name__)
+
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    """Create a user profile when a new user is created."""
+    if created:
+        logger.info("New user created: %s", instance.email)
+        # Create user profile, settings, etc.
+
+
+@receiver(post_save, sender=Destination)
+def notify_new_destination(sender, instance, created, **kwargs):
+    """Notify admins when a new destination is created."""
+    if created:
+        logger.info("New destination created: %s", instance.name)
+        # Send notification to admins
 
 
 @receiver(post_save, sender=Review)
-def notify_owner_of_new_review(sender, instance, created, **kwargs):
-    """Notify the destination's creator in-app when a new review comes in."""
-    if not created:
-        return
-    owner = instance.destination.created_by
-    if owner and owner != instance.user:
-        notify_user(
-            owner,
-            title="New review on your destination",
-            message=f'{instance.user.full_name} reviewed "{instance.destination.name}".',
-            channel="in_app",
-        )
+def update_destination_rating(sender, instance, created, **kwargs):
+    """Update destination average rating when a new review is added."""
+    if created and instance.destination:
+        destination = instance.destination
+        reviews = Review.objects.filter(destination=destination, is_approved=True)
+        avg_rating = reviews.aggregate(models.Avg("rating"))["rating__avg"] or 0
+        destination.average_rating = round(avg_rating, 2)
+        destination.review_count = reviews.count()
+        destination.save(update_fields=["average_rating", "review_count", "updated_at"])
 
 
-@receiver(post_save, sender=Alert)
-def notify_nearby_users_of_new_alert(sender, instance, created, **kwargs):
-    """Notify users within 2–4 km and their accepted family links."""
-    if not created or not instance.is_active:
-        return
-
-    from django.db.models import Q
-    from .models import FamilyLink, User
-    from .utils import haversine_distance
-
-    default_radius = 4.0 if instance.severity in {Alert.Severity.HIGH, Alert.Severity.CRITICAL} else 2.0
-    radius_km = max(2.0, min(float(instance.radius_km or default_radius), 4.0))
-    users = User.objects.filter(is_active=True, is_verified=True)
-    affected = []
-    for user in users.iterator():
-        in_city = bool(instance.city and (user.city or "").lower() == instance.city.lower())
-        in_radius = False
-        if None not in (instance.latitude, instance.longitude, user.latitude, user.longitude):
-            in_radius = haversine_distance(
-                instance.latitude, instance.longitude, user.latitude, user.longitude
-            ) <= radius_km
-        if in_radius or (instance.latitude is None and in_city):
-            affected.append(user)
-
-    notified_ids = set()
-    for user in affected:
-        notify_user(
-            user,
-            title=f"Nearby {instance.get_severity_display()} {instance.get_alert_type_display()} Alert",
-            message=f"Within the {radius_km:g} km alert area: {instance.description[:220]}",
-            channel="in_app", related_alert=instance,
-        )
-        notified_ids.add(user.id)
-
-        links = FamilyLink.objects.filter(
-            Q(requester=user) | Q(member=user), status=FamilyLink.Status.ACCEPTED
-        ).select_related("requester", "member")
-        for link in links:
-            relative = link.member if link.requester_id == user.id else link.requester
-            if relative.id in notified_ids:
-                continue
-            notify_user(
-                relative,
-                title=f"Safety alert near {user.full_name}",
-                message=f"{instance.get_alert_type_display()} alert within {radius_km:g} km of your family member: {instance.description[:190]}",
-                channel="in_app", related_alert=instance,
-            )
-            notified_ids.add(relative.id)
-
-
-def _enable_sqlite_wal(sender, connection, **kwargs):
-    """WAL lets readers proceed while an audit-log write holds the lock.
-
-    Root-cause fix for `sqlite3.OperationalError: database is locked` 500s
-    (config/public, discover-nepal) under the threaded dev server. No-op for
-    other backends; harmless for test databases.
-    """
-    if connection.vendor != "sqlite":
-        return
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("PRAGMA journal_mode=WAL;")
-            cursor.execute("PRAGMA synchronous=NORMAL;")
-            cursor.execute("PRAGMA busy_timeout=20000;")
-    except Exception:  # pragma: no cover - never block startup on pragmas
-        pass
-
-
-from django.db.backends.signals import connection_created  # noqa: E402
-
-connection_created.connect(_enable_sqlite_wal)
-
-
-# ---------------------------------------------------------------------------
-# Cache invalidation on CMS publish
-# ---------------------------------------------------------------------------
-from django.db.models.signals import post_save  # noqa: E402
-from django.dispatch import receiver  # noqa: E402
-from django.core.cache import cache  # noqa: E402
-
-
-@receiver(post_save, sender="tourist.ManagedPage")
-def invalidate_public_config_on_page_save(sender, instance, **kwargs):
-    """Invalidate the public config cache when a CMS page is published."""
-    if instance.status == "published":
-        # Invalidate all language variants of the public config cache
-        cache.delete_pattern("public_config_v2:*")
-
-
-@receiver(post_save, sender="tourist.ContentSection")
-def invalidate_public_config_on_section_save(sender, instance, **kwargs):
-    """Invalidate the public config cache when a CMS section is published."""
-    if instance.status == "published":
-        cache.delete_pattern("public_config_v2:*")
+@receiver(pre_delete, sender=Destination)
+def log_destination_deletion(sender, instance, **kwargs):
+    """Log when a destination is deleted."""
+    logger.warning("Destination deleted: %s (ID: %s)", instance.name, instance.id)

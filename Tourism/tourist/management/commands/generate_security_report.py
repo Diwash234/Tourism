@@ -2,7 +2,7 @@
 Management command to generate a security report.
 """
 from django.core.management.base import BaseCommand
-from tourist.models import User, AuditLog
+from django.conf import settings
 
 
 class Command(BaseCommand):
@@ -13,28 +13,63 @@ class Command(BaseCommand):
         self.stdout.write("SECURITY REPORT")
         self.stdout.write("=" * 60)
 
-        # Failed login attempts
-        self.stdout.write("\nFailed Login Attempts (last 24h):")
-        from datetime import timedelta
-        from django.utils import timezone
-        cutoff = timezone.now() - timedelta(hours=24)
-        failed_logins = AuditLog.objects.filter(
-            action="auth.login",
-            severity="warning",
-            created_at__gte=cutoff,
-        ).count()
-        self.stdout.write(f"  Failed logins: {failed_logins}")
+        checks = []
 
-        # Inactive admin accounts
-        self.stdout.write("\nInactive Admin Accounts:")
-        admins = User.objects.filter(is_staff=True, is_active=True)
-        inactive_admins = admins.filter(last_login__lt=cutoff)
-        self.stdout.write(f"  Total admins: {admins.count()}")
-        self.stdout.write(f"  Inactive (24h): {inactive_admins.count()}")
+        # Debug mode
+        if settings.DEBUG:
+            checks.append(("DEBUG is enabled", False, "Set DEBUG=False in production"))
+        else:
+            checks.append(("DEBUG is disabled", True, ""))
 
-        # Unverified users
-        self.stdout.write("\nUnverified Users:")
-        unverified = User.objects.filter(is_verified=False).count()
-        self.stdout.write(f"  Total unverified: {unverified}")
+        # Secret key
+        if settings.SECRET_KEY and len(settings.SECRET_KEY) > 20:
+            checks.append(("SECRET_KEY is strong", True, ""))
+        else:
+            checks.append(("SECRET_KEY is weak", False, "Use a longer, random secret key"))
+
+        # HTTPS
+        if settings.SECURE_SSL_REDIRECT:
+            checks.append(("SSL redirect enabled", True, ""))
+        else:
+            checks.append(("SSL redirect disabled", False, "Enable SECURE_SSL_REDIRECT in production"))
+
+        # HSTS
+        if settings.SECURE_HSTS_SECONDS > 0:
+            checks.append(("HSTS enabled", True, ""))
+        else:
+            checks.append(("HSTS disabled", False, "Enable SECURE_HSTS_SECONDS in production"))
+
+        # Session cookie
+        if settings.SESSION_COOKIE_SECURE:
+            checks.append(("Session cookie secure", True, ""))
+        else:
+            checks.append(("Session cookie not secure", False, "Enable SESSION_COOKIE_SECURE in production"))
+
+        # CSRF cookie
+        if settings.CSRF_COOKIE_SECURE:
+            checks.append(("CSRF cookie secure", True, ""))
+        else:
+            checks.append(("CSRF cookie not secure", False, "Enable CSRF_COOKIE_SECURE in production"))
+
+        # Allowed hosts
+        if settings.ALLOWED_HOSTS and "*" not in settings.ALLOWED_HOSTS:
+            checks.append(("ALLOWED_HOSTS is specific", True, ""))
+        else:
+            checks.append(("ALLOWED_HOSTS is wildcard", False, "Set specific ALLOWED_HOSTS in production"))
+
+        # CORS
+        if settings.CORS_ALLOWED_ORIGINS:
+            checks.append(("CORS origins configured", True, ""))
+        else:
+            checks.append(("CORS origins not configured", False, "Set CORS_ALLOWED_ORIGINS in production"))
+
+        # Display results
+        self.stdout.write("\nSecurity checks:")
+        for check_name, passed, recommendation in checks:
+            status = "PASS" if passed else "FAIL"
+            style = self.style.SUCCESS if passed else self.style.ERROR
+            self.stdout.write(style(f"  [{status}] {check_name}"))
+            if recommendation:
+                self.stdout.write(f"         → {recommendation}")
 
         self.stdout.write("\n" + "=" * 60)

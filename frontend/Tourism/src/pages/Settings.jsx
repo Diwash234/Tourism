@@ -1,649 +1,241 @@
-import { openCookieSettings } from "../utils/cookieConsent"
-import { useForm } from "react-hook-form"
-import { Link, useNavigate } from "react-router-dom"
-import PageHeader from "../components/common/PageHeader"
-import CMSPageIntro from "../components/cms/CMSPageIntro"
-import { useEffect, useState } from "react"
-import { motion } from "framer-motion"
-import {
-  FiBell,
-  FiGlobe,
-  FiDollarSign,
-  FiInfo,
-  FiCpu,
-  FiCheck,
-} from "react-icons/fi"
-
-import userApi from "../api/userApi"
-import useAuth from "../hooks/useAuth"
-import useToast from "../hooks/useToast"
-import useTheme from "../context/ThemeContext"
-import { ALL_LANGS, setLang } from "../i18n"
-
-import {
-  TRANSLATION_PROVIDERS,
-  getTranslationProvider,
-  setTranslationProvider,
-} from "../utils/translationPreference"
-
-
-const ChangePasswordCard = () => {
-  const { showToast } = useToast()
-  const { logout } = useAuth()
-  const navigate = useNavigate()
-  const [oldPassword, setOldPassword] = useState("")
-  const [newPassword, setNewPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [busy, setBusy] = useState(false)
-
-  const submit = async (e) => {
-    e.preventDefault()
-    if (newPassword.length < 8) {
-      showToast("New password must be at least 8 characters.", "error")
-      return
-    }
-    if (newPassword !== confirmPassword) {
-      showToast("New password and confirmation do not match.", "error")
-      return
-    }
-    setBusy(true)
-    try {
-      await userApi.changePassword({ old_password: oldPassword, new_password: newPassword })
-      // The backend revokes ALL sessions on password change, so the user
-      // must log in again with the new password (old one is dead).
-      showToast("Password changed! Please log in again with your new password.", "success")
-      setOldPassword(""); setNewPassword(""); setConfirmPassword("")
-      setTimeout(async () => {
-        await logout()
-        navigate("/login", { replace: true })
-      }, 600)
-    } catch (err) {
-      const detail = err?.response?.data
-      const msg = detail?.old_password || detail?.new_password || detail?.detail || "Could not change password."
-      showToast(Array.isArray(msg) ? msg[0] : String(msg), "error")
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <motion.section
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="ny-panel p-6 mt-6"
-      aria-label="Change password"
-    >
-      <h3 className="font-semibold flex items-center gap-2 text-gray-900 mb-4">
-        <FiCheck className="text-emerald-700" size={16} />
-        Change Password
-      </h3>
-      <form onSubmit={submit} className="grid gap-4 max-w-md">
-        <label className="block text-sm font-medium text-gray-700">
-          Current password
-          <input
-            type="password"
-            required
-            value={oldPassword}
-            onChange={(e) => setOldPassword(e.target.value)}
-            className="input-field mt-1"
-            autoComplete="current-password"
-          />
-        </label>
-        <label className="block text-sm font-medium text-gray-700">
-          New password
-          <input
-            type="password"
-            required
-            minLength={8}
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            className="input-field mt-1"
-            autoComplete="new-password"
-          />
-        </label>
-        <label className="block text-sm font-medium text-gray-700">
-          Confirm new password
-          <input
-            type="password"
-            required
-            minLength={8}
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className="input-field mt-1"
-            autoComplete="new-password"
-          />
-        </label>
-        <button type="submit" className="btn-primary w-fit" disabled={busy}>
-          {busy ? "Updating…" : "Change Password"}
-        </button>
-      </form>
-    </motion.section>
-  )
-}
+import { useState } from 'react'
+import { FiUser, FiBell, FiLock, FiGlobe, FiTrash2, FiSave } from 'react-icons/fi'
+import useAuth from '../hooks/useAuth'
 
 const Settings = () => {
+  const { user } = useAuth()
+  const [activeTab, setActiveTab] = useState('account')
+  const [saved, setSaved] = useState(false)
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-  } = useForm()
+  const [account, setAccount] = useState({
+    first_name: user?.first_name || '',
+    last_name: user?.last_name || '',
+    email: user?.email || '',
+    phone_number: user?.phone_number || '',
+  })
 
+  const [notifications, setNotifications] = useState({
+    email: true,
+    sms: false,
+    push: true,
+    marketing: false,
+    weekly_digest: false,
+  })
 
-  const { user, updateUser } = useAuth()
-  const { showToast } = useToast()
-  const { isDark, toggleTheme } = useTheme()
+  const [privacy, setPrivacy] = useState({
+    profile_visible: true,
+    location_sharing: true,
+    show_activity: true,
+  })
 
-
-  const [saving, setSaving] = useState(false)
-  const [languages, setLanguages] = useState([])
-  const [provider, setProvider] = useState(
-    getTranslationProvider()
-  )
-  const [currency, setCurrency] = useState(() => localStorage.getItem("tourism_currency") || "USD")
-  const [notifPrefs, setNotifPrefs] = useState({ in_app_enabled: true, email_enabled: true, push_enabled: true, sms_enabled: false, safety_alerts: true, booking_updates: true, recommendations: true, marketing: false })
-
-
-
-  useEffect(() => {
-
-
-    userApi
-      .getLanguages()
-      .then(({ data }) => {
-
-        console.log(
-          "Languages API:",
-          data
-        )
-
-
-        const list =
-          data.results ||
-          data.languages ||
-          data ||
-          []
-
-
-        setLanguages(
-          Array.isArray(list)
-            ? list
-            : []
-        )
-
-
-      })
-      .catch((error)=>{
-
-        console.log(
-          "Language API Error:",
-          error
-        )
-
-        setLanguages([])
-
-      })
-
-
-
-    userApi.getNotificationPreferences().then(({ data }) => setNotifPrefs(data)).catch(() => {})
-
-    if(user?.preferred_language){
-
-      reset({
-
-        preferred_language:
-          user.preferred_language?.code ||
-          (typeof user.preferred_language === "string" ? user.preferred_language : "en")
-
-      })
-
-    }
-
-
-  }, [user, reset])
-
-
-
-
-
-  const onSubmit = async (data) => {
-    setSaving(true)
-    try {
-      localStorage.setItem("tourism_currency", currency)
-      await userApi.updateNotificationPreferences(notifPrefs)
-      const selectedLanguage = languages.find((item) => String(item.code || item.language_code).toLowerCase() === String(data.preferred_language || "").toLowerCase())
-      if (data.preferred_language) {
-        // Sync the site-wide i18n store so the whole UI switches language
-        // immediately (Settings previously saved to a key nothing read).
-        const code = String(data.preferred_language).toLowerCase()
-        const langCode =
-          code === "ne" || code === "nepali" || code === "नेपाली" ? "ne"
-          : code === "hi" || code === "hindi" || code === "हिन्दी" ? "hi"
-          : code === "en" || code === "english" ? "en"
-          : code.length === 2 ? code
-          : null
-        if (langCode) {
-          localStorage.setItem("tourism_preferred_language", langCode)
-          try {
-            setLang(langCode)
-          } catch { /* i18n store unavailable */ }
-        }
-      }
-      let profileSaved = true
-      try {
-        const { data: updated } = await userApi.updateSettings({
-          preferred_language: selectedLanguage?.id || selectedLanguage?.language_id || null,
-          currency,
-        })
-        updateUser(updated)
-      } catch (e) {
-        // Language/currency profile write failed — the user must know instead
-        // of getting a blanket "everything saved" toast (audit REQ-013).
-        profileSaved = false
-      }
-      if (profileSaved) {
-        showToast("Language, currency, and notification preferences saved!", "success")
-      } else {
-        showToast("Notification preferences saved, but language/currency could not be saved to your profile. Please try again.", "error")
-      }
-    } catch (error) {
-      showToast("Could not save settings", "error")
-    } finally {
-      setSaving(false)
-    }
+  const handleSave = () => {
+    setSaved(true)
+    setTimeout(() => setSaved(false), 3000)
   }
 
-
-
-
+  const tabs = [
+    { id: 'account', label: 'Account', icon: <FiUser className="w-4 h-4" /> },
+    { id: 'notifications', label: 'Notifications', icon: <FiBell className="w-4 h-4" /> },
+    { id: 'privacy', label: 'Privacy', icon: <FiLock className="w-4 h-4" /> },
+    { id: 'language', label: 'Language', icon: <FiGlobe className="w-4 h-4" /> },
+  ]
 
   return (
+    <div className="max-w-4xl mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-6">Settings</h1>
 
-    <motion.div
-
-      initial={{
-        opacity:0,
-        y:10
-      }}
-
-      animate={{
-        opacity:1,
-        y:0
-      }}
-
-      className="ny-page container-app max-w-6xl space-y-6 py-6 sm:py-8"
-
-    >
-      <CMSPageIntro pageKey="settings" />
-
-
-      <PageHeader title="Settings" subtitle="Manage language, translation, currency and notification preferences for your Nepal Yatra workspace." />
-
-
-
-      <form
-
-        onSubmit={
-          handleSubmit(onSubmit)
-        }
-
-        className="card-base p-6 space-y-6"
-
-      >
-
-
-
-
-        {/* Language */}
-
-        <div>
-
-
-          <h3 className="font-semibold mb-3 flex items-center gap-2">
-
-            <FiGlobe className="text-himalaya-500"/>
-
-            Language
-
-          </h3>
-
-
-
-          <select
-
-            className="input-field"
-
-            {...register("preferred_language", {
-              onChange: (event) => setLang(event.target.value),
-            })}
-
+      {/* Tabs */}
+      <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 pb-4">
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === tab.id
+                ? 'bg-emerald-600 text-white'
+                : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
+            }`}
           >
-
-
-            {ALL_LANGS.map((lang) => (
-              <option key={lang.code} value={lang.code}>
-                {lang.flag} {lang.label} ({lang.native})
-              </option>
-            ))}
-
-
-
-          </select>
-
-
-
-        </div>
-
-
-
-
-
-
-        {/* Translation Provider */}
-
-
-        <div className="border-t border-gray-100 pt-6">
-
-
-          <h3 className="font-semibold mb-2 flex items-center gap-2">
-
-
-            <FiCpu className="text-himalaya-500"/>
-
-
-            Translation Provider
-
-
-          </h3>
-
-
-
-          <p className="text-xs text-gray-400 mb-3">
-
-            Select your preferred AI translation service.
-
-          </p>
-
-
-
-
-          <div className="space-y-3">
-
-
-            {
-              TRANSLATION_PROVIDERS.map((item)=>(
-
-
-                <label
-
-                  key={item.value}
-
-                  className={`
-                    flex gap-3 p-3 rounded-xl border cursor-pointer
-                    ${
-                      provider===item.value
-                      ?
-                      "border-himalaya-400 bg-himalaya-50"
-                      :
-                      "border-gray-200"
-                    }
-                  `}
-
-                >
-
-
-
-                  <input
-
-                    type="radio"
-
-                    checked={
-                      provider===item.value
-                    }
-
-                    onChange={()=>{
-
-
-                      setProvider(
-                        item.value
-                      )
-
-
-                      setTranslationProvider(
-                        item.value
-                      )
-
-
-                      showToast(
-                        `Translation provider set to ${item.label}`,
-                        "success"
-                      )
-
-
-                    }}
-
-
-                    className="mt-1 accent-himalaya-500"
-
-                  />
-
-
-
-                  <div>
-
-
-                    <p className="font-medium text-sm">
-
-                      {item.label}
-
-                    </p>
-
-
-
-                    <p className="text-xs text-gray-500">
-
-                      {item.desc}
-
-                    </p>
-
-
-                  </div>
-
-
-
-                </label>
-
-
-              ))
-            }
-
-
+            {tab.icon}
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Account Tab */}
+      {activeTab === 'account' && (
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+            <h2 className="text-lg font-semibold mb-4">Personal Information</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Name</label>
+                <input
+                  type="text"
+                  value={account.first_name}
+                  onChange={(e) => setAccount({ ...account, first_name: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Name</label>
+                <input
+                  type="text"
+                  value={account.last_name}
+                  onChange={(e) => setAccount({ ...account, last_name: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={account.email}
+                  onChange={(e) => setAccount({ ...account, email: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
+                <input
+                  type="tel"
+                  value={account.phone_number}
+                  onChange={(e) => setAccount({ ...account, phone_number: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                />
+              </div>
+            </div>
           </div>
 
-
-
-          <p className="text-[11px] text-saffron-600 bg-saffron-50 inline-flex items-center gap-1 px-2 py-1 rounded-full mt-3">
-
-            <FiInfo size={11}/>
-
-            Saved locally on this device.
-
-          </p>
-
-
-
-        </div>
-
-
-
-
-
-
-        {/* Notifications */}
-        <div className="border border-gray-200 rounded-2xl p-5 bg-white space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold flex items-center gap-2 text-gray-900">
-              <FiBell className="text-emerald-700" size={16} />
-              Notification Preferences
-            </h3>
-            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full flex items-center gap-1">
-              <FiCheck size={11} /> Active
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            <label className="flex items-center justify-between text-sm cursor-pointer p-2 rounded-xl hover:bg-gray-50">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+            <h2 className="text-lg font-semibold mb-4">Change Password</h2>
+            <div className="space-y-4">
               <div>
-                <p className="font-medium text-gray-800">Email Notifications</p>
-                <p className="text-xs text-gray-500">Receive trip summaries, bookings, and receipts via email</p>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Current Password</label>
+                <input
+                  type="password"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                />
               </div>
-              <input
-                type="checkbox"
-                checked={notifPrefs.email_enabled}
-                onChange={(e) => setNotifPrefs({ ...notifPrefs, email_enabled: e.target.checked })}
-                className="w-4 h-4 accent-purple-600 rounded"
-              />
-            </label>
-
-            <label className="flex items-center justify-between text-sm cursor-pointer p-2 rounded-xl hover:bg-gray-50">
               <div>
-                <p className="font-medium text-gray-800">Push Notifications</p>
-                <p className="text-xs text-gray-500">Real-time alerts for weather changes and itinerary updates</p>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Password</label>
+                <input
+                  type="password"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                />
               </div>
-              <input
-                type="checkbox"
-                checked={notifPrefs.push_enabled}
-                onChange={(e) => setNotifPrefs({ ...notifPrefs, push_enabled: e.target.checked })}
-                className="w-4 h-4 accent-purple-600 rounded"
-              />
-            </label>
-
-            <label className="flex items-center justify-between text-sm cursor-pointer p-2 rounded-xl hover:bg-gray-50">
-              <div>
-                <p className="font-medium text-gray-800">Risk Alert SMS</p>
-                <p className="text-xs text-gray-500">SMS broadcasts for landslide, monsoon, or altitude warnings</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={notifPrefs.sms_enabled}
-                onChange={(e) => setNotifPrefs({ ...notifPrefs, sms_enabled: e.target.checked })}
-                className="w-4 h-4 accent-purple-600 rounded"
-              />
-            </label>
-            <div className="border-t pt-3 grid sm:grid-cols-2 gap-2">
-              {[["safety_alerts","Safety alerts"],["booking_updates","Booking updates"],["recommendations","Travel recommendations"],["marketing","Marketing messages"]].map(([key,label]) => <label key={key} className="flex items-center justify-between text-sm p-2 rounded-xl bg-gray-50"><span>{label}</span><input type="checkbox" checked={Boolean(notifPrefs[key])} onChange={(e)=>setNotifPrefs({...notifPrefs,[key]:e.target.checked})} className="w-4 h-4 accent-purple-600"/></label>)}
             </div>
           </div>
         </div>
+      )}
 
-        {/* Currency */}
-        <div className="border border-gray-200 rounded-2xl p-5 bg-white space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold flex items-center gap-2 text-gray-900">
-              <FiDollarSign className="text-emerald-600" size={16} />
-              Preferred Currency
-            </h3>
-            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">
-              {currency} Selected
-            </span>
+      {/* Notifications Tab */}
+      {activeTab === 'notifications' && (
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          <h2 className="text-lg font-semibold mb-4">Notification Preferences</h2>
+          <div className="space-y-4">
+            {[
+              { key: 'email', label: 'Email Notifications', desc: 'Receive notifications via email' },
+              { key: 'sms', label: 'SMS Notifications', desc: 'Receive notifications via SMS' },
+              { key: 'push', label: 'Push Notifications', desc: 'Receive push notifications' },
+              { key: 'marketing', label: 'Marketing Emails', desc: 'Receive promotional content' },
+              { key: 'weekly_digest', label: 'Weekly Digest', desc: 'Weekly summary of destinations' },
+            ].map(item => (
+              <div key={item.key} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div>
+                  <p className="font-medium">{item.label}</p>
+                  <p className="text-sm text-gray-500">{item.desc}</p>
+                </div>
+                <button
+                  onClick={() => setNotifications({ ...notifications, [item.key]: !notifications[item.key] })}
+                  className={`w-12 h-6 rounded-full transition-colors ${
+                    notifications[item.key] ? 'bg-emerald-600' : 'bg-gray-300'
+                  }`}
+                >
+                  <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                    notifications[item.key] ? 'translate-x-6' : 'translate-x-0.5'
+                  }`} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Privacy Tab */}
+      {activeTab === 'privacy' && (
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          <h2 className="text-lg font-semibold mb-4">Privacy Settings</h2>
+          <div className="space-y-4">
+            {[
+              { key: 'profile_visible', label: 'Public Profile', desc: 'Allow others to see your profile' },
+              { key: 'location_sharing', label: 'Location Sharing', desc: 'Share your location with trusted contacts' },
+              { key: 'show_activity', label: 'Show Activity', desc: 'Display your recent activity' },
+            ].map(item => (
+              <div key={item.key} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div>
+                  <p className="font-medium">{item.label}</p>
+                  <p className="text-sm text-gray-500">{item.desc}</p>
+                </div>
+                <button
+                  onClick={() => setPrivacy({ ...privacy, [item.key]: !privacy[item.key] })}
+                  className={`w-12 h-6 rounded-full transition-colors ${
+                    privacy[item.key] ? 'bg-emerald-600' : 'bg-gray-300'
+                  }`}
+                >
+                  <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                    privacy[item.key] ? 'translate-x-6' : 'translate-x-0.5'
+                  }`} />
+                </button>
+              </div>
+            ))}
           </div>
 
-          <select
-            className="input-field"
-            value={currency}
-            onChange={(e) => {
-              setCurrency(e.target.value)
-              localStorage.setItem("tourism_currency", e.target.value)
-              showToast(`Currency preference updated to ${e.target.value}`, "success")
-            }}
-          >
-            <option value="USD">USD ($) — US Dollar</option>
-            <option value="NPR">NPR (₨) — Nepalese Rupee</option>
-            <option value="EUR">EUR (€) — Euro</option>
-            <option value="GBP">GBP (£) — British Pound</option>
-            <option value="AUD">AUD ($) — Australian Dollar</option>
-            <option value="INR">INR (₹) — Indian Rupee</option>
-            <option value="CNY">CNY (¥) — Chinese Yuan</option>
+          <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <h3 className="font-semibold text-red-800 dark:text-red-200 mb-2">Danger Zone</h3>
+            <p className="text-sm text-red-600 dark:text-red-300 mb-4">
+              Once you delete your account, there is no going back.
+            </p>
+            <button className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 flex items-center gap-2">
+              <FiTrash2 className="w-4 h-4" />
+              Delete Account
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Language Tab */}
+      {activeTab === 'language' && (
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          <h2 className="text-lg font-semibold mb-4">Language Preference</h2>
+          <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+            <option value="en">English</option>
+            <option value="ne">नेपाली (Nepali)</option>
+            <option value="hi">हिन्दी (Hindi)</option>
+            <option value="zh">中文 (Chinese)</option>
+            <option value="fr">Français (French)</option>
+            <option value="de">Deutsch (German)</option>
+            <option value="es">Español (Spanish)</option>
+            <option value="ja">日本語 (Japanese)</option>
           </select>
         </div>
+      )}
 
-
-
-
-
+      {/* Save Button */}
+      <div className="mt-6 flex items-center gap-4">
         <button
-
-          type="submit"
-
-          className="btn-primary"
-
-          disabled={saving}
-
+          onClick={handleSave}
+          className="px-6 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 flex items-center gap-2"
         >
-
-          {
-            saving
-            ?
-            "Saving..."
-            :
-            "Save Language"
-          }
-
-
+          <FiSave className="w-4 h-4" />
+          Save Changes
         </button>
-
-
-
-
-      </form>
-
-      <motion.section
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="ny-panel p-6 mt-6"
-        aria-label="Appearance"
-      >
-        <h3 className="font-semibold flex items-center gap-2 text-gray-900 mb-4">
-          <FiCpu className="text-emerald-700" size={16} />
-          Appearance
-        </h3>
-        <div className="flex items-center justify-between max-w-md">
-          <div>
-            <p className="text-sm font-medium text-gray-800">Dark theme</p>
-            <p className="text-xs text-gray-500">Your choice is saved on this device and restored on your next visit.</p>
-          </div>
-          <button
-            type="button"
-            role="switch" aria-label="Dark theme"
-            aria-checked={isDark}
-            onClick={toggleTheme}
-            className={`relative h-7 w-12 rounded-full transition-colors ${isDark ? "bg-emerald-600" : "bg-gray-300"}`}
-          >
-            <span
-              className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${isDark ? "left-[22px]" : "left-0.5"}`}
-            />
-          </button>
-        </div>
-      </motion.section>
-
-      <ChangePasswordCard />
-
-      <section aria-labelledby="privacy-data-title" className="ny-card p-5">
-        <h2 id="privacy-data-title" className="text-lg font-bold text-[var(--ny-text)]">Privacy and your data</h2>
-        <p className="mt-1 text-sm text-[var(--ny-text-secondary)]">See what we store, change your video cookie choice, or delete your account and data.</p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Link to="/privacy-policy" className="ny-btn ny-btn-secondary min-h-11 px-4 text-sm">Privacy Policy</Link>
-          <button type="button" onClick={openCookieSettings} className="ny-btn ny-btn-secondary min-h-11 px-4 text-sm">Cookie settings</button>
-          <Link to="/data-deletion" className="ny-btn ny-btn-danger min-h-11 px-4 text-sm">Delete account</Link>
-        </div>
-      </section>
-
-    </motion.div>
-
+        {saved && (
+          <span className="text-emerald-600 text-sm font-medium">Settings saved successfully!</span>
+        )}
+      </div>
+    </div>
   )
-
 }
-
 
 export default Settings

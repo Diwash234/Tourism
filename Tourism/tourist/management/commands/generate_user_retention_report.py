@@ -2,7 +2,6 @@
 Management command to generate a user retention report.
 """
 from datetime import timedelta
-
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from tourist.models import User

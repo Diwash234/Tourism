@@ -28,11 +28,24 @@ class Command(BaseCommand):
         elapsed = time.time() - start
         self.stdout.write(f"  List 100 with category: {elapsed:.3f}s")
 
+        start = time.time()
+        list(Destination.objects.filter(is_published=True)[:100])
+        elapsed = time.time() - start
+        self.stdout.write(f"  Filter 100 published: {elapsed:.3f}s")
+
         # Database stats
         self.stdout.write("\nDatabase Statistics:")
         with connection.cursor() as cursor:
             cursor.execute("SELECT COUNT(*) FROM tourist_destination")
             count = cursor.fetchone()[0]
             self.stdout.write(f"  Total destinations: {count}")
+
+        # Recommendations
+        self.stdout.write("\nRecommendations:")
+        self.stdout.write("  - Add database indexes for frequently queried fields")
+        self.stdout.write("  - Use select_related() for foreign key relationships")
+        self.stdout.write("  - Use prefetch_related() for many-to-many relationships")
+        self.stdout.write("  - Cache frequently accessed data")
+        self.stdout.write("  - Paginate large querysets")
 
         self.stdout.write("\n" + "=" * 60)
