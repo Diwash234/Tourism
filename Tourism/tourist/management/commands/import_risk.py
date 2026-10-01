@@ -4,7 +4,12 @@ from math import radians, sin, cos, sqrt, atan2
 
 from django.core.management.base import BaseCommand
 
+from tourist import console_safety as console
 from tourist.models import Destination, RiskAnalysis
+
+# Unmatched-row warnings are capped: a 5,048-row file can otherwise print
+# thousands of lines that bury the real error.
+MAX_UNMATCHED_REPORTED = 10
 
 
 
@@ -45,13 +50,19 @@ def calculate_distance(lat1, lon1, lat2, lon2):
 
 
 
-def find_destination(name, latitude, longitude, destinations):
+def find_destination(name, latitude, longitude, destinations, name_index=None):
 
     """
     Find destination by:
 
     1. Exact name
     2. Nearest coordinate match
+
+    ``name_index`` is a prebuilt {casefolded name: Destination} map.
+    The original code queried ``Destination.objects.filter(name__iexact=...)``
+    on every call, so a 5,048-row file meant 5,048 unindexed full-table
+    scans across the 8,757-row destination catalogue -- the same
+    O(rows x catalogue) cost that made import_police take 12 minutes.
     """
 
 
@@ -59,9 +70,12 @@ def find_destination(name, latitude, longitude, destinations):
 
     if isinstance(name, str) and name.strip():
 
-        destination = Destination.objects.filter(
-            name__iexact=name.strip()
-        ).first()
+        if name_index is not None:
+            destination = name_index.get(name.strip().casefold())
+        else:
+            destination = Destination.objects.filter(
+                name__iexact=name.strip()
+            ).first()
 
 
         if destination:
@@ -164,25 +178,45 @@ class Command(BaseCommand):
 
         imported = 0
         skipped = 0
+        unmatched: list[str] = []
 
 
 
         # LOAD DESTINATIONS ONLY ONCE
 
+        # Prebuilt once for the whole file; without it every row paid an
+        # unindexed case-insensitive scan of the whole destination table.
+        name_index = {}
+
         destinations = list(
 
-            Destination.objects.exclude(
+            # This used to be
+            #   .exclude(latitude__isnull=True, longitude__isnull=True)
+            # In Django, exclude() with several kwargs means
+            # "NOT (all of these are true)" -- not BOTH null -- so it
+            # returned exactly the rows it was meant to drop, including
+            # destinations with a null coordinate. Those raised inside
+            # float() and were swallowed by a bare `except Exception:
+            # continue`, so matches were silently lost.
+            Destination.objects.filter(
 
-                latitude__isnull=True,
-                longitude__isnull=True
+                latitude__isnull=False,
+                longitude__isnull=False
 
             )
 
         )
 
 
+        name_index = {
+            (d.name or "").strip().casefold(): d
+            for d in destinations
+            if (d.name or "").strip()
+        }
+
         self.stdout.write(
-            f"Loaded {len(destinations)} destinations"
+            f"Loaded {len(destinations)} destinations "
+            f"({len(name_index)} distinct names indexed)"
         )
 
 
@@ -204,7 +238,9 @@ class Command(BaseCommand):
 
                 row.get("longitude"),
 
-                destinations
+                destinations,
+
+                name_index
 
             )
 
@@ -215,18 +251,15 @@ class Command(BaseCommand):
 
                 skipped += 1
 
-
-                self.stdout.write(
-
-                    self.style.WARNING(
-
-                        f"Destination not found: "
-                        f"{row.get('place')}"
-
+                # Cap the per-row noise: an unmatched file can otherwise
+                # print thousands of warnings and bury real problems.
+                if len(unmatched) < MAX_UNMATCHED_REPORTED:
+                    unmatched.append(str(row.get("place") or "(unnamed)"))
+                    console.stderr(
+                        self,
+                        f"Destination not found: {unmatched[-1]}",
+                        self.style.WARNING,
                     )
-
-                )
-
 
                 continue
 
@@ -320,18 +353,6 @@ class Command(BaseCommand):
 
 
             imported += 1
-
-
-
-            self.stdout.write(
-
-                self.style.SUCCESS(
-
-                    f"Imported risk data: {destination.name}"
-
-                )
-
-            )
 
 
 
