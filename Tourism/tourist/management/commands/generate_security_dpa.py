@@ -19,28 +19,35 @@ class Command(BaseCommand):
 
 ## Parties
 
-- **Controller:** [Controller Name]
-- **Processor:** [Processor Name]
+- **Data Controller:** [Controller Name]
+- **Data Processor:** [Processor Name]
 
-### Processing
-- Purpose of processing
-- Types of data
-- Duration of processing
+## Scope
 
-### Obligations
-- Security measures
-- Confidentiality
-- Data subject rights
+Processing of personal data as described in Annex A.
 
-### Sub-processors
+## Obligations
+
+### Processor shall:
+- Process only on documented instructions
+- Implement appropriate security measures
+- Assist with data subject rights
+
+### Controller shall:
+- Provide clear processing instructions
+- Ensure lawful basis for processing
+
+## Sub-processors
+
 - Approval required
 - Liability
 
-### Breach Notification
+## Breach Notification
+
 - 72-hour notification
 - Cooperation
 
-### Signatures
+## Signatures
 
 **Controller:** _________________ Date: _________
 

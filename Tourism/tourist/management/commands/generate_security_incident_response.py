@@ -136,8 +136,8 @@ class Command(BaseCommand):
 
 ### Unauthorized Access
 - Identify compromised accounts
-- Determine access level
 - Revoke access
+- Reset credentials
 - Investigate cause
 
 ### Denial of Service

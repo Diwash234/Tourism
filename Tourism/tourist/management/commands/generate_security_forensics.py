@@ -66,6 +66,7 @@ class Command(BaseCommand):
 - Deleted file recovery
 - Timeline analysis
 - Keyword searching
+- Hash analysis
 
 ### Memory Analysis
 - Process examination

@@ -15,36 +15,48 @@ class Command(BaseCommand):
         docs_dir = Path("docs/security")
         docs_dir.mkdir(parents=True, exist_ok=True)
 
-        content = """# Data Protection Impact Assessment
+        content = """# Data Protection Impact Assessment Template
 
-## Project Information
+## 1. Project Overview
 
 - **Project Name:**
 - **Date:**
 - **Assessor:**
+- **Version:**
 
-### Processing
-- Nature of processing
-- Scope of processing
-- Context of processing
+## 2. Data Processing Description
 
-### Necessity
-- Purpose of processing
-- Lawful basis
-- Proportionality
+- **Nature of processing:**
+- **Scope of processing:**
+- **Context of processing:**
+- **Purpose of processing:**
 
-### Risks
-- Risks to rights
-- Likelihood
-- Severity
+## 3. Necessity and Proportionality
 
-### Measures
-- Mitigation measures
-- Residual risk
+- **Is processing necessary?**
+- **Is it proportionate to the purpose?**
+- **Alternatives considered:**
 
-### Approval
-- Approved by:
-- Date:
+## 4. Risks to Data Subjects
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|------------|
+| | | | |
+
+## 5. Compliance Measures
+
+- [ ] Lawful basis identified
+- [ ] Data minimization
+- [ ] Purpose limitation
+- [ ] Storage limitation
+- [ ] Security measures
+- [ ] Data subject rights
+
+## 6. Conclusion
+
+- **Overall risk level:**
+- **Approval required:**
+- **Review date:**
 """
 
         with open(docs_dir / "DPIA.md", "w") as f:

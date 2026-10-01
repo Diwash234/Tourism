@@ -1,5 +1,5 @@
 """
-Management command to generate a penetration test plan.
+Management command to generate penetration test plan.
 """
 from pathlib import Path
 
@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
-    help = "Generate a penetration test plan"
+    help = "Generate penetration test plan"
 
     def handle(self, *args, **options):
         self.stdout.write("Generating penetration test plan...")
@@ -21,28 +21,29 @@ class Command(BaseCommand):
 
 - Web application
 - API endpoints
-- Authentication system
+- Network infrastructure
 
 ## Methodology
 
 1. **Reconnaissance** - Gather information
 2. **Scanning** - Identify vulnerabilities
 3. **Exploitation** - Attempt to exploit
-4. **Post-exploitation** - Assess impact
+4. **Post-Exploitation** - Assess impact
 5. **Reporting** - Document findings
-
-## Tools
-
-- Nmap
-- Burp Suite
-- OWASP ZAP
-- SQLMap
 
 ## Rules of Engagement
 
 - No denial of service
 - No data modification
 - Business hours only
+- Immediate notification of critical findings
+
+## Deliverables
+
+- Executive summary
+- Technical findings
+- Risk ratings
+- Remediation recommendations
 """
 
         with open(docs_dir / "PENETRATION_TEST.md", "w") as f:

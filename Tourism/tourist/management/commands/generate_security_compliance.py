@@ -45,35 +45,42 @@ class Command(BaseCommand):
 - Access control
 - Monitoring
 
-## Compliance Activities
+## Controls
 
-### Risk Assessment
-- Identify assets
-- Identify threats
-- Assess vulnerabilities
-- Determine risk
-- Implement controls
+### Access Control
+- User provisioning
+- Authentication
+- Authorization
+- Access review
+- Privileged access management
 
-### Policy Development
-- Security policies
-- Acceptable use
-- Incident response
-- Business continuity
-- Data protection
+### Data Protection
+- Classification
+- Encryption
+- Masking
+- Retention
+- Disposal
 
-### Training
-- Security awareness
-- Role-specific training
-- Regular updates
-- Phishing simulations
-- Compliance training
+### Network Security
+- Firewalls
+- IDS/IPS
+- Segmentation
+- Monitoring
+- VPN
 
-### Audits
-- Internal audits
-- External audits
-- Compliance reviews
+### Application Security
+- Secure development
+- Code review
+- Vulnerability testing
 - Penetration testing
-- Vulnerability assessments
+- Patch management
+
+### Physical Security
+- Facility access
+- Environmental controls
+- Equipment protection
+- Visitor management
+- Media handling
 
 ## Monitoring
 
@@ -82,7 +89,7 @@ class Command(BaseCommand):
 - Compliance dashboards
 - Alerting
 - Reporting
-- Trend Analysis
+- Trend analysis
 
 ### Incident Detection
 - SIEM
@@ -91,12 +98,12 @@ class Command(BaseCommand):
 - Anomaly detection
 - Threat intelligence
 
-### Response
-- Incident response plan
-- Escalation procedures
-- Communication plan
-- Recovery procedures
-- Lessons learned
+### Vulnerability Management
+- Scanning
+- Assessment
+- Remediation
+- Verification
+- Reporting
 
 ## Reporting
 
@@ -104,8 +111,8 @@ class Command(BaseCommand):
 - Security incidents
 - Compliance status
 - Risk levels
+- Control effectiveness
 - Training completion
-- Audit findings
 
 ### Dashboards
 - Executive summary
@@ -118,8 +125,8 @@ class Command(BaseCommand):
 - Monthly reports
 - Quarterly reviews
 - Annual assessments
-- Audit reports
-- Compliance certifications
+- Audit findings
+- Remediation status
 """
 
         with open(docs_dir / "COMPLIANCE.md", "w") as f:

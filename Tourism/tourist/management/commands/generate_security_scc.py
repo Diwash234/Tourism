@@ -19,8 +19,8 @@ class Command(BaseCommand):
 
 ## Parties
 
-- **Exporter:** [Exporter Name]
-- **Importer:** [Importer Name]
+- **Data Exporter:** [Exporter Name]
+- **Data Importer:** [Importer Name]
 
 ### Clauses
 - Security measures

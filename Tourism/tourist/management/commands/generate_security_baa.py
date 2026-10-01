@@ -19,8 +19,8 @@ class Command(BaseCommand):
 
 ## Parties
 
-- **Covered Entity:** [Entity Name]
-- **Business Associate:** [Associate Name]
+- **Covered Entity:** [CE Name]
+- **Business Associate:** [BA Name]
 
 ### Services
 - Description of services

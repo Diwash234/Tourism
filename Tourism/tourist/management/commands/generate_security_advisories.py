@@ -17,12 +17,12 @@ class Command(BaseCommand):
 
         content = """# Security Advisories
 
-## [YEAR-001] [VULNERITY TITLE]
+## [YEAR-001] [VULNERABILITY TITLE]
 
 **Date:** YYYY-MM-DD
 **Severity:** Critical/High/Medium/Low
-**Affected Versions:** < 1.0.0
-**Fixed Version:** 1.0.1
+**Affected Versions:** X.X.X - X.X.X
+**Fixed Version:** X.X.X
 
 ### Description
 
@@ -34,7 +34,12 @@ What could happen if exploited.
 
 ### Mitigation
 
-How to fix or mitigate.
+How to protect against this vulnerability.
+
+### Credits
+
+- Reporter: [Name]
+- Fix: [Name]
 
 ### References
 

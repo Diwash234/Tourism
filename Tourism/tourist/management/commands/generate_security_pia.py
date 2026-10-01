@@ -22,6 +22,7 @@ class Command(BaseCommand):
 - **Project Name:**
 - **Date:**
 - **Assessor:**
+- **Version:**
 
 ### Description
 - Purpose of processing

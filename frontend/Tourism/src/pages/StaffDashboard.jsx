@@ -138,7 +138,7 @@ export default function StaffDashboard({ module = "dashboard" }) {
           <div className="space-y-2">
             {todaysWork.map((t) => (
               <div key={t.id} className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-xl bg-white border border-amber-100 px-3 py-2">
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase w-fit ${t.priority === "urgent" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-800"}`}>{t.priority}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-bold uppercase w-fit ${t.priority === "urgent" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-800"}`}>{t.priority}</span>
                 <div className="min-w-0 flex-1">
                   <b className="text-sm text-slate-900 block truncate">{t.title}</b>
                   <span className="text-xs text-slate-500">Due {t.due_date && t.due_date < todayStr ? <span className="text-rose-600 font-bold">overdue ({t.due_date})</span> : (t.due_date || "not set")}{t.hotel ? ` · ${t.hotel}` : ""}</span>

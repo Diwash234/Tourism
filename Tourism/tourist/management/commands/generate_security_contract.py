@@ -35,29 +35,25 @@ class Command(BaseCommand):
 - Resolution time: 4 hours
 - Availability: 99.9%
 
-## Responsibilities
+## Terms
 
-### Client Responsibilities
-- Provide access to systems
-- Implement security controls
-- Report security incidents
+### Payment
+- Monthly fees due on the 1st of each month
+- Late payment: 1.5% per month
 
-### Provider Responsibilities
-- Monitor security systems
-- Respond to incidents
-- Provide security reports
+### Term
+- Initial term of 1 year, auto-renewing
+- Either party may terminate with 30 days notice
 
 ## Confidentiality
 
 Both parties agree to maintain confidentiality of all information shared.
 
-## Term
+## Liability
 
-This contract is effective for one year from the date of signature.
-
-## Termination
-
-Either party may terminate this contract with 30 days written notice.
+- Limitation of liability
+- Indemnification
+- Insurance requirements
 
 ## Signatures
 

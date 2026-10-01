@@ -18,7 +18,7 @@ export function routeQuality(source) {
 export function RouteQualityBadge({ source, className = "" }) {
   const q = routeQuality(source)
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold ${q.tone} ${className}`} title={q.detail} data-testid="route-quality" data-quality={q.key}>
+    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-bold ${q.tone} ${className}`} title={q.detail} data-testid="route-quality" data-quality={q.key}>
       {q.label}
     </span>
   )

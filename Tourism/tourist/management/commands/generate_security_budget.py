@@ -24,8 +24,7 @@ class Command(BaseCommand):
 | CISO | 1 | $150,000 | $150,000 |
 | Security Analysts | 3 | $80,000 | $240,000 |
 | Security Engineers | 2 | $100,000 | $200,000 |
-| Compliance Manager | 1 | $90,000 | $90,000 |
-| **Total Personnel** | | | **$680,000** |
+| **Total Personnel** | | | **$590,000** |
 
 ## Technology
 
@@ -36,18 +35,16 @@ class Command(BaseCommand):
 | Firewall | $20,000 |
 | IDS/IPS | $15,000 |
 | Vulnerability Scanner | $10,000 |
-| Penetration Testing | $25,000 |
-| **Total Technology** | **$150,000** |
+| **Total Technology** | **$125,000** |
 
 ## Services
 
 | Service | Cost |
 |---------|------|
 | Managed Security | $60,000 |
-| Cloud Security | $40,000 |
-| Compliance Consulting | $30,000 |
-| Training | $20,000 |
-| **Total Services** | **$150,000** |
+| Penetration Testing | $25,000 |
+| Security Consulting | $20,000 |
+| **Total Services** | **$105,000** |
 
 ## Training
 
@@ -62,11 +59,11 @@ class Command(BaseCommand):
 
 | Category | Amount |
 |----------|--------|
-| Personnel | $680,000 |
-| Technology | $150,000 |
-| Services | $150,000 |
+| Personnel | $590,000 |
+| Technology | $125,000 |
+| Services | $105,000 |
 | Training | $35,000 |
-| **Total** | **$1,015,000** |
+| **Total** | **$855,000** |
 """
 
         with open(docs_dir / "BUDGET.md", "w") as f:

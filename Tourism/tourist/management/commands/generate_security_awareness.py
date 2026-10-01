@@ -22,8 +22,8 @@ class Command(BaseCommand):
 ### Phishing
 - Spear phishing
 - Whaling
-- Smishing
-- Vishing
+- Smishing (SMS phishing)
+- Vishing (voice phishing)
 
 ### Malware
 - Ransomware
@@ -39,9 +39,9 @@ class Command(BaseCommand):
 
 ### Physical Threats
 - Tailgating
-- Dumpster diving
 - Shoulder surfing
 - Device theft
+- Dumpster diving
 
 ## Best Practices
 
@@ -53,15 +53,15 @@ class Command(BaseCommand):
 
 ### Web Security
 - Check for HTTPS
-- Avoid public Wi-Fi
-- Use a VPN
-- Keep browsers updated
+- Be cautious with downloads
+- Use strong passwords
+- Enable MFA
 
 ### Mobile Security
+- Keep devices updated
 - Use strong PINs
 - Enable remote wipe
-- Install updates
-- Be cautious with apps
+- Be cautious with public Wi-Fi
 
 ### Social Media
 - Limit personal information
@@ -69,26 +69,19 @@ class Command(BaseCommand):
 - Be cautious with friend requests
 - Think before posting
 
-## Incident Reporting
+## Incident Response
 
-### What to Report
-- Suspicious emails
-- Unauthorized access
-- Data breaches
-- Lost devices
-- Security vulnerabilities
-
-### How to Report
-- Email: security@example.com
-- Phone: +1-555-0123
-- Online: https://example.com/report
-- In person: Security office
-
-### After Reporting
-- Preserve evidence
-- Don't investigate yourself
+### What to Do
+- Report immediately
+- Don't delete evidence
 - Cooperate with investigation
 - Learn from the incident
+
+### Who to Contact
+- IT Security: security@example.com
+- Manager: [Manager Name]
+- HR: [HR Contact]
+- Legal: [Legal Contact]
 """
 
         with open(docs_dir / "AWARENESS.md", "w") as f:

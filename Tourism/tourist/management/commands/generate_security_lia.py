@@ -15,29 +15,37 @@ class Command(BaseCommand):
         docs_dir = Path("docs/security")
         docs_dir.mkdir(parents=True, exist_ok=True)
 
-        content = """# Legitimate Interest Assessment
+        content = """# Legitimate Interest Assessment Template
 
-## Purpose
+## 1. Purpose
 
 - **Legitimate interest:**
 - **Business benefit:**
+- **Necessity:**
 
-### Necessity
-- Is processing necessary?
-- Alternatives considered
+## 2. Necessity Test
 
-### Balancing
-- Individual rights
-- Reasonable expectations
-- Impact on individuals
+- **Is processing necessary?**
+- **Is it proportionate?**
+- **Alternatives considered:**
 
-### Safeguards
-- Technical measures
-- Organizational measures
+## 3. Balancing Test
 
-### Conclusion
-- Overall assessment:
-- Approval:
+| Interest | Weight | Data Subject Rights | Weight |
+|----------|--------|---------------------|--------|
+| | | | |
+
+## 4. Safeguards
+
+- **Technical measures:**
+- **Organizational measures:**
+- **Opt-out mechanism:**
+
+## 5. Conclusion
+
+- **Overall assessment:**
+- **Approval:**
+- **Review date:**
 """
 
         with open(docs_dir / "LIA.md", "w") as f:

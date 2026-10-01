@@ -20,7 +20,7 @@ class Command(BaseCommand):
 ## Parties
 
 - **Disclosing Party:** [Party Name]
-- **Receiving Party:** [Party Name]
+- **Receiving Party:** [Recipient Name]
 
 ## Definition
 
@@ -42,7 +42,7 @@ This agreement does not apply to information that:
 
 ## Term
 
-This agreement is effective for two years from the date of signature.
+This agreement remains in effect for two years from signing.
 
 ## Remedies
 

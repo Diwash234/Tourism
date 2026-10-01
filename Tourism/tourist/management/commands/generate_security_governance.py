@@ -23,36 +23,105 @@ class Command(BaseCommand):
 - Overall security strategy
 - Risk management
 - Compliance oversight
+- Incident response
+- Stakeholder communication
 
 ### Security Team
 - Security operations
-- Incident response
+- Threat monitoring
 - Vulnerability management
+- Incident response
+- Security awareness
+
+### IT Team
+- Infrastructure security
+- System hardening
+- Patch management
+- Access control
+- Monitoring
 
 ### Development Team
-- Secure coding practices
-- Code reviews
+- Secure coding
+- Code review
+- Vulnerability remediation
 - Security testing
+- Documentation
 
-### Operations Team
-- Infrastructure security
-- Monitoring
-- Incident detection
+### Management
+- Risk acceptance
+- Resource allocation
+- Policy approval
+- Compliance oversight
+- Incident escalation
 
 ## Policies
 
-1. Acceptable Use Policy
-2. Access Control Policy
-3. Data Protection Policy
-4. Incident Response Policy
-5. Change Management Policy
+### Security Policies
+- Information security policy
+- Acceptable use policy
+- Access control policy
+- Data protection policy
+- Incident response policy
 
-## Review Cycle
+### Operational Policies
+- Change management
+- Configuration management
+- Patch management
+- Backup and recovery
+- Monitoring and logging
 
-- Policies: Annual review
-- Risk assessment: Quarterly
-- Penetration test: Annual
-- Security training: Annual
+### Compliance Policies
+- Data retention
+- Privacy protection
+- Regulatory compliance
+- Audit requirements
+- Reporting obligations
+
+## Processes
+
+### Risk Management
+- Risk identification
+- Risk assessment
+- Risk treatment
+- Risk monitoring
+- Risk reporting
+
+### Incident Management
+- Detection and analysis
+- Containment
+- Eradication
+- Recovery
+- Lessons learned
+
+### Change Management
+- Change request
+- Impact assessment
+- Approval
+- Implementation
+- Review
+
+### Access Management
+- User provisioning
+- Access review
+- Privileged access
+- Deprovisioning
+- Audit
+
+## Review
+
+### Continuous Review
+- Policy review
+- Control assessment
+- Risk evaluation
+- Compliance check
+- Improvement planning
+
+### Periodic Review
+- Monthly reviews
+- Quarterly assessments
+- Annual audits
+- External assessments
+- Benchmarking
 """
 
         with open(docs_dir / "GOVERNANCE.md", "w") as f:

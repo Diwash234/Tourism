@@ -1,5 +1,5 @@
 """
-Management command to generate a responsible disclosure policy.
+Management command to generate responsible disclosure policy.
 """
 from pathlib import Path
 
@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
-    help = "Generate a responsible disclosure policy"
+    help = "Generate responsible disclosure policy"
 
     def handle(self, *args, **options):
         self.stdout.write("Generating responsible disclosure policy...")
@@ -23,18 +23,18 @@ We believe in working with security researchers to improve our security.
 
 ## Guidelines
 
-1. **Do no harm** - Don't access, modify, or delete user data
-2. **Be respectful** - Don't disrupt service availability
-3. **Report promptly** - Give us time to fix before public disclosure
-4. **Stay in scope** - Only test systems listed in scope
+1. Do not access or modify user data
+2. Do not disrupt our services
+3. Give us reasonable time to respond
+4. Act in good faith
 
-## Safe Harbor
+## Reporting
 
-We will not pursue legal action against researchers who follow these guidelines.
+Email: security@example.com
 
 ## Recognition
 
-We will credit researchers in our security advisories (with permission).
+We will credit researchers in our security advisories.
 """
 
         with open(docs_dir / "RESPONSIBLE_DISCLOSURE.md", "w") as f:

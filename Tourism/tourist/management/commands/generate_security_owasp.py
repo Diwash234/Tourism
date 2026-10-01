@@ -54,8 +54,8 @@ class Command(BaseCommand):
 - [ ] 3.3.1: Session termination
 - [ ] 3.4.1: Cookie-based session management
 - [ ] 3.5.1: Defenses against session management exploits
-- [ ] 3.6.1: Defenses against cross site request forgery
-- [ ] 3.7.1: Defenses against cross site script inclusion
+- [ ] 3.6.1: Defenses against client-side session management exploits
+- [ ] 3.7.1: Defenses against cross-site request forgery
 
 ## V4: Access Control
 
@@ -93,13 +93,14 @@ class Command(BaseCommand):
 ## V9: Communications
 
 - [ ] 9.1.1: Server communication security
-- [ ] 9.2.1: Client communication security
+- [ ] 9.2.1: Server authentication
+- [ ] 9.3.1: Browser communication security
 
 ## V10: Malicious Software
 
 - [ ] 10.1.1: Code integrity controls
-- [ ] 10.2.1: Malicious code search
-- [ ] 10.3.1: Deployed application integrity controls
+- [ ] 10.2.1: Deployed application integrity controls
+- [ ] 10.3.1: Malicious code search
 
 ## V11: Business Logic
 
@@ -109,9 +110,9 @@ class Command(BaseCommand):
 ## V12: Files and Resources
 
 - [ ] 12.1.1: File upload restrictions
-- [ ] 12.2.1: File integrity verification
+- [ ] 12.2.1: File storage
 - [ ] 12.3.1: File execution
-- [ ] 12.4.1: File storage
+- [ ] 12.4.1: File upload verification
 - [ ] 12.5.1: File download
 - [ ] 12.6.1: SSRF protection
 

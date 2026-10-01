@@ -1,5 +1,5 @@
 """
-Management command to generate security training materials.
+Management command to generate security training document.
 """
 from pathlib import Path
 
@@ -7,10 +7,10 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
-    help = "Generate security training materials"
+    help = "Generate security training document"
 
     def handle(self, *args, **options):
-        self.stdout.write("Generating security training materials...")
+        self.stdout.write("Generating security training document...")
 
         docs_dir = Path("docs/security")
         docs_dir.mkdir(parents=True, exist_ok=True)
@@ -35,7 +35,7 @@ class Command(BaseCommand):
 - Classify data appropriately
 - Encrypt sensitive data
 - Follow retention policies
-- Report data breaches immediately
+- Secure physical documents
 
 ### Physical Security
 - Lock your desk
@@ -51,23 +51,17 @@ class Command(BaseCommand):
 - Parameterized queries
 - Error handling
 
-### Authentication
+### Common Vulnerabilities
+- OWASP Top 10
+- CWE Top 25
+- Security code reviews
+- Automated testing
+
+### Authentication & Authorization
 - Implement MFA
+- Use RBAC
 - Secure session management
-- Password hashing
-- Account lockout
-
-### Authorization
-- Principle of least privilege
-- Role-based access control
-- Object-level permissions
 - Regular access reviews
-
-### Data Protection
-- Encryption at rest
-- Encryption in transit
-- Data minimization
-- Secure backups
 
 ## For Administrators
 
@@ -77,26 +71,14 @@ class Command(BaseCommand):
 - Monitoring and alerting
 - Incident response
 
-### Network Security
-- Firewall configuration
-- Network segmentation
-- VPN access
-- DDoS protection
-
 ### Access Control
-- User provisioning
-- Access reviews
+- Principle of least privilege
+- Regular access reviews
 - Privileged access management
 - Audit logging
-
-### Compliance
-- Policy enforcement
-- Audit preparation
-- Reporting
-- Continuous improvement
 """
 
         with open(docs_dir / "TRAINING.md", "w") as f:
             f.write(content)
 
-        self.stdout.write(self.style.SUCCESS(f"Security training materials generated at {docs_dir / 'TRAINING.md'}"))
+        self.stdout.write(self.style.SUCCESS(f"Security training document generated at {docs_dir / 'TRAINING.md'}"))

@@ -1,5 +1,5 @@
 """
-Management command to generate a cookie policy.
+Management command to generate cookie policy.
 """
 from pathlib import Path
 
@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
-    help = "Generate a cookie policy"
+    help = "Generate cookie policy"
 
     def handle(self, *args, **options):
         self.stdout.write("Generating cookie policy...")
@@ -31,12 +31,10 @@ Cookies are small text files stored on your device.
 ### Analytics Cookies
 - Usage tracking
 - Performance monitoring
-- Feature improvement
 
 ### Preference Cookies
 - Language preference
 - Theme selection
-- Display settings
 
 ## Managing Cookies
 

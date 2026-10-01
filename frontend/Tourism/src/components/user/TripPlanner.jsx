@@ -41,9 +41,9 @@ export default function TripPlanner() {
           <div key={i} className="p-3.5 rounded-2xl bg-[#F7F8F5]/70 border border-[#E5E0D5] flex items-center justify-between text-xs">
             <div>
               <p className="font-bold text-gray-900">{t.title}</p>
-              <p className="text-[11px] text-gray-500">📅 {t.start} · {t.days} Days</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">📅 {t.start} · {t.days} Days</p>
             </div>
-            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-200/80 text-[#102A2E]">
+            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-200/80 text-[#102A2E]">
               {t.status}
             </span>
           </div>

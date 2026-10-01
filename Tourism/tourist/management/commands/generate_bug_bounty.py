@@ -1,5 +1,5 @@
 """
-Management command to generate a bug bounty program.
+Management command to generate bug bounty program.
 """
 from pathlib import Path
 
@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
-    help = "Generate a bug bounty program"
+    help = "Generate bug bounty program"
 
     def handle(self, *args, **options):
         self.stdout.write("Generating bug bounty program...")
@@ -26,23 +26,21 @@ class Command(BaseCommand):
 | Medium | $200+ |
 | Low | $50+ |
 
-## Eligibility
-
-- Must be 18 years or older
-- Must follow responsible disclosure
-- Must not access user data
-
 ## Scope
 
 - Web application
 - API endpoints
 - Mobile applications
 
-## Exclusions
+## Out of Scope
 
 - Social engineering
-- Physical attacks
-- Third-party services
+- Physical security
+- Denial of service
+
+## How to Report
+
+Email: security@example.com
 """
 
         with open(docs_dir / "BUG_BOUNTY.md", "w") as f:
