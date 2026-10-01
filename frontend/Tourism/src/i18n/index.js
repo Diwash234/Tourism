@@ -9,15 +9,13 @@
  * its block to LANGS and register it in ALL_LANGS.
  */
 import { useEffect, useState } from "react"
+import { SUPPORTED_LANGUAGES } from "./languages"
+import translationApi from "../api/translationApi"
 
 const STORAGE_KEY = "tourism_lang"
 const COOKIE_KEY = "django_language"
 
-export const ALL_LANGS = [
-  { code: "en", label: "English", native: "English", flag: "🇬🇧", dir: "ltr" },
-  { code: "ne", label: "Nepali", native: "नेपाली", flag: "🇳🇵", dir: "ltr" },
-  { code: "hi", label: "Hindi", native: "हिन्दी", flag: "🇮🇳", dir: "ltr" },
-]
+export const ALL_LANGS = SUPPORTED_LANGUAGES.map((language) => ({ ...language, flag: language.code === "ne" ? "🇳🇵" : language.code === "hi" ? "🇮🇳" : language.code === "en" ? "🇬🇧" : "🌐" }))
 
 const en = {
   // nav / layout
@@ -1127,15 +1125,53 @@ function translateLegacyDom(root = document.body) {
   })
 }
 
+const translationCache = new Map()
+
+async function translatePageUi(root = document.body) {
+  if (typeof document === "undefined" || currentLang === "en" || !root) return
+  const reverse = new Map(Object.entries(en).map(([key, value]) => [value, key]))
+  const texts = []
+  const nodes = []
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  let node
+  while ((node = walker.nextNode())) {
+    if (!node.parentElement || ["SCRIPT","STYLE","CODE","PRE"].includes(node.parentElement.tagName)) continue
+    const original = originalText.get(node) || node.nodeValue
+    const trimmed = original.trim()
+    if (!trimmed || !reverse.has(trimmed)) continue
+    if (translationCache.has(`${currentLang}:${trimmed}`)) {
+      node.nodeValue = original.replace(trimmed, translationCache.get(`${currentLang}:${trimmed}`))
+      continue
+    }
+    texts.push(trimmed); nodes.push(node)
+  }
+  const unique = [...new Set(texts)].slice(0, 100)
+  if (!unique.length) return
+  try {
+    const { data } = await translationApi.translateBatch({ items: unique, target_language: currentLang, source_language: "en" })
+    const translated = Array.isArray(data?.translations) ? data.translations : []
+    unique.forEach((text, index) => translationCache.set(`${currentLang}:${text}`, translated[index] || text))
+    nodes.forEach((textNode) => {
+      const original = originalText.get(textNode) || textNode.nodeValue
+      const trimmed = original.trim()
+      const value = translationCache.get(`${currentLang}:${trimmed}`)
+      if (value) textNode.nodeValue = original.replace(trimmed, value)
+    })
+  } catch {}
+}
+
 function enableLegacyTranslationBridge() {
   if (typeof document === "undefined") return
-  queueMicrotask(() => translateLegacyDom())
+  queueMicrotask(() => { translateLegacyDom(); translatePageUi() })
   if (!translationObserver) {
     translationObserver = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         mutation.addedNodes.forEach((node) => {
-          if (node.nodeType === Node.ELEMENT_NODE) translateLegacyDom(node)
-          else if (node.nodeType === Node.TEXT_NODE && node.parentElement) translateLegacyDom(node.parentElement)
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            translateLegacyDom(node); translatePageUi(node)
+          } else if (node.nodeType === Node.TEXT_NODE && node.parentElement) {
+            translateLegacyDom(node.parentElement); translatePageUi(node.parentElement)
+          }
         })
       }
     })
@@ -1144,7 +1180,7 @@ function enableLegacyTranslationBridge() {
 }
 
 export function setLang(code) {
-  if (!DICTS[code]) return
+  if (!ALL_LANGS.some((language) => language.code === code)) return
   currentLang = code
   persistLang(code)
   listeners.forEach((fn) => fn(code))
