@@ -9,6 +9,7 @@ import { resolveSmartSearch } from "../../utils/smartSearch"
 import TourismLogo from "../branding/TourismLogo"
 import LanguageSwitcher from "../common/LanguageSwitcher"
 import ProfileMenu from "./ProfileMenu"
+import Topbar from "./Topbar"
 import { useI18n } from "../../i18n"
 import usePublicConfig from "../../hooks/usePublicConfig"
 import useTheme from "../../context/ThemeContext"
@@ -115,6 +116,7 @@ const Navbar = () => {
 
   return (
     <header className="ny-header fixed inset-x-0 top-0 z-[60] min-w-0 w-full border-b border-white/10 text-white shadow-[0_4px_18px_rgba(4,42,36,0.16)] backdrop-blur">
+      <Topbar />
       <nav ref={navRef} data-nav-root aria-label="Main navigation" className="relative mx-auto flex h-16 min-w-0 w-full items-center gap-1.5 px-2 sm:gap-2 sm:px-3 lg:px-4 xl:gap-3 xl:px-6">
 
         {/* Sidebar Toggle */}

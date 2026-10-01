@@ -15,7 +15,9 @@ Each test pins one previously-fixed behavior so it cannot silently regress:
 from unittest.mock import patch
 
 from django.test import TestCase
+from django.urls import reverse
 from django.utils import timezone
+from rest_framework import status
 from rest_framework.test import APIClient
 
 from .location.search_service import LocationSearchService
@@ -25,6 +27,7 @@ from .models import (
     StaffCapabilityProfile,
     Category,
     Destination,
+    DestinationImage,
     Province,
     District,
     Hospital,
@@ -2399,6 +2402,7 @@ class HomepageCMSDraftPublishTests(TestCase):
 
 class CMSBulkAndMediaTests(TestCase):
     def setUp(self):
+        self.client = APIClient()
         self.admin = User.objects.create_superuser(email='cmsbulk@test.local', password='Pass@12345')
         self.client.force_authenticate(user=self.admin)
         self.destination = Destination.objects.create(name='CMS Media Test', slug='cms-media-test')
@@ -2417,11 +2421,14 @@ class CMSBulkAndMediaTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_bulk_publish_uses_publication_gate(self):
+        self.page.title = ""
+        self.page.save()
         response = self.client.patch(reverse('admin-cms'), {'resource': 'pages', 'action': 'bulk', 'bulk_action': 'publish', 'ids': [self.page.id]}, format='json')
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT, response.content)
 
 class CMSContentMapTests(TestCase):
     def setUp(self):
+        self.client = APIClient()
         self.admin = User.objects.create_superuser(email="cmsmap@test.local", password="Pass@12345")
         self.client.force_authenticate(user=self.admin)
         self.page = ManagedPage.objects.create(
@@ -2444,6 +2451,7 @@ class CMSContentMapTests(TestCase):
 
 class CMSWorkspaceMapTests(TestCase):
     def setUp(self):
+        self.client = APIClient()
         self.admin = User.objects.create_superuser(email="cmsworkspace@test.local", password="Pass@12345")
         self.client.force_authenticate(user=self.admin)
         self.page = ManagedPage.objects.create(route="/workspace-map", key="workspace-map", title="Workspace Map", status="published", is_enabled=True, meta_description="Workspace map test", updated_by=self.admin)
@@ -4612,7 +4620,7 @@ class AdminOperationalCMSRegressionTests(TestCase):
         PoliceStation = __import__("tourist.models", fromlist=["PoliceStation"]).PoliceStation
         station = PoliceStation.objects.create(
             destination=self.destination, name="Test Police", address="Test address",
-            phone="100", latitude=27.7172, longitude=85.3240, district="Kathmandu",
+            phone="100", latitude=27.7172, longitude=85.3240,
         )
         resp = self.client_admin.get("/api/v1/admin/cms/", {"resource": "police_stations"})
         self.assertEqual(resp.status_code, 200)

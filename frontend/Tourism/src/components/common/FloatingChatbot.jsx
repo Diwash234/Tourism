@@ -1,19 +1,25 @@
 import { useState, useRef, useEffect } from "react"
 import { useLocation } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
-import { FiMessageSquare, FiX, FiSend } from "react-icons/fi"
+import { FiMessageSquare, FiX, FiSend, FiHelpCircle } from "react-icons/fi"
 import chatbotApi from "../../api/chatbotApi"
 import useGeolocation from "../../hooks/useGeolocation"
 import useToast from "../../hooks/useToast"
+import usePublicConfig from "../../hooks/usePublicConfig"
 import HimalPackageCards from "../chat/HimalPackageCards"
 
+const DEFAULT_GREETING = "Namaste! I am Himal, your Nepal travel companion. I can help you discover recorded places, compare itineraries, and share mountain guidance."
+
 const FloatingChatbot = () => {
+  const { settings } = usePublicConfig()
+  const chatConfig = settings?.chat_widget
+
   const [isOpen, setIsOpen] = useState(false)
+  const initialGreeting = chatConfig?.greeting || DEFAULT_GREETING
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      content:
-        "Namaste! I am Himal, your Nepal travel companion. I can help you discover recorded places, compare itineraries, and share mountain guidance.",
+      content: initialGreeting,
     },
   ])
   const [input, setInput] = useState("")
@@ -24,6 +30,13 @@ const FloatingChatbot = () => {
   const { showToast } = useToast()
   const location = useLocation()
   const chatScrollRef = useRef(null)
+
+  // Update greeting if config changes
+  useEffect(() => {
+    if (chatConfig?.greeting && messages.length === 1 && messages[0].role === "assistant") {
+      setMessages([{ role: "assistant", content: chatConfig.greeting }])
+    }
+  }, [chatConfig?.greeting])
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined
@@ -115,8 +128,8 @@ const FloatingChatbot = () => {
                   <FiMessageSquare size={16} aria-hidden="true" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm">Nepal Yatra assistant</h3>
-                  <span className="text-[11px] text-[#BDEBD9]">Travel questions, clearly answered</span>
+                  <h3 className="font-semibold text-sm">{chatConfig?.title || "Nepal Yatra assistant"}</h3>
+                  <span className="text-[11px] text-[#BDEBD9]">{chatConfig?.subtitle || "Travel questions, clearly answered"}</span>
                 </div>
               </div>
               <button
@@ -160,6 +173,30 @@ const FloatingChatbot = () => {
                 <div className="text-xs text-emerald-700 font-medium italic flex items-center gap-1.5">
                   <span className="inline-block w-2 h-2 rounded-full bg-emerald-600 animate-bounce"></span>
                   The assistant is working…
+                </div>
+              )}
+
+              {/* Quick Prompts from CMS */}
+              {Array.isArray(chatConfig?.quick_prompts) && chatConfig.quick_prompts.length > 0 && messages.length <= 2 && (
+                <div className="pt-2">
+                  <p className="text-[11px] font-semibold text-gray-400 mb-1.5 flex items-center gap-1">
+                    <FiHelpCircle size={11} />
+                    <span>Suggested questions:</span>
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {chatConfig.quick_prompts.map((prompt, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setInput(prompt)
+                        }}
+                        className="rounded-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 px-2.5 py-1 text-[11px] text-emerald-800 text-left transition-colors"
+                      >
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

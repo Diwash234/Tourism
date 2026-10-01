@@ -40,7 +40,6 @@ NEPAL_BOUNDS = {
     "min_lon": 80.00,
     "max_lon": 88.30,
 }
-}
 
 SANITY_MINIMUMS = {
     "destinations": 1000,

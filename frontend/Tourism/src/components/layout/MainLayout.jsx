@@ -3,6 +3,7 @@ import useSidebarState from "../../hooks/useSidebarState"
 import { Outlet, useLocation } from "react-router-dom"
 import useRouteSeo from "../../hooks/useRouteSeo"
 import useKeyboardShortcuts from "../../hooks/useKeyboardShortcuts"
+import usePublicConfig from "../../hooks/usePublicConfig"
 import Navbar from "./Navbar"
 import Sidebar from "./Sidebar"
 import Footer from "./Footer"
@@ -14,12 +15,19 @@ import KeyboardShortcutsModal from "../common/KeyboardShortcutsModal"
 import QuickActions from "../common/QuickActions"
 import ReadingProgress from "../common/ReadingProgress"
 import { ElevationScrollProgress } from "../common/MotionSystem"
-
+import ContinuousTicker from "./ContinuousTicker"
+import GlobalCtaBanner from "../cms/GlobalCtaBanner"
+import GlobalActionButtons from "../common/GlobalActionButtons"
+import AdmissionModal from "../common/AdmissionModal"
 
 const MainLayout = () => {
   const [sidebarOpen] = useSidebarState()
   const desktopPad = sidebarOpen ? "lg:pl-64" : "lg:pl-16"
   const location = useLocation()
+  const { settings } = usePublicConfig()
+
+  const hasTopbar = settings?.topbar?.enabled !== false && (settings?.topbar?.status ? settings.topbar.status === "published" : true)
+  const topPad = hasTopbar ? "pt-[100px]" : "pt-16"
 
   useRouteSeo()
   useKeyboardShortcuts()
@@ -39,11 +47,13 @@ const MainLayout = () => {
       <main
         id="main-content"
         key={location.pathname}
-        className={`ny-app-main ny-page flex-1 w-full pt-16 transition-[padding] duration-300 ${desktopPad}`}
+        className={`ny-app-main ny-page flex-1 w-full ${topPad} transition-[padding] duration-300 ${desktopPad}`}
       >
+        <ContinuousTicker />
         <Suspense fallback={<div className="container-app flex min-h-[320px] items-center justify-center py-12" role="status" aria-live="polite"><span className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--ny-border)] border-t-[var(--ny-green)]" aria-hidden="true" /><span className="sr-only">Loading page</span></div>}><Outlet /></Suspense>
       </main>
       <div className={`ny-footer-wrap pb-28 transition-[padding] duration-300 lg:pb-0 ${desktopPad}`}>
+        <GlobalCtaBanner />
         <Footer />
       </div>
       <MobileBottomNav />
@@ -51,6 +61,8 @@ const MainLayout = () => {
       <CookieConsentBanner />
       <ScrollToTop />
       <QuickActions />
+      <GlobalActionButtons />
+      <AdmissionModal />
       <KeyboardShortcutsModal />
     </div>
   )

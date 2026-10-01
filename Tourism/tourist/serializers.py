@@ -1472,7 +1472,7 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
             if photo.image_path:
                 url = image_server_url(photo.image_path)
             elif photo.image:
-                url = resolve_image_url(photo.image, request)
+                url = resolve_image_url(photo.image)
             else:
                 url = photo.external_url
             if is_generated_postcard_url(url):

@@ -45,7 +45,8 @@ const DEFAULT_PLAN = [
 
 const Footer = () => {
   const { isAuthenticated } = useAuth()
-  const { branding = {}, navigation = [], pageCMS } = usePublicConfig()
+  const { branding = {}, navigation = [], pageCMS, settings = {} } = usePublicConfig()
+  const footerSetting = settings?.footer || {}
   const { showBlock, extras } = pageCMS("footer", ["symbols", "explore", "provinces", "company", "contact", "newsletter"])
   const [email, setEmail] = useState("")
   const [subscribing, setSubscribing] = useState(false)
@@ -59,8 +60,9 @@ const Footer = () => {
   // settings row may still hold — show the honest "not published" text.
   const contactPhone = isRealPhone(branding.contact_phone) ? branding.contact_phone : ""
   const contactEmail = /@example\.(com|org)$/i.test(String(branding.contact_email || "")) ? "" : branding.contact_email
-  const hasContact = Boolean(branding.contact_address || contactEmail || contactPhone)
-  const footerText = branding.footer_text && branding.footer_text.trim() !== APP_NAME ? branding.footer_text : "All rights reserved."
+  const hasContact = Boolean(branding.contact_address || contactEmail || contactPhone || footerSetting.helpline_text)
+  const footerText = footerSetting.copyright || (branding.footer_text && branding.footer_text.trim() !== APP_NAME ? branding.footer_text : "All rights reserved.")
+  const brandDescription = footerSetting.brand_description || "Discover Nepal beyond Everest — destinations, culture, adventure, wildlife and experiences across the country."
 
   const subscribe = async (event) => {
     event.preventDefault()
@@ -118,8 +120,8 @@ const Footer = () => {
 
       <div className="container-app grid gap-10 py-10 sm:grid-cols-2 lg:grid-cols-3">
         <div className="sm:col-span-2 lg:col-span-1">
-          <Link to="/" className="inline-flex items-center gap-2 text-lg font-bold text-white"><FiGlobe size={20} className="text-[#63E6BE]" aria-hidden="true" />{APP_NAME}</Link>
-          <p className="mt-3 max-w-sm text-sm leading-6 text-[#AFC5BC]">Discover Nepal beyond Everest — destinations, culture, adventure, wildlife and experiences across the country.</p>
+          <Link to="/" className="inline-flex items-center gap-2 text-lg font-bold text-white"><FiGlobe size={20} className="text-[#63E6BE]" aria-hidden="true" />{footerSetting.brand_name || APP_NAME}</Link>
+          <p className="mt-3 max-w-sm text-sm leading-6 text-[#AFC5BC]">{brandDescription}</p>
           {showBlock("newsletter") && (
             <form onSubmit={subscribe} className="mt-5 max-w-sm">
               <label htmlFor="footer-newsletter-email" className="text-sm font-semibold text-white">Travel notes, when there is something useful to share</label>
