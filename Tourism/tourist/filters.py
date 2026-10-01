@@ -51,7 +51,7 @@ class DestinationFilter(django_filters.FilterSet):
         model = Destination
         fields = [
             "category", "province", "district", "is_featured",
-            "is_published", "status",
+            "status",
         ]
 
     def filter_has_images(self, queryset, name, value):
