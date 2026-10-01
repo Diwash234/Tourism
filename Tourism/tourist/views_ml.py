@@ -534,6 +534,119 @@ def _official_budget_context(result, data, destination):
     }
 
 
+def _csv_budget_fallback(destination=None, city=None, district=None, province=None, days=3, travelers=1, budget_level="mid"):
+    """Read the tracked budget dataset directly when the ML sidecar or DB
+    importer is unavailable.
+
+    Production must not turn a valid CSV baseline into "Unavailable" merely
+    because the optional ML process is offline or a Render startup skipped an
+    importer. This fallback is deterministic and uses only recorded dataset
+    values; it never invents a price.
+    """
+    import csv
+    import os
+    import re
+
+    path = os.path.join(settings.BASE_DIR, "dataset", "budget_features.csv")
+    if not os.path.exists(path):
+        return None
+
+    def norm(value):
+        return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
+
+    def number(value):
+        text = str(value or "").strip().replace("$", "").replace(",", "")
+        if not text or text.lower() in {"nan", "none", "null", "n/a", "na"}:
+            return None
+        nums = re.findall(r"\d+(?:\.\d+)?", text)
+        if not nums:
+            return None
+        values = [float(x) for x in nums]
+        return sum(values) / len(values)
+
+    wanted = [
+        norm(getattr(destination, "name", None) if destination else None),
+        norm(city),
+        norm(getattr(destination, "district", None) if destination else district),
+        norm(getattr(destination, "province", None) if destination else province),
+    ]
+    exact = wanted[:]
+    rows = []
+    with open(path, newline="", encoding="utf-8-sig") as fh:
+        reader = csv.DictReader(fh)
+        for row in reader:
+            name = norm(row.get("Destination") or row.get("destination"))
+            row_district = norm(row.get("District") or row.get("district"))
+            row_province = norm(row.get("Province") or row.get("province"))
+            score = 0
+            for value in exact:
+                if not value:
+                    continue
+                if value == name:
+                    score = max(score, 100)
+                elif name and (value in name or name in value):
+                    score = max(score, 80)
+                elif value == row_district:
+                    score = max(score, 70)
+                elif value == row_province:
+                    score = max(score, 50)
+            if score:
+                row["_score"] = score
+                rows.append(row)
+
+    if not rows:
+        return None
+    rows.sort(key=lambda row: row["_score"], reverse=True)
+    row = rows[0]
+
+    transport = number(row.get("Transport Cost (USD)"))
+    food = number(row.get("Food Cost/Day (USD)"))
+    accommodation = number(row.get("Accommodation/Night (USD)"))
+    taxi = number(row.get("Local Taxi/Rick"))
+    if any(value is None for value in (transport, food, accommodation, taxi)):
+        return None
+
+    multiplier = {"budget": 0.75, "mid": 1.0, "standard": 1.0, "luxury": 1.8}.get(
+        str(budget_level or "mid").lower(), 1.0
+    )
+    days = max(1, int(days or 1))
+    travelers = max(1, int(travelers or 1))
+    accommodation_total = accommodation * multiplier * max(1, round(travelers / 2)) * days
+    food_total = food * multiplier * travelers * days
+    transport_total = transport * travelers
+    local_total = taxi * multiplier * travelers * days
+    total = round(accommodation_total + food_total + transport_total + local_total, 2)
+
+    return {
+        "source": "dataset_csv",
+        "baseline_source": "dataset_csv",
+        "dataset": {"destinations": len(rows)},
+        "estimated_total": total,
+        "total": total,
+        "total_budget_usd": total,
+        "known_cost_total_usd": total,
+        "total_is_partial": False,
+        "breakdown": {
+            "accommodation": round(accommodation_total, 2),
+            "food": round(food_total, 2),
+            "transport": round(transport_total, 2),
+            "local_transport": round(local_total, 2),
+            "activities": 0,
+            "shopping": 0,
+        },
+        "breakdown_npr": {
+            "accommodation": None, "food": None, "transport": None,
+            "local_transport": None, "activities": None, "shopping": None,
+            "emergency_reserve": None,
+            "note": "USD is the recorded dataset currency; no exchange rate was inferred.",
+        },
+        "living_costs_available": True,
+        "matched_baseline_city": row.get("Destination") or city,
+        "days": days,
+        "travelers": travelers,
+    }
+
+
 class BudgetPredictionView(APIView):
 
     permission_classes = [permissions.AllowAny]
@@ -678,9 +791,29 @@ class BudgetPredictionView(APIView):
                     }
                     body.update(_official_budget_context(body, data, destination))
                     return Response(body, status=status.HTTP_200_OK)
+            # Last-resort source: read the tracked CSV directly. This
+            # protects the public estimator from a missing DB row, a skipped
+            # Render importer, or an ML-sidecar restart.
+            csv_result = _csv_budget_fallback(
+                destination=destination,
+                city=city,
+                district=data.get("district"),
+                province=data.get("province"),
+                days=data.get("days"),
+                travelers=data.get("travelers"),
+                budget_level=data.get("budget_level"),
+            )
+            if csv_result:
+                csv_result.update(_official_budget_context(csv_result, data, destination))
+                csv_result["matched_destination"] = (
+                    {"id": destination.id, "name": destination.name, "district": destination.district or ""}
+                    if destination else None
+                )
+                return Response(csv_result, status=status.HTTP_200_OK)
+
             if destination is None:
                 return Response(
-                    {"detail": "Budget prediction service unavailable."},
+                    {"detail": "No complete recorded budget baseline is available for this destination."},
                     status=status.HTTP_503_SERVICE_UNAVAILABLE,
                 )
             # Living-cost model is down, but the official visa / park /
