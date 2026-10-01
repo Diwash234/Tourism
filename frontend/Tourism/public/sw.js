@@ -8,9 +8,9 @@
  * - Background sync for form submissions
  */
 
-const CACHE_NAME = "nepal-tourism-v1"
-const STATIC_CACHE = "nepal-tourism-static-v1"
-const API_CACHE = "nepal-tourism-api-v1"
+const CACHE_NAME = "nepal-tourism-v3"
+const STATIC_CACHE = "nepal-tourism-static-v3"
+const API_CACHE = "nepal-tourism-api-v3"
 const OFFLINE_URL = "/offline.html"
 
 // Assets to precache on install
@@ -92,23 +92,18 @@ self.addEventListener("fetch", (event) => {
  * Returns cached version if available, otherwise fetches from network
  */
 async function cacheFirst(request) {
-  const cached = await caches.match(request)
-  if (cached) {
-    return cached
-  }
-
+  // Hashed Vite assets must never be allowed to pin an obsolete deployment.
+  // Always ask the network first; only use an exact cached response offline.
   try {
-    const response = await fetch(request)
+    const response = await fetch(request, { cache: "no-store" })
     if (response.ok) {
       const cache = await caches.open(STATIC_CACHE)
-      cache.put(request, response.clone())
+      await cache.put(request, response.clone())
     }
     return response
   } catch (err) {
-    // Return offline fallback for navigations
-    if (request.mode === "navigate") {
-      return caches.match(OFFLINE_URL)
-    }
+    const cached = await caches.match(request)
+    if (cached) return cached
     throw err
   }
 }
@@ -162,10 +157,10 @@ async function staleWhileRevalidate(request) {
   const cached = await caches.match(request)
 
   const fetchPromise = fetch(request)
-    .then((response) => {
+    .then(async (response) => {
       if (response.ok) {
         const cache = await caches.open(STATIC_CACHE)
-        cache.put(request, response.clone())
+        await cache.put(request, response.clone())
       }
       return response
     })
