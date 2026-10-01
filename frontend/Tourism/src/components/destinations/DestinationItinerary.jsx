@@ -2,7 +2,7 @@ import { useState } from "react"
 import { FiCalendar, FiClock, FiMapPin, FiDollarSign, FiUsers, FiPlus, FiTrash2, FiEdit2, FiSave } from "react-icons/fi"
 import { useTranslation } from "../../hooks/useTranslation"
 import { useAuth } from "../../hooks/useAuth"
-import { useToast } from "../common/Toast"
+import useToast from "../../hooks/useToast"
 
 /**
  * Interactive itinerary planner for a destination.

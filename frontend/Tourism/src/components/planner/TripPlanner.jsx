@@ -2,7 +2,7 @@ import { useState, useMemo } from "react"
 import { FiCalendar, FiMapPin, FiClock, FiUsers, FiTrendingUp, FiPlus, FiTrash2, FiSave } from "react-icons/fi"
 import { useTranslation } from "../../hooks/useTranslation"
 import { useAuth } from "../../hooks/useAuth"
-import { useToast } from "../common/Toast"
+import useToast from "../../hooks/useToast"
 import { destinationApi } from "../../services/destinationService"
 
 /**
