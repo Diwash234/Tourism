@@ -399,7 +399,7 @@ export default function DestinationList() {
             <div className="flex justify-center pt-4">
               <Pagination
                 currentPage={page}
-                totalPages={Math.min(totalPages, 100)}
+                totalPages={totalPages}
                 onPageChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }) }}
               />
             </div>
