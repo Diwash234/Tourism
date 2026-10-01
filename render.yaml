@@ -33,6 +33,13 @@ services:
         sync: false
       - key: ML_SERVICE_URL
         value: "http://localhost:8001"
+      # Run the ML sidecar (budget/itinerary/safety/recommendation) in the
+      # web container. The entrypoint starts it only AFTER migrations and
+      # the data phase, so its import spike cannot overlap other Python
+      # processes. Set to "0" if a 512 MiB instance ever OOMs -- Django
+      # falls back to deterministic CSV/database answers without it.
+      - key: START_ML_SERVICE
+        value: "1"
       - key: ACCESS_TOKEN_LIFETIME_MIN
         value: "60"
       - key: REFRESH_TOKEN_LIFETIME_DAYS

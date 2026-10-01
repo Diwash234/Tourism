@@ -1,4 +1,9 @@
 # Render production image: React build + Django API in one service.
+#
+# THIS IS THE CANONICAL IMAGE (render.yaml: dockerfilePath ./Dockerfile,
+# dockerContext .). docker-compose.yml also builds it (build: .).
+# Dockerfile.ml is only the local compose ML container; there is no second
+# backend image.
 
 # ============================================================
 # Stage 1: Build React frontend
@@ -31,7 +36,8 @@ RUN npm run build
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PORT=8000
 
 WORKDIR /app
 
@@ -82,18 +88,22 @@ RUN mkdir -p /app/Tourism/media \
 # "not available" in production and the emergency import crashed the boot.
 # Its Python deps (fastapi/uvicorn/sklearn/pandas/networkx) are already in
 # Tourism/requirements.txt; the entrypoint starts uvicorn on :8001 in the
-# background, which is where ML_SERVICE_URL points.
+# background after migrations and the data phase finish (so its ~300MB
+# import spike never overlaps another Python process and OOMs Render's
+# 512 MiB free instance). render.yaml sets START_ML_SERVICE=1; set it to 0
+# to run without the sidecar. ML_SERVICE_URL is where Django finds it.
 COPY ml_service/ /app/ml_service/
 
 # Collect Django static files
 RUN python manage.py collectstatic --noinput
 
-# Render exposes the PORT environment variable
+# Render exposes the PORT environment variable (default 8000 here; the
+# entrypoint re-pins Daphne to $PORT so the scan and the socket agree)
 EXPOSE 8000
 
-# Health check
+# Health check (follows $PORT)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8000/health/ || exit 1
+    CMD curl -f "http://localhost:${PORT}/health/" || exit 1
 
 ENTRYPOINT ["ny-entrypoint"]
 CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "Tourism.asgi:application"]
