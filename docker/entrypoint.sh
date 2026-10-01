@@ -3,20 +3,6 @@
 set -e
 cd /app/Tourism
 
-# ML microservice (budget estimates, itinerary planning, safety scoring) runs
-# as a background uvicorn on 127.0.0.1:8001 in this same container -- Django
-# talks to it at ML_SERVICE_URL. Started first so it warms up (imports
-# pandas/sklearn, loads the joblib models) while migrations/seed run.
-# Never allowed to abort the boot.
-if [ -f /app/ml_service/app.py ]; then
-  echo "entrypoint: starting ML service on 127.0.0.1:8001"
-  (cd /app/ml_service && nohup python -m uvicorn app:app \
-      --host 127.0.0.1 --port 8001 >> /tmp/ml-service.log 2>&1 &) \
-    || echo "entrypoint: WARNING - ML service failed to launch (budget/itinerary will degrade)"
-else
-  echo "entrypoint: WARNING - ml_service/app.py missing; budget/itinerary/safety will degrade"
-fi
-
 DB_FILE=$(python - <<'PY'
 import os
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Tourism.settings")
@@ -202,6 +188,19 @@ print(
 if destinations == 0:
     raise SystemExit("Database verification failed: tourist_destination is empty")
 PY
+fi
+
+# ML microservice (budget estimates, itinerary planning, safety scoring) as a
+# background uvicorn on 127.0.0.1:8001 -- Django talks to it at
+# ML_SERVICE_URL. Deferred 20s so its pandas/sklearn import spike (~300MB)
+# never overlaps the migration/seed python processes on Render's 512MB free
+# instance (an OOM there fails the health check and blocks every deploy);
+# Django's honest fallbacks cover the first seconds. Never aborts the boot.
+if [ -f /app/ml_service/app.py ]; then
+  echo "entrypoint: scheduling ML service on 127.0.0.1:8001 (starts in 20s)"
+  nohup sh -c 'sleep 20; cd /app/ml_service && exec python -m uvicorn app:app --host 127.0.0.1 --port 8001' >> /tmp/ml-service.log 2>&1 &
+else
+  echo "entrypoint: WARNING - ml_service/app.py missing; budget/itinerary/safety will degrade"
 fi
 
 exec "$@"
