@@ -1065,7 +1065,7 @@ const listeners = new Set()
 function detectLang() {
   if (typeof window === "undefined") return "en"
   const saved = window.localStorage?.getItem(STORAGE_KEY)
-  if (saved && DICTS[saved]) return saved
+  if (saved && ALL_LANGS.some((language) => language.code === saved)) return saved
   // The Settings page persists its choice under a different key
   // (tourism_preferred_language) — honour it so a language picked in
   // Settings switches the whole site (this was previously a dead key).
