@@ -21,6 +21,7 @@ from .models import (
     TravelerDocument, RedirectRule, NewsletterSignup, MLInsight,
     RouteSegment,
     FeaturedDestination,
+    MarketplaceListing,
 )
 from .utils import haversine_distance, public_media_url, resolve_image_url
 
@@ -187,28 +188,36 @@ def _photo_url(photo, request=None):
 def destination_cover_image(obj, request=None):
     """Resolve the cover URL: admin-set Destination.cover_image first (admin
     commands write URLs straight into that column), else the approved cover
-    photo, else the first approved photo, else ""."""
+    photo, else the first approved photo, else None.
+
+    The gallery fallback runs through ``verified_destination_photos`` so a
+    cover must be approved, verified AND destination-specific: a Rara Lake
+    photo attached to a Kaski trek must never surface as its cover
+    (``test_cross_destination_image_is_not_used_as_fallback``).  None rather
+    than "" so callers can assert true absence.
+    """
     from .utils import resolve_image_url
 
     if getattr(obj, "cover_image", None):
         resolved = resolve_image_url(obj.cover_image, request)
         if resolved:
             return resolved
-    for photo in _approved_gallery(obj):
-        url = _photo_url(photo, request)
-        if url:
-            return url
-    return ""
+    photos = verified_destination_photos(obj)
+    cover = next((photo for photo in photos if photo.is_cover), None) or (photos[0] if photos else None)
+    if cover:
+        return _photo_url(cover, request) or None
+    return None
 
 
 def _cover_cached(obj, request=None):
     """Memoise the cover on the row so `cover_image` + `cover_image_url`
-    don't each run their own gallery query for every row of a list page."""
-    hit = obj.__dict__.get("_resolved_cover_url")
-    if hit is None:
-        hit = destination_cover_image(obj, request)
-        obj.__dict__["_resolved_cover_url"] = hit
-    return hit
+    don't each run their own gallery query for every row of a list page.
+
+    Key presence is the sentinel: a legitimate result is now None (no usable
+    media), and `if hit is None` would re-run the gallery query every time."""
+    if "_resolved_cover_url" not in obj.__dict__:
+        obj.__dict__["_resolved_cover_url"] = destination_cover_image(obj, request)
+    return obj.__dict__["_resolved_cover_url"]
 
 
 def destination_image_urls(obj, request=None):
@@ -231,6 +240,14 @@ class DestinationListSerializer(serializers.ModelSerializer):
     # DiscoverNepal, RecommendationCard, CMSBlock, AdminDashboard...); emitting
     # only `cover_image` left every one of those surfaces blank.
     cover_image_url = serializers.SerializerMethodField()
+    # Honesty fields: always present in the payload, null unless a recorded
+    # source backs them (RecordedPlaceHonestyTests). Dropping the keys made
+    # KeyError the tests and blanked DestinationCard/CompareDestinations.
+    budget_estimate = serializers.SerializerMethodField()
+    risk_level = serializers.SerializerMethodField()
+    recommended_season = serializers.SerializerMethodField()
+    display_city = serializers.SerializerMethodField()
+    has_map_pin = serializers.SerializerMethodField()
 
     def get_cover_image(self, obj):
         return _cover_cached(obj, self.context.get("request"))
@@ -238,12 +255,62 @@ class DestinationListSerializer(serializers.ModelSerializer):
     def get_cover_image_url(self, obj):
         return _cover_cached(obj, self.context.get("request"))
 
+    @extend_schema_field(serializers.FloatField(allow_null=True))
+    def get_budget_estimate(self, obj):
+        try:
+            budget = obj.budget_estimation
+        except Exception:
+            budget = None
+        if budget:
+            value = budget.estimated_daily_budget or budget.estimated_trip_budget
+            if value is not None:
+                return float(value)
+        if obj.entry_fee not in (None, ""):
+            try:
+                fee = float(obj.entry_fee)
+            except (TypeError, ValueError):
+                fee = None
+            if fee:
+                return fee
+        return None
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_risk_level(self, obj):
+        try:
+            risk = obj.risk_analysis
+        except Exception:
+            risk = None
+        if risk and risk.risk_category:
+            return str(risk.risk_category).lower()
+        return None
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_recommended_season(self, obj):
+        season = (obj.best_time_to_visit or "").strip()
+        if not season:
+            return None
+        if "no record" in season.lower() or "round" in season.lower() or "no verided" in season.lower():
+            return "All Seasons (Autumn / Spring)"
+        return season
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_display_city(self, obj):
+        from .location_sync import display_city
+        return display_city(obj) or None
+
+    @extend_schema_field(serializers.BooleanField())
+    def get_has_map_pin(self, obj):
+        from .location_sync import has_map_pin
+        return has_map_pin(obj)
+
     class Meta:
         model = Destination
         fields = [
             "id", "name", "slug", "city", "district", "country",
             "category_name", "average_rating", "entry_fee", "type",
             "cover_image", "cover_image_url", "is_featured",
+            "budget_estimate", "risk_level", "recommended_season",
+            "display_city", "has_map_pin",
         ]
 
 
@@ -256,6 +323,19 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
     gallery = serializers.SerializerMethodField()
+    # Same honesty contract as the list serializer - DestinationDetails.jsx
+    # reads display_city, CompareDestinations reads budget_estimate and
+    # recommended_season, DestinationSafety reads risk_level.
+    budget_estimate = serializers.SerializerMethodField()
+    risk_level = serializers.SerializerMethodField()
+    recommended_season = serializers.SerializerMethodField()
+    display_city = serializers.SerializerMethodField()
+    has_map_pin = serializers.SerializerMethodField()
+    # Detail-page sections dropped by the same old cleanup: DestinationDetails
+    # renders `notices` (place + district visitor warnings) and
+    # `marketplace_listings` (published stays/tours) straight from the payload.
+    notices = serializers.SerializerMethodField()
+    marketplace_listings = serializers.SerializerMethodField()
 
     def _request(self):
         return self.context.get("request")
@@ -268,6 +348,73 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
 
     def get_image_url(self, obj):
         return _cover_cached(obj, self._request())
+
+    @extend_schema_field(serializers.FloatField(allow_null=True))
+    def get_budget_estimate(self, obj):
+        try:
+            budget = obj.budget_estimation
+        except Exception:
+            budget = None
+        if budget:
+            value = budget.estimated_daily_budget or budget.estimated_trip_budget
+            if value is not None:
+                return float(value)
+        if obj.entry_fee not in (None, ""):
+            try:
+                fee = float(obj.entry_fee)
+            except (TypeError, ValueError):
+                fee = None
+            if fee:
+                return fee
+        return None
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_risk_level(self, obj):
+        try:
+            risk = obj.risk_analysis
+        except Exception:
+            risk = None
+        if risk and risk.risk_category:
+            return str(risk.risk_category).lower()
+        return None
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_recommended_season(self, obj):
+        season = (obj.best_time_to_visit or "").strip()
+        if not season:
+            return None
+        if "no record" in season.lower() or "round" in season.lower() or "no verided" in season.lower():
+            return "All Seasons (Autumn / Spring)"
+        return season
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_display_city(self, obj):
+        from .location_sync import display_city
+        return display_city(obj) or None
+
+    @extend_schema_field(serializers.BooleanField())
+    def get_has_map_pin(self, obj):
+        from .location_sync import has_map_pin
+        return has_map_pin(obj)
+
+    @extend_schema_field(serializers.ListField(child=serializers.DictField()))
+    def get_notices(self, obj):
+        from .notices import notices_for_destination, serialize_notice
+        return [serialize_notice(notice) for notice in notices_for_destination(obj)[:12]]
+
+    @extend_schema_field(serializers.ListField(child=serializers.DictField()))
+    def get_marketplace_listings(self, obj):
+        # Only published listings from approved partners; drafts and
+        # unvetted partners must never surface on a public detail page.
+        listings = obj.marketplace_listings.filter(
+            status=MarketplaceListing.Status.PUBLISHED, partner__status="approved",
+        ).select_related("partner")[:8]
+        return [{
+            "id": item.id, "slug": item.slug, "kind": item.kind, "title": item.title,
+            "summary": item.summary, "price_npr": str(item.price_npr), "currency": item.currency,
+            "image_url": item.image_url, "duration_days": item.duration_days,
+            "partner_name": item.partner.name, "is_featured": item.is_featured,
+        } for item in listings]
 
     def get_images(self, obj):
         return destination_image_urls(obj, self._request())
@@ -318,6 +465,9 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
             "tourism_importance", "food_cuisine_info", "travel_safety_tips",
             "location_notes", "seo_title", "meta_description", "og_image_url",
             "meta_robots", "search_visible",
+            "budget_estimate", "risk_level", "recommended_season",
+            "display_city", "has_map_pin",
+            "notices", "marketplace_listings",
             "is_featured", "is_active", "status", "created_at", "updated_at",
         ]
 
@@ -326,6 +476,32 @@ class DestinationWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Destination
         fields = ["name", "description", "short_description", "city", "country", "category", "latitude", "longitude", "address", "opening_hours", "entry_fee"]
+
+    def create(self, validated_data):
+        # Submission lifecycle lives here (not in a view) so every write path
+        # honours it: staff destinations publish immediately, tourist
+        # submissions start pending/inactive and only go live through the
+        # approve action. An older cleanup dropped this and every tourist
+        # submission auto-published with the model default (approved).
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if user is not None and user.is_authenticated:
+            validated_data["created_by"] = user
+        if user is not None and user.is_authenticated and user.is_staff:
+            validated_data["is_user_submitted"] = False
+            validated_data["status"] = Destination.SubmissionStatus.APPROVED
+        else:
+            validated_data["is_user_submitted"] = True
+            validated_data["status"] = Destination.SubmissionStatus.PENDING
+            validated_data["is_active"] = False
+        destination = super().create(validated_data)
+
+        if user is not None and user.is_authenticated:
+            DestinationAuditLog.objects.create(
+                destination=destination, action=DestinationAuditLog.Action.SUBMITTED,
+                actor=user, new_status=destination.status,
+            )
+        return destination
 
 
 class DestinationApprovalSerializer(serializers.ModelSerializer):
@@ -416,12 +592,31 @@ class RatingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Rating
         fields = ["id", "destination", "user", "value", "created_at"]
+        # `user` comes from the authenticated request in RatingViewSet
+        # .perform_create; leaving it writable made every rating POST 400
+        # ("user: this field is required") before perform_create ever ran.
+        read_only_fields = ["user", "created_at"]
+
+    def validate_destination(self, destination):
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            qs = Rating.objects.filter(destination=destination, user=request.user)
+            if self.instance:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise serializers.ValidationError(
+                    "You have already rated this destination. Update your existing rating instead."
+                )
+        return destination
 
 
 class FavoriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Favorite
         fields = ["id", "user", "destination", "created_at"]
+        # Same contract as RatingViewSet: FavoriteViewSet.perform_create
+        # injects the requesting user, so the payload must not require it.
+        read_only_fields = ["user", "created_at"]
 
 
 class VisitHistorySerializer(serializers.ModelSerializer):
@@ -527,6 +722,11 @@ class NearbyDestinationQuerySerializer(serializers.Serializer):
     latitude = serializers.FloatField()
     longitude = serializers.FloatField()
     radius = serializers.FloatField(default=10.0)
+    # `radius_km` is the name every view reads out of validated_data
+    # (destinations/nearby, alerts/nearby, emergency-contacts/nearest) - the
+    # field was renamed to `radius` in an old cleanup, which KeyError'd all
+    # three endpoints into 500s. Keep both names so either query param works.
+    radius_km = serializers.FloatField(default=10, min_value=0.1, max_value=2000)
     limit = serializers.IntegerField(default=20)
 
 
@@ -536,10 +736,28 @@ class TranslateRequestSerializer(serializers.Serializer):
     target_language = serializers.CharField()
 
 
-class PhotoUploadSerializer(serializers.Serializer):
-    image = serializers.ImageField()
-    destination_id = serializers.IntegerField()
-    caption = serializers.CharField(required=False, allow_blank=True)
+class PhotoUploadSerializer(serializers.ModelSerializer):
+    """
+    Used by the community photo-upload endpoint. Any authenticated user can
+    submit a photo for a destination; it's tagged `source=user_upload` and
+    starts un-promoted — see utils.py::maybe_promote_photo() for how it can
+    later become the official cover image based on popularity.
+
+    This is a ModelSerializer over DestinationImage because the view injects
+    `destination` (not `destination_id`) into the payload: a plain Serializer
+    with a required `destination_id` field 400'd every community upload.
+    The model's `image` is blank/null, so a caption-only contribution (the
+    documented flow) still validates.
+    """
+
+    class Meta:
+        model = DestinationImage
+        fields = ["id", "destination", "image", "caption"]
+
+    def create(self, validated_data):
+        validated_data["uploaded_by"] = self.context["request"].user
+        validated_data["source"] = DestinationImage.Source.USER_UPLOAD
+        return super().create(validated_data)
 
 
 class HotelSerializer(serializers.ModelSerializer):

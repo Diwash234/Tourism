@@ -36,6 +36,11 @@ Thumbs.db
 *.log
 *.sqlite3
 db.sqlite3
+# SQLite WAL/journal sidecars appear whenever the dev DB is open; they are
+# runtime state, never source.
+*.sqlite3-wal
+*.sqlite3-shm
+*.sqlite3-journal
 staticfiles/
 media/
 

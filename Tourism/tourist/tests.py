@@ -2381,6 +2381,13 @@ class CMSFormAndServiceMediaTests(APITestCase):
 
 class OwnerDeskTests(APITestCase):
     def setUp(self):
+        # The public-config view caches its entire response for 300s in the
+        # locmem cache that Django's test runner shares across the whole run
+        # (same rationale as AuthTests.setUp): whichever test first GETs
+        # /config/public/ would otherwise freeze its DB state into the cache
+        # for every later config assertion in the run.
+        from django.core.cache import cache
+        cache.clear()
         self.admin = User.objects.create_superuser(email="owner-desk@example.com", password="StrongPass123!")
         self.admin.role = User.Role.SUPER_ADMIN
         self.admin.save(update_fields=["role"])
@@ -3561,6 +3568,13 @@ class BlockBasedCMSAndImageReplacementTests(APITestCase):
 
 class HeroSlidePublicConfigTests(APITestCase):
     """The cinematic landing hero is admin-managed and publicly exposed."""
+
+    def setUp(self):
+        # Public-config responses are cached for 300s in the run-shared
+        # locmem cache; a slide created here must not be served from (or
+        # hidden behind) a snapshot another test cached earlier.
+        from django.core.cache import cache
+        cache.clear()
 
     def test_public_config_exposes_active_hero_slides(self):
         from .models import HeroSlide

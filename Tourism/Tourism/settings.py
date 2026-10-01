@@ -5,6 +5,7 @@ from datetime import timedelta
 from pathlib import Path
 from decouple import config, Csv
 import os 
+import sys
 import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -14,6 +15,11 @@ DEBUG = config("DEBUG", default=True, cast=bool)
 # Production transport/cookie protections are secure-by-default whenever
 # DEBUG is disabled, while local/Arena development remains HTTP-compatible.
 SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=not DEBUG, cast=bool)
+if "test" in sys.argv:
+    # `manage.py test` only ever speaks plain HTTP. Without this the whole
+    # suite gets 301-redirected whenever the local .env sets DEBUG=False,
+    # turning unrelated assertions into bogus "301 != 200" failures.
+    SECURE_SSL_REDIRECT = False
 SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=not DEBUG, cast=bool)
 CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=not DEBUG, cast=bool)
 SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=31536000 if not DEBUG else 0, cast=int)
