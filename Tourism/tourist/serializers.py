@@ -112,7 +112,7 @@ class DestinationImageSerializer(serializers.ModelSerializer):
 class DestinationVideoSerializer(serializers.ModelSerializer):
     class Meta:
         model = DestinationVideo
-        fields = ["id", "destination", "video_url", "title", "description"]
+        fields = ["id", "destination", "video_url", "title"]
 
 
 class DestinationTranslationSerializer(serializers.ModelSerializer):
@@ -126,7 +126,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Review
-        fields = ["id", "destination", "user", "user_name", "rating", "comment", "created_at"]
+        fields = ["id", "destination", "user", "user_name", "comment", "created_at"]
 
 
 class RatingSerializer(serializers.ModelSerializer):
