@@ -26,3 +26,8 @@ const useTranslation = () => {
 }
 
 export default useTranslation
+// Named export: many components do `import { useTranslation } from
+// "../../hooks/useTranslation"` — rollup rejects a named import of a
+// default-only module ("X is not exported"), which fails the production
+// build on Render.
+export { useTranslation }
