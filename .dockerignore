@@ -18,8 +18,12 @@ build/
 .coverage
 htmlcov/
 
-# Node
-node_modules/
+# Node -- nested copies MUST be excluded with **/ (plain patterns only match
+# the context root). frontend/Tourism/node_modules is hundreds of MB of
+# Windows binaries that npm ci immediately wipes; shipping it every push
+# bloats the Render build context and risks upload timeouts.
+**/node_modules/
+**/dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

@@ -4703,3 +4703,47 @@ class AdminOperationalCMSRegressionTests(TestCase):
         resp = self.client_admin.get("/api/v1/admin/cms/", {"resource": "police_stations"})
         self.assertEqual(resp.status_code, 200)
         self.assertTrue(any(row["id"] == station.id for row in resp.json()["results"]))
+
+
+class RenderHealthProbeExemptionTests(TestCase):
+    """Render's healthCheckPath probes /health/ over plain HTTP inside the
+    container. Production sets SECURE_SSL_REDIRECT=True (DEBUG=False), so the
+    probe used to receive a 301: every deploy failed its health gate and was
+    rolled back, pinning production to a stale build (register 500s, missing
+    cover images, dead ML endpoints) no matter how many fixes were pushed.
+    """
+
+    def test_security_middleware_exempts_root_health_from_ssl_redirect(self):
+        from django.http import HttpRequest
+        from django.middleware.security import SecurityMiddleware
+        from django.test import override_settings
+
+        def make_request(path):
+            req = HttpRequest()
+            req.method = "GET"
+            req.path = path
+            req.META.update({"HTTP_HOST": "testserver", "SERVER_PORT": "80"})
+            return req
+
+        with override_settings(
+            SECURE_SSL_REDIRECT=True,
+            SECURE_REDIRECT_EXEMPT=[r"^health/$"],
+            ALLOWED_HOSTS=["testserver"],
+        ):
+            middleware = SecurityMiddleware(lambda r: None)
+            self.assertIsNone(
+                middleware.process_request(make_request("/health/")),
+                "the plain-HTTP /health/ probe must not be redirected",
+            )
+            redirect = middleware.process_request(make_request("/destinations/"))
+            self.assertIsNotNone(
+                redirect, "other routes must keep the HTTPS redirect"
+            )
+            self.assertEqual(redirect.status_code, 301)
+
+    def test_root_health_endpoint_answers_200_json(self):
+        resp = self.client.get("/health/")
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertEqual(body["status"], "ok")
+        self.assertEqual(body["checks"]["database"]["status"], "ok")

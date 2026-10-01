@@ -15,6 +15,13 @@ DEBUG = config("DEBUG", default=True, cast=bool)
 # Production transport/cookie protections are secure-by-default whenever
 # DEBUG is disabled, while local/Arena development remains HTTP-compatible.
 SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=not DEBUG, cast=bool)
+# Render's healthCheckPath probes /health/ over plain HTTP from inside the
+# container. With the redirect active that probe gets 301, the deploy is
+# marked unhealthy and rolled back -- so no deploy could ever go live while
+# every browser still saw the previous build. The endpoint returns a JSON
+# dependency report (no cookies, no secrets), so it is exempt from the
+# redirect; all other routes keep the HTTPS enforcement.
+SECURE_REDIRECT_EXEMPT = [r"^health/$"]
 if "test" in sys.argv:
     # `manage.py test` only ever speaks plain HTTP. Without this the whole
     # suite gets 301-redirected whenever the local .env sets DEBUG=False,
