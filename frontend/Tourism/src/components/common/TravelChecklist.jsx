@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react"
-import { FiCheck, FiPlus, FiTrash2, FiRotateCcw } from "react-icons/fi"
-import { useTranslation } from "../../hooks/useTranslation"
+import { FiCheck, FiPlus, FiTrash2 } from "react-icons/fi"
 
 const DEFAULT_ITEMS = [
   { id: 1, text: "Passport & Visa", category: "Documents", checked: false },
@@ -10,21 +9,24 @@ const DEFAULT_ITEMS = [
   { id: 5, text: "First Aid Kit", category: "Health", checked: false },
   { id: 6, text: "Prescription Medicines", category: "Health", checked: false },
   { id: 7, text: "Sunscreen & Sunglasses", category: "Health", checked: false },
-  { id: 8, text: "Chargers & Power Bank", category: "Electronics", checked: false },
+  { id: 8, text: "Power Bank", category: "Electronics", checked: false },
   { id: 9, text: "Camera", category: "Electronics", checked: false },
-  { id: 10, text: "Comfortable Walking Shoes", category: "Clothing", checked: false },
-  { id: 11, text: "Rain Jacket", category: "Clothing", checked: false },
-  { id: 12, text: "Reusable Water Bottle", category: "Misc", checked: false },
+  { id: 10, text: "Universal Adapter", category: "Electronics", checked: false },
+  { id: 11, text: "Comfortable Walking Shoes", category: "Clothing", checked: false },
+  { id: 12, text: "Rain Jacket", category: "Clothing", checked: false },
+  { id: 13, text: "Local Currency", category: "Finance", checked: false },
+  { id: 14, text: "Credit/Debit Cards", category: "Finance", checked: false },
+  { id: 15, text: "Guidebook / Maps", category: "Misc", checked: false },
+  { id: 16, text: "Reusable Water Bottle", category: "Misc", checked: false },
 ]
 
-const CATEGORIES = ["All", "Documents", "Health", "Electronics", "Clothing", "Misc"]
+const CATEGORIES = ["All", "Documents", "Health", "Electronics", "Clothing", "Finance", "Misc"]
 
 /**
  * Interactive travel checklist with categories, progress tracking,
  * and localStorage persistence.
  */
-export default function TravelChecklist({ destinationName = "" }) {
-  const { t } = useTranslation()
+export default function TravelChecklist() {
   const [items, setItems] = useState(() => {
     try {
       const stored = localStorage.getItem("ny-travel-checklist")
@@ -72,32 +74,16 @@ export default function TravelChecklist({ destinationName = "" }) {
   return (
     <div className="bg-white dark:bg-slate-800 border border-[var(--ny-border)] rounded-2xl p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-          <FiCheck size={16} className="text-[var(--ny-green)]" />
-          Travel Checklist {destinationName && `— ${destinationName}`}
-        </h3>
-        <button
-          type="button"
-          onClick={resetAll}
-          className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-gray-400 hover:text-red-500 transition-colors"
-        >
-          <FiRotateCcw size={12} />
-          Reset
-        </button>
+        <h3 className="text-sm font-bold text-gray-900 dark:text-white">Travel Checklist</h3>
+        <span className="text-xs font-bold text-[var(--ny-green)]">{progress}%</span>
       </div>
 
       {/* Progress Bar */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-xs text-gray-500 dark:text-gray-400">{completedCount} of {items.length} packed</span>
-          <span className="text-xs font-bold text-[var(--ny-green)]">{progress}%</span>
-        </div>
-        <div className="h-2 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-[var(--ny-green)] to-[var(--ny-mint)] rounded-full transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
+      <div className="h-2 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden mb-4">
+        <div
+          className="h-full bg-gradient-to-r from-[var(--ny-green)] to-[var(--ny-mint)] rounded-full transition-all duration-500"
+          style={{ width: `${progress}%` }}
+        />
       </div>
 
       {/* Category Tabs */}
@@ -178,6 +164,17 @@ export default function TravelChecklist({ destinationName = "" }) {
           className="px-3 py-2 rounded-lg bg-[var(--ny-green)] text-white text-sm font-semibold hover:bg-[var(--ny-emerald)] transition-colors disabled:opacity-50"
         >
           <FiPlus size={16} />
+        </button>
+      </div>
+
+      {/* Reset */}
+      <div className="flex justify-end mt-3">
+        <button
+          type="button"
+          onClick={resetAll}
+          className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+        >
+          Reset all
         </button>
       </div>
     </div>
