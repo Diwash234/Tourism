@@ -279,7 +279,6 @@ const SearchResults = () => {
   const { showToast } = useToast()
   const query = searchParams.get("q") || ""
 
-  const [loading, setLoading] = useState(false)
   const [view, setView] = useState("list") // list | grid | map
   const [sort, setSort] = useState("relevance")
   const [showFilters, setShowFilters] = useState(true)
@@ -292,7 +291,6 @@ const SearchResults = () => {
   const [selectedPriceRange, setSelectedPriceRange] = useState([])
   const [selectedRatings, setSelectedRatings] = useState([])
 
-  const { t } = useI18n()
   const { position } = useGeolocation({ auto: false })
   const [results, setResults] = useState([])
   const [searchError, setSearchError] = useState("")
