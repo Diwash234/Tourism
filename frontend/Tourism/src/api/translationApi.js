@@ -16,6 +16,8 @@ import axiosClient from "./axiosClient"
 //      4th arg to translate_text() in TranslateTextView.post()
 const translationApi = {
 
+  translateBatch: (payload) => axiosClient.post("/translate/batch/", payload),
+
   translateText: (payload) => {
     return axiosClient.post(
       "/translate/",
