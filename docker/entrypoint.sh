@@ -125,6 +125,10 @@ PY
   fi
   # Post-seed enrichment is best-effort: one missing data file must never
   # abort the boot (set -e would kill daphne and fail the whole deploy).
+  echo "entrypoint: repairing external cover-image paths"
+  python manage.py repair_cover_image_urls \
+    || echo "entrypoint: WARNING - cover-image repair skipped"
+
   echo "entrypoint: backfilling missing destination media from verified seed"
   python manage.py sync_seed_media_postgres \
     || echo "entrypoint: WARNING - media backfill skipped"
