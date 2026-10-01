@@ -3,7 +3,7 @@
 # ============================================================
 # Stage 1: Build React frontend
 # ============================================================
-FROM node:20-alpine AS frontend
+FROM node:22-alpine AS frontend
 
 WORKDIR /app/frontend
 
@@ -15,8 +15,6 @@ RUN npm --version && node --version
 
 COPY frontend/Tourism/ ./
 RUN rm -f npm-shrinkwrap.json package-lock.json && npm install --no-audit --no-fund --prefer-offline
-
-COPY frontend/Tourism/ ./
 
 ARG VITE_SITE_URL=""
 ENV VITE_SITE_URL=$VITE_SITE_URL
