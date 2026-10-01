@@ -58,8 +58,14 @@ class Command(BaseCommand):
                     or Destination.objects.filter(Q(district__iexact=city) | Q(province__iexact=city)).first()
                 )
             if dest is None:
-                dest = Destination.objects.filter(category__name__iexact="hotel").first() \
-                    or Destination.objects.first()
+                # Never attach an unrelated hotel to the first destination in
+                # the database. That creates the exact cross-place pollution
+                # seen on production destination pages.
+                skipped += 1
+                self.stdout.write(self.style.WARNING(
+                    f"Hotel destination not matched; skipped: {name} ({city})"
+                ))
+                continue
 
             try:
                 lat = float(row.get("Latitude")) if row.get("Latitude") else None
