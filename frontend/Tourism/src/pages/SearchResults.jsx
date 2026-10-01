@@ -13,7 +13,6 @@ import useToast from "../hooks/useToast"
 import useGeolocation from "../hooks/useGeolocation"
 import destinationApi from "../api/destinationApi"
 import hotelApi from "../api/hotelApi"
-import { useI18n } from "../i18n"
 
 // ─── Facet Filter Component ──────────────────────────────────────────────────
 const FacetFilter = ({ title, options, selected, onToggle }) => {
