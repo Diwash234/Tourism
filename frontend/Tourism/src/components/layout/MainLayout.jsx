@@ -26,7 +26,7 @@ const MainLayout = () => {
   const location = useLocation()
   const { settings } = usePublicConfig()
 
-  const hasTopbar = settings?.topbar?.enabled !== false && (settings?.topbar?.status ? settings.topbar.status === "published" : true)
+  const hasTopbar = Boolean(settings?.topbar) && settings.topbar.enabled !== false && (settings.topbar.status ? settings.topbar.status === "published" : true)
   const topPad = hasTopbar ? "pt-[100px]" : "pt-16"
 
   useRouteSeo()
