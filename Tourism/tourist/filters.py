@@ -1,3 +1,29 @@
+# Shared catalogue classification rules. These are deliberately kept in one module
+# because public destination listing, mood recommendations and media discovery
+# must agree on what is an attraction versus accommodation/service content.
+ACCOMMODATION_SLUGS = frozenset({
+    "hotel", "resort", "lodge", "guest_house", "guesthouse", "hostel", "motel",
+    "homestay", "home_stay", "alpine_hut", "camp_site", "camp_pitch", "chalet",
+    "apartment", "wilderness_hut", "cottage",
+})
+ACCOMMODATION_NAME_HINTS = (
+    "hotel", "resort", "lodge", "guest house", "guesthouse", "homestay",
+    "home stay", "backpackers", "hostel", "motel", "cottage", "tea house",
+    "teahouse", "inn",
+)
+
+# Categories that represent services/settlements rather than a visitor
+# attraction. Keep this conservative: unknown categories remain visible.
+NON_ATTRACTION_SLUGS = frozenset({
+    "restaurants", "restaurant", "food-culinary", "shopping", "transportation",
+    "bus-stations", "airports", "hospitals", "police", "pharmacies", "atm",
+    "fuel", "cities", "towns", "villages",
+})
+NON_ATTRACTION_NAME_HINTS = (
+    "restaurant", "cafe", "hospital", "police station", "pharmacy", "bus park",
+    "bus station", "airport", "petrol pump", "fuel station", "atm",
+)
+
 """
 Advanced filtering, search, and ordering for the Tourism API.
 """
