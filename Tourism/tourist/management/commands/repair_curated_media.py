@@ -11,6 +11,16 @@ from tourist.models import Destination, DestinationImage
 
 MEDIA = [
     {
+        "names": ["Badimalika Sacred Alpine Plateau"],
+        "url": "https://upload.wikimedia.org/wikipedia/commons/e/e8/Badimalika_Temple%2C_Bajura%2C_Nepal.jpg",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Badimalika_Temple,_Bajura,_Nepal.jpg",
+        "source": DestinationImage.Source.WIKIMEDIA,
+        "platform": "Wikimedia Commons",
+        "license": "CC BY-SA 4.0",
+        "copyright": "verified_reusable",
+        "caption": "Badimalika Temple, Bajura, Nepal",
+    },
+    {
         "names": ["Kupinde Daha Lakes", "Kupinde Lake", "Kupinde Daha"],
         "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Kupinde_Lake_Salyan_Nepal.jpg/1280px-Kupinde_Lake_Salyan_Nepal.jpg",
         "source_url": "https://commons.wikimedia.org/wiki/File:Kupinde_Lake_Salyan_Nepal.jpg",
@@ -101,16 +111,16 @@ class Command(BaseCommand):
                 ))
                 continue
 
-            has_media = destination.gallery.filter(
-                verification_status__in=[
-                    DestinationImage.ImageStatus.APPROVED,
-                    DestinationImage.ImageStatus.PENDING,
-                ],
-            ).filter(
-                external_url__gt="",
-            ).exists() or destination.gallery.filter(image__isnull=False).exclude(image="").exists()
+            has_verified_media = destination.gallery.filter(
+                verification_status=DestinationImage.ImageStatus.APPROVED,
+                is_verified=True,
+            ).filter(external_url__gt="").exists() or destination.gallery.filter(
+                verification_status=DestinationImage.ImageStatus.APPROVED,
+                is_verified=True,
+                image__isnull=False,
+            ).exclude(image="").exists()
 
-            if has_media:
+            if has_verified_media:
                 skipped += 1
                 continue
 
@@ -127,7 +137,8 @@ class Command(BaseCommand):
                 alt_text=item["caption"],
                 is_cover=True,
                 ordering=0,
-                verification_status=DestinationImage.ImageStatus.PENDING,
+                verification_status=DestinationImage.ImageStatus.APPROVED,
+                is_verified=True,
             )
             created += 1
             self.stdout.write(f"media repair: added {destination.name}")
