@@ -153,7 +153,7 @@ export default function Settings() {
                     const next = !reducedMotion
                     setReducedMotion(next)
                     document.documentElement.classList.toggle("reduce-motion", next)
-                    try { localStorage.setItem("ny_reduced_motion", String(next)) } catch {}
+                    try { localStorage.setItem("ny_reduced_motion", String(next)) } catch { /* storage may be unavailable */ }
                   }} className={`relative h-7 w-12 rounded-full transition ${reducedMotion ? "bg-[var(--ny-green)]" : "bg-slate-300"}`} aria-label="Toggle reduced motion">
                     <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${reducedMotion ? "left-6" : "left-1"}`} />
                   </button>

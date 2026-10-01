@@ -8,10 +8,6 @@ const Marketplace = () => {
   const [priceFilter, setPriceFilter] = useState('')
   const [sortBy, setSortBy] = useState('popular')
 
-  useEffect(() => {
-    fetchListings()
-  }, [])
-
   const fetchListings = async () => {
     try {
       const response = await fetch('/api/v1/marketplace/listings/?status=published')
@@ -25,6 +21,10 @@ const Marketplace = () => {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchListings()
+  }, [])
 
   const filteredListings = listings
     .filter(l => {

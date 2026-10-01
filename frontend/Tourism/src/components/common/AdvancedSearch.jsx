@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react"
+import { useState, useEffect, useMemo } from "react"
+import { Link } from "react-router-dom"
 import { FiSearch, FiX, FiFilter, FiMapPin, FiDollarSign, FiStar, FiClock } from "react-icons/fi"
 import { useTranslation } from "../../hooks/useTranslation"
 import { destinationApi } from "../../services/destinationService"

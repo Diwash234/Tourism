@@ -13,49 +13,31 @@ import { useState, useEffect, useCallback, useRef } from "react"
 const SYNC_QUEUE_KEY = "offline_sync_queue"
 const OFFLINE_DATA_KEY = "offline_data_cache"
 
+/**
+ * Reads the persisted sync queue. Kept at module scope so the hook can
+ * initialise `pendingCount` without a synchronous setState in an effect, and
+ * so no function is referenced before its declaration.
+ */
+const readQueue = () => {
+  try {
+    const stored = localStorage.getItem(SYNC_QUEUE_KEY)
+    return stored ? JSON.parse(stored) : []
+  } catch {
+    return []
+  }
+}
+
 export const useOffline = () => {
   const [isOnline, setIsOnline] = useState(() =>
     typeof navigator !== "undefined" ? navigator.onLine : true
   )
   const [isSyncing, setIsSyncing] = useState(false)
-  const [pendingCount, setPendingCount] = useState(0)
+  const [pendingCount, setPendingCount] = useState(() => readQueue().length)
   const [lastSynced, setLastSynced] = useState(null)
   const syncQueueRef = useRef([])
 
-  // ─── Online/Offline Detection ─────────────────────────────────────────────
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true)
-      // Trigger sync when back online
-      processSyncQueue()
-    }
-    const handleOffline = () => {
-      setIsOnline(false)
-    }
-
-    window.addEventListener("online", handleOnline)
-    window.addEventListener("offline", handleOffline)
-
-    // Initialize pending count from storage
-    const queue = getSyncQueue()
-    syncQueueRef.current = queue
-    setPendingCount(queue.length)
-
-    return () => {
-      window.removeEventListener("online", handleOnline)
-      window.removeEventListener("offline", handleOffline)
-    }
-  }, [])
-
   // ─── Sync Queue Management ────────────────────────────────────────────────
-  const getSyncQueue = useCallback(() => {
-    try {
-      const stored = localStorage.getItem(SYNC_QUEUE_KEY)
-      return stored ? JSON.parse(stored) : []
-    } catch {
-      return []
-    }
-  }, [])
+  const getSyncQueue = useCallback(readQueue, [])
 
   const saveSyncQueue = useCallback((queue) => {
     try {
@@ -126,6 +108,31 @@ export const useOffline = () => {
     // await axiosClient.post(item.action.endpoint, item.action.payload)
     return true
   }
+
+  // ─── Online/Offline Detection ─────────────────────────────────────────────
+  // Declared after the callbacks it uses (processSyncQueue/getSyncQueue) so
+  // the handlers always close over their final definitions.
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true)
+      // Trigger sync when back online
+      processSyncQueue()
+    }
+    const handleOffline = () => {
+      setIsOnline(false)
+    }
+
+    window.addEventListener("online", handleOnline)
+    window.addEventListener("offline", handleOffline)
+
+    syncQueueRef.current = getSyncQueue()
+
+    return () => {
+      window.removeEventListener("online", handleOnline)
+      window.removeEventListener("offline", handleOffline)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ─── Offline Data Cache ───────────────────────────────────────────────────
   const cacheData = useCallback((key, data) => {

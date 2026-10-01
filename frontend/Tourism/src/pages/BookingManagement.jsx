@@ -10,10 +10,6 @@ const BookingManagement = () => {
   const [search, setSearch] = useState('')
   const [cancelModal, setCancelModal] = useState(null)
 
-  useEffect(() => {
-    fetchBookings()
-  }, [])
-
   const fetchBookings = async () => {
     try {
       const response = await fetch('/api/v1/bookings/', {
@@ -29,6 +25,10 @@ const BookingManagement = () => {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchBookings()
+  }, [])
 
   const cancelBooking = async (id) => {
     try {

@@ -1172,7 +1172,9 @@ async function translatePageUi(root = document.body) {
       const value = translationCache.get(`${currentLang}:${trimmed}`)
       if (value) textNode.nodeValue = original.replace(trimmed, value)
     })
-  } catch {}
+  } catch {
+    /* Machine translation is best-effort: a failed batch leaves the text as-is. */
+  }
 }
 
 function enableLegacyTranslationBridge() {

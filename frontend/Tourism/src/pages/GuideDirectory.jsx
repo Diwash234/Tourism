@@ -9,10 +9,6 @@ const GuideDirectory = () => {
   const [specializationFilter, setSpecializationFilter] = useState('')
   const [sortBy, setSortBy] = useState('rating')
 
-  useEffect(() => {
-    fetchGuides()
-  }, [])
-
   const fetchGuides = async () => {
     try {
       const response = await fetch('/api/v1/guides/')
@@ -26,6 +22,10 @@ const GuideDirectory = () => {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchGuides()
+  }, [])
 
   const filteredGuides = guides
     .filter(g => {

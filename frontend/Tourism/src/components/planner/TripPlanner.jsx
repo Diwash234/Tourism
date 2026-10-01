@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react"
-import { FiCalendar, FiMapPin, FiClock, FiUsers, FiTrendingUp, FiPlus, FiTrash2, FiSave } from "react-icons/fi"
+import { FiCalendar, FiMapPin, FiClock, FiUsers, FiTrendingUp, FiPlus, FiTrash2, FiSave, FiX } from "react-icons/fi"
 import { useTranslation } from "../../hooks/useTranslation"
 import { useAuth } from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
@@ -27,6 +27,22 @@ export default function TripPlanner() {
     const end = new Date(endDate)
     return Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1)
   }, [startDate, endDate])
+
+  // Budget Summary reads this; it was referenced but never declared, which
+  // threw "estimatedBudget is not defined" the moment the summary rendered.
+  // Prefer the published per-day estimate, then fall back to entry fees so the
+  // panel still shows a meaningful number for destinations without budget data.
+  const estimatedBudget = useMemo(() => {
+    const perDay = destinations.reduce((sum, dest) => {
+      const daily = Number(dest?.budget_estimation?.estimated_daily_budget)
+      return sum + (Number.isFinite(daily) ? daily : 0)
+    }, 0)
+    if (perDay > 0) return perDay * Math.max(totalDays, 1)
+    return destinations.reduce((sum, dest) => {
+      const fee = Number(dest?.entry_fee)
+      return sum + (Number.isFinite(fee) ? fee : 0)
+    }, 0) * travelers
+  }, [destinations, totalDays, travelers])
 
   const addDestination = async () => {
     if (!selectedDest) return

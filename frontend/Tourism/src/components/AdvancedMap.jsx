@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents, ZoomControl } from "react-leaflet"
+import L from "leaflet"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   FiLayers, FiMapPin, FiDownload, FiMaximize2, FiMinimize2,

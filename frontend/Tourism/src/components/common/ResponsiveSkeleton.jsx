@@ -56,7 +56,7 @@ const ResponsiveSkeleton = ({
           <div className={`${baseClasses} ${isMobile ? 'h-3' : 'h-4'} w-1/2`} />
           <div className="flex gap-2">
             <div className={`${baseClasses} ${isMobile ? 'h-6 w-16' : 'h-8 w-20'}`} />
-            <div className={`${baseClasses} ${isMobile ? 'h-6 w-16' : 'h-8 w-20`} />
+            <div className={`${baseClasses} ${isMobile ? 'h-6 w-16' : 'h-8 w-20'}`} />
           </div>
         </div>
       </div>

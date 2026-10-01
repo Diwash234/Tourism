@@ -10,10 +10,6 @@ const JobBoard = () => {
   const [applyModal, setApplyModal] = useState(null)
   const [applied, setApplied] = useState(false)
 
-  useEffect(() => {
-    fetchJobs()
-  }, [])
-
   const fetchJobs = async () => {
     try {
       const response = await fetch('/api/v1/jobs/?status=open')
@@ -27,6 +23,10 @@ const JobBoard = () => {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchJobs()
+  }, [])
 
   const filteredJobs = jobs.filter(j => {
     if (search && !j.title?.toLowerCase().includes(search.toLowerCase())) return false

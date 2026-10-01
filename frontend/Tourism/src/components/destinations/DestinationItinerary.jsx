@@ -219,11 +219,11 @@ export default function DestinationItinerary({ destination }) {
                       </div>
                     )}
                   </div>
+                </div>
                 ))}
               </div>
             </div>
-          </div>
-        ))}
+          ))}
       </div>
 
       {/* Add Day Button */}

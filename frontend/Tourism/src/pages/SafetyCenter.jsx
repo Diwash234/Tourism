@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FiAlertTriangle, FiPhone, FiMapPin, FiShield, FiUsers, FiClock } from 'react-icons/fi'
+import { FiAlertTriangle, FiPhone, FiMapPin, FiShield, FiUsers, FiClock, FiX } from 'react-icons/fi'
 import useAuth from '../hooks/useAuth'
 
 const SafetyCenter = () => {
@@ -8,10 +8,6 @@ const SafetyCenter = () => {
   const [sosModal, setSosModal] = useState(false)
   const [sosLoading, setSosLoading] = useState(false)
   const [sosSuccess, setSosSuccess] = useState(false)
-
-  useEffect(() => {
-    fetchEmergencyContacts()
-  }, [])
 
   const fetchEmergencyContacts = async () => {
     try {
@@ -24,6 +20,10 @@ const SafetyCenter = () => {
       console.error('Failed to fetch emergency contacts:', err)
     }
   }
+
+  useEffect(() => {
+    fetchEmergencyContacts()
+  }, [])
 
   const triggerSOS = async () => {
     setSosLoading(true)
