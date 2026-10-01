@@ -125,9 +125,20 @@ PY
   fi
   # Post-seed enrichment is best-effort: one missing data file must never
   # abort the boot (set -e would kill daphne and fail the whole deploy).
+  echo "entrypoint: repairing external cover-image paths"
+  python manage.py repair_cover_image_urls \
+    || echo "entrypoint: WARNING - cover-image repair skipped"
+
   echo "entrypoint: backfilling missing destination media from verified seed"
   python manage.py sync_seed_media_postgres \
     || echo "entrypoint: WARNING - media backfill skipped"
+  # Reconcile the destination budget table on every deploy. The importer is
+  # idempotent (update_or_create) and makes the tracked CSV usable on Render
+  # instead of depending on the optional ML process being online.
+  echo "entrypoint: importing verified destination budget dataset"
+  python manage.py import_budget \
+    || echo "entrypoint: WARNING - budget dataset import skipped"
+
   echo "entrypoint: importing sourced emergency and nearby-service records"
   python manage.py import_emergency_services \
     || echo "entrypoint: WARNING - emergency services import skipped"

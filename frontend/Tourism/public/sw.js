@@ -8,9 +8,9 @@
  * - Background sync for form submissions
  */
 
-const _CACHE_NAME = "nepal-tourism-v3"
-const STATIC_CACHE = "nepal-tourism-static-v3"
-const API_CACHE = "nepal-tourism-api-v3"
+const _CACHE_NAME = "nepal-tourism-v4"
+const STATIC_CACHE = "nepal-tourism-static-v4"
+const API_CACHE = "nepal-tourism-api-v4"
 const OFFLINE_URL = "/offline.html"
 
 // Assets to precache on install
@@ -125,7 +125,7 @@ async function networkFirst(request) {
     if (cached) {
       return cached
     }
-    throw err
+    return new Response(JSON.stringify({ detail: "Tourism API is temporarily offline." }), { status: 503, headers: { "Content-Type": "application/json" } })
   }
 }
 
@@ -145,7 +145,7 @@ async function networkFirstWithOfflineFallback(request) {
     if (cached) {
       return cached
     }
-    return caches.match(OFFLINE_URL)
+    return (await caches.match(OFFLINE_URL)) || new Response("<!doctype html><html><body><h1>Nepal Tourism is offline</h1><p>Please reconnect and refresh.</p></body></html>", { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } })
   }
 }
 
