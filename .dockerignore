@@ -72,6 +72,8 @@ reports/
 downloads/*
 !downloads/nepal-tourism-seed.sqlite3.gz
 !downloads/nepal-tourism-seed.sqlite3.gz.sha256
+!downloads/nepal-tourism-database.sqlite3.gz
+!downloads/nepal-tourism-database.sqlite3.gz.sha256
 
 # Virtual environments
 venv/

@@ -8,10 +8,13 @@ FROM node:20-alpine AS frontend
 WORKDIR /app/frontend
 
 COPY frontend/Tourism/package.json ./package.json
-COPY frontend/Tourism/package-lock.json ./package-lock.json
+# Copy package metadata only. Do not run npm ci here: Render previously supplied
+# an incompatible npm-shrinkwrap/package-lock combination. This image build
+# intentionally resolves from package.json and does not depend on a shrinkwrap.
+RUN npm --version && node --version
 
-# Keep the build deterministic. npm 10 + lockfile v3 is supported by Node 20.
-RUN npm --version && node --version && rm -f npm-shrinkwrap.json && npm install --no-audit --no-fund --prefer-offline
+COPY frontend/Tourism/ ./
+RUN rm -f npm-shrinkwrap.json package-lock.json && npm install --no-audit --no-fund --prefer-offline
 
 COPY frontend/Tourism/ ./
 
@@ -55,6 +58,7 @@ COPY --from=frontend /app/frontend/dist /app/Tourism/frontend_dist/
 # Published seed database (installed on first start by the entrypoint when the
 # SQLite volume is empty) and the start-up script.
 COPY downloads/nepal-tourism-seed.sqlite3.gz downloads/nepal-tourism-seed.sqlite3.gz.sha256 /app/downloads/
+COPY downloads/nepal-tourism-database.sqlite3.gz downloads/nepal-tourism-database.sqlite3.gz.sha256 /app/downloads/
 COPY docker/entrypoint.sh /usr/local/bin/ny-entrypoint
 RUN chmod +x /usr/local/bin/ny-entrypoint
 

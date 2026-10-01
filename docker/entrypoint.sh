@@ -144,6 +144,19 @@ PY
     || echo "entrypoint: WARNING - emergency services import skipped"
   python manage.py seed_district_services \
     || echo "entrypoint: WARNING - district services seed skipped"
+  echo "entrypoint: importing bundled hotel, hospital, police and risk datasets"
+  python manage.py import_hotels_csv --csv dataset/hotel.csv \
+    || echo "entrypoint: WARNING - hotel CSV import skipped"
+  python manage.py import_hospital --csv dataset/hospital.csv \
+    || echo "entrypoint: WARNING - hospital CSV import skipped"
+  python manage.py import_police --csv dataset/nearbypolice.csv \
+    || echo "entrypoint: WARNING - police CSV import skipped"
+  python manage.py import_risk \
+    || echo "entrypoint: WARNING - risk CSV import skipped"
+  echo "entrypoint: auditing service coverage"
+  python manage.py audit_service_coverage --radius 50 \
+    || echo "entrypoint: WARNING - service coverage audit skipped"
+
   echo "entrypoint: repairing explicitly curated destination media"
   python manage.py repair_curated_media \
     || echo "entrypoint: WARNING - curated media repair skipped"

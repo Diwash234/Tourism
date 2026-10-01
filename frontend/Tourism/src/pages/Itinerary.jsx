@@ -1457,30 +1457,10 @@ const Itinerary = () => {
 
                   </div>
 
-                  {day.nearby_services && (
-                    <div className="mt-5 pt-4 border-t">
-                      <h4 className="text-xs font-black uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Nearby planning & emergency services</h4>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                        {[
-                          ["Stay", day.nearby_services.hotels],
-                          ["Hospital", day.nearby_services.hospitals],
-                          ["Police", day.nearby_services.police],
-                          ["🏦 Essentials", day.nearby_services.essentials],
-                        ].map(([label, services]) => (
-                          <div key={label} className="rounded-xl bg-gray-50 p-3">
-                            <b className="text-xs">{label}</b>
-                            {(services || []).length ? services.map((service) => (
-                              <div key={`${label}-${service.id}`} className="mt-2 text-xs text-gray-600 dark:text-gray-400">
-                                <span className="font-semibold block truncate">{service.name}</span>
-                                <span>{service.distance_km} km straight-line{service.phone ? ` · ${service.phone}` : ""}</span>
-                                <VerificationBadge record={service} compact className="mt-1" />
-                              </div>
-                            )) : <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">No record nearby in our database</p>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  {/* Hotels, hospitals, police, ATMs and pharmacies are planning
+                      resources, not itinerary stops. They remain available through
+                      the trip-readiness/emergency tools and are intentionally not
+                      rendered as Day 1/Day 2 visit cards. */}
 
                 </motion.div>
 
