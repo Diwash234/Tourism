@@ -65,6 +65,8 @@ PY
     echo "entrypoint: checking for missing legacy user accounts"
     python manage.py import_legacy_users
   fi
+  echo "entrypoint: backfilling missing destination media from verified seed"
+  python manage.py sync_seed_media_postgres
   echo "entrypoint: importing sourced emergency and nearby-service records"
   python manage.py import_emergency_services
   python manage.py seed_district_services
