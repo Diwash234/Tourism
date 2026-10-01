@@ -2,19 +2,45 @@ import { useState, useEffect, useRef } from "react"
 import PageHeader from "../components/common/PageHeader"
 import {
   FiHeadphones, FiMessageSquare, FiSend, FiCheckCircle, FiPhoneCall,
-  FiShield, FiUser, FiPlus, FiRefreshCw, FiLifeBuoy,
+  FiShield, FiUser, FiPlus, FiRefreshCw, FiLifeBuoy, FiHelpCircle,
+  FiChevronDown, FiSearch,
 } from "react-icons/fi"
 import Breadcrumbs from "../components/common/Breadcrumbs"
 import { ResponsiveContainer } from "../components/common/ResponsiveSystem"
 import axiosClient from "../api/axiosClient"
 import useToast from "../hooks/useToast"
 import useAuth from "../hooks/useAuth"
+import usePublicConfig from "../hooks/usePublicConfig"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
+
+const DEFAULT_FAQS = [
+  { id: 1, question: "Do I need a TIMS card and National Park permit?", answer: "Yes. Trekkers in all protected conservation areas require a TIMS (Trekkers' Information Management System) card and the relevant national park entry permit (such as ACAP for Annapurna or SNP for Sagarmatha).", category: "Permits", status: "published" },
+  { id: 2, question: "What is the best season to trek in Nepal?", answer: "Autumn (September to November) offers the clearest mountain views and stable weather. Spring (March to May) features blooming rhododendrons and warmer conditions.", category: "Seasons", status: "published" },
+  { id: 3, question: "How does the emergency SOS dispatch work on Nepal Yatra?", answer: "Clicking SOS in the emergency hub triggers your real GPS coordinates to the Tourist Police central control room (Hotline 1144) and alerts your saved trusted contacts.", category: "Safety", status: "published" },
+  { id: 4, question: "Can I convert foreign currencies at regional hubs?", answer: "Major international currencies (USD, EUR, GBP) are accepted at banks and licensed exchange counters in Kathmandu and Pokhara. In mountain teahouses, only Nepali Rupees (NPR) in cash are accepted.", category: "Money", status: "published" },
+]
 
 export default function CustomerSupport() {
   const { showToast } = useToast()
   const { user } = useAuth()
-  const [activeTab, setActiveTab] = useState("chat") // 'chat', 'himal', 'emergency'
+  const { settings } = usePublicConfig()
+  const [activeTab, setActiveTab] = useState("chat") // 'chat', 'himal', 'emergency', 'faqs'
+
+  // FAQs state
+  const [faqSearch, setFaqSearch] = useState("")
+  const [faqCategory, setFaqCategory] = useState("all")
+  const [expandedFaqId, setExpandedFaqId] = useState(1)
+
+  const rawFaqs = Array.isArray(settings?.cms_content_faqs) && settings.cms_content_faqs.length > 0
+    ? settings.cms_content_faqs
+    : DEFAULT_FAQS
+
+  const filteredFaqs = rawFaqs.filter(f => {
+    if (f.status && f.status !== "published") return false
+    const matchCat = faqCategory === "all" || (f.category || "").toLowerCase() === faqCategory.toLowerCase()
+    const matchText = !faqSearch || (f.question || "").toLowerCase().includes(faqSearch.toLowerCase()) || (f.answer || "").toLowerCase().includes(faqSearch.toLowerCase())
+    return matchCat && matchText
+  })
 
   // Live Chat state
   const [threads, setThreads] = useState([])
@@ -173,6 +199,21 @@ export default function CustomerSupport() {
           }`}
         >
           <FiPhoneCall size={18} /> Emergency directory
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("faqs")}
+          className={`min-w-max pb-3 px-5 font-bold text-sm sm:text-base flex items-center gap-2 border-b-2 transition-all ${
+            activeTab === "faqs" ? "border-[var(--ny-green)] text-[var(--ny-green)]" : "border-transparent text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          <FiHelpCircle size={18} /> FAQs & Answers
+          {filteredFaqs.length > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 text-xs font-black">
+              {filteredFaqs.length}
+            </span>
+          )}
         </button>
       </div>
 
@@ -474,6 +515,118 @@ export default function CustomerSupport() {
             <a href="/emergency" className="block text-center py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow">
               View emergency directory
             </a>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 4: Frequently Asked Questions (Live CMS-managed) */}
+      {activeTab === "faqs" && (
+        <div className="space-y-6">
+          {/* Header & Controls */}
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-white dark:bg-[#0E1E1B] p-4 rounded-2xl border border-slate-200 dark:border-emerald-900/40 shadow-sm">
+            {/* Search Input */}
+            <div className="relative flex-1">
+              <FiSearch className="absolute left-3.5 top-3 text-slate-400" size={16} />
+              <input
+                type="text"
+                value={faqSearch}
+                onChange={(e) => setFaqSearch(e.target.value)}
+                placeholder="Search questions or answers (e.g., permits, seasons, currency)..."
+                className="w-full pl-10 pr-4 py-2 rounded-xl text-sm bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-[var(--ny-green)]"
+              />
+            </div>
+
+            {/* Category Filter Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+              {["all", "Permits", "Seasons", "Safety", "Money"].map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setFaqCategory(cat)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                    faqCategory.toLowerCase() === cat.toLowerCase()
+                      ? "bg-[var(--ny-green)] text-white shadow"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  {cat === "all" ? "All Questions" : cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Accordion FAQ List */}
+          {filteredFaqs.length > 0 ? (
+            <div className="space-y-3">
+              {filteredFaqs.map((faq) => {
+                const isExpanded = expandedFaqId === faq.id
+                return (
+                  <div
+                    key={faq.id}
+                    className="overflow-hidden rounded-2xl border border-slate-200 dark:border-emerald-900/40 bg-white dark:bg-[#0E1E1B] shadow-sm transition-all"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setExpandedFaqId(isExpanded ? null : faq.id)}
+                      className="w-full flex items-center justify-between p-5 text-left font-bold text-slate-900 dark:text-white text-base hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                      aria-expanded={isExpanded}
+                    >
+                      <div className="flex items-center gap-3 pr-4">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-black">
+                          Q
+                        </span>
+                        <span>{faq.question}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {faq.category && (
+                          <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] font-semibold">
+                            {faq.category}
+                          </span>
+                        )}
+                        <FiChevronDown
+                          size={18}
+                          className={`text-slate-400 transition-transform duration-200 ${
+                            isExpanded ? "rotate-180 text-[var(--ny-green)]" : ""
+                          }`}
+                        />
+                      </div>
+                    </button>
+
+                    {isExpanded && (
+                      <div className="px-5 pb-5 pt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-300 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/20">
+                        <p>{faq.answer}</p>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="p-8 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-900/30">
+              <FiHelpCircle size={32} className="mx-auto text-slate-400 mb-2" />
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">No matching questions found</p>
+              <p className="text-xs text-slate-500 mt-1">Try searching for other terms or choose "All Questions".</p>
+            </div>
+          )}
+
+          {/* Need More Help Prompt */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-emerald-900/30 via-teal-900/20 to-emerald-950/40 border border-emerald-800/30 text-slate-900 dark:text-white">
+            <div>
+              <h4 className="font-bold text-sm">Cannot find what you are looking for?</h4>
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                Our support coordinators and certified guides are ready to assist with your specific travel needs.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab("chat")
+                setShowNewTicketForm(true)
+              }}
+              className="px-4 py-2 rounded-xl bg-[var(--ny-green)] hover:bg-[var(--ny-green-dark)] text-white text-xs font-bold shrink-0 transition-colors shadow"
+            >
+              Open Support Ticket
+            </button>
           </div>
         </div>
       )}
