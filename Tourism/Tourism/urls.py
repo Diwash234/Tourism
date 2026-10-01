@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include, re_path
 
-from tourist import views_seo
+from tourist import views_seo, views_auth
 from tourist.health import DetailedHealthView
 from tourist.dashboard import DashboardStatsView, PublicStatsView
 from tourist.search import SearchAutocompleteView, FacetedSearchView
@@ -34,6 +34,13 @@ urlpatterns = [
     path("api/v1/stats/", PublicStatsView.as_view(), name="public-stats-v1"),
     path("api/v1/search/autocomplete/", SearchAutocompleteView.as_view(), name="search-autocomplete-v1"),
     path("api/v1/search/faceted/", FacetedSearchView.as_view(), name="search-faceted-v1"),
+    # Explicit auth routes are kept at the project URL layer as a deployment
+    # compatibility guard. They resolve before the larger tourist include and
+    # make the public login/logout contract unambiguous on Render.
+    path("api/v1/auth/login/", tourist.views_auth.LoginView.as_view(), name="auth-login-project"),
+    path("api/v1/auth/login", tourist.views_auth.LoginView.as_view(), name="auth-login-project-noslash"),
+    path("api/v1/auth/logout/", tourist.views_auth.LogoutView.as_view(), name="auth-logout-project"),
+    path("api/v1/auth/logout", tourist.views_auth.LogoutView.as_view(), name="auth-logout-project-noslash"),
     path("api/v1/", include("tourist.urls")),
 
     # ==================================================================
