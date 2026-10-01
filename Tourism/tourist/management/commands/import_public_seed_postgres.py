@@ -11,7 +11,6 @@ import gzip
 import shutil
 import sqlite3
 import tempfile
-from io import StringIO
 from pathlib import Path
 
 from django.conf import settings
@@ -68,13 +67,19 @@ class Command(BaseCommand):
             settings.DATABASES["default"]["NAME"] = str(sqlite_path)
             connection.settings_dict["NAME"] = str(sqlite_path)
             try:
-                payload = serializers.serialize("json", self._querysets(), indent=0)
+                payload = serializers.serialize("json", self._objects(), indent=0)
             finally:
                 connection.close()
                 settings.DATABASES["default"]["NAME"] = previous
                 connection.settings_dict["NAME"] = previous
 
-            call_command("loaddata", StringIO(payload), format="json", verbosity=0)
+            fixture = tempfile.NamedTemporaryFile(mode="w", suffix=".json", encoding="utf-8", delete=False)
+            fixture.write(payload)
+            fixture.close()
+            try:
+                call_command("loaddata", fixture.name, format="json", verbosity=0)
+            finally:
+                Path(fixture.name).unlink(missing_ok=True)
             with connection.cursor() as cursor:
                 cursor.execute("SELECT COUNT(*) FROM tourist_destination")
                 imported = cursor.fetchone()[0]
@@ -86,11 +91,13 @@ class Command(BaseCommand):
         finally:
             sqlite_path.unlink(missing_ok=True)
 
-    def _querysets(self):
+    def _objects(self):
         from django.apps import apps
-        return [
+        from itertools import chain
+        querysets = [
             apps.get_model(app_label, model_name)._default_manager.all()
             for app_label, model_name in (
                 item.split(".", 1) for item in SOURCE_MODELS
             )
         ]
+        return chain.from_iterable(querysets)
