@@ -1,5 +1,6 @@
 #!/bin/sh
 # Container start-up: prepare the database, then run the given command.
+# v2: Fixed loaddata --noinput error (loaddata doesn't accept --noinput)
 #  * SQLite (default in docker-compose: /app/data/db.sqlite3 on the db_data
 #    volume): on first start the published, privacy-safe seed database is
 #    installed (checksum-verified, no user accounts). An existing database is
