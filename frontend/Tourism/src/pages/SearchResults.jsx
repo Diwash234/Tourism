@@ -144,10 +144,16 @@ const ResultCard = ({ result, view, onSave, onShare, isSaved }) => {
           <p className="text-sm text-gray-500 mt-1">{result.location}</p>
           <div className="flex items-center justify-between mt-3">
             <div className="flex items-center gap-1">
-              <FiStar size={14} className="text-amber-400 fill-amber-400" />
-              <span className="text-sm font-medium">{result.rating}</span>
+              {Number(result.rating) > 0 ? (
+                <>
+                  <FiStar size={14} className="text-amber-400 fill-amber-400" />
+                  <span className="text-sm font-medium">{Number(result.rating).toFixed(1)}</span>
+                </>
+              ) : (
+                <span className="text-sm text-gray-500">New</span>
+              )}
             </div>
-            <span className="text-sm font-bold text-emerald-600">NPR {result.price?.toLocaleString()}</span>
+            <span className="text-sm font-bold text-emerald-600">{result.price != null && result.price !== "" ? `NPR ${Number(result.price).toLocaleString()}` : "Fee not recorded"}</span>
           </div>
         </div>
       </motion.div>
@@ -190,11 +196,17 @@ const ResultCard = ({ result, view, onSave, onShare, isSaved }) => {
         </div>
         <div className="flex items-center gap-4 mt-2">
           <div className="flex items-center gap-1">
-            <FiStar size={14} className="text-amber-400 fill-amber-400" />
-            <span className="text-sm">{result.rating}</span>
+            {Number(result.rating) > 0 ? (
+              <>
+                <FiStar size={14} className="text-amber-400 fill-amber-400" />
+                <span className="text-sm">{Number(result.rating).toFixed(1)}</span>
+              </>
+            ) : (
+              <span className="text-sm text-gray-500">New</span>
+            )}
           </div>
           <span className="text-sm text-gray-500">{result.type}</span>
-          <span className="text-sm font-bold text-emerald-600">NPR {result.price?.toLocaleString()}</span>
+          <span className="text-sm font-bold text-emerald-600">{result.price != null && result.price !== "" ? `NPR ${Number(result.price).toLocaleString()}` : "Fee not recorded"}</span>
         </div>
       </div>
     </motion.div>

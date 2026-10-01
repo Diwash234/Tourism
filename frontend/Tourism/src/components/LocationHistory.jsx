@@ -41,7 +41,10 @@ const LocationHistory = ({ maxItems = 20, showMap = true }) => {
   }, [maxItems])
 
   useEffect(() => {
-    fetchHistory()
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => fetchHistory(), 0)
+    return () => clearTimeout(t)
   }, [fetchHistory])
 
   const clearHistory = async () => {

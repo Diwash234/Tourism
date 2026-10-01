@@ -33,12 +33,17 @@ export default function Settings() {
   const [reducedMotion, setReducedMotion] = useState(() => {
     try { return localStorage.getItem("ny_reduced_motion") === "true" } catch { return false }
   })
+  // Sentinel that never equals `user`, so the first render always syncs the form.
+  const [prevUser, setPrevUser] = useState(() => Symbol("prev-user"))
 
-  useEffect(() => {
+  // Adjust the form state during render when `user` changes — React's documented
+  // alternative to synchronously setting state inside an effect.
+  if (user !== prevUser) {
+    setPrevUser(user)
     setAccount({ first_name: user?.first_name || "", last_name: user?.last_name || "", phone_number: user?.phone_number || "" })
     setLanguageId(user?.preferred_language?.id || user?.preferred_language || "")
     setLoaded(true)
-  }, [user])
+  }
 
   useEffect(() => {
     userApi.getLanguages().then(({ data }) => setLanguages(data?.results || data || [])).catch(() => setLanguages([]))

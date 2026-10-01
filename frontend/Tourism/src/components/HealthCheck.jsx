@@ -44,9 +44,12 @@ const HealthCheck = () => {
   }, [])
 
   useEffect(() => {
-    fetchHealth()
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => fetchHealth(), 0)
     intervalRef.current = setInterval(() => fetchHealth(), REFRESH_INTERVAL)
     return () => {
+      clearTimeout(t)
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
   }, [fetchHealth])

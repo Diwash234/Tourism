@@ -48,9 +48,12 @@ const TripCollaboration = ({ tripId, shareToken: initialShareToken }) => {
 
   useEffect(() => {
     if (!tripId) return undefined
-    fetchCollaborators()
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => fetchCollaborators(), 0)
     intervalRef.current = setInterval(fetchCollaborators, POLL_INTERVAL)
     return () => {
+      clearTimeout(t)
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
   }, [tripId, fetchCollaborators])

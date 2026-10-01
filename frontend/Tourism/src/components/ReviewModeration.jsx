@@ -45,7 +45,10 @@ const ReviewModeration = () => {
   }, [filter])
 
   useEffect(() => {
-    fetchReviews()
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => fetchReviews(), 0)
+    return () => clearTimeout(t)
   }, [fetchReviews])
 
   const actOnReview = async (reviewId, action) => {

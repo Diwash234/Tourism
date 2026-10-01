@@ -54,9 +54,12 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.SUCCESS("  [OK] All image paths are valid"))
 
-        # Check for unpublished destinations with published images
+        # Check for unpublished destinations with published images.
+        # The model has no `is_published` field - public visibility is
+        # `is_active` plus the approval `status` - so this check used to raise
+        # FieldError every time the command ran.
         unpublished_with_images = Destination.objects.filter(
-            is_published=False,
+            Q(is_active=False) | ~Q(status=Destination.SubmissionStatus.APPROVED),
             gallery__verification_status="approved",
         ).distinct().count()
         if unpublished_with_images:

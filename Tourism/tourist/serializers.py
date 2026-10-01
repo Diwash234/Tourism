@@ -240,7 +240,11 @@ class DestinationListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Destination
-        fields = ["id", "name", "slug", "city", "country", "category_name", "average_rating", "cover_image", "cover_image_url", "is_featured"]
+        fields = [
+            "id", "name", "slug", "city", "district", "country",
+            "category_name", "average_rating", "entry_fee", "type",
+            "cover_image", "cover_image_url", "is_featured",
+        ]
 
 
 class DestinationDetailSerializer(serializers.ModelSerializer):
@@ -297,7 +301,25 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Destination
-        fields = ["id", "name", "slug", "description", "short_description", "city", "country", "category_name", "average_rating", "ratings_count", "views_count", "cover_image", "cover_image_url", "image_url", "images", "gallery", "latitude", "longitude", "address", "opening_hours", "entry_fee", "is_featured", "is_active", "status", "created_at", "updated_at"]
+        fields = [
+            "id", "name", "slug", "description", "short_description",
+            "city", "district", "province", "municipality", "country",
+            "category_name", "type", "average_rating", "ratings_count",
+            "views_count", "cover_image", "cover_image_url", "image_url",
+            "images", "gallery", "latitude", "longitude",
+            "coordinate_status", "coordinate_source", "coordinate_accuracy",
+            "address", "opening_hours", "entry_fee", "recommended_days",
+            "best_time_to_visit", "altitude", "elevation_m",
+            "distance_from_kathmandu_km", "distance_from_nearest_city_km",
+            "nearest_major_city", "distance_from_nearest_airport_km",
+            "nearest_airport_name", "approx_travel_time",
+            "nearest_hospital_info", "nearest_police_info", "nearest_hotel_info",
+            "history", "cultural_significance", "religious_significance",
+            "tourism_importance", "food_cuisine_info", "travel_safety_tips",
+            "location_notes", "seo_title", "meta_description", "og_image_url",
+            "meta_robots", "search_visible",
+            "is_featured", "is_active", "status", "created_at", "updated_at",
+        ]
 
 
 class DestinationWriteSerializer(serializers.ModelSerializer):

@@ -77,9 +77,12 @@ const WeatherForecast = ({ destinationSlug, destinationName, compact = false }) 
 
   useEffect(() => {
     if (!destinationSlug) return undefined
-    fetchForecast()
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => fetchForecast(), 0)
     intervalRef.current = setInterval(fetchForecast, REFRESH_INTERVAL)
     return () => {
+      clearTimeout(t)
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
   }, [destinationSlug, fetchForecast])

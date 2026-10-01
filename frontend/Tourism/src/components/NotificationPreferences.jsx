@@ -55,7 +55,10 @@ const NotificationPreferences = () => {
   }, [])
 
   useEffect(() => {
-    fetchPreferences()
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => fetchPreferences(), 0)
+    return () => clearTimeout(t)
   }, [fetchPreferences])
 
   const toggle = (key) => {

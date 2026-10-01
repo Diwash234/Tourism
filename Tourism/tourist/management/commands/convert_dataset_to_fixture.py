@@ -6,6 +6,8 @@ from pathlib import Path
 
 from django.core.management.base import BaseCommand
 
+from tourist.data_enrichment import DERIVABLE_KEYS
+
 
 class Command(BaseCommand):
     help = "Convert dataset/data.json to Django fixture format (load.json)"
@@ -29,6 +31,23 @@ class Command(BaseCommand):
             help="Path to the output fixture file",
         )
 
+    @staticmethod
+    def _load_categories(base_dir: Path) -> tuple[list[dict], set[int]]:
+        """Canonical category rows from the verified snapshot, if available."""
+        snapshot_path = base_dir / "dataset" / "verified_tourism_data.json"
+        if not snapshot_path.is_file():
+            return [], set()
+        try:
+            with snapshot_path.open(encoding="utf-8") as fh:
+                payload = json.load(fh)
+        except (OSError, ValueError):
+            return [], set()
+        records = [
+            rec for rec in payload.get("records", [])
+            if rec.get("model") == "tourist.category"
+        ]
+        return records, {rec["pk"] for rec in records}
+
     def handle(self, *args, **options):
         base_dir = Path(__file__).resolve().parent.parent.parent.parent
         input_path = base_dir / options["input"]
@@ -47,8 +66,17 @@ class Command(BaseCommand):
             destinations = {str(item.get("id")): item for item in destinations if item.get("id") is not None}
         self.stdout.write(f"Found {len(destinations)} destinations")
 
+        # Category rows must exist before destinations reference them: a fresh
+        # migrated database has no categories (no migration seeds them), so the
+        # fixture carries the canonical category table from the verified
+        # snapshot.  `enrich_destinations --category-from` only ever assigns
+        # pks from this same table; the guard below still drops anything else
+        # so a stale pk can never fail the whole load.
+        category_records, category_pks = self._load_categories(base_dir)
+        fixture = list(category_records)
+        used_categories: set[int] = set()
+
         # Convert to Django fixture format
-        fixture = []
         for dest_id, dest_data in destinations.items():
             timestamp = (
                 dest_data.get("created_at")
@@ -93,6 +121,19 @@ class Command(BaseCommand):
                     "updated_at": dest_data.get("updated_at") or timestamp,
                 },
             })
+            # Fields written by `enrich_destinations` (category, distances,
+            # nearest city/airport, city names, address, descriptions,
+            # cited elevations, entry fee).  Passing them through means the
+            # enriched catalogue reaches PostgreSQL instead of being dropped.
+            fields = fixture[-1]["fields"]
+            for key in DERIVABLE_KEYS:
+                if key in dest_data:
+                    fields[key] = dest_data[key]
+            category_pk = fields.get("category")
+            if category_pk is not None and category_pk not in category_pks:
+                fields["category"] = None
+            elif category_pk is not None:
+                used_categories.add(category_pk)
 
             # Add images. The photo URL belongs in external_url: DestinationImage
             # has no "image_url" field, and loaddata rejects unknown fields.
@@ -128,4 +169,7 @@ class Command(BaseCommand):
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(fixture, f, indent=2, ensure_ascii=False)
 
-        self.stdout.write(self.style.SUCCESS(f"Done! Fixture saved to {output_path}"))
+        self.stdout.write(self.style.SUCCESS(
+            f"Done! Fixture saved to {output_path} "
+            f"({len(category_records)} categories, {len(used_categories)} distinct categories assigned)"
+        ))

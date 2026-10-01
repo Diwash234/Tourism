@@ -24,10 +24,15 @@ const RealTimeNotifications = () => {
   }, [])
 
   useEffect(() => {
-    if (!user) return
-    fetchNotifications()
+    if (!user) return undefined
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => fetchNotifications(), 0)
     const interval = setInterval(fetchNotifications, 30000)
-    return () => clearInterval(interval)
+    return () => {
+      clearTimeout(t)
+      clearInterval(interval)
+    }
   }, [user, fetchNotifications])
 
   const markAsRead = async (id) => {

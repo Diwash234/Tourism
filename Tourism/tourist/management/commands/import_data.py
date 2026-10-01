@@ -54,6 +54,15 @@ class Command(BaseCommand):
                 data = list(reader)
 
         if model == "destinations":
+            def coord(value):
+                # Missing/invalid coordinates must stay NULL.  Coercing them
+                # to 0 placed destinations on Null Island (0, 0) in the Gulf
+                # of Guinea, which poisoned every distance calculation.
+                try:
+                    return float(value)
+                except (TypeError, ValueError):
+                    return None
+
             for item in data:
                 Destination.objects.update_or_create(
                     slug=item.get("slug"),
@@ -62,8 +71,8 @@ class Command(BaseCommand):
                         "description": item.get("description", ""),
                         "district": item.get("district", ""),
                         "province": item.get("province", ""),
-                        "latitude": float(item.get("latitude", 0) or 0),
-                        "longitude": float(item.get("longitude", 0) or 0),
+                        "latitude": coord(item.get("latitude")),
+                        "longitude": coord(item.get("longitude")),
                     },
                 )
         elif model == "categories":

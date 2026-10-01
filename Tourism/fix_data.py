@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Fix data.json - add placeholder images and fix null coordinates."""
+"""Fix data.json - add placeholder images for destinations without images."""
 import json
 from pathlib import Path
 

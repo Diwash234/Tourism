@@ -124,10 +124,8 @@ const EnhancedSearch = ({ onResultSelect, initialQuery = "" }) => {
     return () => clearTimeout(debounceRef.current)
   }, [query, fetchResults, fetchSuggestions])
 
-  // Reset page on filter change
-  useEffect(() => {
-    setPage(1)
-  }, [category, district, minRating, verifiedOnly, sortBy, query])
+  // Note: the page is reset to 1 inside each handler below that changes the
+  // query/filters/sort (react-hooks/set-state-in-effect — no reset effect).
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -141,6 +139,7 @@ const EnhancedSearch = ({ onResultSelect, initialQuery = "" }) => {
     setMinRating(0)
     setVerifiedOnly(false)
     setSortBy("relevance")
+    setPage(1)
   }
 
   const hasActiveFilters = category || district || minRating > 0 || verifiedOnly
@@ -157,6 +156,7 @@ const EnhancedSearch = ({ onResultSelect, initialQuery = "" }) => {
             value={query}
             onChange={(e) => {
               setQuery(e.target.value)
+              setPage(1)
               setShowSuggestions(true)
             }}
             onFocus={() => setShowSuggestions(true)}
@@ -170,6 +170,7 @@ const EnhancedSearch = ({ onResultSelect, initialQuery = "" }) => {
               type="button"
               onClick={() => {
                 setQuery("")
+                setPage(1)
                 setSuggestions([])
                 searchInputRef.current?.focus()
               }}
@@ -190,6 +191,7 @@ const EnhancedSearch = ({ onResultSelect, initialQuery = "" }) => {
                 type="button"
                 onMouseDown={() => {
                   setQuery(item.name || item.title)
+                  setPage(1)
                   setShowSuggestions(false)
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-ny-soft-green transition-colors text-left"
@@ -227,7 +229,7 @@ const EnhancedSearch = ({ onResultSelect, initialQuery = "" }) => {
         <div className="flex items-center gap-2">
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
+            onChange={(e) => { setSortBy(e.target.value); setPage(1) }}
             className="input-field py-2 text-sm"
             aria-label="Sort by"
           >
@@ -265,7 +267,7 @@ const EnhancedSearch = ({ onResultSelect, initialQuery = "" }) => {
               <select
                 id="filter-category"
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={(e) => { setCategory(e.target.value); setPage(1) }}
                 className="input-field py-2 text-sm"
               >
                 {CATEGORIES.map((c) => (
@@ -278,7 +280,7 @@ const EnhancedSearch = ({ onResultSelect, initialQuery = "" }) => {
               <select
                 id="filter-district"
                 value={district}
-                onChange={(e) => setDistrict(e.target.value)}
+                onChange={(e) => { setDistrict(e.target.value); setPage(1) }}
                 className="input-field py-2 text-sm"
               >
                 {DISTRICTS.map((d) => (
@@ -291,7 +293,7 @@ const EnhancedSearch = ({ onResultSelect, initialQuery = "" }) => {
               <select
                 id="filter-rating"
                 value={minRating}
-                onChange={(e) => setMinRating(Number(e.target.value))}
+                onChange={(e) => { setMinRating(Number(e.target.value)); setPage(1) }}
                 className="input-field py-2 text-sm"
               >
                 <option value={0}>Any rating</option>
@@ -305,7 +307,7 @@ const EnhancedSearch = ({ onResultSelect, initialQuery = "" }) => {
                 <input
                   type="checkbox"
                   checked={verifiedOnly}
-                  onChange={(e) => setVerifiedOnly(e.target.checked)}
+                  onChange={(e) => { setVerifiedOnly(e.target.checked); setPage(1) }}
                   className="accent-ny-green w-4 h-4"
                 />
                 <span className="text-sm text-ny-text flex items-center gap-1">
