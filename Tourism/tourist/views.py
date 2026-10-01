@@ -262,8 +262,11 @@ class PublicConfigView(APIView):
         if not re.fullmatch(r"[a-z]{2,3}(?:-[A-Z]{2})?", language):
             language = "en"
 
-        # Cache the entire response for 5 minutes
-        cache_key = f"public_config_v2:{language}"
+        # Publish operations bump this version so a traveller never
+        # receives a stale CMS snapshot just because the old five-minute
+        # response is still in cache.
+        public_config_version = cache.get("public_config_version", "0")
+        cache_key = f"public_config_v3:{language}:{public_config_version}"
         cached_response = cache.get(cache_key)
         if cached_response is not None:
             return Response(cached_response)
