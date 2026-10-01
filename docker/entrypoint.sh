@@ -25,6 +25,12 @@ if [ -n "$DB_FILE" ]; then
   else
     python manage.py migrate --noinput
   fi
+  # Fill any destination columns the seed left empty (distances, nearest
+  # city/airport, city names, addresses, cited elevations, honest entry fee).
+  # Idempotent: only empty values are ever written.
+  echo "entrypoint: filling missing destination data"
+  python manage.py enrich_destinations \
+    || echo "entrypoint: WARNING - destination enrichment skipped"
 else
   echo "entrypoint: PostgreSQL detected - running migrations"
   python manage.py migrate --noinput
@@ -41,17 +47,55 @@ with connection.cursor() as cur:
 PY
   )
 
+  SEEDED=0
   if [ "$DATA_EXISTS" = "0" ]; then
     echo "entrypoint: PostgreSQL destination catalogue is empty - loading seed data"
-    if [ -f "/app/Tourism/load.json" ]; then
-      python manage.py loaddata /app/Tourism/load.json
-    elif [ -f "/app/Tourism/dataset/data.json" ]; then
-      python manage.py convert_dataset_to_fixture --output /tmp/tourism-load.json
-      python manage.py loaddata /tmp/tourism-load.json
+
+    # 1. Canonical verified snapshot (tracked in git): destinations WITH
+    #    categories, hotels, hospitals, police stations, restaurants, OSM
+    #    services and published CMS pages.  Refuses to run against a database
+    #    that already has users/destinations, so a failure falls through.
+    if [ -f "/app/Tourism/dataset/verified_tourism_data.json" ]; then
+      echo "entrypoint: trying verified snapshot (destinations + services + CMS)"
+      if python manage.py import_verified_snapshot /app/Tourism/dataset/verified_tourism_data.json; then
+        SEEDED=1
+      else
+        echo "entrypoint: verified snapshot not loadable - trying next source"
+      fi
+    fi
+
+    # 2. Local prebuilt fixture (not in git; present only on custom images).
+    if [ "$SEEDED" = "0" ] && [ -f "/app/Tourism/load.json" ]; then
+      echo "entrypoint: trying prebuilt load.json fixture"
+      if python manage.py loaddata /app/Tourism/load.json; then
+        SEEDED=1
+      else
+        echo "entrypoint: load.json failed - trying next source"
+      fi
+    fi
+
+    # 3. Convert the tracked dataset catalogue (embeds the category table so
+    #    destination FKs always resolve on a fresh migrated database).
+    if [ "$SEEDED" = "0" ] && [ -f "/app/Tourism/dataset/data.json" ]; then
+      echo "entrypoint: converting dataset/data.json to a fixture"
+      if python manage.py convert_dataset_to_fixture --output /tmp/tourism-load.json \
+        && python manage.py loaddata /tmp/tourism-load.json; then
+        SEEDED=1
+      else
+        echo "entrypoint: dataset conversion failed - trying next source"
+      fi
       rm -f /tmp/tourism-load.json
-    elif [ -f "/app/downloads/nepal-tourism-seed.sqlite3.gz" ]; then
-      python manage.py import_public_seed_postgres
-    else
+    fi
+
+    # 4. Published seed SQLite archive.
+    if [ "$SEEDED" = "0" ] && [ -f "/app/downloads/nepal-tourism-seed.sqlite3.gz" ]; then
+      echo "entrypoint: importing published seed archive"
+      if python manage.py import_public_seed_postgres; then
+        SEEDED=1
+      fi
+    fi
+
+    if [ "$SEEDED" = "0" ]; then
       echo "entrypoint: WARNING - no tourism seed data found"
     fi
   else
@@ -72,6 +116,22 @@ PY
   python manage.py seed_district_services
   echo "entrypoint: repairing explicitly curated destination media"
   python manage.py repair_curated_media
+
+  # Fill empty destination columns from coordinates/CSVs after every seed
+  # path (snapshot, fixture, dataset, archive).  Idempotent - only empty
+  # values are written - so re-running on an existing catalogue is safe.
+  echo "entrypoint: filling missing destination data (distances, nearest city/airport, city names)"
+  python manage.py enrich_destinations \
+    || echo "entrypoint: WARNING - destination enrichment skipped"
+
+  # Recompute nearest hospital/police/hotel proximity from the service tables
+  # - only right after a fresh seed, so curated values on later boots are
+  # never overwritten.
+  if [ "$SEEDED" = "1" ]; then
+    echo "entrypoint: computing nearest hospital/police/hotel for seeded destinations"
+    python manage.py enrich_destination_nearby_services \
+      || echo "entrypoint: WARNING - nearby-service enrichment skipped"
+  fi
 
   python - <<'PY'
 import os
