@@ -70,10 +70,15 @@ RUN mkdir -p /app/Tourism/media \
     /var/lib/tourism/media \
     /var/lib/tourism/data
 
-# Real OSM amenity layer consumed by import_emergency_services (hospitals,
-# clinics, pharmacies, police, banks) -- without it the entrypoint command
-# crashes on a missing ml_service/ tree and the boot never reaches daphne.
-COPY ml_service/data/emergency/emergency_services.csv /app/ml_service/data/emergency/emergency_services.csv
+# ML microservice source, models and data: budget estimator (budget_model.joblib),
+# itinerary/recommendation/safety engines, and the OSM amenity CSV that
+# import_emergency_services reads (hospitals, clinics, pharmacies, police).
+# None of ml_service/ was in the image before -- so budget/itinerary said
+# "not available" in production and the emergency import crashed the boot.
+# Its Python deps (fastapi/uvicorn/sklearn/pandas/networkx) are already in
+# Tourism/requirements.txt; the entrypoint starts uvicorn on :8001 in the
+# background, which is where ML_SERVICE_URL points.
+COPY ml_service/ /app/ml_service/
 
 # Collect Django static files
 RUN python manage.py collectstatic --noinput

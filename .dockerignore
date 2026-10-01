@@ -80,3 +80,13 @@ venv/
 # Test results
 test-results/
 tests-nav/
+
+# ML service: ship code + models + processed_data, never runtime artifacts
+# or secrets (plain patterns like __pycache__/.env only match the context
+# root, so the nested copies need their own globs).
+ml_service/logs/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/.env
+!ml_service/.env.example
