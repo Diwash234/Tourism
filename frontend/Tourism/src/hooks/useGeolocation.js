@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { validateGpsPosition } from "../utils/placeUtils"
 
 const CACHE_KEY = "ny_cached_position"
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
@@ -109,36 +108,24 @@ const useGeolocation = ({ auto = true, enableIpFallback = true } = {}) => {
     setLoading(true)
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const candidate = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          accuracy: pos.coords.accuracy ?? null,
-        }
-        const validation = validateGpsPosition(candidate)
-        // A coarse GPS fix is still useful for nearby search. Keep it as a
-        // usable source instead of treating accuracy as a hard failure; the
-        // UI can show the accuracy and the user can refine it when needed.
-        if (!validation.valid && validation.reason?.toLowerCase().includes("accuracy")) {
-          setCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude })
-          setAccuracy(pos.coords.accuracy ?? null)
-          setSource("gps")
-          setError(null)
-          setCode(null)
-          setLoading(false)
-          writeCache(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy ?? null)
-          return
-        }
-        if (!validation.valid) {
+        const latitude = pos.coords.latitude
+        const longitude = pos.coords.longitude
+        const acc = pos.coords.accuracy ?? null
+        // Only a broken fix (NaN/missing coordinates) is unusable. Coarse
+        // accuracy and positions outside the Nepal bbox still answer "where
+        // am I": distances stay computable from anywhere, and the IP fallback
+        // below already accepts any coordinates. validateGpsPosition's hard
+        // bbox/accuracy failures used to reject the fix here, so anyone whose
+        // first fix landed even slightly outside the bbox saw
+        // "GPS coordinates are invalid or outside Nepal." with no location.
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
           setCoords(null)
           setAccuracy(null)
-          setError(validation.reason)
+          setError("GPS coordinates are invalid. Please try again.")
           setCode(3)
           setLoading(false)
           return
         }
-        const latitude = pos.coords.latitude
-        const longitude = pos.coords.longitude
-        const acc = pos.coords.accuracy ?? null
         setCoords({ latitude, longitude })
         setAccuracy(acc)
         setSource("gps")

@@ -169,7 +169,10 @@ export default function SubmitPlacePage() {
       return
     }
     setSubmitting(true)
-    const feeNum = parseFloat(form.entry_fee) || 0.0
+    // Blank/unparseable fee means "not recorded": send the empty string so
+    // DRF's HTML-input rule maps it to null. The old `|| 0.0` wrote 0.00 for
+    // every blank fee, which the site then displayed as a real price.
+    const feeNum = parseFloat(form.entry_fee)
     const muniFinal = manualMuniMode ? (manualMuniText.trim() || selectedDistrict) : selectedMunicipality
 
     const formData = new FormData()
@@ -185,7 +188,7 @@ export default function SubmitPlacePage() {
           formData.append("longitude", lonRaw.toFixed(6))
         }
     formData.append("altitude", form.altitude.trim())
-    formData.append("entry_fee", feeNum.toFixed(2))
+    formData.append("entry_fee", Number.isFinite(feeNum) ? feeNum.toFixed(2) : "")
     formData.append("opening_hours", form.opening_hours.trim())
     formData.append("best_time_to_visit", form.best_time_to_visit.trim())
     formData.append("short_description", form.short_description.trim())

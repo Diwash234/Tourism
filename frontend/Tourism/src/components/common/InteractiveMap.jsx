@@ -47,6 +47,7 @@ export default function InteractiveMap({
 }) {
   const [mapCenter, setMapCenter] = useState(center)
   const [userLocation, setUserLocation] = useState(null)
+  const [geoNotice, setGeoNotice] = useState(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [layer, setLayer] = useState("street")
   const [_mapInstance, setMapInstance] = useState(null)
@@ -57,8 +58,9 @@ export default function InteractiveMap({
   }, [onLocationSelect])
 
   const handleUserLocation = () => {
+    setGeoNotice(null)
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser")
+      setGeoNotice("Geolocation is not supported by this browser.")
       return
     }
     navigator.geolocation.getCurrentPosition(
@@ -67,7 +69,15 @@ export default function InteractiveMap({
         setUserLocation(loc)
         setMapCenter(loc)
       },
-      () => alert("Unable to retrieve your location")
+      (err) => {
+        // Inline notice instead of a blocking alert() — the old alert()
+        // looked like the whole map had failed.
+        setGeoNotice(
+          err?.code === 1
+            ? "Location permission denied. Enable location access in your browser and try again."
+            : "Unable to retrieve your location. Please try again."
+        )
+      }
     )
   }
 
@@ -154,6 +164,15 @@ export default function InteractiveMap({
           </Marker>
         ))}
       </MapContainer>
+
+      {geoNotice && (
+        <div
+          role="status"
+          className="absolute bottom-3 left-3 z-[500] max-w-[320px] rounded-lg bg-white dark:bg-slate-800 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 shadow-lg"
+        >
+          {geoNotice}
+        </div>
+      )}
     </div>
   )
 }

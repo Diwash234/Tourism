@@ -473,9 +473,29 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
 
 
 class DestinationWriteSerializer(serializers.ModelSerializer):
+    """
+    Used for both admin-created and tourist-submitted places. `cover_image`
+    is accepted directly in the same multipart request (no separate gallery
+    upload call needed for the main photo).
+    """
+    latitude = CoordinateField(required=False, allow_null=True, min_value=Decimal("-90"), max_value=Decimal("90"))
+    longitude = CoordinateField(required=False, allow_null=True, min_value=Decimal("-180"), max_value=Decimal("180"))
+
     class Meta:
         model = Destination
-        fields = ["name", "description", "short_description", "city", "country", "category", "latitude", "longitude", "address", "opening_hours", "entry_fee"]
+        # An old cleanup narrowed this to 12 fields, silently discarding
+        # everything the submit form sends besides the basics: district,
+        # municipality, ward, province, altitude, history, nearest-service
+        # notes and even `cover_image` never reached the database. Every
+        # field below is blank/null on the model, so none is required.
+        fields = [
+            "id", "name", "category", "description", "short_description", "cover_image",
+            "latitude", "longitude", "address", "city", "district", "municipality", "ward_number",
+            "province", "country", "altitude", "opening_hours", "best_time_to_visit", "history",
+            "nearest_hospital_info", "nearest_hotel_info", "nearest_police_info",
+            "entry_fee", "contact_phone", "contact_email", "website", "is_active",
+            "seo_title", "meta_description", "og_image_url", "meta_robots", "search_visible",
+        ]
 
     def create(self, validated_data):
         # Submission lifecycle lives here (not in a view) so every write path

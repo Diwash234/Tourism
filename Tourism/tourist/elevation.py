@@ -34,7 +34,10 @@ NEPAL_BBOX = (26.3, 30.5, 80.0, 88.3)  # lat_min, lat_max, lon_min, lon_max
 DATA_FILE = Path(settings.BASE_DIR) / "dataset" / "destination_elevations.json"
 ALTITUDE_THRESHOLD_M = 2500  # NTB: AMS risk above 2,500 m
 
-_ALT_RE = re.compile(r"(\d{1,2}[,\s]?\d{3}|\d{3,4})\s*(?:m\b|metres|meters|masl)", re.I)
+# 1-4 digits (so two-digit Terai altitudes like "90 m" match) with an
+# optional thousands group ("4,200 m"), then a metre unit. The old
+# \d{3,4} alternative silently skipped every altitude below 100 m.
+_ALT_RE = re.compile(r"(\d{1,4}(?:[,\s]\d{3})?)\s*(?:m\b|metres|meters|masl)", re.I)
 
 
 def decimals(value) -> int:

@@ -117,6 +117,13 @@ class ElevationTests(TestCase):
     def test_parse_altitude_text(self):
         self.assertEqual(elevation.parse_altitude_text("3,440 m"), 3440)
         self.assertEqual(elevation.parse_altitude_text("approx 827 metres"), 827)
+        # Two-digit Terai altitudes must parse too (Koshi Tappu "90 m",
+        # Janaki Mandir "74m"): the old \d{3,4} pattern skipped every
+        # recorded value below 100 m and left those destinations blank.
+        self.assertEqual(elevation.parse_altitude_text("90 m"), 90)
+        self.assertEqual(elevation.parse_altitude_text("74m"), 74)
+        # No metre unit -> still unparseable (feet must not be guessed).
+        self.assertIsNone(elevation.parse_altitude_text("7,135 ft"))
         self.assertIsNone(elevation.parse_altitude_text("high up"))
 
     def test_apply_records_checks_coordinates(self):

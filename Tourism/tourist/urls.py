@@ -26,6 +26,7 @@ from . import views_account
 from . import views_navigation
 from . import views_workforce
 from . import views_travel
+from translation.views import TranslateBatchView
 
 
 # NOTE (Round 21): login moved to views_auth.LoginView — SimpleJWT's stock
@@ -297,6 +298,11 @@ urlpatterns = [
     path("admin/newsletter/export.csv", views_account.NewsletterExportView.as_view(), name="admin-newsletter-export"),
     path("discover-nepal/", views.DiscoverNepalView.as_view(), name="discover-nepal"),
     path("translate/", views.TranslateTextView.as_view(), name="translate-text"),
+    # Page-level machine translation (src/i18n translatePageUi). This route
+    # was never wired: translation/urls.py stayed commented out, so every
+    # batch POST 404'd, the frontend catch kept the English text, and the UI
+    # only ever switched the handful of strings served by the local dicts.
+    path("translate/batch/", TranslateBatchView.as_view(), name="translate-batch"),
     path("images/resolve/", views_images.ImageResolveView.as_view(), name="images-resolve"),
     # Multi-source Image Acquisition & Provenance Pipeline API
     path("destinations/<str:slug>/images", views_images.DestinationImagesListView.as_view(), name="destination-images-list-no-slash"),

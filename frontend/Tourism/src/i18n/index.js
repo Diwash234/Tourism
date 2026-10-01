@@ -1123,7 +1123,10 @@ function translateLegacyDom(root = document.body) {
     const key = reverse.get(trimmed)
     if (!key) continue
     const translated = target[key] || trimmed
-    node.nodeValue = original.replace(trimmed, translated)
+    const next = original.replace(trimmed, translated)
+    // Only write on a real change: the observer also watches characterData
+    // now, and an unconditional set would re-trigger itself forever.
+    if (node.nodeValue !== next) node.nodeValue = next
   }
   root.querySelectorAll?.("[placeholder],[title]").forEach((element) => {
     for (const attribute of ["placeholder", "title"]) {
@@ -1138,52 +1141,125 @@ function translateLegacyDom(root = document.body) {
 }
 
 const translationCache = new Map()
+// Node -> { text, lang } for strings this module machine-translated, so a
+// language switch can tell "already translated" apart from native content,
+// re-translate a previous target language from the original text, and —
+// when switching back to English — restore exactly what we rewrote.
+const machineTranslated = new WeakMap()
+// Nepali and Hindi both use Devanagari: once an untouched node contains it
+// (place names, native data) it must never be pushed through the batch
+// translator with source=en again.
+const DEVANAGARI = /[\u0900-\u097F]/
+// Smaller slices keep every POST comfortably inside the axios timeout; the
+// backend translates each slice in parallel.
+const BATCH_SIZE = 40
 
-async function translatePageUi(root = document.body) {
-  if (typeof document === "undefined" || currentLang === "en" || !DICTS[currentLang] || !root) return
-  const texts = []
-  const nodes = []
+// The mutation observer fires for every DOM change (a React mount fires
+// dozens). Without this guard each firing starts its own batch POST for the
+// same still-uncached strings — the cache only fills after the response
+// lands — and the pile-up outlives the axios timeout, leaving the page half
+// in English.
+let uiTranslateBusy = false
+let uiTranslateQueued = false
+
+function applyMachineTranslation(node, expected, value) {
+  const current = node.nodeValue
+  if (current.trim() !== expected) return // React re-rendered while the batch was in flight
+  const next = current.replace(current.trim(), () => value)
+  if (next === current) return // an identical write would re-trigger the observer
+  node.nodeValue = next
+  machineTranslated.set(node, { text: next, lang: currentLang })
+}
+
+function revertMachineTranslations(root) {
+  if (!root) return
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
   let node
   while ((node = walker.nextNode())) {
-    const parent = node.parentElement
-    if (!parent || ["SCRIPT", "STYLE", "CODE", "PRE", "NOSCRIPT"].includes(parent.tagName)) continue
-    if (parent.closest?.("[data-no-translate], input, textarea, select, option, svg")) continue
-    const original = originalText.get(node) || node.nodeValue
-    const trimmed = original.trim()
-    if (!trimmed || trimmed.length < 2) continue
-    if (/^[\\d\\W_]+$/.test(trimmed)) continue
-    const cacheKey = `${currentLang}:${trimmed}`
-    if (translationCache.has(cacheKey)) {
-      node.nodeValue = original.replace(trimmed, translationCache.get(cacheKey))
-      continue
-    }
-    texts.push(trimmed)
-    nodes.push(node)
+    const stored = machineTranslated.get(node)
+    if (!stored || node.nodeValue !== stored.text) continue // already reverted or re-rendered
+    const original = originalText.get(node)
+    if (original == null || original === node.nodeValue) continue
+    node.nodeValue = original
+    machineTranslated.delete(node)
   }
-  const unique = [...new Set(texts)]
-  for (let start = 0; start < unique.length; start += 100) {
-    const batch = unique.slice(start, start + 100)
-    try {
-      const { data } = await translationApi.translateBatch({
-        items: batch,
-        target_language: currentLang,
-        source_language: "en",
-      })
-      const translated = Array.isArray(data?.translations) ? data.translations : []
-      batch.forEach((text, index) => {
-        translationCache.set(`${currentLang}:${text}`, translated[index] || text)
-      })
-    } catch {
-      /* Keep the original English text when the translation service is unavailable. */
+}
+
+async function translatePageUi(root = document.body) {
+  if (typeof document === "undefined" || !DICTS[currentLang] || !root) return
+  if (uiTranslateBusy) {
+    uiTranslateQueued = true
+    return
+  }
+  uiTranslateBusy = true
+  try {
+    if (currentLang === "en") {
+      revertMachineTranslations(root)
+      return
+    }
+    const nodes = []
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+    let node
+    while ((node = walker.nextNode())) {
+      const parent = node.parentElement
+      if (!parent || ["SCRIPT", "STYLE", "CODE", "PRE", "NOSCRIPT"].includes(parent.tagName)) continue
+      if (parent.closest?.("[data-no-translate], input, textarea, select, option, svg")) continue
+      const current = node.nodeValue
+      const trimmed = current.trim()
+      if (!trimmed || trimmed.length < 2) continue
+      const stored = machineTranslated.get(node)
+      if (stored && stored.text === current && stored.lang === currentLang) continue // already done
+      let source
+      if (stored && stored.text === current) {
+        // Machine-translated into a different target language before: the
+        // only stable source is the original text recorded at first sight.
+        if (stored.lang !== currentLang) {
+          source = (originalText.get(node) || current).trim()
+        } else {
+          continue
+        }
+      } else {
+        if (stored) machineTranslated.delete(node) // stale — React re-rendered this node
+        originalText.set(node, current)
+        source = trimmed
+        if (DEVANAGARI.test(source)) continue // native Devanagari content
+      }
+      if (/^[\d\W_]+$/.test(source)) continue // numbers and punctuation only
+      const cacheKey = `${currentLang}:${source}`
+      if (translationCache.has(cacheKey)) {
+        applyMachineTranslation(node, trimmed, translationCache.get(cacheKey))
+        continue
+      }
+      nodes.push([node, trimmed, source])
+    }
+    for (let start = 0; start < nodes.length; start += BATCH_SIZE) {
+      const slice = nodes.slice(start, start + BATCH_SIZE)
+      try {
+        const { data } = await translationApi.translateBatch({
+          items: slice.map(([, , source]) => source),
+          target_language: currentLang,
+          source_language: "en",
+        })
+        const translated = Array.isArray(data?.translations) ? data.translations : []
+        // Apply as each slice lands instead of after the whole queue, so
+        // the page keeps converting progressively even if a later slice
+        // fails or the component unmounts mid-flight.
+        slice.forEach(([target, expected, source], index) => {
+          const value = translated[index] || source
+          translationCache.set(`${currentLang}:${source}`, value)
+          applyMachineTranslation(target, expected, value)
+        })
+      } catch {
+        /* Keep the original text when the translation service is unavailable. */
+      }
+    }
+  } finally {
+    uiTranslateBusy = false
+    if (uiTranslateQueued) {
+      uiTranslateQueued = false
+      queueMicrotask(() => translatePageUi())
     }
   }
-  nodes.forEach((textNode) => {
-    const original = originalText.get(textNode) || textNode.nodeValue
-    const trimmed = original.trim()
-    const value = translationCache.get(`${currentLang}:${trimmed}`)
-    if (value) textNode.nodeValue = original.replace(trimmed, value)
-  })
 }
 function enableLegacyTranslationBridge() {
   if (typeof document === "undefined") return
@@ -1200,7 +1276,11 @@ function enableLegacyTranslationBridge() {
         })
       }
     })
-    translationObserver.observe(document.documentElement, { childList: true, subtree: true })
+    // characterData too: React updates some text nodes in place (counters,
+    // search results), and without watching those the re-rendered English
+    // would never be re-translated. Every write in this module is guarded
+    // to only fire on real changes, so this cannot loop.
+    translationObserver.observe(document.documentElement, { childList: true, subtree: true, characterData: true })
   }
 }
 
