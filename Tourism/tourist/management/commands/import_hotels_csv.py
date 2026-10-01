@@ -16,6 +16,8 @@ import os
 
 from django.core.management.base import BaseCommand
 from django.db.models import Q
+import re
+import unicodedata
 
 from tourist.models import Hotel, Destination
 from tourist import photo_catalog
@@ -53,10 +55,29 @@ class Command(BaseCommand):
             city = (row.get("Destination") or "").strip()
             dest = None
             if city:
-                dest = (
-                    Destination.objects.filter(Q(city__iexact=city) | Q(name__icontains=city)).first()
-                    or Destination.objects.filter(Q(district__iexact=city) | Q(province__iexact=city)).first()
-                )
+                def norm(value):
+                    value = unicodedata.normalize("NFKD", str(value or "")).encode("ascii", "ignore").decode().lower()
+                    return re.sub(r"[^a-z0-9]+", " ", value).strip()
+                key = norm(city)
+                tokens = [t for t in key.split() if t not in {"region", "province", "area"}]
+                candidates = [key, " ".join(tokens)] if tokens else [key]
+                for candidate in dict.fromkeys(candidates):
+                    if not candidate:
+                        continue
+                    dest = (
+                        Destination.objects.filter(city__iexact=candidate).first()
+                        or Destination.objects.filter(district__iexact=candidate).first()
+                        or Destination.objects.filter(province__iexact=candidate).first()
+                        or Destination.objects.filter(name__iexact=candidate).first()
+                    )
+                    if dest:
+                        break
+                if dest is None and tokens:
+                    q = Q()
+                    for token in tokens:
+                        if len(token) >= 3:
+                            q |= Q(city__icontains=token) | Q(district__icontains=token) | Q(province__icontains=token) | Q(name__icontains=token)
+                    dest = Destination.objects.filter(q).order_by("id").first() if q else None
             if dest is None:
                 # Never attach an unrelated hotel to the first destination in
                 # the database. That creates the exact cross-place pollution
