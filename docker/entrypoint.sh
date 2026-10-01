@@ -50,7 +50,7 @@ PY
       python manage.py loaddata /tmp/tourism-load.json
       rm -f /tmp/tourism-load.json
     elif [ -f "/app/downloads/nepal-tourism-seed.sqlite3.gz" ]; then
-      python manage.py install_public_seed_db --skip-checksum
+      python manage.py import_public_seed_postgres
     else
       echo "entrypoint: WARNING - no tourism seed data found"
     fi
@@ -65,6 +65,11 @@ PY
     echo "entrypoint: checking for missing legacy user accounts"
     python manage.py import_legacy_users
   fi
+  echo "entrypoint: backfilling missing destination media from verified seed"
+  python manage.py sync_seed_media_postgres
+  echo "entrypoint: importing sourced emergency and nearby-service records"
+  python manage.py import_emergency_services
+  python manage.py seed_district_services
   echo "entrypoint: repairing explicitly curated destination media"
   python manage.py repair_curated_media
 

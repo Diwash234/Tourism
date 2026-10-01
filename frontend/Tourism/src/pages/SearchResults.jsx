@@ -10,6 +10,9 @@ import PageHeader from "../components/common/PageHeader"
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
 import useToast from "../hooks/useToast"
+import useGeolocation from "../hooks/useGeolocation"
+import destinationApi from "../api/destinationApi"
+import hotelApi from "../api/hotelApi"
 
 // ─── Facet Filter Component ──────────────────────────────────────────────────
 const FacetFilter = ({ title, options, selected, onToggle }) => {
@@ -275,7 +278,6 @@ const SearchResults = () => {
   const { showToast } = useToast()
   const query = searchParams.get("q") || ""
 
-  const [loading, setLoading] = useState(false)
   const [view, setView] = useState("list") // list | grid | map
   const [sort, setSort] = useState("relevance")
   const [showFilters, setShowFilters] = useState(true)
@@ -288,15 +290,60 @@ const SearchResults = () => {
   const [selectedPriceRange, setSelectedPriceRange] = useState([])
   const [selectedRatings, setSelectedRatings] = useState([])
 
-  // Simulated results
-  const results = useMemo(() => [
-    { id: 1, name: "Pokhara Valley", location: "Gandaki Province", rating: 4.8, price: 15000, type: "destination", image: null },
-    { id: 2, name: "Himalaya Resort & Spa", location: "Pokhara", rating: 4.6, price: 8500, type: "hotel", image: null },
-    { id: 3, name: "Everest Base Camp Trek", location: "Solukhumbu", rating: 4.9, price: 45000, type: "tour", image: null },
-    { id: 4, name: "Chitwan National Park", location: "Chitwan", rating: 4.7, price: 12000, type: "destination", image: null },
-    { id: 5, name: "Lumbini Garden Hotel", location: "Lumbini", rating: 4.3, price: 6000, type: "hotel", image: null },
-    { id: 6, name: "Annapurna Circuit", location: "Gandaki Province", rating: 4.8, price: 35000, type: "tour", image: null },
-  ], [])
+  const { position } = useGeolocation({ auto: false })
+  const [results, setResults] = useState([])
+  const [searchError, setSearchError] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    const q = query.trim()
+    if (!q) {
+      setResults([])
+      setSearchError("")
+      return undefined
+    }
+    setLoading(true)
+    setSearchError("")
+    Promise.all([
+      destinationApi.getAll({ search: q, page_size: 24 }),
+      hotelApi.search(q, { page_size: 24 }).catch(() => ({ data: { results: [] } })),
+    ]).then(([destRes, hotelRes]) => {
+      if (cancelled) return
+      const destinations = (destRes.data?.results || destRes.data || []).map((d) => ({
+        id: `destination-${d.id}`, rawId: d.id, name: d.name,
+        location: [d.city || d.municipality, d.district, d.province].filter(Boolean).join(", "),
+        rating: Number(d.average_rating || 0), price: d.entry_fee,
+        type: "destination", image: d.cover_image_url || d.image_url || d.cover_image,
+        slug: d.slug,
+      }))
+      const hotels = (hotelRes.data?.results || hotelRes.data || []).map((h) => ({
+        id: `hotel-${h.id}`, rawId: h.id, name: h.name,
+        location: [h.city, h.district].filter(Boolean).join(", "),
+        rating: Number(h.average_rating || h.rating || 0), price: h.price_per_night,
+        type: "hotel", image: h.image_url || h.cover_image_url || h.cover_image,
+        slug: h.slug,
+      }))
+      const combined = [...destinations, ...hotels]
+      if (position) {
+        combined.forEach((item) => {
+          if (item.latitude != null && item.longitude != null) {
+            const lat1 = Number(position.lat), lon1 = Number(position.lng)
+            const lat2 = Number(item.latitude), lon2 = Number(item.longitude)
+            const p1 = lat1 * Math.PI / 180, p2 = lat2 * Math.PI / 180
+            const a = Math.sin((lat2-lat1)*Math.PI/360)**2 + Math.cos(p1)*Math.cos(p2)*Math.sin((lon2-lon1)*Math.PI/360)**2
+            item.distance = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+          }
+        })
+      }
+      setResults(combined)
+    }).catch((error) => {
+      if (!cancelled) setSearchError(error?.response?.data?.detail || error?.message || "Search is unavailable.")
+    }).finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [query, position])
+
+
 
   const handleSaveSearch = () => {
     if (query && !savedSearches.includes(query)) {
@@ -329,9 +376,8 @@ const SearchResults = () => {
 
   const facetOptions = {
     types: [
-      { value: "destination", label: "Destinations", count: 2 },
-      { value: "hotel", label: "Hotels", count: 2 },
-      { value: "tour", label: "Tours", count: 2 },
+      { value: "destination", label: "Destinations", count: results.filter((r) => r.type === "destination").length },
+      { value: "hotel", label: "Hotels", count: results.filter((r) => r.type === "hotel").length },
     ],
     priceRange: [
       { value: "0-5000", label: "Under NPR 5,000", count: 1 },
@@ -463,7 +509,7 @@ const SearchResults = () => {
           </div>
 
           {/* Results List */}
-          {loading ? (
+          {searchError ? <EmptyState title="Search unavailable" subtitle={searchError} icon={FiSearch} /> : loading ? (
             <Loader text="Searching..." />
           ) : results.length === 0 ? (
             <EmptyState

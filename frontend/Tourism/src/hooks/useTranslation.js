@@ -1,25 +1,28 @@
-import { useContext } from "react"
-import { TranslationContext } from "../i18n/TranslationContext"
+import { useI18n, ALL_LANGS } from "../i18n"
 
 /**
- * useTranslation - Hook for accessing translation functions and language state
+ * Compatibility hook for older components.
  *
- * Provides:
- * - t(key, vars) - Translate a key with optional variable interpolation
- * - lang - Current language code
- * - setLang(code) - Change the active language
- * - dir - Text direction (ltr/rtl)
- * - isRTL - Whether current language is right-to-left
- * - languages - List of all supported languages
+ * The application uses the reactive i18n store in src/i18n/index.js.
+ * The previous implementation consumed TranslationContext, but main.jsx
+ * intentionally does not mount that provider; any component using the
+ * legacy hook therefore crashed at runtime with:
+ * "useTranslation must be used within a TranslationProvider".
  */
 const useTranslation = () => {
-  const context = useContext(TranslationContext)
-
-  if (!context) {
-    throw new Error("useTranslation must be used within a TranslationProvider")
+  const { lang, setLang, t, dir } = useI18n()
+  return {
+    lang,
+    setLang,
+    t,
+    dir,
+    isRTL: dir === "rtl",
+    languages: ALL_LANGS.map((language) => ({
+      ...language,
+      label: language.label,
+      native: language.native,
+    })),
   }
-
-  return context
 }
 
 export default useTranslation
