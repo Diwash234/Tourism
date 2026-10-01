@@ -58,6 +58,7 @@ COPY --from=frontend /app/frontend/dist /app/Tourism/frontend_dist/
 # Published seed database (installed on first start by the entrypoint when the
 # SQLite volume is empty) and the start-up script.
 COPY downloads/nepal-tourism-seed.sqlite3.gz downloads/nepal-tourism-seed.sqlite3.gz.sha256 /app/downloads/
+COPY downloads/nepal-tourism-database.sqlite3.gz downloads/nepal-tourism-database.sqlite3.gz.sha256 /app/downloads/
 COPY docker/entrypoint.sh /usr/local/bin/ny-entrypoint
 RUN chmod +x /usr/local/bin/ny-entrypoint
 
