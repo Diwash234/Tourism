@@ -15,8 +15,6 @@ COPY frontend/Tourism/ ./
 ARG VITE_SITE_URL=""
 ENV VITE_SITE_URL=$VITE_SITE_URL
 
-# Build with optimizations
-ENV NODE_ENV=production
 RUN npm run build
 
 
@@ -26,9 +24,7 @@ RUN npm run build
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
@@ -47,12 +43,15 @@ RUN pip install --no-cache-dir -r /app/Tourism/requirements.txt
 
 # Copy Django project
 COPY Tourism/ /app/Tourism/
+
 # The built SPA is served from the site root by WhiteNoise (WHITENOISE_ROOT):
 # /, /assets/*, /sw.js, /manifest.webmanifest; deep links fall back to
 # index.html via Tourism/spa.py.
 COPY --from=frontend /app/frontend/dist /app/Tourism/frontend_dist/
-# Production startup script. Render uses PostgreSQL, so the production image
-# does not depend on a SQLite seed file being present in the Docker context.
+
+# Published seed database (installed on first start by the entrypoint when the
+# SQLite volume is empty) and the start-up script.
+COPY downloads/nepal-tourism-seed.sqlite3.gz downloads/nepal-tourism-seed.sqlite3.gz.sha256 /app/downloads/
 COPY docker/entrypoint.sh /usr/local/bin/ny-entrypoint
 RUN chmod +x /usr/local/bin/ny-entrypoint
 
@@ -69,12 +68,9 @@ RUN python manage.py collectstatic --noinput
 # Render exposes the PORT environment variable
 EXPOSE 8000
 
-# Health check (shell form so $PORT is expanded at runtime)
+# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-8000}/health/ || exit 1
+    CMD curl -f http://localhost:8000/health/ || exit 1
 
-# ASGI (daphne) so the live-chat WebSocket at /ws/chat/<id>/ works; HTTP is
-# the same Django app. CHANNEL_LAYERS is in-memory, so run ONE process per
-# container (scale with more containers + a Redis channel layer).
 ENTRYPOINT ["ny-entrypoint"]
-CMD ["sh", "-c", "daphne -b 0.0.0.0 -p ${PORT:-8000} Tourism.asgi:application"]
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "Tourism.asgi:application"]

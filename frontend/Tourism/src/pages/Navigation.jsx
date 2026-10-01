@@ -930,7 +930,7 @@ export default function Navigation() {
                 </div>
                 <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
                   <span className="font-black text-emerald-700">{card.distance}</span>
-                  <span className="font-extrabold text-amber-700 text-[11px]">{card.bearing}</span>
+                  <span className="font-extrabold text-amber-700 text-xs">{card.bearing}</span>
                 </div>
               </div>
             )
@@ -991,7 +991,7 @@ export default function Navigation() {
         <div className="card-base p-5 bg-slate-950 text-white rounded-3xl border border-slate-800 space-y-4 flex flex-col justify-between">
           <div className="space-y-3">
             <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-              <span className="text-[10px] font-black uppercase text-amber-400">Tactical HUD Navigation</span>
+              <span className="text-xs font-black uppercase text-amber-400">Tactical HUD Navigation</span>
               <span className="text-xs font-bold text-emerald-400">{distance ? `${distance} km` : "Location Active"}</span>
             </div>
 
@@ -1001,7 +1001,7 @@ export default function Navigation() {
                   <TurnIcon step={currentStep} size={26} />
                 </div>
                 <div>
-                  <span className="text-[10px] font-extrabold uppercase text-amber-300">Next Maneuver</span>
+                  <span className="text-xs font-extrabold uppercase text-amber-300">Next Maneuver</span>
                   <p className="text-xs font-bold text-white leading-tight">{currentStep.instruction}</p>
                 </div>
               </div>
@@ -1017,7 +1017,7 @@ export default function Navigation() {
                   >
                     ◀ Prev
                   </button>
-                  <span className="text-[10px] font-bold text-slate-300">
+                  <span className="text-xs font-bold text-slate-300">
                     Step {currentStepIdx + 1} of {steps.length}
                   </span>
                   <button
@@ -1047,19 +1047,19 @@ export default function Navigation() {
                 {routeMeta.source && (
                   <div className="col-span-2 flex flex-wrap items-center gap-2 rounded-2xl bg-white/95 p-2 text-left" data-testid="navigation-route-quality">
                     <RouteQualityBadge source={routeMeta.source} />
-                    <span className="text-[11px] leading-4 text-slate-700">{routeQuality(routeMeta.source).detail}</span>
+                    <span className="text-xs leading-4 text-slate-700">{routeQuality(routeMeta.source).detail}</span>
                   </div>
                 )}
                 <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800">
-                  <span className="text-[10px] text-slate-400 block font-bold">Total Distance</span>
+                  <span className="text-xs text-slate-400 block font-bold">Total Distance</span>
                   <span className="text-lg font-black text-amber-300">{distance} km</span>
                 </div>
                 <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800">
-                  <span className="text-[10px] text-slate-400 block font-bold">
+                  <span className="text-xs text-slate-400 block font-bold">
                     {durationSource === "estimated" ? "Est. Duration (avg speed)" : "Duration"}
                   </span>
                   {durationSource === "unavailable" ? (
-                    <span className="text-[11px] font-bold text-amber-300 leading-tight block">
+                    <span className="text-xs font-bold text-amber-300 leading-tight block">
                       {durationNote || "Information unavailable"}
                     </span>
                   ) : (
@@ -1078,11 +1078,11 @@ export default function Navigation() {
                   {routeAlts && (
                     <div className="mt-2 space-y-1">
                       {routeAlts.alternatives.map((alt, i) => (
-                        <p key={i} className="text-[11px] text-slate-300">
+                        <p key={i} className="text-xs text-slate-300">
                           Alternative {i + 1}: <b className="text-amber-300">{alt.route_distance_km} km</b> · {alt.duration_min} min · {alt.status}
                         </p>
                       ))}
-                      <p className="text-[10px] text-slate-400">{routeAlts.alternatives_note}</p>
+                      <p className="text-xs text-slate-400">{routeAlts.alternatives_note}</p>
                     </div>
                   )}
                 </div>
@@ -1103,7 +1103,7 @@ export default function Navigation() {
                 {destination.short_description ? (
                   <p className="text-slate-300 line-clamp-2">{destination.short_description}</p>
                 ) : null}
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-slate-400">
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-400">
                   {destination.entry_fee ? <span>{destination.entry_fee}</span> : null}
                   {destination.best_time_to_visit ? <span>{destination.best_time_to_visit}</span> : null}
                   {destination.altitude != null ? <span>⛰️ {destination.altitude} m</span> : null}
