@@ -1,4 +1,4 @@
-import { FiMoreVertical } from "react-icons/fi"
+import "react-icons/fi"
 
 /**
  * Flexible card component with header, body, footer, and hover effects.

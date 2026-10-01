@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FiChevronLeft, FiChevronRight } from 'react-icons/fi'
+import 'react-icons/fi'
 import useResponsive from '../../hooks/useResponsive'
 
 /**
@@ -15,7 +15,7 @@ const ResponsiveTabs = ({
   className = '',
 }) => {
   const [activeTab, setActiveTab] = useState(defaultTab || tabs[0]?.id)
-  const [scrollPosition, setScrollPosition] = useState(0)
+  const [_scrollPosition, _setScrollPosition] = useState(0)
   const { isMobile } = useResponsive()
 
   const handleTabChange = (tabId) => {

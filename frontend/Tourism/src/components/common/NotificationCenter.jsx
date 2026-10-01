@@ -1,50 +1,50 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { FiBell, FiX, FiCheck, FiAlertTriangle, FiInfo } from "react-icons/fi"
 import { Link } from "react-router-dom"
+
+// Simulated fetching notifications (module scope so state can be initialised
+// lazily instead of with a synchronous setState inside an effect, which is
+// banned by react-hooks/set-state-in-effect).
+const MOCK_NOTIFICATIONS = [
+  {
+    id: 1,
+    type: "alert",
+    title: "Weather Alert",
+    message: "Heavy rainfall expected in Pokhara region",
+    time: "2h ago",
+    read: false,
+    link: "/risk-alerts"
+  },
+  {
+    id: 2,
+    type: "success",
+    title: "Trip Planned",
+    message: "Your itinerary for Kathmandu is ready",
+    time: "5h ago",
+    read: false,
+    link: "/itinerary"
+  },
+  {
+    id: 3,
+    type: "info",
+    title: "New Destination",
+    message: "Mustang Valley has been added to explore",
+    time: "1d ago",
+    read: true,
+    link: "/destinations"
+  }
+]
 
 /**
  * Notification center with real-time updates.
  * Shows unread count, allows marking as read, and clearing all.
  */
 export default function NotificationCenter() {
-  const [notifications, setNotifications] = useState([])
+  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS)
   const [isOpen, setIsOpen] = useState(false)
-  const [unreadCount, setUnreadCount] = useState(0)
-
-  useEffect(() => {
-    // Simulate fetching notifications
-    const mockNotifications = [
-      {
-        id: 1,
-        type: "alert",
-        title: "Weather Alert",
-        message: "Heavy rainfall expected in Pokhara region",
-        time: "2h ago",
-        read: false,
-        link: "/risk-alerts"
-      },
-      {
-        id: 2,
-        type: "success",
-        title: "Trip Planned",
-        message: "Your itinerary for Kathmandu is ready",
-        time: "5h ago",
-        read: false,
-        link: "/itinerary"
-      },
-      {
-        id: 3,
-        type: "info",
-        title: "New Destination",
-        message: "Mustang Valley has been added to explore",
-        time: "1d ago",
-        read: true,
-        link: "/destinations"
-      }
-    ]
-    setNotifications(mockNotifications)
-    setUnreadCount(mockNotifications.filter(n => !n.read).length)
-  }, [])
+  const [unreadCount, setUnreadCount] = useState(
+    MOCK_NOTIFICATIONS.filter(n => !n.read).length
+  )
 
   const markAsRead = (id) => {
     setNotifications(prev =>

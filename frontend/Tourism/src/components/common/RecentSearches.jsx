@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { FiClock, FiX, FiSearch } from "react-icons/fi"
+import { FiClock, FiX } from "react-icons/fi"
 import { useNavigate } from "react-router-dom"
 
 const STORAGE_KEY = "ny_recent_searches"
@@ -45,7 +45,7 @@ export function useRecentSearches() {
 
 export default function RecentSearches({ onSelect, visible }) {
   const { searches, removeSearch, clearAll } = useRecentSearches()
-  const navigate = useNavigate()
+  const _navigate = useNavigate()
 
   if (!visible || searches.length === 0) return null
 

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react"
-import { FiChevronDown, FiX, FiCheck } from "react-icons/fi"
+import { FiChevronDown, FiCheck } from "react-icons/fi"
 
 /**
  * Multi-select dropdown with search, select all, and clear all.

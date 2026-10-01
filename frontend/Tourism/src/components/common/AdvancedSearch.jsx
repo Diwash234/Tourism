@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
-import { FiSearch, FiX, FiFilter, FiMapPin, FiDollarSign, FiStar, FiClock } from "react-icons/fi"
+import { FiSearch, FiX, FiFilter, FiMapPin, FiStar } from "react-icons/fi"
 import { useTranslation } from "../../hooks/useTranslation"
 import { destinationApi } from "../../services/destinationService"
 
@@ -8,8 +8,8 @@ import { destinationApi } from "../../services/destinationService"
  * Advanced search with filters for category, province, budget, rating, and activity.
  * Debounced search with real-time results.
  */
-export default function AdvancedSearch({ onResultSelect, className = "" }) {
-  const { t } = useTranslation()
+export default function AdvancedSearch({ onResultSelect: _onResultSelect, className = "" }) {
+  const { t: _t } = useTranslation()
   const [query, setQuery] = useState("")
   const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState({
@@ -31,8 +31,6 @@ export default function AdvancedSearch({ onResultSelect, className = "" }) {
   // Debounced search
   useEffect(() => {
     if (!query.trim() && !Object.values(filters).some(v => v)) {
-      setResults([])
-      setSearched(false)
       return
     }
 
@@ -61,9 +59,33 @@ export default function AdvancedSearch({ onResultSelect, className = "" }) {
     return () => clearTimeout(timer)
   }, [query, filters])
 
+  // Resetting results when the search becomes empty used to happen in the
+  // effect above, but a synchronous setState there is banned by
+  // react-hooks/set-state-in-effect — so the reset happens in the event
+  // handlers that change `query`/`filters` instead.
+  const clearResultsIfEmpty = (nextQuery, nextFilters) => {
+    if (!nextQuery.trim() && !Object.values(nextFilters).some(v => v)) {
+      setResults([])
+      setSearched(false)
+    }
+  }
+
+  const handleQueryChange = (value) => {
+    setQuery(value)
+    clearResultsIfEmpty(value, filters)
+  }
+
+  const handleFilterChange = (key, value) => {
+    const nextFilters = { ...filters, [key]: value }
+    setFilters(nextFilters)
+    clearResultsIfEmpty(query, nextFilters)
+  }
+
   const clearFilters = () => {
-    setFilters({ category: "", province: "", budget: "", minRating: "", activity: "" })
+    const emptyFilters = { category: "", province: "", budget: "", minRating: "", activity: "" }
+    setFilters(emptyFilters)
     setQuery("")
+    clearResultsIfEmpty("", emptyFilters)
   }
 
   const activeFilterCount = Object.values(filters).filter(v => v).length
@@ -76,7 +98,7 @@ export default function AdvancedSearch({ onResultSelect, className = "" }) {
         <input
           type="search"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => handleQueryChange(e.target.value)}
           placeholder="Search destinations, activities, places..."
           className="w-full text-sm rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 pl-11 pr-20 py-3 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
         />
@@ -84,7 +106,7 @@ export default function AdvancedSearch({ onResultSelect, className = "" }) {
           {query && (
             <button
               type="button"
-              onClick={() => setQuery("")}
+              onClick={() => handleQueryChange("")}
               className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600"
               aria-label="Clear search"
             >
@@ -132,7 +154,7 @@ export default function AdvancedSearch({ onResultSelect, className = "" }) {
               <label className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Category</label>
               <select
                 value={filters.category}
-                onChange={(e) => setFilters(f => ({ ...f, category: e.target.value }))}
+                onChange={(e) => handleFilterChange("category", e.target.value)}
                 className="w-full text-xs rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
               >
                 <option value="">All</option>
@@ -144,7 +166,7 @@ export default function AdvancedSearch({ onResultSelect, className = "" }) {
               <label className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Province</label>
               <select
                 value={filters.province}
-                onChange={(e) => setFilters(f => ({ ...f, province: e.target.value }))}
+                onChange={(e) => handleFilterChange("province", e.target.value)}
                 className="w-full text-xs rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
               >
                 <option value="">All</option>
@@ -156,7 +178,7 @@ export default function AdvancedSearch({ onResultSelect, className = "" }) {
               <label className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Budget</label>
               <select
                 value={filters.budget}
-                onChange={(e) => setFilters(f => ({ ...f, budget: e.target.value }))}
+                onChange={(e) => handleFilterChange("budget", e.target.value)}
                 className="w-full text-xs rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
               >
                 <option value="">Any</option>
@@ -168,7 +190,7 @@ export default function AdvancedSearch({ onResultSelect, className = "" }) {
               <label className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Min Rating</label>
               <select
                 value={filters.minRating}
-                onChange={(e) => setFilters(f => ({ ...f, minRating: e.target.value }))}
+                onChange={(e) => handleFilterChange("minRating", e.target.value)}
                 className="w-full text-xs rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
               >
                 <option value="">Any</option>
@@ -182,7 +204,7 @@ export default function AdvancedSearch({ onResultSelect, className = "" }) {
               <label className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Activity</label>
               <select
                 value={filters.activity}
-                onChange={(e) => setFilters(f => ({ ...f, activity: e.target.value }))}
+                onChange={(e) => handleFilterChange("activity", e.target.value)}
                 className="w-full text-xs rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
               >
                 <option value="">All</option>

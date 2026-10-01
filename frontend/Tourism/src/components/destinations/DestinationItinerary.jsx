@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { FiCalendar, FiClock, FiMapPin, FiDollarSign, FiUsers, FiPlus, FiTrash2, FiEdit2, FiSave } from "react-icons/fi"
+import { FiCalendar, FiClock, FiPlus, FiTrash2, FiEdit2, FiSave } from "react-icons/fi"
 import { useTranslation } from "../../hooks/useTranslation"
 import { useAuth } from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
@@ -8,9 +8,9 @@ import useToast from "../../hooks/useToast"
  * Interactive itinerary planner for a destination.
  * Users can add activities, set times, and plan their day.
  */
-export default function DestinationItinerary({ destination }) {
-  const { t } = useTranslation()
-  const { isAuthenticated } = useAuth()
+export default function DestinationItinerary({ destination: _destination }) {
+  const { t: _t } = useTranslation()
+  const { isAuthenticated: _isAuthenticated } = useAuth()
   const { addToast } = useToast()
   const [days, setDays] = useState([
     {
@@ -24,9 +24,9 @@ export default function DestinationItinerary({ destination }) {
     },
   ])
   const [editingCell, setEditingCell] = useState(null)
-  const [showAddDay, setShowAddDay] = useState(false)
+  const [_showAddDay, setShowAddDay] = useState(false)
 
-  const addDay = () => {
+  const _addDay = () => {
     const newDay = {
       day: days.length + 1,
       activities: [],

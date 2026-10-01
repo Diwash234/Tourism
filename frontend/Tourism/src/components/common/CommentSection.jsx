@@ -8,8 +8,8 @@ import Avatar from "./Avatar"
  * Comment section with add, edit, delete, and reply functionality.
  */
 export default function CommentSection({
-  targetType = "destination",
-  targetId,
+  targetType: _targetType = "destination",
+  targetId: _targetId,
   comments = [],
   onSubmit,
   onEdit,

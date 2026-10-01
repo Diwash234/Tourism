@@ -1,14 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
-import {
-  FiMail,
-  FiMessageSquare,
-  FiSmartphone,
-  FiGift,
-  FiCalendar,
-  FiSave,
-  FiCheckCircle,
-  FiAlertCircle,
-} from "react-icons/fi"
+import { FiMail, FiMessageSquare, FiSmartphone, FiGift, FiCalendar, FiSave, FiAlertCircle } from "react-icons/fi"
 import axiosClient from "../api/axiosClient"
 import useToast from "../hooks/useToast"
 

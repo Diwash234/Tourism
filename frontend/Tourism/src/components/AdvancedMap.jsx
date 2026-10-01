@@ -2,10 +2,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents, ZoomControl } from "react-leaflet"
 import L from "leaflet"
 import { motion, AnimatePresence } from "framer-motion"
-import {
-  FiLayers, FiMapPin, FiDownload, FiMaximize2, FiMinimize2,
-  FiNavigation, FiGrid, FiList, FiFilter,
-} from "react-icons/fi"
+import { FiDownload, FiMaximize2, FiMinimize2, FiNavigation } from "react-icons/fi"
 import { destinationIcon, userIcon } from "./map/icons"
 import { DEFAULT_MAP_CENTER } from "../utils/constants"
 
@@ -82,7 +79,7 @@ const HeatmapLayer = ({ points }) => {
 // ─── Drawing Tools (Measure Distance) ────────────────────────────────────────
 const DrawingTool = ({ active, onPointsChange }) => {
   const [points, setPoints] = useState([])
-  const map = useMapEvents({
+  const _map = useMapEvents({
     click(e) {
       if (active) {
         const newPoints = [...points, [e.latlng.lat, e.latlng.lng]]
@@ -92,9 +89,14 @@ const DrawingTool = ({ active, onPointsChange }) => {
     },
   })
 
+  // Clear the measurement points while rendering when the tool is off, so the
+  // effect below can stay free of setState (react-hooks/set-state-in-effect).
+  if (!active && points.length > 0) {
+    setPoints([])
+  }
+
   useEffect(() => {
     if (!active) {
-      setPoints([])
       onPointsChange?.([])
     }
   }, [active, onPointsChange])
@@ -208,9 +210,9 @@ const AdvancedMap = ({
     route: { visible: true, label: "Route" },
   })
   const [drawingMode, setDrawingMode] = useState(false)
-  const [drawingPoints, setDrawingPoints] = useState([])
+  const [_drawingPoints, setDrawingPoints] = useState([])
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [clusteringEnabled, setClusteringEnabled] = useState(showClustering)
+  const [clusteringEnabled, _setClusteringEnabled] = useState(showClustering)
   const mapRef = useRef(null)
 
   const activeTile = TILE_PROVIDERS[mapStyle] || TILE_PROVIDERS.street
@@ -228,7 +230,7 @@ const AdvancedMap = ({
     }))
   }, [])
 
-  const handleExport = useCallback(() => {
+  const _handleExport = useCallback(() => {
     // Export map as image
     const mapContainer = document.querySelector(".leaflet-container")
     if (mapContainer) {

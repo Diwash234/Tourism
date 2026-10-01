@@ -26,7 +26,7 @@ export const useFocus = () => {
 export const useAnnouncer = () => {
   const [message, setMessage] = useState('')
 
-  const announce = (msg, priority = 'polite') => {
+  const announce = (msg, _priority = 'polite') => {
     setMessage('')
     setTimeout(() => {
       setMessage(msg)
@@ -65,7 +65,7 @@ export const LiveRegion = ({ message, priority = 'polite' }) => (
  * Focus trap for modals and dialogs.
  */
 export const FocusTrap = ({ children, isActive, onEscape }) => {
-  const [focusableElements, setFocusableElements] = useState([])
+  const [_focusableElements, _setFocusableElements] = useState([])
 
   useEffect(() => {
     if (!isActive) return

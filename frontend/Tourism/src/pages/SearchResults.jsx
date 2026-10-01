@@ -1,11 +1,7 @@
-import { useState, useCallback, useMemo, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useSearchParams } from "react-router-dom"
-import {
-  FiSearch, FiFilter, FiGrid, FiList, FiMap, FiMapPin,
-  FiClock, FiHeart, FiShare2, FiX, FiChevronDown,
-  FiStar, FiDollarSign, FiUsers, FiCalendar, FiRefreshCw,
-} from "react-icons/fi"
+import { FiSearch, FiFilter, FiGrid, FiList, FiMap, FiMapPin, FiClock, FiHeart, FiShare2, FiChevronDown, FiStar } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"

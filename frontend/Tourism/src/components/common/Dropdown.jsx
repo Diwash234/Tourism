@@ -39,7 +39,7 @@ export default function Dropdown({ trigger, items, align = "right", className = 
     }
   }, [open, focusedIndex, items.length])
 
-  const handleItemClick = (item, index) => {
+  const handleItemClick = (item, _index) => {
     item.onClick?.()
     setOpen(false)
     setFocusedIndex(-1)

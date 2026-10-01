@@ -1,30 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
-import {
-  FiMapPin,
-  FiHeart,
-  FiUpload,
-  FiSearch,
-  FiImage,
-  FiTrendingUp,
-  FiX,
-  FiCalendar,
-  FiDollarSign,
-  FiCompass,
-  FiSettings,
-  FiStar,
-  FiShield,
-  FiPlus,
-  FiEdit3,
-  FiCheckCircle,
-  FiClock,
-  FiSliders,
-  FiTag,
-  FiAlertTriangle,
-  FiZap,
-  FiRefreshCw,
-  FiShare2,
-} from "react-icons/fi"
+import { FiMapPin, FiHeart, FiUpload, FiSearch, FiImage, FiTrendingUp, FiX, FiCalendar, FiDollarSign, FiCompass, FiStar, FiShield, FiPlus, FiSliders, FiTag, FiAlertTriangle, FiZap } from "react-icons/fi"
 
 import useAuth from "../hooks/useAuth"
 import useGeolocation from "../hooks/useGeolocation"
@@ -124,7 +100,7 @@ const Dashboard = () => {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false)
   const [showReportErrorModal, setShowReportErrorModal] = useState(false)
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false)
-  const [reportTargetDest, setReportTargetDest] = useState(null)
+  const [reportTargetDest, _setReportTargetDest] = useState(null)
 
   // Preferences Form State
   const [preferencesForm, setPreferencesForm] = useState({
@@ -145,7 +121,7 @@ const Dashboard = () => {
   const [file, setFile] = useState(null)
   const [caption, setCaption] = useState("")
   const [status, setStatus] = useState("")
-  const [myPhotos, setMyPhotos] = useState([])
+  const [_myPhotos, setMyPhotos] = useState([])
 
   const loadDashboardData = async () => {
     try {
@@ -241,7 +217,7 @@ const Dashboard = () => {
 
     setModifyingPlan(true)
     try {
-      const { data } = await axiosClient.post("/ml/itinerary/modify/", {
+      const { data: _data } = await axiosClient.post("/ml/itinerary/modify/", {
         plan_id: targetPlan.id,
         action: actionPrompt,
         itinerary: targetPlan.itinerary_data || targetPlan,

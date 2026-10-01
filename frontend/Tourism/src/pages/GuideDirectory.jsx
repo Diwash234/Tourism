@@ -24,7 +24,10 @@ const GuideDirectory = () => {
   }
 
   useEffect(() => {
-    fetchGuides()
+    // Defer the initial fetch one tick so the effect doesn't setState
+    // synchronously; the initial loading state still renders the skeleton.
+    const t = setTimeout(() => fetchGuides(), 0)
+    return () => clearTimeout(t)
   }, [])
 
   const filteredGuides = guides

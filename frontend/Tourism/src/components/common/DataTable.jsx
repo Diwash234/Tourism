@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react"
-import { FiChevronUp, FiChevronDown, FiSearch, FiFilter, FiDownload } from "react-icons/fi"
+import { FiChevronUp, FiChevronDown, FiSearch, FiDownload } from "react-icons/fi"
 
 /**
  * Reusable data table with sorting, filtering, pagination,
@@ -18,7 +18,7 @@ export default function DataTable({
   const [sortDir, setSortDir] = useState("asc")
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState("")
-  const [filters, setFilters] = useState({})
+  const [filters, _setFilters] = useState({})
 
   // Filter and search data
   const processedData = useMemo(() => {

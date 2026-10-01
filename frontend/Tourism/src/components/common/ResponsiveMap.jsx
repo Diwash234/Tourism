@@ -9,7 +9,7 @@ import useResponsive from '../../hooks/useResponsive'
  */
 const ResponsiveMap = ({
   center = [27.7172, 85.3240],
-  zoom = 13,
+  zoom: _zoom = 13,
   markers = [],
   onMarkerClick,
   className = '',

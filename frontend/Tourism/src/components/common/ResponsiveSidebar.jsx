@@ -19,7 +19,7 @@ const ResponsiveSidebar = ({
   className = '',
 }) => {
   const [expandedGroups, setExpandedGroups] = useState({})
-  const { isMobile, isTablet } = useResponsive()
+  const { isMobile, isTablet: _isTablet } = useResponsive()
   const location = useLocation()
 
   const isActive = (path) => location.pathname === path

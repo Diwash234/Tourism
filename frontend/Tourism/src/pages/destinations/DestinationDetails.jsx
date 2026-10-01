@@ -2,13 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import useSeo from "../../hooks/useSeo"
 import { useParams, useNavigate, Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
-import {
-  FiStar, FiMapPin, FiHeart, FiPhoneCall, FiDollarSign,
-  FiShield, FiHome, FiCoffee, FiShoppingBag, FiGlobe, FiClock,
-  FiNavigation, FiLayers, FiMaximize2, FiChevronLeft, FiChevronRight,
-  FiX, FiCalendar, FiActivity, FiAlertTriangle, FiCheckCircle,
-  FiTruck, FiCompass, FiExternalLink, FiInfo, FiBookOpen, FiShare2, FiSun, FiImage
-} from "react-icons/fi"
+import { FiMapPin, FiPhoneCall, FiDollarSign, FiShield, FiCoffee, FiGlobe, FiClock, FiNavigation, FiChevronLeft, FiChevronRight, FiX, FiActivity, FiTruck, FiCompass, FiExternalLink, FiBookOpen, FiSun, FiImage } from "react-icons/fi"
 
 import destinationApi from "../../api/destinationApi"
 import emergencyApi from "../../api/emergencyApi"
@@ -22,8 +16,8 @@ import { CMSExtras } from "../../components/cms/CMSBlock"
 
 import MapView from "../../components/map/MapView"
 import GettingThereCard from "../../components/destination/GettingThereCard"
-import WeatherCard from "../../components/cards/WeatherCard"
-import HotelCard from "../../components/cards/HotelCard"
+import "../../components/cards/WeatherCard"
+import "../../components/cards/HotelCard"
 import VerificationBadge from "../../components/common/VerificationBadge"
 import MapillaryImages from "../../components/map/MapillaryImages"
 import Breadcrumbs from "../../components/common/Breadcrumbs"
@@ -33,8 +27,8 @@ import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
 import ReportErrorModal from "../../components/common/ReportErrorModal"
 import { RISK_LEVELS } from "../../utils/constants"
-import { formatCurrencyUSD, formatCurrencyNPR } from "../../utils/formatters"
-import { FadeIn, HoverCard } from "../../components/common/MotionSystem"
+import "../../utils/formatters"
+import "../../components/common/MotionSystem"
 import CircularGallery from "../../components/ui/CircularGallery"
 import VisitorNoticeBanner from "../../components/common/VisitorNoticeBanner"
 
@@ -179,7 +173,7 @@ export default function DestinationDetails() {
   // Gallery & Image Category Filter
   const [activeImageIdx, setActiveImageIdx] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
-  const [selectedImgCategory, setSelectedImgCategory] = useState("all")
+  const [_selectedImgCategory, _setSelectedImgCategory] = useState("all")
   const [showOfflineKit, setShowOfflineKit] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
 

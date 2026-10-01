@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { FiShield, FiAlertTriangle } from "react-icons/fi"
+import "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
 

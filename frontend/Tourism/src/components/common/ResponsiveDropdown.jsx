@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { FiChevronDown } from 'react-icons/fi'
+import 'react-icons/fi'
 import useResponsive from '../../hooks/useResponsive'
 
 /**

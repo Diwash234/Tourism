@@ -1,4 +1,4 @@
-import { FiAlertTriangle, FiShield, FiPhone, FiMapPin, FiCheck } from "react-icons/fi"
+import { FiShield, FiPhone, FiMapPin, FiCheck } from "react-icons/fi"
 import { useTranslation } from "../../hooks/useTranslation"
 import Badge from "../common/Badge"
 
@@ -7,7 +7,7 @@ import Badge from "../common/Badge"
  * Shows risk level, emergency contacts, and safety tips.
  */
 export default function DestinationSafety({ destination, safetyInfo }) {
-  const { t } = useTranslation()
+  const { t: _t } = useTranslation()
 
   const riskLevel = safetyInfo?.risk_level || destination?.risk_level || "low"
   const emergencyContacts = safetyInfo?.emergency_contacts || [

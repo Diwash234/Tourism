@@ -17,7 +17,7 @@ const ACTIVITY_TYPES = {
  * Simulates live updates with periodic refresh.
  */
 export default function ActivityFeed({ limit = 10, className = "" }) {
-  const { t } = useTranslation()
+  const { t: _t } = useTranslation()
   const [activities, setActivities] = useState([])
   const [loading, setLoading] = useState(true)
 

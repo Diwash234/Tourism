@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react"
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom"
-import { FiMenu, FiBell, FiSearch, FiChevronDown, FiSun, FiMoon, FiX, FiUser } from "react-icons/fi"
+import { FiMenu, FiBell, FiSearch, FiChevronDown, FiSun, FiMoon, FiX } from "react-icons/fi"
 
 import useAuth from "../../hooks/useAuth"
 import useSidebarState from "../../hooks/useSidebarState"
@@ -37,7 +37,7 @@ const Navbar = () => {
   const features = resolveNavbarFeatures(settings?.navbar_features)
   const { isDark, toggleTheme } = useTheme()
   const navRef = useRef(null)
-  const [navOverflow, setNavOverflow] = useState(false)
+  const [_navOverflow, setNavOverflow] = useState(false)
 
   // Detect if navbar content overflows at current width
   useEffect(() => {

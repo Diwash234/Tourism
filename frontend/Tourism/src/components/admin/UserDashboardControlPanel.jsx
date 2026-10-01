@@ -1,18 +1,5 @@
 import { useEffect, useState } from "react"
-import {
-  FiSliders,
-  FiEye,
-  FiEyeOff,
-  FiVolume2,
-  FiCheck,
-  FiRefreshCw,
-  FiToggleLeft,
-  FiToggleRight,
-  FiSave,
-  FiLayout,
-  FiActivity,
-  FiZap,
-} from "react-icons/fi"
+import { FiSliders, FiEye, FiEyeOff, FiVolume2, FiRefreshCw, FiToggleLeft, FiToggleRight, FiSave, FiLayout, FiZap } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import configApi from "../../api/configApi"
 import useToast from "../../hooks/useToast"

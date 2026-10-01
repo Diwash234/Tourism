@@ -1,10 +1,6 @@
-import { useState, useCallback, useMemo, useRef } from "react"
+import { useState, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import {
-  FiPlus, FiTrash2, FiEdit3, FiDownload, FiShare2, FiMapPin,
-  FiDollarSign, FiCalendar, FiUsers, FiClock, FiGripVertical,
-  FiChevronUp, FiChevronDown, FiCopy, FiCheck, FiX, FiNavigation,
-} from "react-icons/fi"
+import { FiPlus, FiTrash2, FiDownload, FiShare2, FiMapPin, FiDollarSign, FiCalendar, FiUsers, FiChevronUp, FiChevronDown, FiCopy, FiCheck, FiX, FiNavigation } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
@@ -298,7 +294,7 @@ const ShareLink = ({ tripId }) => {
 }
 
 // ─── Export PDF Button ───────────────────────────────────────────────────────
-const ExportPDFButton = ({ itinerary }) => {
+const ExportPDFButton = ({ itinerary: _itinerary }) => {
   const [exporting, setExporting] = useState(false)
   const { showToast } = useToast()
 
@@ -331,9 +327,9 @@ const ExportPDFButton = ({ itinerary }) => {
 
 // ─── Main Trip Planner Page ──────────────────────────────────────────────────
 const TripPlanner = () => {
-  const { user } = useAuth()
+  const { user: _user } = useAuth()
   const { showToast } = useToast()
-  const [loading, setLoading] = useState(false)
+  const [_loading, _setLoading] = useState(false)
   const [tripName, setTripName] = useState("My Nepal Adventure")
   const [itinerary, setItinerary] = useState([
     {
@@ -356,7 +352,7 @@ const TripPlanner = () => {
   const [collaborators, setCollaborators] = useState([
     { email: "collaborator@example.com", role: "Editor" },
   ])
-  const [budget, setBudget] = useState({})
+  const [_budget, setBudget] = useState({})
 
   const addDay = () => {
     const newDay = {

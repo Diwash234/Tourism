@@ -2,10 +2,7 @@ import { useState } from "react"
 import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion, AnimatePresence } from "framer-motion"
-import {
-  FiGlobe, FiVolume2, FiCopy, FiPlus, FiSearch, FiCheck,
-  FiBookOpen, FiCompass, FiShield, FiCoffee, FiHeart, FiSmile
-} from "react-icons/fi"
+import { FiGlobe, FiVolume2, FiCopy, FiPlus, FiSearch, FiBookOpen, FiCompass, FiShield, FiCoffee, FiHeart, FiSmile } from "react-icons/fi"
 import useToast from "../hooks/useToast"
 
 const DIALECTS = [

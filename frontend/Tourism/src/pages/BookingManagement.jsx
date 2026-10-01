@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
-import { FiCalendar, FiMapPin, FiUsers, FiDollarSign, FiClock, FiX } from 'react-icons/fi'
+import { FiCalendar, FiMapPin, FiUsers, FiDollarSign, FiX } from 'react-icons/fi'
 import useAuth from '../hooks/useAuth'
 
 const BookingManagement = () => {
-  const { user } = useAuth()
+  const { user: _user } = useAuth()
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -27,7 +27,10 @@ const BookingManagement = () => {
   }
 
   useEffect(() => {
-    fetchBookings()
+    // Defer the initial fetch one tick so the effect doesn't setState
+    // synchronously; the initial loading state still renders the skeleton.
+    const t = setTimeout(() => fetchBookings(), 0)
+    return () => clearTimeout(t)
   }, [])
 
   const cancelBooking = async (id) => {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet"
-import { FiNavigation, FiMapPin, FiLayers, FiMaximize2 } from "react-icons/fi"
+import { FiNavigation, FiLayers, FiMaximize2 } from "react-icons/fi"
 import "leaflet/dist/leaflet.css"
 
 // Fix Leaflet default marker icons
@@ -49,7 +49,7 @@ export default function InteractiveMap({
   const [userLocation, setUserLocation] = useState(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [layer, setLayer] = useState("street")
-  const [mapInstance, setMapInstance] = useState(null)
+  const [_mapInstance, setMapInstance] = useState(null)
 
   const handleMapClick = useCallback((latlng) => {
     setMapCenter([latlng.lat, latlng.lng])

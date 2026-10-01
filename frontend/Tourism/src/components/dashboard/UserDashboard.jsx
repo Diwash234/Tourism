@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
-import { FiMapPin, FiHeart, FiClock, FiCalendar, FiTrendingUp, FiStar, FiArrowRight } from "react-icons/fi"
+import { FiMapPin, FiHeart, FiCalendar, FiTrendingUp, FiStar, FiArrowRight } from "react-icons/fi"
 import { useAuth } from "../../hooks/useAuth"
 import { useTranslation } from "../../hooks/useTranslation"
 import { destinationApi } from "../../services/destinationService"
 import StatCard from "../common/StatCard"
-import Badge from "../common/Badge"
+import "../common/Badge"
 
 /**
  * Enhanced user dashboard with:
@@ -17,15 +17,21 @@ import Badge from "../common/Badge"
  */
 export default function UserDashboard() {
   const { user, isAuthenticated } = useAuth()
-  const { t } = useTranslation()
+  const { t: _t } = useTranslation()
   const [stats, setStats] = useState({ totalTrips: 0, savedPlaces: 0, reviews: 0, points: 0 })
   const [recentDestinations, setRecentDestinations] = useState([])
   const [recommended, setRecommended] = useState([])
   const [loading, setLoading] = useState(true)
 
+  // Logged-out means there is nothing to load: turn the spinner off by
+  // adjusting during render — the effect that used to do this was banned by
+  // react-hooks/set-state-in-effect.
+  if (!isAuthenticated && loading) {
+    setLoading(false)
+  }
+
   useEffect(() => {
     if (!isAuthenticated) {
-      setLoading(false)
       return
     }
 

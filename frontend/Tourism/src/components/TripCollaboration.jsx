@@ -1,16 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react"
-import {
-  FiShare2,
-  FiUsers,
-  FiMail,
-  FiUserPlus,
-  FiX,
-  FiCopy,
-  FiCheck,
-  FiRefreshCw,
-  FiTrash2,
-  FiLink,
-} from "react-icons/fi"
+import { FiShare2, FiUsers, FiMail, FiUserPlus, FiCopy, FiCheck, FiRefreshCw, FiTrash2, FiLink } from "react-icons/fi"
 import axiosClient from "../api/axiosClient"
 import useToast from "../hooks/useToast"
 

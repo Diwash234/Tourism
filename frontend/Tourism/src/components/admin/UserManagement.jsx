@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
-import { FiCheckCircle, FiChevronLeft, FiChevronRight, FiKey, FiPlus, FiRefreshCw, FiSearch, FiShield, FiUserCheck, FiUserX, FiX } from "react-icons/fi"
+import { FiCheckCircle, FiKey, FiPlus, FiRefreshCw, FiSearch, FiShield, FiUserCheck, FiUserX, FiX } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
 import { AdminEmptyState, AdminPagination, AdminStatusBadge } from "./AdminPrimitives"

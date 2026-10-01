@@ -13,7 +13,7 @@ const ResponsiveText = ({
   className = '',
   ...props
 }) => {
-  const { isMobile, isTablet } = useResponsive()
+  const { isMobile, isTablet: _isTablet } = useResponsive()
 
   const sizes = {
     xs: isMobile ? 'text-xs' : 'text-sm',

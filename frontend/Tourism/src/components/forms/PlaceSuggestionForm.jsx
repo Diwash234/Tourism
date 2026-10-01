@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { FiPlus, FiCheck } from "react-icons/fi"
+import "react-icons/fi"
 import destinationApi from "../../api/destinationApi"
 import useToast from "../../hooks/useToast"
 

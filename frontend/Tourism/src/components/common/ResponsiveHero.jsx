@@ -10,7 +10,7 @@ const ResponsiveHero = ({
   title,
   subtitle,
   description,
-  image,
+  image: _image,
   primaryCta,
   secondaryCta,
   backgroundImage,

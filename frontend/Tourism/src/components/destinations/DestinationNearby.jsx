@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
-import { FiMapPin, FiNavigation, FiStar, FiClock } from "react-icons/fi"
+import { FiMapPin, FiNavigation, FiStar } from "react-icons/fi"
 import { useTranslation } from "../../hooks/useTranslation"
 import { destinationApi } from "../../services/destinationService"
 import LazyImage from "../common/LazyImage"
@@ -11,7 +11,7 @@ import Badge from "../common/Badge"
  * Includes distance, rating, and quick navigation links.
  */
 export default function DestinationNearby({ destination, radius = 50 }) {
-  const { t } = useTranslation()
+  const { t: _t } = useTranslation()
   const [nearby, setNearby] = useState([])
   // Start in the loading state only when there is something to fetch, so the
   // effect below never has to set state synchronously.

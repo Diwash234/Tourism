@@ -5,7 +5,7 @@ import { FiSun, FiCloud, FiCloudRain, FiCloudSnow, FiWind, FiDroplets, FiThermom
  * Weather widget showing current conditions for a destination.
  * Uses OpenWeatherMap API when key is configured, otherwise shows placeholder.
  */
-export default function DestinationWeather({ lat, lng, destinationName }) {
+export default function DestinationWeather({ lat, lng, destinationName: _destinationName }) {
   const [weather, setWeather] = useState(null)
   // Start in the loading state only when there is something to fetch, so the
   // effect below never has to set state synchronously.

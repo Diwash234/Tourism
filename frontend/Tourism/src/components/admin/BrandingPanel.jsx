@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { notifyCmsUpdated } from "../../hooks/usePublicConfig"
-import { FiImage, FiSave, FiTrash2, FiUpload, FiCheck, FiSliders, FiSun, FiGlobe } from "react-icons/fi"
+import { FiImage, FiSave, FiTrash2, FiUpload, FiGlobe } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
 import TourismLogo, { NepalYatraSymbol } from "../branding/TourismLogo"
@@ -31,13 +31,13 @@ export default function BrandingPanel() {
     secondary_color: "#0B3D91",
   })
   const [assets, setAssets] = useState({})
-  const [presets, setPresets] = useState({})
+  const [_presets, setPresets] = useState({})
   const [busy, setBusy] = useState(false)
 
   const load = async () => {
     try {
       const { data } = await adminApi.getBranding()
-      setBranding((prev) => ({
+      setBranding((_prev) => ({
         site_title: "Nepal Yatra",
         tagline: "Himalayan Journeys & Travel Planning",
         ...data.branding,

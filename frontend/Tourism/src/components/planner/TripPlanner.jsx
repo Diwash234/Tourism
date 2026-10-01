@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react"
-import { FiCalendar, FiMapPin, FiClock, FiUsers, FiTrendingUp, FiPlus, FiTrash2, FiSave, FiX } from "react-icons/fi"
+import { FiCalendar, FiMapPin, FiClock, FiUsers, FiTrendingUp, FiPlus, FiX } from "react-icons/fi"
 import { useTranslation } from "../../hooks/useTranslation"
 import { useAuth } from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
@@ -10,7 +10,7 @@ import { destinationApi } from "../../services/destinationService"
  * Users can add destinations, set dates, and organize activities.
  */
 export default function TripPlanner() {
-  const { t } = useTranslation()
+  const { t: _t } = useTranslation()
   const { isAuthenticated } = useAuth()
   const { addToast } = useToast()
   const [destinations, setDestinations] = useState([])
@@ -69,7 +69,7 @@ export default function TripPlanner() {
     setDays([...days, { day: days.length + 1, activities: [] }])
   }
 
-  const addActivity = (dayIndex, activity) => {
+  const _addActivity = (dayIndex, activity) => {
     const updated = [...days]
     updated[dayIndex].activities.push({
       id: Date.now(),
@@ -87,7 +87,7 @@ export default function TripPlanner() {
     setDays(updated)
   }
 
-  const handleSave = () => {
+  const _handleSave = () => {
     if (!isAuthenticated) {
       addToast("Please login to save your trip", "warning")
       return

@@ -37,7 +37,7 @@ export const useOffline = () => {
   const syncQueueRef = useRef([])
 
   // ─── Sync Queue Management ────────────────────────────────────────────────
-  const getSyncQueue = useCallback(readQueue, [])
+  const getSyncQueue = useCallback(() => readQueue(), [])
 
   const saveSyncQueue = useCallback((queue) => {
     try {
@@ -66,6 +66,17 @@ export const useOffline = () => {
     const queue = getSyncQueue().filter((item) => item.id !== id)
     saveSyncQueue(queue)
   }, [getSyncQueue, saveSyncQueue])
+
+  // Simulated sync operation - replace with actual API calls.
+  // Declared before processSyncQueue so the queue runner closes over it
+  // (react-hooks/immutability: no access before declaration).
+  const performSync = useCallback(async (_item) => {
+    // Simulate network request
+    await new Promise((resolve) => setTimeout(resolve, 500))
+    // In production: make the actual API call here
+    // await axiosClient.post(item.action.endpoint, item.action.payload)
+    return true
+  }, [])
 
   // ─── Background Sync Processing ───────────────────────────────────────────
   const processSyncQueue = useCallback(async () => {
@@ -98,16 +109,7 @@ export const useOffline = () => {
 
     setIsSyncing(false)
     setLastSynced(new Date())
-  }, [isSyncing, getSyncQueue, removeFromSyncQueue, saveSyncQueue])
-
-  // Simulated sync operation - replace with actual API calls
-  const performSync = async (item) => {
-    // Simulate network request
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    // In production: make the actual API call here
-    // await axiosClient.post(item.action.endpoint, item.action.payload)
-    return true
-  }
+  }, [isSyncing, getSyncQueue, removeFromSyncQueue, saveSyncQueue, performSync])
 
   // ─── Online/Offline Detection ─────────────────────────────────────────────
   // Declared after the callbacks it uses (processSyncQueue/getSyncQueue) so

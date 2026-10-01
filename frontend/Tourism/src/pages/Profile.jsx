@@ -1,11 +1,7 @@
-import { useEffect, useState, useCallback, useRef } from "react"
-import { motion } from "framer-motion"
+import { useEffect, useState, useRef } from "react"
+import "framer-motion"
 import { useForm } from "react-hook-form"
-import {
-  FiUser, FiMail, FiPhone, FiGlobe, FiMapPin, FiHeart,
-  FiBookOpen, FiAward, FiSettings, FiBell, FiTrash2,
-  FiCamera, FiEdit3, FiClock, FiStar, FiNavigation,
-} from "react-icons/fi"
+import { FiUser, FiMail, FiPhone, FiGlobe, FiMapPin, FiBookOpen, FiAward, FiSettings, FiBell, FiTrash2, FiCamera, FiStar } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
@@ -27,7 +23,7 @@ const TABS = [
 ]
 
 // ─── Personal Info Tab ───────────────────────────────────────────────────────
-const PersonalInfoTab = ({ user, onUpdate, loading }) => {
+const PersonalInfoTab = ({ user, onUpdate, loading: _loading }) => {
   const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm()
 
   useEffect(() => {
@@ -149,7 +145,7 @@ const ReviewsTab = ({ reviews, loading }) => {
 }
 
 // ─── Loyalty Tab ─────────────────────────────────────────────────────────────
-const LoyaltyTab = ({ points, tier, stats }) => {
+const LoyaltyTab = ({ points, tier: _tier, stats }) => {
   const tiers = [
     { name: "Bronze", min: 0, color: "text-amber-700", bg: "bg-amber-50" },
     { name: "Silver", min: 1000, color: "text-gray-500", bg: "bg-gray-50" },
@@ -307,9 +303,9 @@ const Profile = () => {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("personal")
   const [bookings, setBookings] = useState([])
-  const [reviews, setReviews] = useState([])
-  const [favorites, setFavorites] = useState([])
-  const [loyaltyPoints, setLoyaltyPoints] = useState(2450)
+  const [reviews, _setReviews] = useState([])
+  const [_favorites, setFavorites] = useState([])
+  const [loyaltyPoints, _setLoyaltyPoints] = useState(2450)
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef(null)
 
@@ -319,7 +315,7 @@ const Profile = () => {
       userApi.getProfile(),
       bookingApi.getMyBookings(),
       favoriteApi.list(),
-    ]).then(([profileRes, bookingRes, favRes]) => {
+    ]).then(([_profileRes, bookingRes, favRes]) => {
       if (bookingRes.status === "fulfilled") {
         setBookings(bookingRes.value.data.results || bookingRes.value.data || [])
       }

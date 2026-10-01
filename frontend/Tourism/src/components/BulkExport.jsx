@@ -1,13 +1,5 @@
 import { useState, useCallback } from "react"
-import {
-  FiDownload,
-  FiFileText,
-  FiFile,
-  FiLoader,
-  FiCheckCircle,
-  FiAlertCircle,
-  FiShield,
-} from "react-icons/fi"
+import { FiDownload, FiFileText, FiFile, FiLoader, FiAlertCircle, FiShield } from "react-icons/fi"
 import axiosClient from "../api/axiosClient"
 import useToast from "../hooks/useToast"
 import useAuth from "../hooks/useAuth"

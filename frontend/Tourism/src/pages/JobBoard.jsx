@@ -25,7 +25,10 @@ const JobBoard = () => {
   }
 
   useEffect(() => {
-    fetchJobs()
+    // Defer the initial fetch one tick so the effect doesn't setState
+    // synchronously; the initial loading state still renders the skeleton.
+    const t = setTimeout(() => fetchJobs(), 0)
+    return () => clearTimeout(t)
   }, [])
 
   const filteredJobs = jobs.filter(j => {

@@ -37,7 +37,7 @@ export const useKeyboardShortcuts = (shortcuts) => {
  * Hook for focus trap in modals.
  */
 export const useFocusTrap = (isActive) => {
-  const [focusableElements, setFocusableElements] = useState([])
+  const [_focusableElements, _setFocusableElements] = useState([])
 
   useEffect(() => {
     if (!isActive) return

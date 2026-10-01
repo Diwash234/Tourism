@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from "react"
-import { FiMapPin, FiNavigation, FiRefreshCw, FiAlertTriangle, FiClock, FiStar } from "react-icons/fi"
+import { useState, useCallback } from "react"
+import { FiMapPin, FiNavigation, FiRefreshCw, FiAlertTriangle, FiStar } from "react-icons/fi"
 import { useTranslation } from "../../hooks/useTranslation"
 import { useAuth } from "../../hooks/useAuth"
 import { nearbyApi } from "../../api/nearbyApi"
 import DestinationMap from "../destinations/DestinationMap"
-import Badge from "../common/Badge"
+import "../common/Badge"
 
 /**
  * Advanced nearby places explorer with:
@@ -17,7 +17,7 @@ import Badge from "../common/Badge"
  */
 export default function NearbyPlacesAdvanced() {
   const { t } = useTranslation()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated: _isAuthenticated } = useAuth()
   const [location, setLocation] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -58,7 +58,7 @@ export default function NearbyPlacesAdvanced() {
         setLocation(loc)
         fetchNearby(loc.lat, loc.lng)
       },
-      (err) => {
+      (_err) => {
         setError("Unable to get your location. Please check browser permissions.")
         setLoading(false)
       },

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FiMapPin, FiClock, FiStar, FiShoppingCart, FiFilter } from 'react-icons/fi'
+import { FiMapPin, FiClock, FiStar, FiShoppingCart } from 'react-icons/fi'
 
 const Marketplace = () => {
   const [listings, setListings] = useState([])
@@ -23,7 +23,10 @@ const Marketplace = () => {
   }
 
   useEffect(() => {
-    fetchListings()
+    // Defer the initial fetch one tick so the effect doesn't setState
+    // synchronously; the initial loading state still renders the skeleton.
+    const t = setTimeout(() => fetchListings(), 0)
+    return () => clearTimeout(t)
   }, [])
 
   const filteredListings = listings

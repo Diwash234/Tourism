@@ -8,7 +8,7 @@
  * - Background sync for form submissions
  */
 
-const CACHE_NAME = "nepal-tourism-v3"
+const _CACHE_NAME = "nepal-tourism-v3"
 const STATIC_CACHE = "nepal-tourism-static-v3"
 const API_CACHE = "nepal-tourism-api-v3"
 const OFFLINE_URL = "/offline.html"

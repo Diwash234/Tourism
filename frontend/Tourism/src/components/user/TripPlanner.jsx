@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { FiCalendar, FiMapPin, FiPlus, FiCheck } from "react-icons/fi"
+import { FiCalendar } from "react-icons/fi"
 
 export default function TripPlanner() {
   const [trips, setTrips] = useState([

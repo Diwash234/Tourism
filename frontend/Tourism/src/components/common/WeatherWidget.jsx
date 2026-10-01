@@ -10,9 +10,15 @@ export default function WeatherWidget({ lat, lng, destinationName }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  // Nothing to load without coordinates: turn the spinner off by adjusting
+  // during render — the effect that used to do this was banned by
+  // react-hooks/set-state-in-effect.
+  if ((!lat || !lng) && loading) {
+    setLoading(false)
+  }
+
   useEffect(() => {
     if (!lat || !lng) {
-      setLoading(false)
       return
     }
 

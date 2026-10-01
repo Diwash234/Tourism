@@ -9,7 +9,7 @@ import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
 import useToast from "../hooks/useToast"
 import { CHART_COLORS } from "../components/charts/ChartCard"
-import { Bar, Line, Pie } from "react-chartjs-2"
+import { Line, Pie } from "react-chartjs-2"
 import "../components/charts/ChartSetup"
 
 // ─── Simulated analytics data generator ──────────────────────────────────────

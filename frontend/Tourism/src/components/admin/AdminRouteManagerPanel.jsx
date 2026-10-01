@@ -1,8 +1,5 @@
 import { useEffect, useState } from "react"
-import {
-  FiTruck, FiPlus, FiEdit3, FiTrash2, FiSearch, FiCheckCircle,
-  FiMapPin, FiCompass, FiDollarSign, FiClock, FiX, FiCheck
-} from "react-icons/fi"
+import { FiPlus, FiCompass } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import destinationApi from "../../api/destinationApi"
 import axiosClient from "../../api/axiosClient"
@@ -12,7 +9,7 @@ export default function AdminRouteManagerPanel() {
   const { showToast } = useToast()
 
   const [routes, setRoutes] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [_loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
 
   // Admin Route Calculator Test Tool
@@ -49,7 +46,7 @@ export default function AdminRouteManagerPanel() {
   }
 
   // Edit / Create Route Modal
-  const [showModal, setShowModal] = useState(false)
+  const [_showModal, setShowModal] = useState(false)
   const [editingRoute, setEditingRoute] = useState(null)
   const [form, setForm] = useState({
     destination_id: "",
@@ -113,7 +110,7 @@ export default function AdminRouteManagerPanel() {
     }
   }
 
-  const handleSaveRoute = async (e) => {
+  const _handleSaveRoute = async (e) => {
     e.preventDefault()
     try {
       const payload = {

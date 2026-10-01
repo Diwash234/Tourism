@@ -3,7 +3,7 @@ import { FiAlertTriangle, FiPhone, FiMapPin, FiShield, FiUsers, FiClock, FiX } f
 import useAuth from '../hooks/useAuth'
 
 const SafetyCenter = () => {
-  const { user } = useAuth()
+  const { user: _user } = useAuth()
   const [emergencyContacts, setEmergencyContacts] = useState([])
   const [sosModal, setSosModal] = useState(false)
   const [sosLoading, setSosLoading] = useState(false)
@@ -22,7 +22,10 @@ const SafetyCenter = () => {
   }
 
   useEffect(() => {
-    fetchEmergencyContacts()
+    // Defer the initial fetch one tick so the effect doesn't setState
+    // synchronously; the initial loading state still renders the skeleton.
+    const t = setTimeout(() => fetchEmergencyContacts(), 0)
+    return () => clearTimeout(t)
   }, [])
 
   const triggerSOS = async () => {

@@ -1,22 +1,15 @@
 import { useEffect, useState, useCallback, useMemo } from "react"
 import { motion } from "framer-motion"
-import { Link } from "react-router-dom"
-import {
-  FiUsers, FiMapPin, FiAlertTriangle, FiDollarSign, FiCheck, FiX,
-  FiEye, FiShield, FiActivity, FiImage, FiPlus, FiTrash2, FiEdit3,
-  FiNavigation, FiPhoneCall, FiUserCheck, FiUserX, FiSearch, FiRefreshCw,
-  FiClock, FiTrendingUp, FiLayers, FiFileText, FiCalendar, FiHome,
-  FiCompass, FiInfo, FiChevronRight, FiExternalLink, FiPlay, FiHeart,
-  FiStar, FiMessageSquare, FiSettings, FiBarChart2, FiPieChart,
-} from "react-icons/fi"
+import "react-router-dom"
+import { FiUsers, FiMapPin, FiAlertTriangle, FiDollarSign, FiCheck, FiX, FiEye, FiShield, FiActivity, FiImage, FiTrash2, FiEdit3, FiUserCheck, FiUserX, FiRefreshCw, FiClock, FiTrendingUp, FiCompass, FiPieChart } from "react-icons/fi"
 import adminApi from "../api/adminApi"
-import destinationApi from "../api/destinationApi"
+import "../api/destinationApi"
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
 import useToast from "../hooks/useToast"
 import useAuth from "../hooks/useAuth"
 import { CHART_COLORS } from "../components/charts/ChartCard"
-import { Bar, Line, Pie } from "react-chartjs-2"
+import { Line, Pie } from "react-chartjs-2"
 import "../components/charts/ChartSetup"
 
 // ─── Stat Card Component ─────────────────────────────────────────────────────
@@ -405,8 +398,8 @@ const AdminDashboard = () => {
           <SystemHealth health={systemHealth} />
           <ModerationQueue
             items={[...pendingPlaces, ...pendingImages]}
-            onApprove={(id) => showToast("Item approved", "success")}
-            onReject={(id) => showToast("Item rejected", "info")}
+            onApprove={(_id) => showToast("Item approved", "success")}
+            onReject={(__id) => showToast("Item rejected", "info")}
           />
         </div>
 
@@ -414,7 +407,7 @@ const AdminDashboard = () => {
         <UserManagementTable
           users={users}
           onEdit={(u) => showToast(`Editing ${u.email}`, "info")}
-          onDelete={(id) => showToast("User deleted", "success")}
+          onDelete={(___id) => showToast("User deleted", "success")}
           onToggleStatus={(id, status) => showToast(`User ${status ? "deactivated" : "activated"}`, "info")}
         />
       </div>

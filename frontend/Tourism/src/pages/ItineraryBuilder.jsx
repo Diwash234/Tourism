@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FiPlus, FiTrash2, FiMapPin, FiDollarSign, FiClock, FiShare2, FiDownload } from 'react-icons/fi'
+import { FiPlus, FiTrash2, FiDollarSign, FiShare2, FiDownload } from 'react-icons/fi'
 
 const ItineraryBuilder = () => {
   const [itinerary, setItinerary] = useState({

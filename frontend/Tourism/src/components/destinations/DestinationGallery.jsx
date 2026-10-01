@@ -8,7 +8,7 @@ import LazyImage from "../common/LazyImage"
  * and download/share actions.
  */
 export default function DestinationGallery({ images = [], destinationName = "" }) {
-  const { t } = useTranslation()
+  const { t: _t } = useTranslation()
   const [lightboxIndex, setLightboxIndex] = useState(null)
   const [filter, setFilter] = useState("all")
 

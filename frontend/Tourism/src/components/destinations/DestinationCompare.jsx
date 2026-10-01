@@ -2,14 +2,14 @@ import { useState, useMemo } from "react"
 import { FiX, FiStar, FiMapPin, FiDollarSign, FiClock, FiCheck, FiMinus } from "react-icons/fi"
 import { useTranslation } from "../../hooks/useTranslation"
 import LazyImage from "../common/LazyImage"
-import Badge from "../common/Badge"
+import "../common/Badge"
 
 /**
  * Side-by-side destination comparison tool.
  * Users can select up to 3 destinations to compare key metrics.
  */
 export default function DestinationCompare({ destinations = [] }) {
-  const { t } = useTranslation()
+  const { t: _t } = useTranslation()
   const [selected, setSelected] = useState([])
 
   const toggleDestination = (dest) => {

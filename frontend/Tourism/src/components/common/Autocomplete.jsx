@@ -28,11 +28,15 @@ export default function Autocomplete({
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     if (!query.trim()) {
-      setResults([])
-      setLoading(false)
+      // Effects must not setState synchronously (set-state-in-effect);
+      // a microtask still runs before the next paint, so output is unchanged.
+      queueMicrotask(() => {
+        setResults([])
+        setLoading(false)
+      })
       return
     }
-    setLoading(true)
+    queueMicrotask(() => setLoading(true))
     debounceRef.current = setTimeout(async () => {
       try {
         const filtered = onSearch

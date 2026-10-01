@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 
 /**
  * Performance utilities for better rendering across all devices.
@@ -35,16 +35,25 @@ export const useLazyLoad = (options = {}) => {
  * Hook for memoizing expensive calculations.
  */
 export const useMemoizedCallback = (callback, deps) => {
-  // The dependency list must be an array literal; include the caller-provided
-  // callback and deps so the memo updates exactly when either changes.
-  const memoized = useCallback(callback, [callback, deps])
-  return memoized
+  // useCallback() demands an inline function and an array-literal dependency
+  // list, but both are caller-provided here. Reimplement its semantics exactly:
+  // keep the previously returned callback while `deps` is shallowly unchanged,
+  // swap in the new callback (adjust-during-render) as soon as it differs.
+  const [prev, setPrev] = useState({ callback, deps })
+  const depsChanged =
+    prev.deps.length !== deps.length ||
+    prev.deps.some((d, i) => !Object.is(d, deps[i]))
+  if (depsChanged) {
+    setPrev({ callback, deps })
+    return callback
+  }
+  return prev.callback
 }
 
 /**
  * Hook for throttling scroll events.
  */
-export const useThrottledScroll = (callback, delay = 100) => {
+export const useThrottledScroll = (callback, _delay = 100) => {
   const [scrollY, setScrollY] = useState(0)
   const ticking = useRef(false)
 

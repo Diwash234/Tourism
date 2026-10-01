@@ -8,7 +8,7 @@ import Badge from "../common/Badge"
  * Destination reviews section with rating summary,
  * review list, and write review functionality.
  */
-export default function DestinationReviews({ destination, reviews = [], onSubmitReview }) {
+export default function DestinationReviews({ destination: _destination, reviews = [], onSubmitReview }) {
   const [showForm, setShowForm] = useState(false)
   const [newReview, setNewReview] = useState({ rating: 0, comment: "" })
 

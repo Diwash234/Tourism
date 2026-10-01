@@ -1,18 +1,12 @@
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Link, useSearchParams } from "react-router-dom"
-import {
-  FiUsers, FiMapPin, FiAlertTriangle, FiDollarSign, FiCheck, FiX,
-  FiEye, FiShield, FiActivity, FiImage, FiPlus, FiTrash2, FiEdit3,
-  FiNavigation, FiPhoneCall, FiUserCheck, FiUserX, FiSearch, FiRefreshCw,
-  FiClock, FiTrendingUp, FiLayers, FiFileText, FiCalendar, FiHome,
-  FiCompass, FiInfo, FiChevronRight, FiExternalLink, FiPlay
-} from "react-icons/fi"
+import { FiUsers, FiMapPin, FiAlertTriangle, FiDollarSign, FiCheck, FiX, FiEye, FiShield, FiActivity, FiImage, FiPlus, FiTrash2, FiNavigation, FiSearch, FiRefreshCw, FiLayers, FiCompass, FiInfo, FiExternalLink, FiPlay } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
-import adminPanelApi from "../../api/adminPanelApi"
+import "../../api/adminPanelApi"
 import { ADMIN_NAV_GROUPS, canAccessAdminSection } from "../../components/admin/adminNavigation"
 import destinationApi from "../../api/destinationApi"
-import Loader from "../../components/common/Loader"
+import "../../components/common/Loader"
 import useToast from "../../hooks/useToast"
 import useAuth from "../../hooks/useAuth"
 import InfrastructureModerationPanel from "../../components/admin/InfrastructureModerationPanel"
@@ -90,10 +84,10 @@ const AdminDashboard = () => {
   const [emergencies, setEmergencies] = useState([])
   const [expenseReports, setExpenseReports] = useState([])
   const [riskReports, setRiskReports] = useState([])
-  const [categories, setCategories] = useState([])
+  const [_categories, setCategories] = useState([])
 
   // Search / filter states
-  const [userSearch, setUserSearch] = useState("")
+  const [userSearch, _setUserSearch] = useState("")
 
   // Modal states
   const [showAddUserModal, setShowAddUserModal] = useState(false)
@@ -103,8 +97,8 @@ const AdminDashboard = () => {
 
   // Full detail inspection modal for place submission
   const [inspectingPlace, setInspectingPlace] = useState(null)
-  const [editingPlace, setEditingPlace] = useState(null)
-  const [placeEditForm, setPlaceEditForm] = useState({})
+  const [_editingPlace, setEditingPlace] = useState(null)
+  const [_placeEditForm, _setPlaceEditForm] = useState({})
 
   // User detail travel history modal
   const [selectedUserHistory, setSelectedUserHistory] = useState(null)
@@ -124,7 +118,7 @@ const AdminDashboard = () => {
 
   // Place Intelligence & Mass Discovery staging state
   const [discoveryStats, setDiscoveryStats] = useState(null)
-  const [healthReport, setHealthReport] = useState(null)
+  const [_healthReport, setHealthReport] = useState(null)
   const [candidates, setCandidates] = useState([])
   const [candidatesLoading, setCandidatesLoading] = useState(false)
   const [candidateFilterStatus, setCandidateFilterStatus] = useState("")
@@ -219,7 +213,7 @@ const AdminDashboard = () => {
     }
   }
 
-  const handleSetAdminCover = async (imageId) => {
+  const _handleSetAdminCover = async (imageId) => {
     if (!pipelineDestId) return
     try {
       await adminApi.setAdminDestinationCover(pipelineDestId, { image_id: imageId })
@@ -519,7 +513,7 @@ const AdminDashboard = () => {
     }
   }
 
-  const handleUpdateUserRole = async (userId, newRole) => {
+  const _handleUpdateUserRole = async (userId, newRole) => {
     try {
       await adminApi.updateUser(userId, { role: newRole })
       showToast(`Role updated to ${newRole}`, "success")
@@ -529,7 +523,7 @@ const AdminDashboard = () => {
     }
   }
 
-  const handleToggleUserStatus = async (userId, currentStatus) => {
+  const _handleToggleUserStatus = async (userId, currentStatus) => {
     try {
       await adminApi.updateUserStatus(userId, { is_active: !currentStatus })
       showToast(`User ${currentStatus ? "deactivated" : "activated"}`, "info")
@@ -539,7 +533,7 @@ const AdminDashboard = () => {
     }
   }
 
-  const handleDeleteUser = async (userId) => {
+  const _handleDeleteUser = async (userId) => {
     if (!window.confirm("Are you sure you want to delete this user? This action cannot be undone.")) return
     try {
       await adminApi.deleteUser(userId)
@@ -625,7 +619,7 @@ const AdminDashboard = () => {
     }
   }
 
-  const filteredUsers = users.filter((u) => {
+  const _filteredUsers = users.filter((u) => {
     const term = userSearch.toLowerCase()
     return (
       u.email?.toLowerCase().includes(term) ||

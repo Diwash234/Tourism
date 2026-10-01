@@ -5,13 +5,9 @@ import { useSearchParams, Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import MapView from "../components/map/MapView"
 import LiveNavigationPanel from "../components/navigation/LiveNavigationPanel"
-import MapillaryImages from "../components/map/MapillaryImages"
+import "../components/map/MapillaryImages"
 import useGeolocation from "../hooks/useGeolocation"
-import {
-  FiNavigation, FiMapPin, FiShield,
-  FiCompass, FiTarget, FiRadio, FiLayers, FiRepeat,
-  FiCheckCircle, FiAlertTriangle, FiPhoneCall, FiSun, FiZap, FiTruck, FiCoffee
-} from "react-icons/fi"
+import { FiNavigation, FiMapPin, FiShield, FiCompass, FiTarget, FiRadio, FiLayers, FiRepeat } from "react-icons/fi"
 import { TurnIcon } from "../utils/uiIcons"
 import navigationApi from "../api/navigationApi"
 import emergencyApi from "../api/emergencyApi"
@@ -20,9 +16,9 @@ import { savedRoutesApi } from "../services/api"
 import nearbyApi from "../api/nearbyApi"
 import destinationApi from "../api/destinationApi"
 import axiosClient from "../api/axiosClient"
-import { formatDistance, formatDuration } from "../utils/formatDistance"
+import "../utils/formatDistance"
 import { RouteQualityBadge, routeQuality } from "../utils/routeQuality"
-import { formatCoords, hasValidCoords, minDistanceToPathKm } from "../utils/placeUtils"
+import { hasValidCoords, minDistanceToPathKm } from "../utils/placeUtils"
 
 const AMENITY_TABS = [
   { id: "hospitals", label: "Hospitals" },
@@ -125,10 +121,10 @@ export default function Navigation() {
   const [routeAlerts, setRouteAlerts] = useState([])
   const [alertsLoaded, setAlertsLoaded] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
-  const [emergencyDir, setEmergencyDir] = useState(null)
-  const [nearbyDests, setNearbyDests] = useState([])
-  const [featuredDests, setFeaturedDests] = useState([])
+  const [_error, setError] = useState("")
+  const [_emergencyDir, setEmergencyDir] = useState(null)
+  const [_nearbyDests, _setNearbyDests] = useState([])
+  const [_featuredDests, setFeaturedDests] = useState([])
   const [nearbyPlaces, setNearbyPlaces] = useState([])
   const [nearbyLoading, setNearbyLoading] = useState(false)
 

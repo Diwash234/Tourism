@@ -14,10 +14,10 @@ const ResponsiveSort = ({
   label = 'Sort by',
   className = '',
 }) => {
-  const [isOpen, setIsOpen] = useState(false)
+  const [_isOpen, _setIsOpen] = useState(false)
   const { isMobile } = useResponsive()
 
-  const selectedOption = options.find((opt) => opt.value === value)
+  const _selectedOption = options.find((opt) => opt.value === value)
 
   // Mobile: Dropdown
   if (isMobile) {

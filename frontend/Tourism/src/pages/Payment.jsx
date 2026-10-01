@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import {
   FiCreditCard, FiCheck, FiX, FiDownload, FiShield,
   FiClock, FiAlertCircle, FiSmartphone, FiDollarSign,

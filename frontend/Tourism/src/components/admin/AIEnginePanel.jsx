@@ -1,12 +1,9 @@
 import { useEffect, useState } from "react"
 import { notifyCmsUpdated } from "../../hooks/usePublicConfig"
-import {
-  FiCpu, FiSliders, FiCheck, FiSave, FiSearch, FiShield,
-  FiZap, FiCompass, FiDollarSign, FiAlertTriangle, FiCheckCircle, FiLock
-} from "react-icons/fi"
+import { FiSave } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import destinationApi from "../../api/destinationApi"
-import axiosClient from "../../api/axiosClient"
+import "../../api/axiosClient"
 import useToast from "../../hooks/useToast"
 
 const TABS = [

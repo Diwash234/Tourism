@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react"
-import { FiDollarSign, FiCalendar, FiUsers, FiTrendingUp, FiInfo } from "react-icons/fi"
+import { FiDollarSign, FiCalendar, FiUsers, FiInfo } from "react-icons/fi"
 import { useTranslation } from "../../hooks/useTranslation"
 import { TRAVEL_MODES, DURATION_PRESETS } from "../../utils/constants"
 
@@ -12,7 +12,7 @@ import { TRAVEL_MODES, DURATION_PRESETS } from "../../utils/constants"
  * - Visual budget distribution
  */
 export default function BudgetCalculator() {
-  const { t } = useTranslation()
+  const { t: _t } = useTranslation()
   const [mode, setMode] = useState("flight")
   const [days, setDays] = useState(7)
   const [travelers, setTravelers] = useState(2)

@@ -36,14 +36,7 @@ const TILE_PROVIDERS = {
   },
 }
 
-import {
-  userIcon,
-  destinationIcon,
-  hospitalIcon,
-  policeIcon,
-  attractionIcon,
-  placeTypeIcon,
-} from "./icons"
+import { userIcon, destinationIcon, hospitalIcon, policeIcon, placeTypeIcon } from "./icons"
 
 
 const normalizeLocation = (place) => {

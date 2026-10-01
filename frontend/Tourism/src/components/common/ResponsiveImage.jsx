@@ -15,7 +15,7 @@ const ResponsiveImage = ({
   width,
   height,
   className = '',
-  placeholder = '/images/placeholder.jpg',
+  placeholder: _placeholder = '/images/placeholder.jpg',
   sizes = '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw',
   srcSet,
   priority = false,

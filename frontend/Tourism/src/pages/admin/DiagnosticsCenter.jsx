@@ -223,7 +223,7 @@ function ErrorsPanel() {
     refresh()
   }
 
-  const resolve = async (id) => {
+  const _resolve = async (id) => {
     await adminApi.acknowledgeError(id, { resolved: true, resolution_note: "Marked resolved from admin UI" })
     refresh()
   }
