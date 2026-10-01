@@ -1,20 +1,51 @@
 """
 Common serializer mixins and utilities.
 """
+import re
+from decimal import Decimal, ROUND_HALF_UP
+
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from .image_server import image_server_url
 from .models import (
     Language, Category, Destination, DestinationImage, DestinationVideo,
     DestinationTranslation, Review, Rating, Favorite, VisitHistory, Budget,
-    Alert, EmergencyContact, Notification, NotificationPreference, DeviceToken, Hotel,
+    Alert, EmergencyContact, Notification, NotificationPreference, DeviceToken, Hospital,
+    PoliceStation, Hotel,
     OSMEssentialService, OSMTourismPlace, DestinationAuditLog,
     TravelExpenseFeedback, TravelRiskFeedback, InfrastructureSubmission, InfrastructureMedia,
     CurrentHazard, RiskIncident, RiskObservation, RecommendationEvent, RiskNewsReport,
     SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, CMSContentTranslation, DestinationFeatureProfile, StaffCapabilityProfile,
     Restaurant, DestinationTransitRoute, TravelPlan, TravelPlanStop, HeroSlide,
     TravelerDocument, RedirectRule, NewsletterSignup, MLInsight,
+    RouteSegment,
     FeaturedDestination,
 )
+from .utils import haversine_distance, public_media_url, resolve_image_url
+
+
+class UsablePhoneMixin:
+    """Guarantee that a serialized ``phone`` is either real or empty.
+
+    The imported service data shipped three kinds of unusable value (see
+    tourist/phone_quality.py): templated filler, the literal string "nan"
+    from a stringified null, and float-mangled real numbers. The first two
+    must never be shown as callable; the third is repaired rather than
+    displayed with its ".0".
+
+    Everything funnels through :func:`phone_quality.usable_phone`, which is
+    also what ``Hospital.save()``/``PoliceStation.save()`` apply, so the read
+    path and the stored value can never disagree.
+    """
+
+    def to_representation(self, instance):
+        from .phone_quality import usable_phone
+
+        data = super().to_representation(instance)
+        if "phone" in data:
+            data["phone"] = usable_phone(data.get("phone"))
+        return data
 
 
 class TimestampSerializerMixin:
@@ -63,6 +94,36 @@ class AuditSerializerMixin:
 # ---------------------------------------------------------------------------
 # Model Serializers
 # ---------------------------------------------------------------------------
+class CoordinateField(serializers.DecimalField):
+    """
+    Safe coordinate parser and validator. Handles raw floats, strings,
+    NaNs, nulls, and quantizes to 6 decimal places safely.
+    """
+    def __init__(self, **kwargs):
+        kwargs.setdefault("max_digits", 9)
+        kwargs.setdefault("decimal_places", 6)
+        super().__init__(**kwargs)
+
+    def to_internal_value(self, data):
+        if data in (None, "", "null", "undefined", "NaN", "nan"):
+            if not self.required or self.allow_null:
+                return None
+            raise serializers.ValidationError("A valid numeric coordinate is required.")
+        try:
+            val = float(str(data).strip())
+            import math
+            if math.isnan(val) or math.isinf(val):
+                if not self.required or self.allow_null:
+                    return None
+                raise serializers.ValidationError("A valid numeric coordinate is required.")
+            data = Decimal(str(round(val, 6))).quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
+            return super().to_internal_value(data)
+        except Exception:
+            if not self.required or self.allow_null:
+                return None
+            raise serializers.ValidationError("Invalid coordinate value.")
+
+
 class LanguageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Language
@@ -143,9 +204,48 @@ class DestinationImageSerializer(serializers.ModelSerializer):
 
 
 class DestinationVideoSerializer(serializers.ModelSerializer):
+    display_url = serializers.SerializerMethodField()
+    uploaded_by_name = serializers.CharField(source="uploaded_by.full_name", read_only=True)
+
     class Meta:
         model = DestinationVideo
-        fields = ["id", "destination", "video_url", "title"]
+        fields = [
+            "id", "destination", "video_url", "video_file", "display_url", "title", "caption",
+            "thumbnail", "uploaded_by", "uploaded_by_name", "verification_status", "created_at",
+        ]
+        read_only_fields = ["uploaded_by", "verification_status", "created_at"]
+
+    def get_display_url(self, obj):
+        request = self.context.get("request")
+        if obj.video_file:
+            try:
+                return request.build_absolute_uri(obj.video_file.url) if request else obj.video_file.url
+            except (ValueError, AttributeError):
+                return None
+        return obj.video_url or None
+
+    def validate(self, attrs):
+        uploaded = attrs.get("video_file")
+        url = (attrs.get("video_url") or getattr(self.instance, "video_url", "") or "").strip()
+        existing_file = getattr(self.instance, "video_file", None) if self.instance else None
+        if not uploaded and not url and not existing_file:
+            raise serializers.ValidationError("Upload a video file (max 25 MB) or provide a video URL.")
+        if uploaded and uploaded.size > 25 * 1024 * 1024:
+            raise serializers.ValidationError("Videos must be 25 MB or smaller.")
+        content_type = (getattr(uploaded, "content_type", "") or "").lower()
+        if uploaded and content_type and not content_type.startswith("video/") and content_type not in {"application/octet-stream"}:
+            raise serializers.ValidationError("Upload a video file.")
+        return attrs
+
+    def create(self, validated_data):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if user and user.is_authenticated:
+            validated_data["uploaded_by"] = user
+            from .views_admin import _has_capability
+            approved = _has_capability(request, "images", "approve")
+            validated_data["verification_status"] = "approved" if approved else "pending"
+        return super().create(validated_data)
 
 
 class DestinationTranslationSerializer(serializers.ModelSerializer):
@@ -159,7 +259,20 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Review
-        fields = ["id", "destination", "user", "user_name", "comment", "created_at"]
+        fields = ["id", "destination", "user", "user_name", "comment", "is_flagged", "moderation_status", "created_at", "updated_at"]
+        read_only_fields = ["user", "is_flagged", "moderation_status", "created_at", "updated_at"]
+
+    def validate_destination(self, destination):
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            qs = Review.objects.filter(destination=destination, user=request.user)
+            if self.instance:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise serializers.ValidationError(
+                    "You have already reviewed this destination. Edit your existing review instead."
+                )
+        return destination
 
 
 class RatingSerializer(serializers.ModelSerializer):
@@ -185,19 +298,74 @@ class VisitHistorySerializer(serializers.ModelSerializer):
 class BudgetSerializer(serializers.ModelSerializer):
     class Meta:
         model = Budget
-        fields = ["id", "user", "destination", "amount", "currency", "start_date", "end_date", "notes"]
+        fields = [
+            "id", "user", "destination", "title", "category", "amount",
+            "currency", "date", "notes", "created_at",
+        ]
+        read_only_fields = ["user", "created_at"]
 
 
 class AlertSerializer(serializers.ModelSerializer):
+    distance_km = serializers.SerializerMethodField()
+
     class Meta:
         model = Alert
-        fields = ["id", "title", "message", "severity", "is_active", "province", "created_at"]
+        fields = [
+            "id", "alert_type", "title", "description", "severity",
+            "latitude", "longitude", "city", "country", "municipality", "district", "province",
+            "source", "source_url", "is_verified", "radius_km",
+            "is_active", "starts_at", "ends_at", "created_at", "distance_km",
+        ]
+
+    @extend_schema_field(serializers.FloatField(allow_null=True))
+    def get_distance_km(self, obj):
+        user_lat = self.context.get("user_lat")
+        user_lon = self.context.get("user_lon")
+        if user_lat is None or user_lon is None or obj.latitude is None or obj.longitude is None:
+            return None
+        try:
+            return round(haversine_distance(user_lat, user_lon, obj.latitude, obj.longitude), 2)
+        except (ValueError, TypeError):
+            return None
 
 
 class EmergencyContactSerializer(serializers.ModelSerializer):
+    distance_km = serializers.SerializerMethodField()
+
     class Meta:
         model = EmergencyContact
-        fields = ["id", "name", "phone", "type", "province", "district", "is_active"]
+        fields = [
+            "id", "contact_type", "name", "phone_number", "alternate_phone",
+            "address", "city", "country", "latitude", "longitude",
+            "is_24_hours", "ward_number", "designation", "distance_km",
+        ]
+    @extend_schema_field(serializers.FloatField(allow_null=True))
+    def get_distance_km(self, obj):
+
+        user_lat = self.context.get("user_lat")
+        user_lon = self.context.get("user_lon")
+
+        if (
+            user_lat is None
+            or user_lon is None
+            or obj.latitude is None
+            or obj.longitude is None
+        ):
+            return None
+
+        try:
+            return round(
+                haversine_distance(
+                    user_lat,
+                    user_lon,
+                    obj.latitude,
+                    obj.longitude,
+                ),
+                2,
+            )
+
+        except (ValueError, TypeError):
+            return None
 
 
 class NotificationSerializer(serializers.ModelSerializer):
@@ -238,9 +406,72 @@ class PhotoUploadSerializer(serializers.Serializer):
 
 
 class HotelSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    image_is_hotel_specific = serializers.SerializerMethodField()
+    image_source = serializers.SerializerMethodField()
+    destination_context_image_url = serializers.SerializerMethodField()
+    destination_name = serializers.CharField(source="destination.name", read_only=True)
+    destination_slug = serializers.CharField(source="destination.slug", read_only=True)
+
     class Meta:
         model = Hotel
-        fields = ["id", "name", "slug", "description", "city", "country", "price_per_night", "rating", "address", "phone", "email", "website", "latitude", "longitude", "is_active"]
+        fields = [
+            "id",
+            "name", "destination", "destination_name", "destination_slug",
+            "address",
+            "latitude",
+            "longitude",
+            "price_per_night",
+            "currency",
+            "rating",
+            "booking_status",
+            "facilities",
+            "booking_url", "cover_image", "external_image_url",
+            "image_url", "image_is_hotel_specific", "image_source", "destination_context_image_url",
+            "source", "source_url", "is_verified", "verified_at", "is_active", "archived_at", "updated_at",
+        ]
+
+    def validate_external_image_url(self, value):
+        if value and not value.startswith("https://"):
+            raise serializers.ValidationError("Hotel image URL must use HTTPS")
+        return value
+
+    def validate_cover_image(self, value):
+        if value and value.size > 5 * 1024 * 1024:
+            raise serializers.ValidationError("Hotel cover must be 5 MB or smaller")
+        content_type = getattr(value, "content_type", "")
+        if value and content_type and content_type not in {"image/jpeg", "image/png", "image/webp"}:
+            raise serializers.ValidationError("Use JPEG, PNG or WebP hotel images")
+        return value
+
+    def _hotel_specific_url(self, obj):
+        if obj.cover_image:
+            return resolve_image_url(obj.cover_image)
+        return obj.external_image_url or None
+
+    def _destination_context_url(self, obj):
+        if hasattr(obj, "_destination_context_image_cache"):
+            return obj._destination_context_image_cache
+        result = public_destination_cover(obj.destination, self.context.get("request")) if obj.destination else None
+        obj._destination_context_image_cache = result
+        return result
+
+    def get_image_url(self, obj):
+        # Compatibility display URL. `image_is_hotel_specific` tells clients
+        # whether this is actual hotel media or an honestly-labelled area photo.
+        return self._hotel_specific_url(obj) or self._destination_context_url(obj)
+
+    def get_image_is_hotel_specific(self, obj):
+        return bool(self._hotel_specific_url(obj))
+
+    def get_image_source(self, obj):
+        if obj.cover_image: return "hotel_upload"
+        if obj.external_image_url: return "hotel_external"
+        if self._destination_context_url(obj): return "destination_context"
+        return "unavailable"
+
+    def get_destination_context_image_url(self, obj):
+        return self._destination_context_url(obj)
 
 
 class OSMEssentialServiceSerializer(serializers.ModelSerializer):
@@ -262,81 +493,172 @@ class TravelExpenseFeedbackSerializer(serializers.ModelSerializer):
 
 
 class TravelRiskFeedbackSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source="user.full_name", read_only=True)
+
     class Meta:
         model = TravelRiskFeedback
-        fields = ["id", "user", "destination", "risk_type", "severity", "description", "created_at"]
+        fields = [
+            "id", "user", "user_name", "destination", "destination_name",
+            "became_sick", "sickness_type", "misleading_activities",
+            "misleading_details", "accident_occurred", "accident_details",
+            "hazard_witnessed", "transport_accessibility_rating",
+            "people_helpfulness_rating", "greeting_behavior_rating",
+            "overall_safety_rating", "comments", "is_admin_verified", "reviewed_by", "reviewed_at", "created_at"
+        ]
+        read_only_fields = ["user", "is_admin_verified", "reviewed_by", "reviewed_at", "created_at"]
 
-
-class InfrastructureSubmissionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = InfrastructureSubmission
-        fields = ["id", "user", "name", "category", "description", "latitude", "longitude", "status", "created_at"]
+    def create(self, validated_data):
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            validated_data["user"] = request.user
+        return super().create(validated_data)
 
 
 class InfrastructureMediaSerializer(serializers.ModelSerializer):
+    file_url = serializers.SerializerMethodField()
+
     class Meta:
         model = InfrastructureMedia
-        fields = ["id", "submission", "image", "media_type", "description"]
+        fields = ["id", "media_type", "file", "file_url", "caption", "is_primary", "is_verified", "created_at"]
+        read_only_fields = ["is_verified", "created_at"]
+
+    def get_file_url(self, obj):
+        request = self.context.get("request")
+        try:
+            return request.build_absolute_uri(obj.file.url) if request else obj.file.url
+        except (ValueError, AttributeError):
+            return None
 
 
 class RiskNewsReportSerializer(serializers.ModelSerializer):
+    destination_name = serializers.CharField(source="destination.name", read_only=True)
+
     class Meta:
         model = RiskNewsReport
-        fields = ["id", "title", "content", "source", "published_at", "is_active"]
+        fields = [
+            "id", "destination", "destination_name", "title", "summary", "hazard_type",
+            "source_name", "source_url", "published_at", "latitude", "longitude",
+            "affected_area", "verification_status", "promoted_to_warning", "created_at", "updated_at",
+        ]
+        read_only_fields = ["promoted_to_warning", "created_at", "updated_at"]
 
 
 class DestinationFeatureProfileSerializer(serializers.ModelSerializer):
+    destination_name = serializers.CharField(source="destination.name", read_only=True)
     class Meta:
         model = DestinationFeatureProfile
-        fields = ["id", "destination", "features", "created_at", "updated_at"]
+        fields = "__all__"
+        read_only_fields = ["created_at", "updated_at", "verified_at"]
 
 
 class RiskIncidentAdminSerializer(serializers.ModelSerializer):
+    destination_name = serializers.CharField(source="destination.name", read_only=True)
     class Meta:
         model = RiskIncident
-        fields = ["id", "title", "description", "severity", "status", "province", "district", "occurred_at", "created_at"]
+        fields = "__all__"
+        read_only_fields = ["created_at", "updated_at"]
 
 
 class CurrentHazardAdminSerializer(serializers.ModelSerializer):
+    destination_name = serializers.CharField(source="destination.name", read_only=True)
     class Meta:
         model = CurrentHazard
-        fields = ["id", "title", "description", "severity", "province", "district", "expires_at", "is_active"]
+        fields = "__all__"
+        read_only_fields = ["created_at", "updated_at"]
 
 
 class RiskObservationAdminSerializer(serializers.ModelSerializer):
+    destination_name = serializers.CharField(source="destination.name", read_only=True)
     class Meta:
         model = RiskObservation
-        fields = ["id", "hazard", "observer", "observation", "latitude", "longitude", "observed_at"]
+        fields = "__all__"
+        read_only_fields = ["created_at", "updated_at"]
 
 
-class RestaurantSerializer(serializers.ModelSerializer):
+class RestaurantSerializer(UsablePhoneMixin, serializers.ModelSerializer):
+    destination_name = serializers.CharField(source="destination.name", read_only=True)
+
     class Meta:
         model = Restaurant
-        fields = ["id", "name", "slug", "description", "cuisine_type", "price_range", "city", "country", "address", "phone", "latitude", "longitude", "is_active"]
+        fields = ["id", "destination", "destination_name", "name", "cuisine_types", "description", "address",
+                  "phone", "website", "opening_hours", "price_range", "latitude", "longitude",
+                  "vegetarian_friendly", "image_url", "source_name", "source_url", "website", "is_verified", "status", "updated_at"]
+        read_only_fields = ["is_verified", "status", "updated_at"]
+
+
+class RouteSegmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RouteSegment
+        fields = [
+            "id", "route", "segment_order", "from_location", "to_location",
+            "transport_mode", "distance_km", "duration_mins", "fare_npr", "notes"
+        ]
 
 
 class DestinationTransitRouteSerializer(serializers.ModelSerializer):
+    segments = RouteSegmentSerializer(many=True, read_only=True)
+    destination_name = serializers.ReadOnlyField(source="destination.name")
+    destination_slug = serializers.ReadOnlyField(source="destination.slug")
+
     class Meta:
         model = DestinationTransitRoute
-        fields = ["id", "destination", "route_name", "transport_type", "departure_point", "arrival_point", "schedule", "fare"]
-
-
-class TravelPlanSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = TravelPlan
-        fields = ["id", "user", "title", "description", "start_date", "end_date", "is_public", "created_at", "updated_at"]
+        fields = [
+            "id", "destination", "destination_name", "destination_slug", "origin",
+            "origin_latitude", "origin_longitude", "destination_latitude", "destination_longitude",
+            "transport_mode", "distance_km", "approx_duration", "road_condition", "key_stops",
+            "estimated_fare_npr", "fare_currency", "route_source", "operator_name",
+            "contact_phone", "booking_url", "departure_schedule", "confidence_level",
+            "is_active", "is_verified", "verified_at", "expires_at", "updated_at", "segments"
+        ]
+        read_only_fields = ["updated_at"]
 
 
 class TravelPlanStopSerializer(serializers.ModelSerializer):
+    destination_name = serializers.CharField(source="destination.name", read_only=True)
+
     class Meta:
         model = TravelPlanStop
-        fields = ["id", "plan", "destination", "order_index", "arrival_date", "departure_date", "notes"]
+        fields = ["id", "plan", "destination", "destination_name", "transit_route", "day_number", "display_order", "arrival_time", "departure_time", "notes"]
+
+    def validate_plan(self, plan):
+        request = self.context.get("request")
+        if request and plan.user_id != request.user.id:
+            raise serializers.ValidationError("You may only edit your own travel plans")
+        return plan
+
+
+class TravelPlanSerializer(serializers.ModelSerializer):
+    user_email = serializers.CharField(source="user.email", read_only=True)
+    stops = TravelPlanStopSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = TravelPlan
+        fields = ["id", "user", "user_email", "title", "start_date", "end_date", "travelers", "budget_npr",
+                  "interests", "itinerary_data", "generation_source", "status", "notes", "stops",
+                  "share_token", "shared_at", "created_at", "updated_at"]
+        # Sharing is changed only through /travel-plans/<id>/share/ (owner only).
+        read_only_fields = ["user", "user_email", "status", "share_token", "shared_at", "created_at", "updated_at"]
+
+    def validate(self, attrs):
+        start = attrs.get("start_date", getattr(self.instance, "start_date", None))
+        end = attrs.get("end_date", getattr(self.instance, "end_date", None))
+        if start and end and end < start:
+            raise serializers.ValidationError("End date cannot be before start date")
+        return attrs
 
 
 class TravelerDocumentSerializer(serializers.ModelSerializer):
+    """Personal Details CRUD. `user` is always the request user (set in the
+    viewset's perform_create) and never accepted from the client."""
+
     class Meta:
         model = TravelerDocument
-        fields = ["id", "user", "document_type", "document_number", "file", "expiry_date", "is_verified", "created_at"]
+        fields = [
+            "id", "full_name", "relation_tag", "relation", "phone",
+            "id_type", "id_number", "nationality", "notes",
+            "created_at", "updated_at",
+        ]
+        read_only_fields = ["created_at", "updated_at"]
 
 
 # ---------------------------------------------------------------------------
@@ -558,16 +880,66 @@ class FeaturedDestinationSerializer(serializers.ModelSerializer):
 
 
 class InfrastructureSubmissionSerializer(serializers.ModelSerializer):
+    submitted_by_name = serializers.CharField(source="submitted_by.full_name", read_only=True)
+    image_url = serializers.SerializerMethodField()
+    video_url = serializers.SerializerMethodField()
+    media = InfrastructureMediaSerializer(many=True, read_only=True)
+
     class Meta:
         model = InfrastructureSubmission
-        fields = ["id", "user", "name", "category", "description", "latitude", "longitude", "status", "created_at"]
+        fields = "__all__"
+        read_only_fields = [
+            "submitted_by", "status", "admin_note", "reviewed_by", "reviewed_at",
+            "published_model", "published_object_id", "csv_synced_at", "created_at", "updated_at",
+        ]
+
+    def _url(self, field):
+        if not field:
+            return None
+        request = self.context.get("request")
+        try:
+            return request.build_absolute_uri(field.url) if request else field.url
+        except (ValueError, AttributeError):
+            return None
+
+    def get_image_url(self, obj):
+        return self._url(obj.image)
+
+    def get_video_url(self, obj):
+        return self._url(obj.video)
+
+    def create(self, validated_data):
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            validated_data["submitted_by"] = request.user
+        return super().create(validated_data)
+
+
+#: Generated SVG postcards are served from this route and are stored on the
+#: row as ``external_url`` (the data-repair scripts filter on this prefix).
+POSTCARD_URL_MARKER = "/api/v1/postcard/"
+
+#: Older/other shapes that also denote generated placeholder imagery rather
+#: than photography of the place.
+_POSTCARD_LEGACY_MARKERS = ("/postcards/", "/media/postcards/", "postcard://")
 
 
 def is_generated_postcard_url(url):
-    """Check if a URL is a generated postcard URL."""
+    """True for generated SVG postcard placeholder URLs.
+
+    Postcards are an honest "no real photo yet" state: they must never be
+    served as destination photography (spec: generated media is rejected as
+    real photography; a postcard-only destination renders as an empty/
+    placeholder state on the public site, not as fake imagery).
+    """
     if not url:
         return False
-    return "/postcards/" in url or url.startswith("/media/postcards/")
+    text = str(url)
+    return (
+        POSTCARD_URL_MARKER in text
+        or text.startswith(_POSTCARD_LEGACY_MARKERS)
+        or "/postcards/" in text
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -587,9 +959,15 @@ class MLResultSerializer(serializers.Serializer):
 
 
 class MLRecommendationRequestSerializer(serializers.Serializer):
-    user_id = serializers.IntegerField(required=False)
-    destination_id = serializers.IntegerField(required=False)
-    limit = serializers.IntegerField(default=10, min_value=1, max_value=50)
+    latitude = CoordinateField(required=False, allow_null=True)
+    longitude = CoordinateField(required=False, allow_null=True)
+    top_n = serializers.IntegerField(required=False, default=5, min_value=1, max_value=20)
+    interest = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    category = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    province = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    budget = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    travel_style = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    difficulty = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
 
 class MLRecommendationResponseSerializer(serializers.Serializer):
@@ -608,8 +986,19 @@ class MLWebhookResultSerializer(serializers.Serializer):
 
 
 class SafetyPredictionRequestSerializer(serializers.Serializer):
-    destination_id = serializers.IntegerField()
-    date = serializers.DateField(required=False)
+    """
+    Either pass latitude/longitude directly, OR a destination id (in which
+    case its coordinates/city/country are used automatically).
+    """
+
+    destination = serializers.PrimaryKeyRelatedField(queryset=Destination.objects.all(), required=False)
+    latitude = CoordinateField(required=False)
+    longitude = CoordinateField(required=False)
+
+    def validate(self, attrs):
+        if "destination" not in attrs and ("latitude" not in attrs or "longitude" not in attrs):
+            raise serializers.ValidationError("Provide either `destination` or both `latitude` and `longitude`.")
+        return attrs
 
 
 class SafetyPredictionResponseSerializer(serializers.Serializer):
@@ -620,10 +1009,32 @@ class SafetyPredictionResponseSerializer(serializers.Serializer):
 
 
 class BudgetPredictionRequestSerializer(serializers.Serializer):
-    destination_id = serializers.IntegerField()
-    num_people = serializers.IntegerField(default=1)
-    num_days = serializers.IntegerField(default=1)
-    travel_mode = serializers.CharField(required=False, allow_blank=True)
+    destination = serializers.PrimaryKeyRelatedField(queryset=Destination.objects.all(), required=False)
+    city = serializers.CharField(required=False, allow_blank=True)
+    country = serializers.CharField(required=False, allow_blank=True)
+    days = serializers.IntegerField(default=3, min_value=1, max_value=90)
+    travelers = serializers.IntegerField(default=1, min_value=1, max_value=20)
+    budget_level = serializers.ChoiceField(choices=["budget", "mid", "luxury"], default="mid")
+    # Traveler's current GPS position -- optional, makes the estimate
+    # genuinely distance-aware instead of a flat per-city number.
+    user_latitude = serializers.FloatField(required=False, allow_null=True)
+    user_longitude = serializers.FloatField(required=False, allow_null=True)
+    # Official-fee context (visa / park / TIMS / permits use nationality-
+    # specific published rates; seasonal permits need the travel month).
+    nationality = serializers.ChoiceField(choices=["foreign", "saarc", "chinese", "nepali"], default="foreign")
+    travel_month = serializers.IntegerField(required=False, allow_null=True, min_value=1, max_value=12)
+    include_visa = serializers.BooleanField(default=True)
+
+    def validate(self, attrs):
+        destination = attrs.get("destination")
+        city = (attrs.get("city") or "").strip()
+        if not destination and not city:
+            raise serializers.ValidationError({
+                "destination": "Please select a destination before estimating a budget. "
+                                "Budget estimates are place-specific and can't be generated "
+                                "from trip length or traveler count alone."
+            })
+        return attrs
 
 
 class BudgetPredictionResponseSerializer(serializers.Serializer):
@@ -634,9 +1045,22 @@ class BudgetPredictionResponseSerializer(serializers.Serializer):
 
 
 class BestRouteRequestSerializer(serializers.Serializer):
-    origin_id = serializers.IntegerField()
-    destination_id = serializers.IntegerField()
-    mode = serializers.CharField(required=False, allow_blank=True)
+    """
+    Either pass `destination` as the end point (its coordinates are used
+    automatically) or `end_latitude`/`end_longitude` directly. The start
+    point is always explicit — it's wherever the tourist currently is.
+    """
+
+    start_latitude = CoordinateField(min_value=Decimal("-90"), max_value=Decimal("90"))
+    start_longitude = CoordinateField(min_value=Decimal("-180"), max_value=Decimal("180"))
+    destination = serializers.PrimaryKeyRelatedField(queryset=Destination.objects.all(), required=False)
+    end_latitude = CoordinateField(required=False)
+    end_longitude = CoordinateField(required=False)
+
+    def validate(self, attrs):
+        if "destination" not in attrs and ("end_latitude" not in attrs or "end_longitude" not in attrs):
+            raise serializers.ValidationError("Provide either `destination` or both `end_latitude` and `end_longitude`.")
+        return attrs
 
 
 class BestRouteResponseSerializer(serializers.Serializer):
@@ -649,10 +1073,51 @@ class BestRouteResponseSerializer(serializers.Serializer):
 
 
 class ItineraryRequestSerializer(serializers.Serializer):
-    destination_ids = serializers.ListField(child=serializers.IntegerField())
-    start_date = serializers.DateField(required=False)
-    end_date = serializers.DateField(required=False)
-    num_people = serializers.IntegerField(default=1)
+    """
+    Rich, dataset-driven itinerary builder request. Sent when the
+    traveller presses "Generate"; nationality / travel_month drive the
+    official permit, fee and visa checks in the trip-readiness section.
+    """
+
+    nationality = serializers.ChoiceField(choices=["foreign", "saarc", "chinese", "nepali"], default="foreign")
+    travel_month = serializers.IntegerField(required=False, allow_null=True, min_value=1, max_value=12)
+    days = serializers.IntegerField(default=3, min_value=1, max_value=30)
+    travelers = serializers.IntegerField(default=1, min_value=1, max_value=50)
+    budget_npr = serializers.FloatField(required=False, allow_null=True, min_value=0)
+    budget_level = serializers.ChoiceField(
+        choices=["budget", "mid", "standard", "luxury"], default="mid"
+    )
+    travel_style = serializers.ChoiceField(
+        choices=["leisure", "adventure", "culture", "nature", "city"], default="leisure"
+    )
+    travel_type = serializers.ChoiceField(
+        choices=["solo", "couple", "family", "group"], default="solo"
+    )
+    interests = serializers.ListField(
+        child=serializers.CharField(max_length=40),
+        required=False,
+        default=["culture"],
+    )
+
+    def to_internal_value(self, data):
+        data = data.copy() if hasattr(data, "copy") else dict(data)
+        raw_budget = data.get("budget_npr")
+        if raw_budget is not None:
+            if isinstance(raw_budget, str):
+                cleaned = "".join(c for c in raw_budget if c.isdigit() or c == ".")
+                if cleaned:
+                    try:
+                        data["budget_npr"] = float(cleaned)
+                    except ValueError:
+                        data["budget_npr"] = None
+                else:
+                    data["budget_npr"] = None
+        return super().to_internal_value(data)
+    start_city = serializers.CharField(required=False, allow_blank=True, default="Kathmandu")
+    # ItineraryView scopes the plan with `district or start_city`; without the
+    # key declared here DRF silently drops it and the scope always falls back
+    # to the city string.
+    district = serializers.CharField(required=False, allow_blank=True, default="")
 
 
 class ItineraryResponseSerializer(serializers.Serializer):
@@ -664,7 +1129,7 @@ class ItineraryResponseSerializer(serializers.Serializer):
 # ---------------------------------------------------------------------------
 # Navigation Serializers
 # ---------------------------------------------------------------------------
-class RouteSegmentSerializer(serializers.Serializer):
+class MLRouteSegmentSerializer(serializers.Serializer):
     start_lat = serializers.FloatField()
     start_lng = serializers.FloatField()
     end_lat = serializers.FloatField()
@@ -677,7 +1142,7 @@ class RouteSegmentSerializer(serializers.Serializer):
 class RouteResponseSerializer(serializers.Serializer):
     distance_m = serializers.FloatField()
     duration_s = serializers.FloatField()
-    segments = serializers.ListField(child=RouteSegmentSerializer())
+    segments = serializers.ListField(child=MLRouteSegmentSerializer())
     polyline = serializers.CharField(required=False, allow_blank=True)
 
 
@@ -699,3 +1164,302 @@ class UserRouteSerializer(serializers.Serializer):
     duration_minutes = serializers.FloatField()
     transport_mode = serializers.CharField()
     created_at = serializers.DateTimeField()
+
+
+# ---------------------------------------------------------------------------
+# Emergency directory serializers (restored: commit 7385622 dropped them
+# while leaving their importers behind -- every hospital/police payload and
+# the media-gallery provenance checks below were raising ImportError).
+# ---------------------------------------------------------------------------
+
+
+
+class HospitalSerializer(UsablePhoneMixin, serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    hours = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Hospital
+        fields = ["id", "name", "address", "phone", "latitude", "longitude", "district", "image_url", "opening_hours", "hours", "emergency_available", "source_name", "source_url", "is_verified", "verified_at", "updated_at"]
+
+    def get_hours(self, obj):
+        from .opening_hours import status as hours_status
+        return hours_status(obj.opening_hours)
+
+    def get_image_url(self, obj):
+        if not obj.image:
+            return None
+        request = self.context.get("request")
+        try:
+            return public_media_url(obj.image.url, request)
+        except (ValueError, AttributeError):
+            return None
+
+
+class PoliceStationSerializer(UsablePhoneMixin, serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PoliceStation
+        fields = ["id", "name", "address", "phone", "latitude", "longitude", "image_url", "opening_hours", "emergency_available", "source_name", "source_url", "is_verified", "verified_at", "updated_at"]
+
+    def get_image_url(self, obj):
+        if not obj.image:
+            return None
+        request = self.context.get("request")
+        try:
+            return public_media_url(obj.image.url, request)
+        except (ValueError, AttributeError):
+            return None
+
+
+# ---------------------------------------------------------------------------
+# Destination photo provenance
+#
+# is_destination_specific_image() is imported by media_review.py and the
+# gallery endpoint, public_destination_cover() by restaurant.py and the AI
+# image service, and verified_destination_photos() by the data-quality audit
+# command -- all of them broke the moment these definitions disappeared.
+# ---------------------------------------------------------------------------
+
+_WIKIMEDIA_HOST = "upload.wikimedia.org"
+
+_IMAGE_STOPWORDS = {
+    "the", "and", "for", "view", "views", "photo", "photos", "with", "from",
+    "lake", "park", "temple", "stupa", "mountain", "national", "area",
+    "valley", "museum", "city", "nepal", "tourism", "hotel", "lodge",
+    "resort", "guest", "house", "homestay", "cafe", "restaurant", "point",
+    "top", "peak", "hill", "road", "street", "bridge", "gate", "door",
+    "wall", "statue", "monument", "memorial", "shrine", "mandir", "basti",
+    "chowk", "chaur", "toll", "border", "check", "post", "jpg", "jpeg",
+    "png", "gif", "webp", "file", "image",
+}
+
+BUNDLED_PLACEHOLDER_MARKERS = (
+    "bundled with app",
+    "bundled asset",
+    "bundled placeholder",
+    "generated for nepal",
+    "generated for nepal tourism",
+    "royalty-free placeholder",
+    "placeholder image",
+)
+
+BUNDLED_ASSET_PREFIXES = (
+    "/images/destinations/",
+    "/images/generic/",
+    "/images/placeholders/",
+    "/static/images/destinations/",
+)
+
+
+def _destination_identity_tokens(destination):
+    text = " ".join(filter(None, [
+        destination.name,
+        getattr(destination, "aliases", "") or "",
+        destination.city,
+        destination.district,
+        getattr(destination, "municipality", "") or "",
+        destination.province,
+    ])).lower()
+    return {t for t in re.findall(r"[a-z0-9]{4,}", text) if t not in _IMAGE_STOPWORDS}
+
+
+def _named_external_photo_title(url):
+    """Descriptive title of a named external photo (Wikimedia), or None.
+
+    Opaque/hash-based URLs carry no verifiable title and keep the legacy
+    lenient treatment — we only make strong claims for named sources."""
+    try:
+        from urllib.parse import unquote, urlparse
+
+        parts = urlparse(str(url or ""))
+    except Exception:
+        return None
+    if _WIKIMEDIA_HOST not in (parts.netloc or ""):
+        return None
+    path = unquote(parts.path)
+    if not path:
+        return None
+    fn = path.split("/thumb/")[-1].split("/")[-1] if "/thumb/" in path else path.split("/")[-1]
+    fn = re.sub(r"^\d+px-", "", fn)
+    fn = re.sub(r"\.\w+$", "", fn)
+    return fn or None
+
+
+def image_url_matches_destination(destination, url):
+    """Strong-evidence check for named external photos.
+
+    Import-era data assigned many photos of UNRELATED places (a vintage
+    phone photo for a consultancy, a monastery pool for a homestay...).
+    Wikimedia filenames are descriptive titles, so the match is verifiable
+    from the URL itself: the photo title must share a place token with the
+    destination's name/aliases/city/district/municipality.
+
+      True  — verified match, safe to display
+      False — strong mismatch evidence; never display as this destination
+      None  — opaque URL, not verifiable (legacy lenient behaviour)
+    """
+    title = _named_external_photo_title(url)
+    if title is None:
+        return None
+    tl = title.lower()
+    for candidate in filter(None, [
+        destination.name,
+        destination.city,
+        destination.district,
+        getattr(destination, "municipality", "") or "",
+    ]):
+        c2 = str(candidate).lower().strip()
+        if len(c2) >= 5 and (c2 in tl or tl in c2):
+            return True
+    for alias in filter(None, [
+        a.strip() for a in (getattr(destination, "aliases", "") or "").split(",")
+    ]):
+        a2 = alias.lower().strip(" ()")
+        if len(a2) >= 4 and a2 in tl:
+            return True
+    title_tokens = {t for t in re.findall(r"[a-z0-9]{4,}", tl) if t not in _IMAGE_STOPWORDS}
+    return bool(title_tokens & _destination_identity_tokens(destination))
+
+
+def _is_bundled_placeholder_asset(photo, external_url, image_path, source_url):
+    """True when this row is a bundled stock asset, not real photography.
+
+    The catalogue shipped a folder of generic images (``temple.jpg``,
+    ``tea-gardens.jpg``, ``interior.jpg``) and wired them in as a destination's
+    photograph whenever a place had no real image. A traveller searching for a
+    place then saw a stock interior and reasonably concluded the catalogue was
+    showing a different location. A bundled placeholder is not a wrong place
+    exactly - it is not a photograph at all - so it must never be presented as
+    this destination's photography. The same rule already applied to generated
+    postcards, which render as an honest "no real photo yet" state.
+    """
+    for candidate in (external_url, image_path, source_url):
+        if not candidate:
+            continue
+        low = str(candidate).lower()
+        if is_generated_postcard_url(low):
+            return True
+        if low.startswith(BUNDLED_ASSET_PREFIXES):
+            return True
+
+    provenance = " ".join(filter(None, [
+        getattr(photo, "license_type", "") or "",
+        getattr(photo, "attribution", "") or "",
+        getattr(photo, "photographer", "") or "",
+        getattr(photo, "source", "") or "",
+    ])).lower()
+    return any(marker in provenance for marker in BUNDLED_PLACEHOLDER_MARKERS)
+
+
+def is_destination_specific_image(destination, photo):
+    """Keep destination-linked media unless there is strong mismatch evidence.
+
+    Verification controls trust badges and admin review, not basic visibility.
+    This restores generated/imported media while still blocking obvious cases
+    such as a Kathmandu photo assigned to Phewa Lake or crash/news imagery.
+    """
+    import re
+    ignored = {"lake", "park", "temple", "stupa", "mountain", "national", "area", "view", "valley", "museum", "city", "nepal", "the", "and", "tourism"}
+    destination_text = " ".join(filter(None, [
+        destination.name, destination.aliases, destination.city, destination.district, destination.province,
+    ])).lower()
+    allowed = {token for token in re.findall(r"[a-z0-9]+", destination_text) if len(token) >= 4 and token not in ignored}
+    external_url = getattr(photo, "external_url", "") or ""
+    local_image = str(getattr(photo, "image", "") or "")
+    image_path = getattr(photo, "image_path", "") or ""
+    evidence = " ".join([external_url, local_image, image_path, getattr(photo, "source_url", "") or ""]).lower()
+    if any(term in evidence for term in ["airlines_crash", "plane_crash", "accident_scene", "placeholder", "stock-photo"]):
+        return False
+    # A bundled stock asset is not a photograph of this place.
+    if _is_bundled_placeholder_asset(photo, external_url, image_path,
+                                    getattr(photo, "source_url", "") or ""):
+        return False
+    # A locally uploaded/generated file is explicitly attached by destination_id.
+    if (local_image or image_path) and not external_url:
+        return True
+    # An admin picked this photo for this destination (media library upload,
+    # "add external image", replace-cover) and approved it. The filename
+    # heuristics below exist to catch bulk-imported mismatches; they must not
+    # silently hide a deliberate admin choice such as
+    # https://cdn.example.com/IMG_2041.jpg — that was the "saved in the
+    # database but never shown on the public site" bug.
+    # ``source == ADMIN`` alone is not enough — it is the model default and
+    # automated image searches store it too — so the photo must also have
+    # been added by a staff account through the admin UI.
+    uploader = getattr(photo, "uploaded_by", None) if getattr(photo, "uploaded_by_id", None) else None
+    if (
+        getattr(photo, "source", "") == DestinationImage.Source.ADMIN
+        and uploader is not None
+        and (uploader.is_staff or uploader.is_superuser)
+    ):
+        return True
+    # Named external photos (e.g. Wikimedia titles) can be verified from the
+    # URL: a title that shares no place token with this destination is strong
+    # mismatch evidence and must not be displayed as its imagery.
+    for candidate_url in (external_url, getattr(photo, "source_url", "") or ""):
+        if image_url_matches_destination(destination, candidate_url) is False:
+            return False
+    own_match = any(token in evidence for token in allowed)
+    strict_subject = any(term in destination_text for term in ["cave", "gupha", "gufa", "balloon", "ultralight", "paragliding", "zipflyer", "zip flyer"])
+    if strict_subject and not own_match:
+        return False
+    known_places = {"kathmandu", "patan", "bhaktapur", "pokhara", "rara", "lumbini", "mustang", "chitwan", "janakpur", "everest", "annapurna", "tilicho", "gosaikunda", "bardiya", "ilam", "dhangadhi", "dadeldhura", "pashupatinath", "boudhanath", "swayambhunath"}
+    conflicts = {place for place in known_places if place in evidence and place not in allowed}
+    if conflicts and not own_match:
+        return False
+    # Unknown/hash-based URLs remain visible only as a fallback. They are
+    # never promoted over an exact verified place match.
+    return True
+
+
+def verified_destination_photos(destination):
+    """Public galleries show APPROVED photos only.
+
+    Pending uploads (staff/community) stay in the moderation queue and must
+    never appear publicly before an admin approves them; rejected never."""
+    return [
+        photo for photo in destination.gallery.all()
+        if photo.verification_status == DestinationImage.ImageStatus.APPROVED
+        and photo.is_verified
+        and is_destination_specific_image(destination, photo)
+    ]
+
+
+def public_destination_cover(destination, request=None):
+    """Return only an approved, verified gallery cover."""
+    photos = verified_destination_photos(destination)
+    cover = next((photo for photo in photos if photo.is_cover), None) or (photos[0] if photos else None)
+    if not cover:
+        return None
+    if cover.image_path:
+        return image_server_url(cover.image_path)
+    if cover.external_url:
+        return cover.external_url
+    if cover.image:
+        try:
+            return resolve_image_url(cover.image, request)
+        except (ValueError, AttributeError):
+            return None
+    return None
+
+
+def real_photo_url(photo, request=None):
+    """Resolve a verified photo to a display URL, or None when the media is
+    a generated postcard or carries no usable file."""
+    url = None
+    if photo.image_path:
+        url = image_server_url(photo.image_path)
+    elif photo.external_url:
+        url = photo.external_url
+    elif photo.image:
+        url = resolve_image_url(photo.image, request)
+    if url and is_generated_postcard_url(url):
+        return None
+    return url or None
+
+
+def resolve_authentic_destination_image(obj):
+    """No cross-destination fallback: missing verified media stays unavailable."""
+    return None

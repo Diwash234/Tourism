@@ -10,35 +10,35 @@ from rest_framework import generics, permissions, serializers, viewsets
 
 from .models import Restaurant
 from .permissions import IsAdminOrReadOnly
-from .utils import public_media_url
 
 
 class RestaurantSerializer(serializers.ModelSerializer):
+    """Same shape as the public serializer in serializers.py (which is the one
+    the router registers): the model stores a plural `cuisine_types` list and
+    an `image_url` column, and rows are located through their destination."""
+
     image_url = serializers.SerializerMethodField()
     destination_name = serializers.CharField(source="destination.name", read_only=True)
 
     class Meta:
         model = Restaurant
         fields = [
-            "id", "destination", "destination_name", "name", "cuisine_type", "price_range",
-            "rating", "phone", "opening_hours", "booking_url", "image_url", "dietary_options",
-            "address", "latitude", "longitude", "source",
+            "id", "destination", "destination_name", "name", "cuisine_types", "price_range",
+            "phone", "opening_hours", "website", "image_url", "vegetarian_friendly",
+            "address", "latitude", "longitude", "source_name", "source_url",
+            "is_verified", "status", "updated_at",
         ]
+        read_only_fields = ["is_verified", "status", "updated_at"]
 
     def get_image_url(self, obj):
-        """Same pattern as HotelSerializer.get_image_url -- own image first, destination photo as fallback."""
-        request = self.context.get("request")
-
-        if obj.cover_image:
-            return public_media_url(obj.cover_image.url, request)
-        if obj.external_image_url:
-            return obj.external_image_url
-
-        if obj.destination:
-            from .serializers import public_destination_cover
-            return public_destination_cover(obj.destination, request)
-
-        return None
+        """Own image first, then the destination's verified cover photo --
+        mirrors the public HotelSerializer/RestaurantSerializer fallback."""
+        if obj.image_url:
+            return obj.image_url
+        if obj.destination_id is None:
+            return None
+        from .serializers import public_destination_cover
+        return public_destination_cover(obj.destination, self.context.get("request"))
 
 
 class RestaurantViewSet(viewsets.ModelViewSet):
@@ -46,9 +46,9 @@ class RestaurantViewSet(viewsets.ModelViewSet):
     queryset = Restaurant.objects.select_related("destination")
     serializer_class = RestaurantSerializer
     permission_classes = [IsAdminOrReadOnly]
-    filterset_fields = ["destination", "cuisine_type", "price_range", "source"]
-    ordering_fields = ["rating", "name"]
-    search_fields = ["name", "address", "cuisine_type"]
+    filterset_fields = ["destination", "cuisine_types", "price_range", "source_name"]
+    ordering_fields = ["name", "price_range", "created_at"]
+    search_fields = ["name", "address", "cuisine_types"]
 
 
 class RestaurantSearchView(generics.ListAPIView):
@@ -69,7 +69,7 @@ class RestaurantSearchView(generics.ListAPIView):
             Q(name__icontains=query)
             | Q(destination__name__icontains=query)
             | Q(destination__city__icontains=query)
-            | Q(cuisine_type__icontains=query)
+            | Q(cuisine_types__icontains=query)
             | Q(address__icontains=query),
             status="published",
         ).select_related("destination")[:20]

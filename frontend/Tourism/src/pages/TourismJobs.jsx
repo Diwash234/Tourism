@@ -113,11 +113,11 @@ export default function TourismJobs() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-black text-slate-900">{job.title}</h3>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#1D5146] text-white font-bold uppercase">{job.role_type_label}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold uppercase">{job.employment_type_label}</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-[#1D5146] text-white font-bold uppercase">{job.role_type_label}</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold uppercase">{job.employment_type_label}</span>
                   </div>
                   <p className="text-xs text-slate-600 mt-1.5 line-clamp-2">{job.description}</p>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500 mt-2">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 mt-2">
                     {job.city && <span className="flex items-center gap-1"><FiMapPin /> {job.city}</span>}
                     {job.compensation && <span className="flex items-center gap-1"><FiDollarSign /> {job.compensation}</span>}
                     {job.application_deadline && <span className="flex items-center gap-1"><FiClock /> Apply by {job.application_deadline}</span>}
@@ -126,14 +126,14 @@ export default function TourismJobs() {
                   {job.skills?.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
                       {job.skills.slice(0, 6).map((s) => (
-                        <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-slate-50 border text-slate-500 font-bold">{s}</span>
+                        <span key={s} className="text-xs px-2 py-0.5 rounded-full bg-slate-50 border text-slate-500 font-bold">{s}</span>
                       ))}
                     </div>
                   )}
                 </div>
                 <div className="shrink-0">
                   {appliedJobIds.has(job.id) ? (
-                    <span className={`inline-flex items-center gap-1 text-[10px] px-3 py-2 rounded-full font-black uppercase ${badge[statusOf(job.id)] || "bg-slate-100"}`}>
+                    <span className={`inline-flex items-center gap-1 text-xs px-3 py-2 rounded-full font-black uppercase ${badge[statusOf(job.id)] || "bg-slate-100"}`}>
                       <FiCheckCircle /> {statusOf(job.id) || "Application recorded"}
                     </span>
                   ) : isAuthenticated ? (

@@ -994,10 +994,10 @@ const Itinerary = () => {
                 ))}
               </div>
               {plan.modificationNote && (
-                <p className="text-[11px] text-emerald-700 font-bold bg-emerald-50 p-2 rounded-xl border border-emerald-200">✓ {plan.modificationNote}</p>
+                <p className="text-xs text-emerald-700 font-bold bg-emerald-50 p-2 rounded-xl border border-emerald-200">✓ {plan.modificationNote}</p>
               )}
               {focusDestination && (
-                <p className="text-[11px] text-himalaya-600 font-bold bg-himalaya-50 p-2 rounded-xl border border-himalaya-100">🎯 Planning focus: {focusDestination}</p>
+                <p className="text-xs text-himalaya-600 font-bold bg-himalaya-50 p-2 rounded-xl border border-himalaya-100">🎯 Planning focus: {focusDestination}</p>
               )}
             </div>
 
@@ -1021,7 +1021,7 @@ const Itinerary = () => {
                   {notes.map((n) => (
                     <div key={n.id} className="flex items-center justify-between border-b border-gray-100 pb-2">
                       <div className="min-w-0">
-                        <span className="text-[10px] text-gray-400 font-bold uppercase">{n.category}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase">{n.category}</span>
                         <p className="font-bold text-gray-800 truncate">{n.label}</p>
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
@@ -1416,7 +1416,7 @@ const Itinerary = () => {
                         >
 
 
-                          <span className="text-[10px] uppercase tracking-wide text-gray-400">
+                          <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
 
                             {dest.category}
 
@@ -1436,7 +1436,7 @@ const Itinerary = () => {
                           {
                             dest.latitude && dest.longitude && (
 
-                              <p className="text-[11px] text-gray-400 mt-1">
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
 
                                 {dest.latitude.toFixed(4)},
                                 {" "}
@@ -1459,7 +1459,7 @@ const Itinerary = () => {
 
                   {day.nearby_services && (
                     <div className="mt-5 pt-4 border-t">
-                      <h4 className="text-xs font-black uppercase tracking-wide text-gray-500 mb-3">Nearby planning & emergency services</h4>
+                      <h4 className="text-xs font-black uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Nearby planning & emergency services</h4>
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         {[
                           ["Stay", day.nearby_services.hotels],
@@ -1470,12 +1470,12 @@ const Itinerary = () => {
                           <div key={label} className="rounded-xl bg-gray-50 p-3">
                             <b className="text-xs">{label}</b>
                             {(services || []).length ? services.map((service) => (
-                              <div key={`${label}-${service.id}`} className="mt-2 text-[11px] text-gray-600">
+                              <div key={`${label}-${service.id}`} className="mt-2 text-xs text-gray-600 dark:text-gray-400">
                                 <span className="font-semibold block truncate">{service.name}</span>
                                 <span>{service.distance_km} km straight-line{service.phone ? ` · ${service.phone}` : ""}</span>
                                 <VerificationBadge record={service} compact className="mt-1" />
                               </div>
-                            )) : <p className="text-[11px] text-gray-500 mt-2">No record nearby in our database</p>}
+                            )) : <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">No record nearby in our database</p>}
                           </div>
                         ))}
                       </div>

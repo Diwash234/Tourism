@@ -32,12 +32,11 @@ This agreement covers processing of personal data on behalf of the controller.
 - Process data only on documented instructions
 - Implement appropriate security measures
 - Assist with data subject rights requests
-- Delete or return data after service ends
+- Delete data after service ends
 
 ### Controller shall:
 - Provide clear processing instructions
 - Ensure lawful basis for processing
-- Monitor processor compliance
 
 ## Sub-processors
 

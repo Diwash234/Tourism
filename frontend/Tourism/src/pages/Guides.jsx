@@ -130,13 +130,13 @@ export default function Guides() {
                   <h3 className="font-black text-slate-900">{g.name}</h3>
                   <p className="text-xs text-slate-500">{g.headline || "Tourism guide"}</p>
                 </div>
-                <span className={`text-[10px] px-2 py-1 rounded-full font-black flex items-center gap-1 whitespace-nowrap ${g.is_verified ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
+                <span className={`text-xs px-2 py-1 rounded-full font-black flex items-center gap-1 whitespace-nowrap ${g.is_verified ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
                   <FiAward /> {g.is_verified ? "VERIFIED" : "LISTED"}
                 </span>
               </div>
               <button onClick={() => toggleReviews(g.id)} className="flex items-center gap-2 text-left w-fit group" aria-expanded={reviewsFor === g.id}>
                 {g.rating_avg ? stars(g.rating_avg) : <span className="text-xs text-slate-400 font-bold">New guide</span>}
-                <span className="text-[11px] text-slate-400 font-bold group-hover:text-[#1D5146]">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-bold group-hover:text-[#1D5146]">
                   {g.review_count > 0 ? `${g.review_count} review${g.review_count === 1 ? "" : "s"}` : "No reviews yet"} · {reviewsFor === g.id ? "hide" : "view"}
                 </span>
               </button>
@@ -150,13 +150,13 @@ export default function Guides() {
                     <div key={r.id} className="border-b last:border-0 pb-2 last:pb-0">
                       <p className="font-black text-amber-600">{"★".repeat(r.rating)}<span className="text-slate-300">{"★".repeat(5 - r.rating)}</span></p>
                       {r.review && <p className="text-slate-600 mt-0.5">{r.review}</p>}
-                      <p className="text-[10px] text-slate-400 mt-0.5">{r.author || "Traveller"} · {new Date(r.created_at).toLocaleDateString()}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{r.author || "Traveller"} · {new Date(r.created_at).toLocaleDateString()}</p>
                     </div>
                   ))}
                 </div>
               )}
               <p className="text-xs text-slate-600 line-clamp-3">{g.bio || "No bio provided yet."}</p>
-              <div className="text-[11px] text-slate-500 space-y-1 mt-auto">
+              <div className="text-xs text-slate-500 dark:text-slate-400 space-y-1 mt-auto">
                 {g.base_city && <p className="flex items-center gap-1"><FiMapPin /> {g.base_city}</p>}
                 {g.languages?.length > 0 && <p>Languages: {g.languages.join(", ")}</p>}
                 {g.specializations?.length > 0 && <p>Specialties: {g.specializations.join(", ")}</p>}

@@ -471,7 +471,7 @@ export default function SubmitPlacePage() {
           {/* Coordinates readout and manual adjustments */}
           <div className="mt-3 p-4 rounded-2xl bg-[#F7F8F5]/80 border border-[#E5E0D5] grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
             <div>
-              <label className="text-[10px] text-gray-500 font-bold uppercase">Latitude (DD)</label>
+              <label className="text-xs text-gray-500 font-bold uppercase">Latitude (DD)</label>
               <input
                 type="number"
                 step="any"
@@ -481,7 +481,7 @@ export default function SubmitPlacePage() {
               />
             </div>
             <div>
-              <label className="text-[10px] text-gray-500 font-bold uppercase">Longitude (DD)</label>
+              <label className="text-xs text-gray-500 font-bold uppercase">Longitude (DD)</label>
               <input
                 type="number"
                 step="any"
@@ -491,7 +491,7 @@ export default function SubmitPlacePage() {
               />
             </div>
             <div className="col-span-2 sm:col-span-1 flex flex-col justify-end">
-              <span className="text-[10px] text-gray-500 font-bold uppercase">Location Geocode</span>
+              <span className="text-xs text-gray-500 font-bold uppercase">Location Geocode</span>
               <p className="text-xs font-extrabold text-[#102A2E] mt-1">
                 {selectedDistrict}, Ward {selectedWard}
               </p>

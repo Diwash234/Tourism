@@ -199,7 +199,7 @@ export default function GuidePortal() {
                 <button disabled={busy || hasOpen} className="px-6 py-3 bg-[#1D5146] disabled:opacity-40 text-white rounded-xl text-sm font-black">
                   {busy ? "Submitting…" : "Submit Application"}
                 </button>
-                <p className="text-[11px] text-slate-400">Workflow: Applied → Under Review → Document Verification → Approved. The verification team may request additional information.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Workflow: Applied → Under Review → Document Verification → Approved. The verification team may request additional information.</p>
               </form>
             )}
 

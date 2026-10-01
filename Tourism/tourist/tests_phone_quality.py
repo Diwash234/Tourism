@@ -147,7 +147,11 @@ class PhoneCleanupMigrationTests(_ServiceFixtures):
         self.assertEqual(PoliceStation.objects.get(name="Idem Police").phone, "014440000")
 
     def test_migration_reports_what_it_changed(self):
-        self._police("Reported Police", "nan")
+        police = self._police("Reported Police", "nan")
+        # save() blanks unusable numbers itself now, so the import-era value
+        # has to be written the way the original CSV load did -- straight past
+        # the model. That raw row is exactly the state 0086 exists to repair.
+        PoliceStation.objects.filter(pk=police.pk).update(phone="nan")
         editor = self._run()
         self.assertTrue(editor.statements, "the migration should record what it cleaned")
         self.assertIn("PoliceStation", editor.statements[0])

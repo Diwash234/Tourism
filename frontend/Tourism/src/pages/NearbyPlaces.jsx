@@ -45,7 +45,7 @@ const PlaceTypeChip = ({ destination }) => {
   const type = getPlaceTypeIcon(destination)
   const TypeIcon = type.Icon
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold mb-1.5 ${type.chip}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold mb-1.5 ${type.chip}`}>
       <TypeIcon className="w-3 h-3" aria-hidden="true" />
       {type.label}
     </span>
@@ -368,7 +368,7 @@ const NearbyPlaces = () => {
         <div className="flex items-center gap-2 min-w-0">
           <FiMapPin className="text-himalaya-500 shrink-0" aria-hidden="true" />
           <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-wider text-gray-400">Searching from</p>
+            <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">Searching from</p>
             <p className="text-sm font-semibold text-emerald-900 truncate max-w-[220px] sm:max-w-none">
               {origin ? origin.label : locating ? "Finding your location…" : "Location not set"}
             </p>
@@ -542,17 +542,17 @@ const NearbyPlaces = () => {
                   {(poiData.categories?.[poiCat]?.results || []).map((row) => (
                     <div key={`${row.osm_type}-${row.osm_id}`} className="card-base p-4">
                       <p className="font-semibold text-sm text-emerald-900">{row.name}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                         {[row.distance_km != null ? `${row.distance_km} km` : null, row.religion, row.address].filter(Boolean).join(" · ")}
                       </p>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs">
                         {row.phone && <a className="inline-flex items-center gap-1 text-emerald-700 hover:underline" href={`tel:${row.phone}`}><FiPhone className="w-3 h-3" /> {row.phone}</a>}
                         {row.website && <a className="text-emerald-700 hover:underline" href={row.website} target="_blank" rel="noopener noreferrer">Website</a>}
-                        {row.hours ? <OpenNowBadge hours={row.hours} /> : row.opening_hours && <span className="text-gray-500">{row.opening_hours}</span>}
+                        {row.hours ? <OpenNowBadge hours={row.hours} /> : row.opening_hours && <span className="text-gray-500 dark:text-gray-400">{row.opening_hours}</span>}
                         <a className="text-emerald-700 hover:underline" href={row.source_url} target="_blank" rel="noopener noreferrer">OpenStreetMap ↗</a>
                         <a className="text-emerald-700 hover:underline" href={directionsHref(row)} target="_blank" rel="noopener noreferrer"><FiNavigation className="w-3 h-3 inline" /> Directions</a>
                       </div>
-                      <p className="text-[10px] text-gray-400 mt-2">{row.source}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{row.source}</p>
                     </div>
                   ))}
                 </div>
@@ -590,7 +590,7 @@ const NearbyPlaces = () => {
                   <div key={h.id} className="flex flex-col">
                     <HotelCard hotel={h} />
                     {h.distance_km != null && (
-                      <p className="mt-1.5 self-start text-xs font-medium text-emerald-700">
+                      <p className="mt-1.5 self-start text-xs font-medium text-emerald-700 dark:text-emerald-300">
                         {h.distance_km} km from {origin?.label}
                       </p>
                     )}

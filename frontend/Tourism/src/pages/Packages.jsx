@@ -128,8 +128,8 @@ function OfferCard({ listing, onAdd, featured }) {
     <article className="card-base overflow-hidden flex flex-col" data-testid="package-card" data-package-slug={listing.slug}>
       <div className="relative aspect-[16/9] w-full overflow-hidden bg-[var(--ny-soft-green)]">
         <PlaceholderImage src={listing.image_url} title={listing.title} alt={listing.title} className="h-full w-full" />
-        <span className="absolute top-3 left-3 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-900">{listing.kind}</span>
-        {featured && <span className="absolute top-3 right-3 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-black uppercase text-gray-950">Featured</span>}
+        <span className="absolute top-3 left-3 rounded-full bg-white/90 px-2 py-0.5 text-xs font-black uppercase text-emerald-900">{listing.kind}</span>
+        {featured && <span className="absolute top-3 right-3 rounded-full bg-amber-400 px-2 py-0.5 text-xs font-black uppercase text-gray-950">Featured</span>}
       </div>
       <div className="p-5 flex-1 flex flex-col">
         <p className="text-xs text-slate-500">{listing.partner_name || "Provider not recorded"} · {listing.city || listing.destination_name || "Location unavailable"}</p>

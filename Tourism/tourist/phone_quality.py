@@ -116,3 +116,25 @@ def normalize_phone_artifact(value) -> str:
     if len(digits) == 8:
         return _TRUNK + digits
     return body
+
+
+def usable_phone(value) -> str:
+    """Return a number that is safe to display, or ``""`` when there is none.
+
+    The single entry point for callers that must never hand a bad number to a
+    traveller -- ``Hospital.save()``, ``PoliceStation.save()`` and the
+    emergency/district endpoints all go through it:
+
+    * a stringified null (``"nan"``, ``"N/A"``, ``"-"``) and the templated
+      filler (``037-520123``) are blanked;
+    * a float-mangled number is repaired (``14440000.0`` -> ``014440000``);
+    * everything else is returned trimmed but otherwise untouched, so short
+      real numbers such as the ``100`` helpline survive.
+
+    Blank (rather than ``None``) because every caller writes back into a
+    non-null ``CharField``.
+    """
+    text = str(value).strip() if value is not None else ""
+    if is_unusable_phone(text):
+        return ""
+    return normalize_phone_artifact(text)

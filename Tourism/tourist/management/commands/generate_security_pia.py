@@ -17,11 +17,11 @@ class Command(BaseCommand):
 
         content = """# Privacy Impact Assessment
 
-## Project Overview
+## Project Information
 
 - Project name: [Name]
-- Data controller: Nepal Tourism Platform
 - Date: [Date]
+- Assessor: [Name]
 
 ## Data Processing
 
@@ -34,12 +34,12 @@ class Command(BaseCommand):
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| Data breach | Low | High | Encryption |
-| Unauthorized access | Low | High | Access controls |
+| Privacy violation | Low | High | Encryption |
+| Data breach | Low | High | Access controls |
 
 ## Recommendations
 
-- Implement encryption
+- Implement privacy by design
 - Conduct regular audits
 - Provide privacy training
 """

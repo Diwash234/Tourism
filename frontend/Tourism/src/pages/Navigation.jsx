@@ -550,7 +550,7 @@ export default function Navigation() {
             <button onClick={() => setGameMode(true)} className={`p-2.5 rounded-xl border text-left ${gameMode ? 'bg-amber-400 text-slate-950 font-black' : 'bg-slate-800 border-slate-700 text-slate-300'}`}>🎯 Compass Radar HUD</button>
             <div className="p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-300">
               <span className="block font-bold text-amber-300">Altitude Matrix</span>
-              <span className="text-[10px] text-slate-400">{getDistrictAltitude(destination)}</span>
+              <span className="text-xs text-slate-400">{getDistrictAltitude(destination)}</span>
             </div>
           </div>
         </motion.div>
@@ -586,7 +586,7 @@ export default function Navigation() {
               </button>
             </div>
 
-            <div className="flex flex-wrap gap-1.5 items-center text-[11px]">
+            <div className="flex flex-wrap gap-1.5 items-center text-xs">
               <span className="text-slate-500 font-semibold">Quick origin:</span>
               {["Kathmandu", "Pokhara", "Biratnagar", "Janakpur", "Nepalgunj", "Dhangadhi", "Ilam", "Mahendranagar"].map((city) => (
                 <button
@@ -614,7 +614,7 @@ export default function Navigation() {
             </div>
 
             {provinces.length > 0 && (
-              <div className="sm:col-span-2 text-[11px]">
+              <div className="sm:col-span-2 text-xs">
                 <button
                   type="button"
                   onClick={() => setOpenProvince(openProvince ? null : "__list")}
@@ -630,7 +630,7 @@ export default function Navigation() {
                         key={p.name}
                         type="button"
                         onClick={() => setOpenProvince(p.name)}
-                        className="px-2 py-1 rounded-full bg-white border text-[10px] font-bold text-slate-600 hover:bg-slate-100"
+                        className="px-2 py-1 rounded-full bg-white border text-xs font-bold text-slate-600 hover:bg-slate-100"
                       >
                         {p.name} <span className="text-slate-400">({p.destination_count})</span>
                       </button>
@@ -644,7 +644,7 @@ export default function Navigation() {
                         key={d.id}
                         type="button"
                         onClick={() => { setDestinationQuery(d.name); setOpenProvince(null) }}
-                        className="px-2 py-1 rounded-full bg-[#1D5146] text-white text-[10px] font-bold hover:opacity-90"
+                        className="px-2 py-1 rounded-full bg-[#1D5146] text-white text-xs font-bold hover:opacity-90"
                       >
                         {d.name}
                       </button>

@@ -23,7 +23,7 @@ from django.db.models import Count, Q
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .phone_quality import is_unusable_phone
+from .phone_quality import is_unusable_phone, usable_phone
 
 from .location_utils import haversine_km
 from .models import Destination, District, Hospital, PoliceStation, Province

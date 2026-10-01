@@ -42,7 +42,6 @@ class Command(BaseCommand):
 
 - No denial of service
 - No data modification
-- No social engineering
 - Business hours only
 """
 

@@ -31,11 +31,11 @@ class Command(BaseCommand):
 
 ## Terms
 
-### Confidentiality
-All information shared under this agreement is confidential.
+### Payment
+Monthly fees due on the 1st of each month.
 
-### Liability
-Provider liability limited to fees paid under this agreement.
+### Term
+Initial term of 1 year, auto-renewing.
 
 ### Termination
 Either party may terminate with 30 days notice.

@@ -58,6 +58,8 @@ All notable changes to the Nepal Tourism Platform will be documented in this fil
 - GraphQL schema support
 - OpenAPI specification
 - Postman collection
+- Comprehensive security compliance framework (PCI DSS, HIPAA, GDPR, CCPA, LGPD, PDPA, PIPL, APPI, POPIA, DPA UK, PDPA Thailand)
+- Security documentation templates (DPIA, ROPA, TIA, LIA, CIA, OWASP ASVS, CIS, NIST 800-53, ISO 27001, SOC 2)
 
 ### Security
 - OAuth email verification hardening
