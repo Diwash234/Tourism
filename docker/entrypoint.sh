@@ -68,6 +68,28 @@ PY
       echo "entrypoint: loading data from generated transient fixture"
       python manage.py loaddata /tmp/tourism-load.json
       rm -f /tmp/tourism-load.json
+      # A successful loaddata command is not enough: verify that the public
+      # catalogue and media rows really reached PostgreSQL before the server
+      # starts. This prevents a green-looking deployment with an empty API.
+      python - <<'PY'
+import os
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Tourism.settings")
+import django
+django.setup()
+from django.db import connection
+with connection.cursor() as cur:
+    cur.execute("SELECT COUNT(*) FROM tourist_destination")
+    destinations = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM tourist_destinationimage")
+    images = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM tourist_destinationimage WHERE external_url <> '' OR image_path <> '' OR image IS NOT NULL")
+    usable_images = cur.fetchone()[0]
+print(f"entrypoint: PostgreSQL seed verification: destinations={destinations}, images={images}, usable_images={usable_images}")
+if destinations == 0:
+    raise SystemExit("Seed verification failed: tourist_destination is still empty")
+if images == 0:
+    print("entrypoint: WARNING - no destination media rows were imported")
+
     elif [ -f "/app/downloads/nepal-tourism-seed.sqlite3.gz" ]; then
       echo "entrypoint: no load.json found, using SQLite seed database as fallback"
       python manage.py install_public_seed_db --skip-checksum
