@@ -109,13 +109,19 @@ PY
     echo "entrypoint: checking for missing legacy user accounts"
     python manage.py import_legacy_users
   fi
+  # Post-seed enrichment is best-effort: one missing data file must never
+  # abort the boot (set -e would kill daphne and fail the whole deploy).
   echo "entrypoint: backfilling missing destination media from verified seed"
-  python manage.py sync_seed_media_postgres
+  python manage.py sync_seed_media_postgres \
+    || echo "entrypoint: WARNING - media backfill skipped"
   echo "entrypoint: importing sourced emergency and nearby-service records"
-  python manage.py import_emergency_services
-  python manage.py seed_district_services
+  python manage.py import_emergency_services \
+    || echo "entrypoint: WARNING - emergency services import skipped"
+  python manage.py seed_district_services \
+    || echo "entrypoint: WARNING - district services seed skipped"
   echo "entrypoint: repairing explicitly curated destination media"
-  python manage.py repair_curated_media
+  python manage.py repair_curated_media \
+    || echo "entrypoint: WARNING - curated media repair skipped"
 
   # Fill empty destination columns from coordinates/CSVs after every seed
   # path (snapshot, fixture, dataset, archive).  Idempotent - only empty

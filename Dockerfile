@@ -61,9 +61,19 @@ RUN chmod +x /usr/local/bin/ny-entrypoint
 # Move into Django project
 WORKDIR /app/Tourism
 
-# Create directories required by the application
-RUN mkdir -p /var/lib/tourism/media \
+# Create directories required by the application.
+# MEDIA_ROOT defaults to <BASE_DIR>/media = /app/Tourism/media (settings.py);
+# the health check reports it unwritable and 503s every Render deploy if this
+# directory is missing. /var/lib/tourism/* is kept for configs that point
+# MEDIA_ROOT/MEDIA at those paths via env.
+RUN mkdir -p /app/Tourism/media \
+    /var/lib/tourism/media \
     /var/lib/tourism/data
+
+# Real OSM amenity layer consumed by import_emergency_services (hospitals,
+# clinics, pharmacies, police, banks) -- without it the entrypoint command
+# crashes on a missing ml_service/ tree and the boot never reaches daphne.
+COPY ml_service/data/emergency/emergency_services.csv /app/ml_service/data/emergency/emergency_services.csv
 
 # Collect Django static files
 RUN python manage.py collectstatic --noinput
