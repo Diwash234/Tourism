@@ -195,9 +195,31 @@ with connection.cursor() as cur:
     usable_images = cur.fetchone()[0]
     cur.execute("SELECT COUNT(*) FROM tourist_user")
     users = cur.fetchone()[0]
+    # These counts are intentionally runtime diagnostics: they make a Render
+    # deployment visibly fail its data audit instead of looking healthy while
+    # one of the public catalogue tables stayed empty.
+    tables = {
+        "hotels": "tourist_hotel",
+        "hospitals": "tourist_hospital",
+        "police": "tourist_policestation",
+        "emergency_contacts": "tourist_emergencycontact",
+        "osm_services": "tourist_osmessentialservice",
+        "budget_rows": "tourist_budgetestimation",
+        "risk_incidents": "tourist_riskincident",
+    }
+    counts = {}
+    for label, table in tables.items():
+        try:
+            cur.execute(f"SELECT COUNT(*) FROM {table}")
+            counts[label] = cur.fetchone()[0]
+        except Exception:
+            counts[label] = "table-unavailable"
 print(
     f"entrypoint: PostgreSQL verification: "
-    f"destinations={destinations}, images={images}, usable_images={usable_images}, users={users}"
+    f"destinations={destinations}, images={images}, usable_images={usable_images}, users={users}, "
+    f"hotels={counts['hotels']}, hospitals={counts['hospitals']}, police={counts['police']}, "
+    f"emergency_contacts={counts['emergency_contacts']}, osm_services={counts['osm_services']}, "
+    f"budget_rows={counts['budget_rows']}, risk_incidents={counts['risk_incidents']}"
 )
 if destinations == 0:
     raise SystemExit("Database verification failed: tourist_destination is empty")
