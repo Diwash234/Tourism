@@ -102,18 +102,33 @@ PY
     echo "entrypoint: PostgreSQL already contains $DATA_EXISTS destinations - preserving catalogue"
   fi
 
-  # Always attempt missing legacy users. This is independent of the
-  # destination seed condition so a partially seeded production DB can still
-  # receive the historical accounts without replacing anything.
-  if [ -f "/app/downloads/nepal-tourism-database.sqlite3.gz" ]; then
-    echo "entrypoint: checking for missing legacy user accounts"
-    python manage.py import_legacy_users
-  fi
+  # Import hotels, hospitals, police from CSV (after seed or on existing DB)
+  # These are idempotent and will only add missing records
+  echo "entrypoint: importing hotels from hotel.csv"
+  python manage.py import_hotels_csv || echo "entrypoint: WARNING - hotel CSV import skipped"
+  
+  echo "entrypoint: importing hospital directory"
+  python manage.py import_hospital --csv dataset/hospital_cleaned.csv \
+    || echo "entrypoint: WARNING - hospital CSV import skipped"
+  
+  echo "entrypoint: importing police directory"
+  python manage.py import_police --csv dataset/nearbypolice.csv \
+    || echo "entrypoint: WARNING - police CSV import skipped"
+  
+  # Import risk data
+  echo "entrypoint: importing risk data"
+  python manage.py import_risk \
+    || echo "entrypoint: WARNING - risk CSV import skipped"
+  
   # Post-seed enrichment is best-effort: one missing data file must never
   # abort the boot (set -e would kill daphne and fail the whole deploy).
   echo "entrypoint: repairing external cover-image paths"
   python manage.py repair_cover_image_urls \
     || echo "entrypoint: WARNING - cover-image repair skipped"
+  
+  # Import OSM destinations (adds new destinations from OpenStreetMap)
+  echo "entrypoint: importing OSM destinations"
+  python manage.py import_osm_destinations || echo "entrypoint: WARNING - OSM destinations import skipped"
 
   echo "entrypoint: backfilling missing destination media from verified seed"
   python manage.py sync_seed_media_postgres \

@@ -61,16 +61,12 @@ const useGeolocation = ({ auto = true, enableIpFallback = true } = {}) => {
     }
   }, [])
 
-  // IP-based geolocation fallback via backend
+  // IP-based geolocation fallback via backend (public endpoint, no auth required)
   const fetchIpLocation = useCallback(async () => {
     if (ipFallbackAttempted.current) return false
     ipFallbackAttempted.current = true
     try {
-      const resp = await fetch("/api/v1/auth/update-location/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      })
+      const resp = await fetch("/api/v1/auth/detect-location/")
       const data = await resp.json()
       if (data?.latitude && data?.longitude) {
         setCoords({ latitude: data.latitude, longitude: data.longitude })

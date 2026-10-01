@@ -510,7 +510,7 @@ DEFAULT_LANGUAGE_CODE = config("DEFAULT_LANGUAGE_CODE", default="en")
 # ------------------------------------------------------------------
 # Optional IP geolocation fallback. It is disabled unless the operator provides
 # an HTTPS endpoint; never silently send visitor IPs over plain HTTP.
-GEOIP_PROVIDER_URL = config("GEOIP_PROVIDER_URL", default="")
+GEOIP_PROVIDER_URL = config("GEOIP_PROVIDER_URL", default="https://ipapi.co/{ip}/json/")
 
 # ------------------------------------------------------------------
 # Weather / Alerts external API (OpenWeatherMap etc.)
