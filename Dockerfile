@@ -8,13 +8,13 @@ FROM node:22-alpine AS frontend
 WORKDIR /app/frontend
 
 COPY frontend/Tourism/package.json ./package.json
-# Copy package metadata only. Do not run npm ci here: Render previously supplied
-# an incompatible npm-shrinkwrap/package-lock combination. This image build
-# intentionally resolves from package.json and does not depend on a shrinkwrap.
+COPY frontend/Tourism/package-lock.json ./package-lock.json
+# Keep the production build reproducible. The frontend lockfile is lockfileVersion 3
+# and is compatible with the Node 22/npm toolchain used by this image.
 RUN npm --version && node --version
 
 COPY frontend/Tourism/ ./
-RUN rm -f npm-shrinkwrap.json package-lock.json && npm install --no-audit --no-fund --prefer-offline
+RUN npm ci --no-audit --no-fund
 
 ARG VITE_SITE_URL=""
 ENV VITE_SITE_URL=$VITE_SITE_URL
