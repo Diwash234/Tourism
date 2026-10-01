@@ -41,7 +41,6 @@ class DestinationFilter(django_filters.FilterSet):
     max_rating = django_filters.NumberFilter(field_name="average_rating", lookup_expr="lte")
     has_images = django_filters.BooleanFilter(method="filter_has_images")
     is_featured = django_filters.BooleanFilter(field_name="is_featured")
-    is_published = django_filters.BooleanFilter(field_name="is_published")
     created_after = django_filters.DateTimeFilter(field_name="created_at", lookup_expr="gte")
     created_before = django_filters.DateTimeFilter(field_name="created_at", lookup_expr="lte")
     search = django_filters.CharFilter(method="filter_search")

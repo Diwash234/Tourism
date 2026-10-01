@@ -7,7 +7,7 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Destination, Review, User, TravelPlan
+from .models import Destination, Rating, Review, User, TravelPlan
 from booking.models import Booking
 
 
@@ -30,12 +30,12 @@ class DashboardStatsView(APIView):
 
         # Destination statistics
         total_destinations = Destination.objects.count()
-        published_destinations = Destination.objects.filter(is_published=True).count()
+        published_destinations = Destination.publicly_visible().count()
         featured_destinations = Destination.objects.filter(is_featured=True).count()
 
         # Review statistics
         total_reviews = Review.objects.count()
-        avg_rating = Review.objects.aggregate(avg=Avg("rating"))["avg"] or 0
+        avg_rating = Rating.objects.aggregate(avg=Avg("value"))["avg"] or 0
         recent_reviews = Review.objects.filter(created_at__gte=thirty_days_ago).count()
 
         # Booking statistics
@@ -84,8 +84,8 @@ class PublicStatsView(APIView):
 
     def get(self, request):
         return Response({
-            "destinations": Destination.objects.filter(is_published=True).count(),
+            "destinations": Destination.publicly_visible().count(),
             "reviews": Review.objects.count(),
-            "average_rating": round(Review.objects.aggregate(avg=Avg("rating"))["avg"] or 0, 2),
+            "average_rating": round(Rating.objects.aggregate(avg=Avg("value"))["avg"] or 0, 2),
             "users": User.objects.count(),
         })

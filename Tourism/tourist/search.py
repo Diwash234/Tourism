@@ -22,10 +22,11 @@ class SearchAutocompleteView(APIView):
         if len(query) < 2:
             return Response({"suggestions": []})
 
-        # Search destinations
-        destinations = Destination.objects.filter(
+        # Search destinations (publicly_visible() is the canonical
+        # "is this destination published?" rule -- Destination has no
+        # is_published column, filtering on one raised a FieldError 500)
+        destinations = Destination.publicly_visible().filter(
             Q(name__icontains=query) | Q(district__icontains=query),
-            is_published=True,
         ).values("id", "name", "slug", "district")[:5]
 
         # Search categories
@@ -34,9 +35,8 @@ class SearchAutocompleteView(APIView):
         ).values("id", "name", "slug")[:3]
 
         # Search districts
-        districts = Destination.objects.filter(
+        districts = Destination.publicly_visible().filter(
             district__icontains=query,
-            is_published=True,
         ).values("district").distinct()[:3]
 
         suggestions = []
@@ -79,7 +79,7 @@ class FacetedSearchView(APIView):
         province = request.query_params.get("province", "").strip()
 
         # Base queryset
-        queryset = Destination.objects.filter(is_published=True)
+        queryset = Destination.publicly_visible()
 
         # Apply filters
         if query:

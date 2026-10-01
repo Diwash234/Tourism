@@ -3,7 +3,7 @@ Management command to generate a customer satisfaction audit report.
 """
 from django.core.management.base import BaseCommand
 from django.db.models import Avg, Count
-from tourist.models import Review
+from tourist.models import Rating, Review
 
 
 class Command(BaseCommand):
@@ -14,22 +14,21 @@ class Command(BaseCommand):
         self.stdout.write("CUSTOMER SATISFACTION AUDIT REPORT")
         self.stdout.write("=" * 60)
 
-        # Overall rating
-        avg_rating = Review.objects.filter(is_approved=True).aggregate(
-            avg=Avg("rating")
-        )["avg"] or 0
+        # Overall rating -- Review is text-only (moderation_status, no numeric
+        # rating / is_approved); the 1-5 score lives on Rating.value.
+        avg_rating = Rating.objects.aggregate(avg=Avg("value"))["avg"] or 0
         self.stdout.write(f"\nOverall average rating: {avg_rating:.2f}/5")
 
         # Rating distribution
         self.stdout.write("\nRating distribution:")
-        ratings = Review.objects.filter(is_approved=True).values("rating").annotate(
+        ratings = Rating.objects.values("value").annotate(
             count=Count("id")
-        ).order_by("rating")
+        ).order_by("value")
         for r in ratings:
-            self.stdout.write(f"  {r['rating']} stars: {r['count']} reviews")
+            self.stdout.write(f"  {r['value']} stars: {r['count']} ratings")
 
         # Total reviews
-        total = Review.objects.filter(is_approved=True).count()
+        total = Review.objects.filter(moderation_status="approved").count()
         self.stdout.write(f"\nTotal approved reviews: {total}")
 
         self.stdout.write("\n" + "=" * 60)
