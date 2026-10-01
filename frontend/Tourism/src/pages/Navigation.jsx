@@ -655,7 +655,7 @@ export default function Navigation() {
             )}
           </div>
 
-          <div className="text-[11px] text-slate-500" role="status">
+          <div className="text-xs text-slate-500" role="status">
             {position ? (
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 <span>GPS fix acquired ({position.lat.toFixed(4)}, {position.lng.toFixed(4)})</span>
@@ -754,7 +754,7 @@ export default function Navigation() {
                     role="tab"
                     aria-selected={routesTab === tab}
                     onClick={() => { setRoutesTab(tab); loadMyRoutes(tab) }}
-                    className={`px-3 py-1 rounded-full text-[11px] font-bold transition ${routesTab === tab ? "bg-emerald-700 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                    className={`px-3 py-1 rounded-full text-xs font-bold transition ${routesTab === tab ? "bg-emerald-700 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
                   >
                     {tab === "history" ? "History" : "⭐ Saved"}
                   </button>

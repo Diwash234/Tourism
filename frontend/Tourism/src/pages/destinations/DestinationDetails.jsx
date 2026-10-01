@@ -420,19 +420,19 @@ export default function DestinationDetails() {
       {/* Key Transit & Visiting Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs">
-          <p className="text-[10px] font-black uppercase text-[#102A2E] flex items-center gap-1"><FiMapPin /> Nearest Major City</p>
+          <p className="text-xs font-black uppercase text-[#102A2E] flex items-center gap-1"><FiMapPin /> Nearest Major City</p>
           <p className="font-bold text-slate-900 mt-1">{destination.nearest_major_city || INFO_UNAVAILABLE}</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs">
-          <p className="text-[10px] font-black uppercase text-[#102A2E] flex items-center gap-1"><FiTruck /> Nearest Airport</p>
+          <p className="text-xs font-black uppercase text-[#102A2E] flex items-center gap-1"><FiTruck /> Nearest Airport</p>
           <p className="font-bold text-slate-900 mt-1">{destination.nearest_airport_name || INFO_UNAVAILABLE}</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs">
-          <p className="text-[10px] font-black uppercase text-[#102A2E] flex items-center gap-1"><FiClock /> Recommended Stay</p>
+          <p className="text-xs font-black uppercase text-[#102A2E] flex items-center gap-1"><FiClock /> Recommended Stay</p>
           <p className="font-bold text-slate-900 mt-1">{destination.recommended_days ? `${destination.recommended_days} days` : INFO_UNAVAILABLE}</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs">
-          <p className="text-[10px] font-black uppercase text-[#102A2E] flex items-center gap-1"><FiSun /> Best Visiting Season</p>
+          <p className="text-xs font-black uppercase text-[#102A2E] flex items-center gap-1"><FiSun /> Best Visiting Season</p>
           <p className="font-bold text-slate-900 mt-1">{destination.best_time_to_visit || INFO_UNAVAILABLE}</p>
         </div>
       </div>
@@ -445,7 +445,7 @@ export default function DestinationDetails() {
           autoRotate
           className="h-[460px] sm:h-[540px]"
         /> : <div className="ny-empty"><FiImage size={24} aria-hidden="true" /><h2 className="text-lg">No verified photos yet</h2><p>Destination media will appear here after it is reviewed and linked to this place.</p></div>}
-        <div className="flex items-center justify-between text-[11px] text-stone-500 px-1 flex-wrap gap-2">
+        <div className="flex items-center justify-between text-xs text-stone-500 px-1 flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -508,24 +508,24 @@ export default function DestinationDetails() {
       {/* Quick Geographic Distances & Transit Metrics Box */}
       <div className="grid grid-cols-2 gap-3 rounded-[var(--ny-radius-lg)] border border-[var(--ny-green)] bg-[var(--ny-green-dark)] p-5 text-white shadow-[var(--ny-shadow-elevated)] sm:grid-cols-4 sm:gap-4">
         <div>
-          <span className="text-[10px] uppercase font-bold text-primary-100">From Kathmandu</span>
+          <span className="text-xs uppercase font-bold text-primary-100">From Kathmandu</span>
           <p className="text-xl font-black mt-0.5">{destination.distance_from_kathmandu_km != null ? `${destination.distance_from_kathmandu_km} km` : INFO_UNAVAILABLE}</p>
-          <span className="text-[11px] text-amber-300 font-semibold">{destination.approx_travel_time || INFO_UNAVAILABLE}</span>
+          <span className="text-xs text-amber-300 font-semibold">{destination.approx_travel_time || INFO_UNAVAILABLE}</span>
         </div>
         <div>
-          <span className="text-[10px] uppercase font-bold text-primary-100">Nearest Major City</span>
+          <span className="text-xs uppercase font-bold text-primary-100">Nearest Major City</span>
           <p className="text-xl font-black mt-0.5">{destination.nearest_major_city || INFO_UNAVAILABLE}</p>
-          <span className="text-[11px] text-primary-100 font-medium">{destination.distance_from_nearest_city_km != null ? `${destination.distance_from_nearest_city_km} km away` : INFO_UNAVAILABLE}</span>
+          <span className="text-xs text-primary-100 font-medium">{destination.distance_from_nearest_city_km != null ? `${destination.distance_from_nearest_city_km} km away` : INFO_UNAVAILABLE}</span>
         </div>
         <div>
-          <span className="text-[10px] uppercase font-bold text-primary-100">Nearest Airport</span>
+          <span className="text-xs uppercase font-bold text-primary-100">Nearest Airport</span>
           <p className="text-xl font-black mt-0.5 truncate">{destination.nearest_airport_name?.split("(")[0] || INFO_UNAVAILABLE}</p>
-          <span className="text-[11px] text-primary-100 font-medium">{destination.distance_from_nearest_airport_km != null ? `${destination.distance_from_nearest_airport_km} km` : INFO_UNAVAILABLE}</span>
+          <span className="text-xs text-primary-100 font-medium">{destination.distance_from_nearest_airport_km != null ? `${destination.distance_from_nearest_airport_km} km` : INFO_UNAVAILABLE}</span>
         </div>
         <div>
-          <span className="text-[10px] uppercase font-bold text-primary-100">Recommended Stay</span>
+          <span className="text-xs uppercase font-bold text-primary-100">Recommended Stay</span>
           <p className="text-xl font-black mt-0.5">{destination.recommended_days ? `${destination.recommended_days} Days` : INFO_UNAVAILABLE}</p>
-          <span className="text-[11px] text-emerald-300 font-bold">{destination.best_time_to_visit || INFO_UNAVAILABLE}</span>
+          <span className="text-xs text-emerald-300 font-bold">{destination.best_time_to_visit || INFO_UNAVAILABLE}</span>
         </div>
       </div>
 
@@ -596,12 +596,12 @@ export default function DestinationDetails() {
                 <div key={i} className="p-4 rounded-2xl bg-primary-50/60 border border-primary-100 space-y-1.5 shadow-sm">
                   <div className="flex justify-between items-center">
                     <h4 className="font-bold text-xs sm:text-sm text-gray-900">{act.name}</h4>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-secondary-200 text-primary-900">
+                    <span className="px-2 py-0.5 rounded-full text-xs font-extrabold bg-secondary-200 text-primary-900">
                       {act.difficulty_level || INFO_UNAVAILABLE}
                     </span>
                   </div>
                   <p className="text-xs text-gray-600 leading-relaxed">{act.description}</p>
-                  <p className="text-[11px] text-primary-700 font-bold">⏱️ Duration: {act.estimated_duration || INFO_UNAVAILABLE}</p>
+                  <p className="text-xs text-primary-700 font-bold">⏱️ Duration: {act.estimated_duration || INFO_UNAVAILABLE}</p>
                 </div>
               ))}
               {!(destination.activities?.length) && (
@@ -633,8 +633,8 @@ export default function DestinationDetails() {
                     <p>📏 <b>Distance:</b> {rt.distance_km != null ? `${rt.distance_km} km` : "Unavailable"}</p>
                     <p>🛣️ <b>Condition:</b> {rt.road_condition || "Not recently verified"}</p>
                   </div>
-                  {rt.key_stops && <p className="text-[11px] text-gray-500 pt-1 border-t"><b>Key Stops:</b> {rt.key_stops}</p>}
-                  <p className="text-[10px] text-gray-400">Source: {rt.route_source || "Recorded route details"}</p>
+                  {rt.key_stops && <p className="text-xs text-gray-500 pt-1 border-t"><b>Key Stops:</b> {rt.key_stops}</p>}
+                  <p className="text-xs text-gray-400">Source: {rt.route_source || "Recorded route details"}</p>
                 </div>
               )) : (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
@@ -764,10 +764,10 @@ export default function DestinationDetails() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/15 pb-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="px-3 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider">
+                  <span className="px-3 py-0.5 rounded-full bg-amber-400 text-slate-950 text-xs font-black uppercase tracking-wider">
                     ⭐ Featured stays & offers near {destination.name}
                   </span>
-                  <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
+                  <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30">
                     Recorded partner stays
                   </span>
                 </div>
@@ -792,25 +792,25 @@ export default function DestinationDetails() {
               {(destination.hotels || []).slice(0, 3).map((h, i) => (
                 <div key={i} className="rounded-2xl bg-white/10 backdrop-blur border border-white/15 p-4 flex flex-col justify-between space-y-3">
                   <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-amber-300 block">
+                    <span className="text-xs font-bold text-amber-300 block">
                       {h.stars || (h.rating != null ? `Rated ${h.rating}` : "Rating unavailable")}
                     </span>
                     <h4 className="font-extrabold text-sm text-white line-clamp-1">{h.name}</h4>
                     <VerificationBadge record={h} compact />
-                    <p className="text-[11px] text-slate-300">{destination.city || destination.district || "Location unavailable"}</p>
+                    <p className="text-xs text-slate-300">{destination.city || destination.district || "Location unavailable"}</p>
                   </div>
 
                   <div className="pt-2 border-t border-white/10 flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] text-slate-400 block">From</span>
+                      <span className="text-xs text-slate-400 block">From</span>
                       <span className="text-sm font-black text-amber-300">
-                        {h.price_per_night != null ? `${h.currency || "USD"} ${Number(h.price_per_night).toLocaleString()}` : "Price unavailable"} <span className="text-[10px] font-normal text-slate-300">{h.price_per_night != null ? "/ night" : ""}</span>
+                        {h.price_per_night != null ? `${h.currency || "USD"} ${Number(h.price_per_night).toLocaleString()}` : "Price unavailable"} <span className="text-xs font-normal text-slate-300">{h.price_per_night != null ? "/ night" : ""}</span>
                       </span>
                     </div>
 
                     <Link
                       to={h.id ? `/hotels` : `/hotels/search`}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[11px] shadow transition-all"
+                      className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs shadow transition-all"
                     >
                       View stay
                     </Link>
@@ -831,7 +831,7 @@ export default function DestinationDetails() {
               <div className="grid sm:grid-cols-2 gap-3">
                 {destination.marketplace_listings.map((offer) => (
                   <Link key={offer.id} to={`/packages/${offer.slug}`} className="rounded-2xl border border-emerald-100 p-4 hover:bg-emerald-50">
-                    <p className="text-[10px] font-black uppercase text-emerald-800">{offer.kind}</p>
+                    <p className="text-xs font-black uppercase text-emerald-800">{offer.kind}</p>
                     <p className="font-bold text-slate-900">{offer.title}</p>
                     <p className="text-xs text-slate-500">{offer.partner_name}</p>
                     <p className="text-sm font-black mt-1">{offer.price_npr != null ? `NPR ${Number(offer.price_npr).toLocaleString()}` : "Price unavailable"}</p>
@@ -847,7 +847,7 @@ export default function DestinationDetails() {
               <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
                 <FiBookOpen className="text-primary-700" /> Researched Source References & Citations
               </h3>
-              <span className="px-2.5 py-0.5 rounded-full bg-primary-50 text-primary-800 text-[10px] font-black uppercase">
+              <span className="px-2.5 py-0.5 rounded-full bg-primary-50 text-primary-800 text-xs font-black uppercase">
                 Verified Sources
               </span>
             </div>
@@ -858,17 +858,17 @@ export default function DestinationDetails() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-gray-900">{src.title}</span>
-                      {src.is_verified && <span className="text-emerald-600 font-bold text-[10px]">✓ Verified Source</span>}
+                      {src.is_verified && <span className="text-emerald-600 font-bold text-xs">✓ Verified Source</span>}
                     </div>
-                    <span className="text-[11px] text-primary-700 font-medium">{src.source_type}</span>
-                    {src.notes && <p className="text-[10px] text-gray-500 mt-0.5">{src.notes}</p>}
+                    <span className="text-xs text-primary-700 font-medium">{src.source_type}</span>
+                    {src.notes && <p className="text-xs text-gray-500 mt-0.5">{src.notes}</p>}
                   </div>
                   {src.source_url && (
                     <a
                       href={src.source_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-3 py-1 rounded-lg bg-gray-100 hover:bg-primary-50 text-primary-700 text-[11px] font-bold flex items-center gap-1 shrink-0"
+                      className="px-3 py-1 rounded-lg bg-gray-100 hover:bg-primary-50 text-primary-700 text-xs font-bold flex items-center gap-1 shrink-0"
                     >
                       Visit Source <FiExternalLink size={11} />
                     </a>
@@ -890,7 +890,7 @@ export default function DestinationDetails() {
               <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
                 <FiDollarSign className="text-emerald-600" /> Recorded budget
               </h3>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase">
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-extrabold uppercase">
                 Stored amounts only
               </span>
             </div>
@@ -948,7 +948,7 @@ export default function DestinationDetails() {
                   <div className="min-w-0">
                   <p className="font-bold text-gray-800">{row.name}</p>
                   <p className="text-primary-700 font-semibold mt-0.5">{row.phone_is_national_fallback ? "National fallback: " : ""}{row.phone_number || "Phone unavailable"}</p>
-                  {row.distance_km != null && <p className="text-[11px] text-slate-500">{row.distance_km} km · {formatCoords(row.latitude, row.longitude) || "coords not stored"}</p>}
+                  {row.distance_km != null && <p className="text-xs text-slate-500">{row.distance_km} km · {formatCoords(row.latitude, row.longitude) || "coords not stored"}</p>}
                   </div>
                 </div>
               ))}
@@ -958,7 +958,7 @@ export default function DestinationDetails() {
                   <div className="min-w-0">
                   <p className="font-bold text-gray-800">{row.name}</p>
                   <p className="text-primary-700 font-semibold mt-0.5">{row.phone_is_national_fallback ? "National fallback: " : ""}{row.phone_number || "Phone unavailable"}</p>
-                  {row.distance_km != null && <p className="text-[11px] text-slate-500">{row.distance_km} km</p>}
+                  {row.distance_km != null && <p className="text-xs text-slate-500">{row.distance_km} km</p>}
                   </div>
                 </div>
               ))}
@@ -968,7 +968,7 @@ export default function DestinationDetails() {
                 </div>
               )}
               <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-rose-950 font-bold text-center">
-                {(emergency?.national_hotlines || []).length > 0 && <div className="space-y-2 border-t border-[var(--ny-border)] pt-3"><p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--ny-danger)]">Verified national contacts</p>{(emergency.national_hotlines || []).map((item) => <a key={item.type || item.phone_number} href={item.phone_number ? phoneHref(item.phone_number) : undefined} className="flex items-center justify-between gap-3 rounded-[var(--ny-radius-sm)] bg-rose-50 px-3 py-2 text-rose-950 hover:bg-rose-100"><span className="min-w-0"><span className="block text-xs font-bold">{item.name}</span><span className="block text-[11px] text-rose-800/80">{item.description || "National emergency contact"}</span></span><strong className="shrink-0 text-sm">{item.phone_number || "Unavailable"}</strong></a>)}</div>}
+                {(emergency?.national_hotlines || []).length > 0 && <div className="space-y-2 border-t border-[var(--ny-border)] pt-3"><p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--ny-danger)]">Verified national contacts</p>{(emergency.national_hotlines || []).map((item) => <a key={item.type || item.phone_number} href={item.phone_number ? phoneHref(item.phone_number) : undefined} className="flex items-center justify-between gap-3 rounded-[var(--ny-radius-sm)] bg-rose-50 px-3 py-2 text-rose-950 hover:bg-rose-100"><span className="min-w-0"><span className="block text-xs font-bold">{item.name}</span><span className="block text-xs text-rose-800/80">{item.description || "National emergency contact"}</span></span><strong className="shrink-0 text-sm">{item.phone_number || "Unavailable"}</strong></a>)}</div>}
               </div>
             </div>
 
@@ -1045,16 +1045,16 @@ export default function DestinationDetails() {
                   />
                   <div className="min-w-0">
                     <p className="truncate font-bold text-sm text-slate-900">{row.name}</p>
-                    <p className="truncate text-[11px] text-slate-500">
+                    <p className="truncate text-xs text-slate-500">
                       {pois.categories[poiTab].label} · {row.source || "OpenStreetMap"}
                     </p>
                     {row.latitude != null && row.longitude != null && (
-                      <p className="text-[10px] text-slate-400 tabular-nums">
+                      <p className="text-xs text-slate-400 tabular-nums">
                         {formatCoords(row.latitude, row.longitude)} · straight-line {row.distance_km} km
                       </p>
                     )}
                   </div>
-                  <span className="shrink-0 rounded-full bg-primary-600 px-2.5 py-1 text-[11px] font-black text-white">
+                  <span className="shrink-0 rounded-full bg-primary-600 px-2.5 py-1 text-xs font-black text-white">
                     {row.distance_km} km
                   </span>
                 </a>
@@ -1094,14 +1094,14 @@ export default function DestinationDetails() {
                     onError={(event) => { event.currentTarget.style.display = "none" }} className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                   />
                   {d.distance_km != null && (
-                    <span className="absolute top-2 left-2 bg-slate-900/85 text-amber-300 text-[10px] font-black px-2 py-1 rounded-full">
+                    <span className="absolute top-2 left-2 bg-slate-900/85 text-amber-300 text-xs font-black px-2 py-1 rounded-full">
                       ≈ {d.distance_km} km
                     </span>
                   )}
                 </div>
                 <div className="p-3">
                   <p className="font-bold text-sm text-slate-900 truncate">{d.name}</p>
-                  <p className="text-[11px] text-slate-500 truncate">{d.display_city || d.city || d.district || "Location unavailable"}</p>
+                  <p className="text-xs text-slate-500 truncate">{d.display_city || d.city || d.district || "Location unavailable"}</p>
                 </div>
               </Link>
             ))}
@@ -1176,19 +1176,19 @@ export default function DestinationDetails() {
                   </h4>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono">
                     <div className="bg-white p-2 rounded-xl border border-rose-200">
-                      <span className="text-[10px] text-gray-500 block">Tourist Police</span>
+                      <span className="text-xs text-gray-500 block">Tourist Police</span>
                       <b className="text-rose-700 text-sm">See directory</b>
                     </div>
                     <div className="bg-white p-2 rounded-xl border border-rose-200">
-                      <span className="text-[10px] text-gray-500 block">Nepal Police</span>
+                      <span className="text-xs text-gray-500 block">Nepal Police</span>
                       <b className="text-rose-700 text-sm">See directory</b>
                     </div>
                     <div className="bg-white p-2 rounded-xl border border-rose-200">
-                      <span className="text-[10px] text-gray-500 block">Ambulance</span>
+                      <span className="text-xs text-gray-500 block">Ambulance</span>
                       <b className="text-rose-700 text-sm">See directory</b>
                     </div>
                     <div className="bg-white p-2 rounded-xl border border-rose-200">
-                      <span className="text-[10px] text-gray-500 block">Local rescue</span>
+                      <span className="text-xs text-gray-500 block">Local rescue</span>
                       <b className="text-rose-700 text-sm">{destination.nearest_hospital_info || INFO_UNAVAILABLE}</b>
                     </div>
                   </div>
@@ -1208,7 +1208,7 @@ export default function DestinationDetails() {
                   <h4 className="font-bold text-sm text-gray-900 flex items-center gap-1.5">
                     Useful local phrases
                   </h4>
-                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>• <b>Namaste:</b> Hello / Greetings</div>
                     <div>• <b>Dhanyabad:</b> Thank you</div>
                     <div>• <b>Kati ho?:</b> How much is this?</div>
@@ -1221,7 +1221,7 @@ export default function DestinationDetails() {
 
               {/* Modal Footer */}
               <div className="flex flex-col items-start gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-[11px] text-gray-500 italic">Save or print this kit before leaving for remote areas with low cellular coverage.</p>
+                <p className="text-xs text-gray-500 italic">Save or print this kit before leaving for remote areas with low cellular coverage.</p>
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => window.print()}

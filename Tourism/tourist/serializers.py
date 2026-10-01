@@ -136,53 +136,168 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ["id", "name", "slug", "icon", "description"]
 
 
+def _approved_gallery(obj):
+    """Approved gallery photos with the admin-designated cover first.
+
+    The detail contract (`DestinationCoverImagePriorityTests`) promises
+    `images[0]` is the cover the admin picked, then the rest in ordering.
+    """
+    gallery = getattr(obj, "gallery", None)
+    if gallery is None:
+        return []
+    photos = [
+        p
+        for p in gallery.all()
+        if getattr(p, "verification_status", "approved") == "approved"
+    ]
+    photos.sort(
+        key=lambda p: (
+            not getattr(p, "is_cover", False),
+            getattr(p, "ordering", 0) or 0,
+            getattr(p, "id", 0) or 0,
+        )
+    )
+    return photos
+
+
+def _photo_url(photo, request=None):
+    """One DestinationImage -> a URL that actually loads.
+
+    Imported media lives in `external_url` and must pass through verbatim:
+    Django's `ImageField.url` would emit `/media/https%3A%2F%2F...` for rows
+    whose stored value is already an absolute URL, which 404s. `image_path`
+    rows are resolved to a same-origin `/media/...` path -- never through
+    image_server_url(), whose unset IMAGE_BASE_URL falls back to
+    http://localhost:8000 and would hand every visitor a dead host.
+    """
+    from .utils import public_media_url, resolve_image_url
+
+    external = getattr(photo, "external_url", "") or ""
+    if external:
+        return external
+    if getattr(photo, "image", None):
+        resolved = resolve_image_url(photo.image, request)
+        if resolved:
+            return resolved
+    if getattr(photo, "image_path", ""):
+        return public_media_url(photo.image_path)
+    return ""
+
+
+def destination_cover_image(obj, request=None):
+    """Resolve the cover URL: admin-set Destination.cover_image first (admin
+    commands write URLs straight into that column), else the approved cover
+    photo, else the first approved photo, else ""."""
+    from .utils import resolve_image_url
+
+    if getattr(obj, "cover_image", None):
+        resolved = resolve_image_url(obj.cover_image, request)
+        if resolved:
+            return resolved
+    for photo in _approved_gallery(obj):
+        url = _photo_url(photo, request)
+        if url:
+            return url
+    return ""
+
+
+def _cover_cached(obj, request=None):
+    """Memoise the cover on the row so `cover_image` + `cover_image_url`
+    don't each run their own gallery query for every row of a list page."""
+    hit = obj.__dict__.get("_resolved_cover_url")
+    if hit is None:
+        hit = destination_cover_image(obj, request)
+        obj.__dict__["_resolved_cover_url"] = hit
+    return hit
+
+
+def destination_image_urls(obj, request=None):
+    """Cover first, then every other approved photo, de-duplicated."""
+    urls = []
+    cover = _cover_cached(obj, request)
+    if cover:
+        urls.append(cover)
+    for photo in _approved_gallery(obj):
+        url = _photo_url(photo, request)
+        if url and url not in urls:
+            urls.append(url)
+    return urls
+
+
 class DestinationListSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source="category.name", read_only=True)
     cover_image = serializers.SerializerMethodField()
+    # The frontend contract is `cover_image_url` (imageUtils, Chatbot,
+    # DiscoverNepal, RecommendationCard, CMSBlock, AdminDashboard...); emitting
+    # only `cover_image` left every one of those surfaces blank.
+    cover_image_url = serializers.SerializerMethodField()
 
     def get_cover_image(self, obj):
-        # Imported production data primarily stores reusable remote media in
-        # DestinationImage.external_url rather than an ImageField. Expose the
-        # actual approved cover URL through the existing frontend contract.
-        if getattr(obj, "cover_image", None):
-            try:
-                return obj.cover_image.url
-            except Exception:
-                pass
-        gallery = getattr(obj, "gallery", None)
-        if gallery is not None:
-            photo = next(
-                (
-                    p for p in gallery.all()
-                    if getattr(p, "verification_status", "approved") == "approved"
-                    and (getattr(p, "is_cover", False) or getattr(p, "external_url", ""))
-                ),
-                None,
-            )
-            if photo:
-                if getattr(photo, "image_path", ""):
-                    from .utils import public_media_url
-                    return public_media_url(photo.image_path)
-                if getattr(photo, "external_url", ""):
-                    return photo.external_url
-                if getattr(photo, "image", None):
-                    try:
-                        return photo.image.url
-                    except Exception:
-                        pass
-        return ""
+        return _cover_cached(obj, self.context.get("request"))
+
+    def get_cover_image_url(self, obj):
+        return _cover_cached(obj, self.context.get("request"))
 
     class Meta:
         model = Destination
-        fields = ["id", "name", "slug", "city", "country", "category_name", "average_rating", "cover_image", "is_featured"]
+        fields = ["id", "name", "slug", "city", "country", "category_name", "average_rating", "cover_image", "cover_image_url", "is_featured"]
 
 
 class DestinationDetailSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source="category.name", read_only=True)
+    cover_image = serializers.SerializerMethodField()
+    cover_image_url = serializers.SerializerMethodField()
+    # Same contract as above, plus what DestinationDetails.jsx and
+    # DestinationHero.jsx read to build the hero + verified-photo gallery.
+    image_url = serializers.SerializerMethodField()
+    images = serializers.SerializerMethodField()
+    gallery = serializers.SerializerMethodField()
+
+    def _request(self):
+        return self.context.get("request")
+
+    def get_cover_image(self, obj):
+        return _cover_cached(obj, self._request())
+
+    def get_cover_image_url(self, obj):
+        return _cover_cached(obj, self._request())
+
+    def get_image_url(self, obj):
+        return _cover_cached(obj, self._request())
+
+    def get_images(self, obj):
+        return destination_image_urls(obj, self._request())
+
+    def get_gallery(self, obj):
+        request = self._request()
+        out = []
+        for photo in _approved_gallery(obj):
+            url = _photo_url(photo, request)
+            if not url:
+                continue
+            out.append(
+                {
+                    "id": getattr(photo, "id", None),
+                    "image": url,
+                    "external_url": getattr(photo, "external_url", "") or None,
+                    "display_url": url,
+                    # DestinationDetails.jsx reads caption/photographer/
+                    # source/license_type; DestinationImage stores alt_text
+                    # and source, everything else falls back in the UI.
+                    "caption": getattr(photo, "alt_text", "") or None,
+                    "source": getattr(photo, "source", "") or None,
+                    "photographer": getattr(photo, "photographer", "") or None,
+                    "license_type": getattr(photo, "license_type", "") or None,
+                    "image_category": getattr(photo, "image_category", "") or None,
+                    "is_cover": bool(getattr(photo, "is_cover", False)),
+                    "verification_status": getattr(photo, "verification_status", "approved"),
+                }
+            )
+        return out
 
     class Meta:
         model = Destination
-        fields = ["id", "name", "slug", "description", "short_description", "city", "country", "category_name", "average_rating", "ratings_count", "views_count", "cover_image", "latitude", "longitude", "address", "opening_hours", "entry_fee", "is_featured", "is_active", "status", "created_at", "updated_at"]
+        fields = ["id", "name", "slug", "description", "short_description", "city", "country", "category_name", "average_rating", "ratings_count", "views_count", "cover_image", "cover_image_url", "image_url", "images", "gallery", "latitude", "longitude", "address", "opening_hours", "entry_fee", "is_featured", "is_active", "status", "created_at", "updated_at"]
 
 
 class DestinationWriteSerializer(serializers.ModelSerializer):

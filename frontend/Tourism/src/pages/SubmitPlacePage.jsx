@@ -300,11 +300,11 @@ export default function SubmitPlacePage() {
                 <div className="mt-2 p-2.5 rounded-xl bg-[#F7F8F5] border border-[#E5E0D5] text-xs text-[#102A2E] flex items-center justify-between">
                   <div>
                     <span className="font-bold">Administrative match:</span> {autoGeocodeMatch.district}, {autoGeocodeMatch.province}
-                    <span className="text-[11px] text-[#102A2E] ml-2">
+                    <span className="text-xs text-[#102A2E] ml-2">
                       (Provide GPS or coordinates manually for an exact map point.)
                     </span>
                   </div>
-                  <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">
+                  <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-xs font-black uppercase">
                     Name match
                   </span>
                 </div>
@@ -334,7 +334,7 @@ export default function SubmitPlacePage() {
               <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
                 <FiLayers className="text-emerald-700" /> 2. Administrative Location (77 Districts & Municipalities)
               </h3>
-              <p className="text-[11px] text-gray-400">
+              <p className="text-xs text-gray-400">
                 Choose the administrative area, then use GPS or enter coordinates manually. A district centre is not treated as an exact place location.
               </p>
             </div>

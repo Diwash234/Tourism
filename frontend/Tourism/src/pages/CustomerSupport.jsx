@@ -211,7 +211,7 @@ export default function CustomerSupport() {
                 <div className="p-6 text-center text-slate-500 text-xs space-y-2">
                   <FiMessageSquare size={24} className="mx-auto text-slate-600" />
                   <p>No support tickets created yet.</p>
-                  <p className="text-[11px] text-slate-400">Click "Open New Support Ticket" to start a conversation with the support team.</p>
+                  <p className="text-xs text-slate-400">Click "Open New Support Ticket" to start a conversation with the support team.</p>
                 </div>
               ) : (
                 threads.map((thread) => {
@@ -237,8 +237,8 @@ export default function CustomerSupport() {
                           {thread.status}
                         </span>
                       </div>
-                      <p className="text-slate-400 text-[11px] line-clamp-1">{thread.message}</p>
-                      <div className="flex justify-between text-[10px] text-slate-500 pt-1">
+                      <p className="text-slate-400 text-xs line-clamp-1">{thread.message}</p>
+                      <div className="flex justify-between text-xs text-slate-500 pt-1">
                         <span>{thread.category}</span>
                         <span>{thread.messages?.length || 1} msg(s)</span>
                       </div>
@@ -322,7 +322,7 @@ export default function CustomerSupport() {
                 {/* Thread Header */}
                 <div className="flex justify-between items-center border-b border-slate-800 pb-3">
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-purple-400 tracking-wider">
+                    <span className="text-xs uppercase font-bold text-purple-400 tracking-wider">
                       Ticket #{selectedThread.id} · {selectedThread.category}
                     </span>
                     <h2 className="text-lg font-black text-white">{selectedThread.subject}</h2>
@@ -342,7 +342,7 @@ export default function CustomerSupport() {
                       <FiUser size={14} /> {selectedThread.name || selectedThread.email || "You"} (Ticket Opener)
                     </div>
                     <p className="leading-relaxed">{selectedThread.message}</p>
-                    <span className="text-[10px] text-amber-400/60 block text-right mt-1">
+                    <span className="text-xs text-amber-400/60 block text-right mt-1">
                       {new Date(selectedThread.created_at).toLocaleString()}
                     </span>
                   </div>
@@ -359,7 +359,7 @@ export default function CustomerSupport() {
                             : "bg-emerald-950/90 border border-emerald-700/60 text-emerald-100 self-end ml-auto"
                         }`}
                       >
-                        <div className="font-bold text-[11px] flex items-center gap-1.5">
+                        <div className="font-bold text-xs flex items-center gap-1.5">
                           {isAdmin ? <FiShield size={14} className="text-purple-300" /> : <FiUser size={14} className="text-emerald-300" />}
                           <span className={isAdmin ? "text-purple-300" : "text-emerald-300"}>
                             {msg.sender}

@@ -733,7 +733,7 @@ const AdminDashboard = () => {
                 <div>
                   <p className="text-xs text-slate-300 uppercase font-medium">Total Registered Users</p>
                   <p className="text-3xl font-black text-white">{stats?.totalUsers ?? users.length}</p>
-                  <span className="text-[11px] text-amber-300 font-medium">
+                  <span className="text-xs text-amber-300 font-medium">
                     {stats?.touristCount ?? 0} Tourists · {stats?.staffCount ?? 0} Staff
                   </span>
                 </div>
@@ -746,7 +746,7 @@ const AdminDashboard = () => {
                 <div>
                   <p className="text-xs text-slate-300 uppercase font-medium">Approved Destinations</p>
                   <p className="text-3xl font-black text-white">{stats?.totalDestinations ?? "--"}</p>
-                  <span className="text-[11px] text-pink-300 font-medium">
+                  <span className="text-xs text-pink-300 font-medium">
                     {pendingPlaces.length} Waiting Approval
                   </span>
                 </div>
@@ -759,7 +759,7 @@ const AdminDashboard = () => {
                 <div>
                   <p className="text-xs text-slate-300 uppercase font-medium">Total Data Views</p>
                   <p className="text-3xl font-black text-white">{stats?.totalDestinationViews ?? "—"}</p>
-                  <span className="text-[11px] text-slate-300 font-medium">
+                  <span className="text-xs text-slate-300 font-medium">
                     {stats?.totalVisitsLogged != null ? `${stats.totalVisitsLogged} visits tracked` : "No visits tracked yet"}
                   </span>
                 </div>
@@ -772,7 +772,7 @@ const AdminDashboard = () => {
                 <div>
                   <p className="text-xs text-slate-300 uppercase font-medium">Medical / SOS Alerts</p>
                   <p className="text-3xl font-black text-white">{emergencies.filter(e => e.status === "active").length}</p>
-                  <span className="text-[11px] text-rose-300 font-medium">
+                  <span className="text-xs text-rose-300 font-medium">
                     {stats?.activeAlerts ?? 0} Hazard Alerts
                   </span>
                 </div>
@@ -998,16 +998,16 @@ const AdminDashboard = () => {
                             <div key={idx} className="rounded-2xl overflow-hidden border border-slate-600 bg-slate-900 flex flex-col justify-between">
                               <div className="h-44 w-full relative bg-black">
                                 <img loading="lazy" decoding="async" src={img.external_url || img.image || img.display_url} alt={img.caption} className="w-full h-full object-cover" />
-                                <span className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/70 text-amber-300 text-[10px] font-bold">
+                                <span className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/70 text-amber-300 text-xs font-bold">
                                   {img.image_category || "Landscape"}
                                 </span>
                               </div>
-                              <div className="p-3 space-y-1 bg-slate-800/60 text-[11px]">
+                              <div className="p-3 space-y-1 bg-slate-800/60 text-xs">
                                 <p className="font-bold text-white truncate">{img.caption}</p>
-                                <p className="text-[10px] text-slate-300">
+                                <p className="text-xs text-slate-300">
                                   <b>Photographer:</b> {img.photographer || "Public Archive"}
                                 </p>
-                                <p className="text-[10px] text-emerald-300">
+                                <p className="text-xs text-emerald-300">
                                   <b>License:</b> {img.license_type || "CC BY-SA 4.0"} ({img.source_platform || "Wikimedia"})
                                 </p>
                               </div>
@@ -1037,7 +1037,7 @@ const AdminDashboard = () => {
                             <div key={i} className="p-3 rounded-xl bg-slate-800/40 border border-slate-700 flex justify-between items-center text-xs">
                               <div>
                                 <p className="font-bold text-white">{src.title}</p>
-                                <span className="text-[10px] text-emerald-400">✓ {src.source_type}</span>
+                                <span className="text-xs text-emerald-400">✓ {src.source_type}</span>
                               </div>
                               <a href={src.source_url} target="_blank" rel="noopener noreferrer" className="text-amber-300 hover:underline flex items-center gap-1 font-semibold">
                                 Source Link <FiExternalLink size={11} />
@@ -1057,29 +1057,29 @@ const AdminDashboard = () => {
               {/* Discovery Stats Bar */}
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 <div className="bg-slate-900/70 border border-slate-700/40 p-4 rounded-2xl">
-                  <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Production Places</p>
+                  <p className="text-xs font-bold text-slate-300 uppercase tracking-wider">Production Places</p>
                   <p className="text-2xl font-black text-white mt-1">{discoveryStats?.total_destinations != null ? discoveryStats.total_destinations.toLocaleString() : "—"}</p>
-                  <p className="text-[10px] text-emerald-400 mt-0.5">✓ 100% Live in Catalog</p>
+                  <p className="text-xs text-emerald-400 mt-0.5">✓ 100% Live in Catalog</p>
                 </div>
                 <div className="bg-slate-900/70 border border-slate-700/40 p-4 rounded-2xl">
-                  <p className="text-[11px] font-bold text-amber-300 uppercase tracking-wider">Candidates Staged</p>
+                  <p className="text-xs font-bold text-amber-300 uppercase tracking-wider">Candidates Staged</p>
                   <p className="text-2xl font-black text-amber-400 mt-1">{discoveryStats?.total_candidates?.toLocaleString() || "2,382"}</p>
-                  <p className="text-[10px] text-slate-300 mt-0.5">Multi-source entities</p>
+                  <p className="text-xs text-slate-300 mt-0.5">Multi-source entities</p>
                 </div>
                 <div className="bg-slate-900/70 border border-slate-700/40 p-4 rounded-2xl">
-                  <p className="text-[11px] font-bold text-rose-300 uppercase tracking-wider">Duplicates Caught</p>
+                  <p className="text-xs font-bold text-rose-300 uppercase tracking-wider">Duplicates Caught</p>
                   <p className="text-2xl font-black text-rose-400 mt-1">{discoveryStats?.duplicates_caught != null ? discoveryStats.duplicates_caught.toLocaleString() : "—"}</p>
-                  <p className="text-[10px] text-slate-300 mt-0.5">Spatial & phonetic match</p>
+                  <p className="text-xs text-slate-300 mt-0.5">Spatial & phonetic match</p>
                 </div>
                 <div className="bg-slate-900/70 border border-slate-700/40 p-4 rounded-2xl">
-                  <p className="text-[11px] font-bold text-emerald-300 uppercase tracking-wider">Verified High Quality</p>
+                  <p className="text-xs font-bold text-emerald-300 uppercase tracking-wider">Verified High Quality</p>
                   <p className="text-2xl font-black text-emerald-400 mt-1">{discoveryStats?.verified?.toLocaleString() || "0"}</p>
-                  <p className="text-[10px] text-slate-300 mt-0.5">Quality score &ge; 70%</p>
+                  <p className="text-xs text-slate-300 mt-0.5">Quality score &ge; 70%</p>
                 </div>
                 <div className="bg-slate-900/70 border border-slate-700/40 p-4 rounded-2xl">
-                  <p className="text-[11px] font-bold text-cyan-300 uppercase tracking-wider">Needs Review</p>
+                  <p className="text-xs font-bold text-cyan-300 uppercase tracking-wider">Needs Review</p>
                   <p className="text-2xl font-black text-cyan-400 mt-1">{discoveryStats?.needs_review?.toLocaleString() || "0"}</p>
-                  <p className="text-[10px] text-slate-300 mt-0.5">Human verification</p>
+                  <p className="text-xs text-slate-300 mt-0.5">Human verification</p>
                 </div>
               </div>
 
@@ -1098,7 +1098,7 @@ const AdminDashboard = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
                   <div>
-                    <label className="text-[11px] font-bold text-slate-300 uppercase">Target Province</label>
+                    <label className="text-xs font-bold text-slate-300 uppercase">Target Province</label>
                     <select
                       value={batchForm.province}
                       onChange={(e) => setBatchForm({ ...batchForm, province: e.target.value })}
@@ -1116,7 +1116,7 @@ const AdminDashboard = () => {
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-bold text-slate-300 uppercase">Scan Batch Limit</label>
+                    <label className="text-xs font-bold text-slate-300 uppercase">Scan Batch Limit</label>
                     <select
                       value={batchForm.limit}
                       onChange={(e) => setBatchForm({ ...batchForm, limit: Number(e.target.value) })}
@@ -1226,7 +1226,7 @@ const AdminDashboard = () => {
                 {/* Candidates Table */}
                 <div className="overflow-x-auto rounded-2xl border border-slate-700/40">
                   <table className="w-full text-left text-xs text-slate-200">
-                    <thead className="bg-slate-800/70 text-slate-300 uppercase font-black tracking-wider text-[10px]">
+                    <thead className="bg-slate-800/70 text-slate-300 uppercase font-black tracking-wider text-xs">
                       <tr>
                         <th className="p-3">
                           <input
@@ -1276,15 +1276,15 @@ const AdminDashboard = () => {
                             <td className="p-3">
                               <div className="font-bold text-white text-sm">{cand.name}</div>
                               <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-800 text-slate-300 border border-slate-600">
+                                <span className="px-2 py-0.5 rounded text-xs font-bold uppercase bg-slate-800 text-slate-300 border border-slate-600">
                                   {cand.place_type?.replace("_", " ")}
                                 </span>
-                                <span className="text-[10px] text-slate-300">Source: {cand.source}</span>
+                                <span className="text-xs text-slate-300">Source: {cand.source}</span>
                               </div>
                             </td>
                             <td className="p-3">
                               <div className="font-semibold text-white">{cand.district || "Nepal"}, {cand.province || "Province"}</div>
-                              <div className="text-[10px] text-slate-300 font-mono mt-0.5">
+                              <div className="text-xs text-slate-300 font-mono mt-0.5">
                                 {cand.latitude ? `${cand.latitude?.toFixed(4)}, ${cand.longitude?.toFixed(4)}` : "No GPS"}
                               </div>
                             </td>
@@ -1303,7 +1303,7 @@ const AdminDashboard = () => {
                             </td>
                             <td className="p-3 max-w-xs">
                               <span
-                                className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
+                                className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${
                                   cand.duplicate_status === "none"
                                     ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
                                     : cand.duplicate_status === "exact_match"
@@ -1313,14 +1313,14 @@ const AdminDashboard = () => {
                               >
                                 {cand.duplicate_status?.replace("_", " ").toUpperCase()} ({cand.match_score?.toFixed(0)}%)
                               </span>
-                              <p className="text-[10px] text-slate-300 mt-1 line-clamp-2">{cand.duplicate_reason}</p>
+                              <p className="text-xs text-slate-300 mt-1 line-clamp-2">{cand.duplicate_reason}</p>
                             </td>
                             <td className="p-3 text-right">
                               <div className="flex items-center justify-end gap-1.5">
                                 {cand.discovery_status !== "published" && (
                                   <button
                                     onClick={() => handleCandidateSingleAction(cand.id, "publish")}
-                                    className="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-gray-950 font-black text-[11px] flex items-center gap-1 shadow"
+                                    className="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-gray-950 font-black text-xs flex items-center gap-1 shadow"
                                     title="Promote verified place to production catalog"
                                   >
                                     <FiCheck size={11} /> Publish
@@ -1329,7 +1329,7 @@ const AdminDashboard = () => {
                                 {cand.matched_destination && (
                                   <button
                                     onClick={() => handleCandidateSingleAction(cand.id, "merge_alias", cand.matched_destination.id)}
-                                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] flex items-center gap-1 shadow"
+                                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-1 shadow"
                                     title={`Merge as alternate alias for #${cand.matched_destination.id}`}
                                   >
                                     <FiLayers size={11} /> Alias
@@ -1338,7 +1338,7 @@ const AdminDashboard = () => {
                                 {cand.discovery_status !== "rejected" && (
                                   <button
                                     onClick={() => handleCandidateSingleAction(cand.id, "reject")}
-                                    className="px-2.5 py-1 rounded-lg bg-rose-600/80 hover:bg-rose-600 text-white font-bold text-[11px] flex items-center gap-1"
+                                    className="px-2.5 py-1 rounded-lg bg-rose-600/80 hover:bg-rose-600 text-white font-bold text-xs flex items-center gap-1"
                                     title="Reject candidate"
                                   >
                                     <FiX size={11} /> Reject
@@ -1403,11 +1403,11 @@ const AdminDashboard = () => {
                       <p className="text-xs text-slate-300">{t.email}</p>
                     </div>
                     {t.has_medical_emergency ? (
-                      <span className="px-2.5 py-1 rounded-full bg-rose-600 text-white text-[11px] font-bold flex items-center gap-1">
+                      <span className="px-2.5 py-1 rounded-full bg-rose-600 text-white text-xs font-bold flex items-center gap-1">
                         <FiAlertTriangle /> MEDICAL SOS
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 text-[10px] font-semibold uppercase">
+                      <span className="px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 text-xs font-semibold uppercase">
                         {t.role}
                       </span>
                     )}
@@ -1421,8 +1421,8 @@ const AdminDashboard = () => {
                     <p className="flex items-center gap-1 flex-wrap">
                       <FiMapPin className="text-amber-300" />
                       <span className="font-semibold text-white">{t.city}, {t.country}</span>
-                      {t.distance_text && <span className="text-[10px] font-bold text-amber-300">· {t.distance_text}</span>}
-                      {t.latitude && <span className="text-[10px] opacity-70">({t.latitude.toFixed(3)}, {t.longitude.toFixed(3)})</span>}
+                      {t.distance_text && <span className="text-xs font-bold text-amber-300">· {t.distance_text}</span>}
+                      {t.latitude && <span className="text-xs opacity-70">({t.latitude.toFixed(3)}, {t.longitude.toFixed(3)})</span>}
                     </p>
                     <p className="flex items-center gap-1">
                       <FiEye className="text-slate-300" />
@@ -1450,7 +1450,7 @@ const AdminDashboard = () => {
                   )}
 
                   {t.recent_history?.length > 0 && (
-                    <div className="mt-3 pt-2 border-t border-slate-700/40 text-[11px]">
+                    <div className="mt-3 pt-2 border-t border-slate-700/40 text-xs">
                       <p className="text-slate-300 font-semibold mb-1">Destinations Visited:</p>
                       <div className="flex flex-wrap gap-1">
                         {t.recent_history.map((h, i) => (
@@ -1503,7 +1503,7 @@ const AdminDashboard = () => {
                     <div className="space-y-3">
                       <div className="flex items-start justify-between gap-4">
                         <div>
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-400 text-gray-950">
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-400 text-gray-950">
                             {p.category_name}
                           </span>
                           <h4 className="text-xl font-bold text-white mt-1">{p.name}</h4>
@@ -1511,7 +1511,7 @@ const AdminDashboard = () => {
                             📍 {p.municipality || p.district} {p.ward_number ? `(Ward ${p.ward_number})` : ""}, {p.province}
                           </p>
                         </div>
-                        <span className="text-[11px] text-slate-300 font-medium">By: {p.created_by}</span>
+                        <span className="text-xs text-slate-300 font-medium">By: {p.created_by}</span>
                       </div>
 
                       {/* Photo preview */}
@@ -1641,7 +1641,7 @@ const AdminDashboard = () => {
             <div className="bg-slate-900/60 border border-slate-700/60 p-6 rounded-3xl space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <span className="px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 text-[10px] font-black uppercase tracking-wider">
+                  <span className="px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 text-xs font-black uppercase tracking-wider">
                     Autonomous Multi-Source Media Provenance Engine
                   </span>
                   <h2 className="text-2xl font-black text-white mt-1 flex items-center gap-2">
@@ -1763,7 +1763,7 @@ const AdminDashboard = () => {
 
               {/* Admin: upload-by-URL + set cover */}
               <div className="mt-3 p-3 rounded-xl bg-slate-900/40 border border-slate-700/60 space-y-2">
-                <p className="text-[11px] font-bold text-amber-300">Admin: add / override destination image</p>
+                <p className="text-xs font-bold text-amber-300">Admin: add / override destination image</p>
                 <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="text"
@@ -1798,12 +1798,12 @@ const AdminDashboard = () => {
                       className="h-24 w-36 rounded-lg object-cover border border-amber-400/50 bg-black"
                       onError={(e) => { e.currentTarget.style.opacity = "0.3" }}
                     />
-                    <p className="text-[11px] text-slate-300">Preview of the image that will be saved as the current cover. After upload the gallery below refreshes from the database.</p>
+                    <p className="text-xs text-slate-300">Preview of the image that will be saved as the current cover. After upload the gallery below refreshes from the database.</p>
                   </div>
                 )}
-                <p className="text-[10px] text-slate-300">URL and local-disk uploads save directly to the database and show on the site immediately.</p>
+                <p className="text-xs text-slate-300">URL and local-disk uploads save directly to the database and show on the site immediately.</p>
                 <div className="pt-3 border-t border-slate-700/60 space-y-2">
-                  <p className="text-[11px] font-bold text-sky-300">Admin: destination videos (25 MB max)</p>
+                  <p className="text-xs font-bold text-sky-300">Admin: destination videos (25 MB max)</p>
                   <div className="flex flex-col sm:flex-row gap-2">
                     <input type="file" accept="video/*" onChange={(e)=>setNewVideoFile(e.target.files?.[0] || null)} className="flex-1 text-xs text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-700 file:px-3 file:py-2 file:text-white" />
                     <button type="button" disabled={!newVideoFile} onClick={async () => {
@@ -1827,7 +1827,7 @@ const AdminDashboard = () => {
                   {pipelineVideos.length > 0 && (
                     <div className="grid sm:grid-cols-2 gap-2">
                       {pipelineVideos.map((video) => (
-                        <div key={video.id} className="rounded-lg bg-slate-800/80 p-2 text-[11px] text-slate-200">
+                        <div key={video.id} className="rounded-lg bg-slate-800/80 p-2 text-xs text-slate-200">
                           <p className="font-bold truncate">{video.title || video.caption || "Video"} · {video.verification_status}</p>
                           {video.url && <video src={video.url} controls className="mt-1 w-full max-h-32 rounded" />}
                           <div className="mt-1 flex gap-1">
@@ -1845,7 +1845,7 @@ const AdminDashboard = () => {
             {/* Strict Commercial Usage-Rights & License Verification Desk Banner */}
             <div className="p-4 rounded-2xl bg-emerald-950/60 border border-emerald-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="space-y-0.5">
-                <span className="text-[10px] font-black uppercase text-emerald-300">
+                <span className="text-xs font-black uppercase text-emerald-300">
                   Google Usage-Rights & Commercial Compliance Policy Active
                 </span>
                 <p className="text-xs font-bold text-white">
@@ -1860,59 +1860,59 @@ const AdminDashboard = () => {
             {/* Provenance Stats Bar (All 12 Providers) */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-2.5">
               <div className="p-3 rounded-2xl bg-slate-900/50 border border-slate-700/40 text-center">
-                <span className="text-[10px] uppercase font-black text-slate-300 block">Total</span>
+                <span className="text-xs uppercase font-black text-slate-300 block">Total</span>
                 <p className="text-lg font-black text-white mt-0.5">{pipelineImages.length}</p>
               </div>
               <div className="p-3 rounded-2xl bg-blue-950/50 border border-blue-800/40 text-center">
-                <span className="text-[10px] uppercase font-black text-blue-300 block">Wikimedia</span>
+                <span className="text-xs uppercase font-black text-blue-300 block">Wikimedia</span>
                 <p className="text-lg font-black text-blue-400 mt-0.5">
                   {pipelineImages.filter((i) => i.source === "wikimedia").length}
                 </p>
               </div>
               <div className="p-3 rounded-2xl bg-slate-800/50 border border-slate-600/40 text-center">
-                <span className="text-[10px] uppercase font-black text-slate-300 block">Openverse</span>
+                <span className="text-xs uppercase font-black text-slate-300 block">Openverse</span>
                 <p className="text-lg font-black text-emerald-400 mt-0.5">
                   {pipelineImages.filter((i) => i.source === "openverse").length}
                 </p>
               </div>
               <div className="p-3 rounded-2xl bg-sky-950/50 border border-sky-800/40 text-center">
-                <span className="text-[10px] uppercase font-black text-sky-300 block">OSM/Mapillary</span>
+                <span className="text-xs uppercase font-black text-sky-300 block">OSM/Mapillary</span>
                 <p className="text-lg font-black text-sky-400 mt-0.5">
                   {pipelineImages.filter((i) => i.source?.includes("osm") || i.source?.includes("mapillary")).length}
                 </p>
               </div>
               <div className="p-3 rounded-2xl bg-amber-950/50 border border-amber-800/40 text-center">
-                <span className="text-[10px] uppercase font-black text-amber-300 block">Nepal Gov/Open</span>
+                <span className="text-xs uppercase font-black text-amber-300 block">Nepal Gov/Open</span>
                 <p className="text-lg font-black text-amber-400 mt-0.5">
                   {pipelineImages.filter((i) => i.source?.includes("nepal_gov") || i.source?.includes("kaggle") || i.source?.includes("google_landmark")).length}
                 </p>
               </div>
               <div className="p-3 rounded-2xl bg-teal-950/50 border border-teal-800/40 text-center">
-                <span className="text-[10px] uppercase font-black text-teal-300 block">Satellite</span>
+                <span className="text-xs uppercase font-black text-teal-300 block">Satellite</span>
                 <p className="text-lg font-black text-teal-400 mt-0.5">
                   {pipelineImages.filter((i) => i.source?.includes("satellite")).length}
                 </p>
               </div>
               <div className="p-3 rounded-2xl bg-emerald-950/50 border border-emerald-800/40 text-center">
-                <span className="text-[10px] uppercase font-black text-emerald-300 block">Unsplash</span>
+                <span className="text-xs uppercase font-black text-emerald-300 block">Unsplash</span>
                 <p className="text-lg font-black text-emerald-400 mt-0.5">
                   {pipelineImages.filter((i) => i.source === "unsplash").length}
                 </p>
               </div>
               <div className="p-3 rounded-2xl bg-cyan-950/50 border border-cyan-800/40 text-center">
-                <span className="text-[10px] uppercase font-black text-cyan-300 block">Pexels</span>
+                <span className="text-xs uppercase font-black text-cyan-300 block">Pexels</span>
                 <p className="text-lg font-black text-cyan-400 mt-0.5">
                   {pipelineImages.filter((i) => i.source === "pexels").length}
                 </p>
               </div>
               <div className="p-3 rounded-2xl bg-orange-950/50 border border-orange-800/40 text-center">
-                <span className="text-[10px] uppercase font-black text-orange-300 block">Flickr/Pixabay</span>
+                <span className="text-xs uppercase font-black text-orange-300 block">Flickr/Pixabay</span>
                 <p className="text-lg font-black text-orange-400 mt-0.5">
                   {pipelineImages.filter((i) => i.source === "flickr" || i.source === "pixabay").length}
                 </p>
               </div>
               <div className="p-3 rounded-2xl bg-rose-950/50 border border-rose-800/40 text-center">
-                <span className="text-[10px] uppercase font-black text-rose-300 block">AI Generated</span>
+                <span className="text-xs uppercase font-black text-rose-300 block">AI Generated</span>
                 <p className="text-lg font-black text-rose-400 mt-0.5">
                   {pipelineImages.filter((i) => i.isAiGenerated).length}
                 </p>
@@ -1949,7 +1949,7 @@ const AdminDashboard = () => {
                       />
                       <div className="absolute top-2 left-2">
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow ${
+                          className={`px-2 py-0.5 rounded-full text-xs font-black uppercase tracking-wider shadow ${
                             img.isAiGenerated
                               ? "bg-rose-600 text-white animate-pulse"
                               : img.source === "wikimedia"
@@ -1965,7 +1965,7 @@ const AdminDashboard = () => {
                         </span>
                       </div>
                       <div className="absolute bottom-2 right-2">
-                        <span className="px-2 py-0.5 rounded bg-black/70 text-white text-[10px] font-mono">
+                        <span className="px-2 py-0.5 rounded bg-black/70 text-white text-xs font-mono">
                           {img.license}
                         </span>
                       </div>
@@ -1974,10 +1974,10 @@ const AdminDashboard = () => {
                     <div className="p-3.5 space-y-2 flex-1 flex flex-col justify-between">
                       <div>
                         <p className="font-bold text-xs text-white line-clamp-1">{img.caption || "Verified Destination Media"}</p>
-                        <p className="text-[11px] text-slate-300 mt-0.5">Author: <span className="text-white font-semibold">{img.author}</span></p>
+                        <p className="text-xs text-slate-300 mt-0.5">Author: <span className="text-white font-semibold">{img.author}</span></p>
                       </div>
 
-                      <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] gap-2">
+                      <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-xs gap-2">
                         <a
                           href={img.sourceUrl}
                           target="_blank"
@@ -1994,7 +1994,7 @@ const AdminDashboard = () => {
                               setReplacementCaption(img.caption || "")
                               setReplacementUrl(img.url || "")
                             }}
-                            className="px-2 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 text-[10px] font-bold"
+                            className="px-2 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 text-xs font-bold"
                           >
                             Replace / Edit
                           </button>
@@ -2011,18 +2011,18 @@ const AdminDashboard = () => {
                                 showToast("Could not set cover image.", "error")
                               }
                             }}
-                            className="px-2 py-1 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold"
+                            className="px-2 py-1 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
                           >
                             Set as cover
                           </button>
                         ) : null}
-                        {img.id && <button type="button" onClick={async()=>{await adminApi.updateAdminDestinationImage(pipelineDestId,{image_id:img.id,verification_status:img.verification_status==="rejected"?"approved":"rejected",is_verified:img.verification_status==="rejected"});loadPipelineImages()}} className="px-2 py-1 rounded-md bg-slate-600 text-white text-[10px] font-bold">{img.verification_status==="rejected"?"Enable":"Disable"}</button>}
-                        {img.id && <button type="button" onClick={async()=>{await adminApi.updateAdminDestinationImage(pipelineDestId,{image_id:img.id,ordering:Math.max(0,idx-1)});loadPipelineImages()}} className="px-2 py-1 rounded-md bg-blue-600 text-white text-[10px] font-bold">Move up</button>}
+                        {img.id && <button type="button" onClick={async()=>{await adminApi.updateAdminDestinationImage(pipelineDestId,{image_id:img.id,verification_status:img.verification_status==="rejected"?"approved":"rejected",is_verified:img.verification_status==="rejected"});loadPipelineImages()}} className="px-2 py-1 rounded-md bg-slate-600 text-white text-xs font-bold">{img.verification_status==="rejected"?"Enable":"Disable"}</button>}
+                        {img.id && <button type="button" onClick={async()=>{await adminApi.updateAdminDestinationImage(pipelineDestId,{image_id:img.id,ordering:Math.max(0,idx-1)});loadPipelineImages()}} className="px-2 py-1 rounded-md bg-blue-600 text-white text-xs font-bold">Move up</button>}
                         {img.id && (
                           <button
                             type="button"
                             onClick={() => handleDeleteImage(img.id)}
-                            className="px-2 py-1 rounded-md bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold"
+                            className="px-2 py-1 rounded-md bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold"
                           >
                             Remove
                           </button>
@@ -2165,10 +2165,10 @@ const AdminDashboard = () => {
                   </div>
 
                   {exp.route_details && (
-                    <p className="text-[11px] text-slate-300">🛣️ <b>Route:</b> {exp.route_details}</p>
+                    <p className="text-xs text-slate-300">🛣️ <b>Route:</b> {exp.route_details}</p>
                   )}
 
-                  <div className="pt-2 border-t border-slate-700/40 flex items-center justify-between text-[10px] text-emerald-400">
+                  <div className="pt-2 border-t border-slate-700/40 flex items-center justify-between text-xs text-emerald-400">
                     <span>By: {exp.user_name || "Field Officer"}</span>
                     {exp.is_employee_verified && <span className="text-emerald-400 font-bold">✓ Field Verified</span>}
                   </div>
@@ -2372,7 +2372,7 @@ const AdminDashboard = () => {
               <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-700 text-xs space-y-2">
                 <p className="text-amber-300 font-bold">Profile Bio / Description:</p>
                 <p className="text-slate-200 italic">"{selectedUserHistory.bio}"</p>
-                <div className="pt-2 flex justify-between text-slate-300 text-[11px]">
+                <div className="pt-2 flex justify-between text-slate-300 text-xs">
                   <span>Role: <b>{selectedUserHistory.role}</b></span>
                   <span>Registered: <b>{new Date(selectedUserHistory.date_joined).toLocaleDateString()}</b></span>
                 </div>
@@ -2391,9 +2391,9 @@ const AdminDashboard = () => {
                       <div key={idx} className="p-3 rounded-xl bg-slate-900/60 border border-slate-700/50 flex items-center justify-between text-xs">
                         <div>
                           <p className="font-bold text-white">{item.destination__name}</p>
-                          <p className="text-[10px] text-slate-300">{item.destination__city || "Nepal"}</p>
+                          <p className="text-xs text-slate-300">{item.destination__city || "Nepal"}</p>
                         </div>
-                        <span className="text-[10px] text-amber-300/80">
+                        <span className="text-xs text-amber-300/80">
                           {new Date(item.viewed_at).toLocaleDateString()}
                         </span>
                       </div>
@@ -2650,7 +2650,7 @@ const AdminDashboard = () => {
             >
               <div className="flex justify-between items-start border-b border-slate-800 pb-3">
                 <div>
-                  <span className="text-[10px] font-black uppercase text-amber-400">Media Management Desk</span>
+                  <span className="text-xs font-black uppercase text-amber-400">Media Management Desk</span>
                   <h3 className="text-lg font-black mt-0.5">Replace or Edit Destination Image</h3>
                 </div>
                 <button
@@ -2671,7 +2671,7 @@ const AdminDashboard = () => {
                 />
                 <div className="text-xs space-y-0.5">
                   <p className="font-bold text-white line-clamp-1">{editingImageModal.caption || "Current Image"}</p>
-                  <p className="text-[11px] text-slate-400">Source: {editingImageModal.source || "Database"}</p>
+                  <p className="text-xs text-slate-400">Source: {editingImageModal.source || "Database"}</p>
                 </div>
               </div>
 

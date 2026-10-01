@@ -130,7 +130,7 @@ const Tasks = () => {
           </div>
           <div className="sm:col-span-2 lg:col-span-4">
             <button type="submit" disabled={!form.title || !form.assigned_to} className="btn-primary disabled:opacity-50">Create Task</button>
-            <p className="text-[11px] text-gray-400 mt-2">Assigning tasks to others requires super admin (enforced by the backend).</p>
+            <p className="text-xs text-gray-400 mt-2">Assigning tasks to others requires super admin (enforced by the backend).</p>
           </div>
         </form>
       )}

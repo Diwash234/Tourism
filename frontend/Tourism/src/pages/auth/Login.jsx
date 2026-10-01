@@ -140,7 +140,7 @@ const Login = () => {
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white bg-gradient-to-tr ${preset.color}`}>
                   <Icon size={14} />
                 </div>
-                <span className="text-[11px] font-bold text-gray-800 leading-tight">
+                <span className="text-xs font-bold text-gray-800 leading-tight">
                   {preset.label}
                 </span>
                 <span className="text-[9px] text-emerald-700 font-semibold">

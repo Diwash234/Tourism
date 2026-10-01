@@ -550,7 +550,7 @@ export default function TravelPlanner() {
                 </tbody>
               </table>
               {results.modes?.some((m) => m.estimate_note) && (
-                <p className="px-4 py-3 text-[11px] text-slate-400 border-t border-slate-100 dark:border-slate-800">
+                <p className="px-4 py-3 text-xs text-slate-400 border-t border-slate-100 dark:border-slate-800">
                   {results.modes.find((m) => m.estimate_note).estimate_note}
                 </p>
               )}

@@ -333,14 +333,14 @@ const BudgetEstimator = () => {
               </p>
 
               {estimate.source === "dataset_csv" ? (
-                <p className="mt-3 inline-flex items-center gap-1 text-[11px] font-medium text-green-800 bg-green-50 border border-green-200 px-3 py-1 rounded-full shadow-sm">
+                <p className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-green-800 bg-green-50 border border-green-200 px-3 py-1 rounded-full shadow-sm">
                   ✓ Based on real Nepal travel-cost dataset
                   {estimate.dataset
                     ? ` (${estimate.dataset.destinations}+ places)`
                     : ""}
                 </p>
               ) : (
-                <p className="mt-3 text-[11px] text-[var(--ny-text-secondary)]">Source returned by the estimate service: {estimate.source || "not specified"}. Treat this as planning guidance, not a quoted price.</p>
+                <p className="mt-3 text-xs text-[var(--ny-text-secondary)]">Source returned by the estimate service: {estimate.source || "not specified"}. Treat this as planning guidance, not a quoted price.</p>
               )}
             </div>
 

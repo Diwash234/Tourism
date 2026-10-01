@@ -15,7 +15,8 @@ import translationApi from "../api/translationApi"
 const STORAGE_KEY = "tourism_lang"
 const COOKIE_KEY = "django_language"
 
-export const ALL_LANGS = SUPPORTED_LANGUAGES.map((language) => ({ ...language, flag: language.code === "ne" ? "🇳🇵" : language.code === "hi" ? "🇮🇳" : language.code === "en" ? "🇬🇧" : "🌐" }))
+// ALL_LANGS is declared right after DICTS (further down) so the selectable
+// language set can never drift from the dictionaries we actually ship.
 
 const en = {
   // nav / layout
@@ -1058,6 +1059,14 @@ const hi = {
 
 const DICTS = { en, ne, hi }
 
+// A language is only selectable/storable if we can actually serve it. This
+// used to be built from the 28-entry SUPPORTED_LANGUAGES list, so one click
+// on 한국어 persisted `tourism_lang=ko`; every later visit then booted Korean
+// and the machine-translation bridge rewrote up to 100 visible strings via
+// POST /translate/batch/ -- intermittently, which is why pages came back in
+// Korean or some other language and varied per browser.
+export const ALL_LANGS = SUPPORTED_LANGUAGES.filter((language) => DICTS[language.code]).map((language) => ({ ...language, flag: language.code === "ne" ? "🇳🇵" : language.code === "hi" ? "🇮🇳" : language.code === "en" ? "🇬🇧" : "🌐" }))
+
 // --- reactive store -------------------------------------------------------
 let currentLang = detectLang()
 const listeners = new Set()
@@ -1065,7 +1074,10 @@ const listeners = new Set()
 function detectLang() {
   if (typeof window === "undefined") return "en"
   const saved = window.localStorage?.getItem(STORAGE_KEY)
-  if (saved && ALL_LANGS.some((language) => language.code === saved)) return saved
+  // Dictionary allowlist, not the display list: a stale `ko`/`es`/... left
+  // behind by an older build silently falls back to English (persistLang()
+  // rewrites it on boot) instead of booting a language we cannot serve.
+  if (saved && DICTS[saved]) return saved
   // The Settings page persists its choice under a different key
   // (tourism_preferred_language) — honour it so a language picked in
   // Settings switches the whole site (this was previously a dead key).
@@ -1128,7 +1140,10 @@ function translateLegacyDom(root = document.body) {
 const translationCache = new Map()
 
 async function translatePageUi(root = document.body) {
-  if (typeof document === "undefined" || currentLang === "en" || !root) return
+  // Machine translation only ever runs for a language we ship a dictionary
+  // for; for anything else it would rewrite the visible page into a language
+  // chosen at random by a remote LLM/Google tier (and fail silently).
+  if (typeof document === "undefined" || currentLang === "en" || !DICTS[currentLang] || !root) return
   const reverse = new Map(Object.entries(en).map(([key, value]) => [value, key]))
   const texts = []
   const nodes = []
@@ -1180,7 +1195,7 @@ function enableLegacyTranslationBridge() {
 }
 
 export function setLang(code) {
-  if (!ALL_LANGS.some((language) => language.code === code)) return
+  if (!DICTS[code]) return
   currentLang = code
   persistLang(code)
   listeners.forEach((fn) => fn(code))

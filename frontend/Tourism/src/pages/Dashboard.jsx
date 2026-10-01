@@ -376,7 +376,7 @@ const Dashboard = () => {
           <div className="shrink-0 bg-white/10 backdrop-blur border border-white/20 p-5 rounded-2xl space-y-3 min-w-[260px]">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black uppercase tracking-wider text-amber-300">Local weather</span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/30 text-emerald-200 font-bold">Location active</span>
+              <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/30 text-emerald-200 font-bold">Location active</span>
             </div>
             <div className="flex items-center gap-3">
               <span className="text-3xl font-black text-white">
@@ -384,10 +384,10 @@ const Dashboard = () => {
               </span>
               <div>
                 <p className="text-xs font-bold text-white capitalize">{weather?.description || weather?.condition || "Weather unavailable"}</p>
-                <p className="text-[11px] text-slate-300">{weather?.location || (locationError ? "Location unavailable" : "Enable location for local details")}</p>
+                <p className="text-xs text-slate-300">{weather?.location || (locationError ? "Location unavailable" : "Enable location for local details")}</p>
               </div>
             </div>
-            <div className="pt-2 border-t border-white/15 flex items-center justify-between text-[11px] text-slate-200">
+            <div className="pt-2 border-t border-white/15 flex items-center justify-between text-xs text-slate-200">
               <span>Alert activity: <b className="text-emerald-300">{scoreFromAlerts(alerts) != null ? `${scoreFromAlerts(alerts)}/100` : "unavailable"}</b></span>
               <Link to="/risk-alerts" className="text-amber-300 font-bold hover:underline">View Alerts</Link>
             </div>
@@ -402,7 +402,7 @@ const Dashboard = () => {
             <FiCalendar size={22} />
           </div>
           <div>
-            <p className="text-[11px] text-slate-500 font-bold uppercase">Planned Trips</p>
+            <p className="text-xs text-slate-500 font-bold uppercase">Planned Trips</p>
             <p className="text-2xl font-black text-slate-900">{travelPlans.length}</p>
           </div>
         </div>
@@ -412,7 +412,7 @@ const Dashboard = () => {
             <FiTag size={22} />
           </div>
           <div>
-            <p className="text-[11px] text-slate-500 font-bold uppercase">Active Bookings</p>
+            <p className="text-xs text-slate-500 font-bold uppercase">Active Bookings</p>
             <p className="text-2xl font-black text-slate-900">{activeBookingsCount}</p>
           </div>
         </div>
@@ -422,7 +422,7 @@ const Dashboard = () => {
             <FiHeart size={22} />
           </div>
           <div>
-            <p className="text-[11px] text-slate-500 font-bold uppercase">Saved Places</p>
+            <p className="text-xs text-slate-500 font-bold uppercase">Saved Places</p>
             <p className="text-2xl font-black text-slate-900">{favorites.length}</p>
           </div>
         </div>
@@ -432,7 +432,7 @@ const Dashboard = () => {
             <FiDollarSign size={22} />
           </div>
           <div>
-            <p className="text-[11px] text-slate-500 font-bold uppercase">Spent (NPR)</p>
+            <p className="text-xs text-slate-500 font-bold uppercase">Spent (NPR)</p>
             <p className="text-2xl font-black text-slate-900">{totalSpentNpr.toLocaleString()}</p>
           </div>
         </div>
@@ -442,7 +442,7 @@ const Dashboard = () => {
             <FiShield size={22} />
           </div>
           <div>
-            <p className="text-[11px] text-slate-500 font-bold uppercase">Sentinel Contrib</p>
+            <p className="text-xs text-slate-500 font-bold uppercase">Sentinel Contrib</p>
             <p className="text-2xl font-black text-slate-900">{userReports.length} <span className="text-xs font-normal text-slate-500">reports</span></p>
           </div>
         </div>
@@ -489,7 +489,7 @@ const Dashboard = () => {
                 <Icon size={14} />
                 <span>{tab.label}</span>
                 {tab.count != null && tab.count > 0 && (
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-black ${
                     active ? "bg-amber-400 text-slate-950" : "bg-slate-200 text-slate-800"
                   }`}>
                     {tab.count}
@@ -507,7 +507,7 @@ const Dashboard = () => {
           {/* Quick Action Bar */}
           <div className="bg-gradient-to-r from-emerald-900 via-slate-900 to-slate-950 text-white p-6 rounded-3xl border border-emerald-800/40 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <span className="px-3 py-1 rounded-full bg-emerald-600/20 text-emerald-300 text-[10px] font-black uppercase tracking-wider">
+              <span className="px-3 py-1 rounded-full bg-emerald-600/20 text-emerald-300 text-xs font-black uppercase tracking-wider">
                 Interactive Traveler Services
               </span>
               <h2 className="text-xl font-black mt-1">Ready to Explore or Personalize Your Next Trip?</h2>
@@ -546,7 +546,7 @@ const Dashboard = () => {
             <div className="bg-gradient-to-br from-emerald-900 via-slate-900 to-slate-950 text-white p-6 rounded-3xl border border-emerald-700/50 shadow-xl space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <span className="px-3 py-0.5 rounded-full bg-emerald-400 text-slate-950 text-[10px] font-black uppercase">
+                  <span className="px-3 py-0.5 rounded-full bg-emerald-400 text-slate-950 text-xs font-black uppercase">
                     Active Travel Plan
                   </span>
                   <h3 className="text-xl font-black text-white mt-1">
@@ -766,7 +766,7 @@ const Dashboard = () => {
                       <div>
                         <div className="flex items-center gap-2">
                           {planStyle(plan) && (
-                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">
+                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black uppercase">
                               {planStyle(plan)}
                             </span>
                           )}
@@ -862,7 +862,7 @@ const Dashboard = () => {
                   <div key={b.id} className="p-5 rounded-2xl border border-slate-200 bg-white shadow-sm space-y-3">
                     <div className="flex items-start justify-between">
                       <div>
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase ${
                           b.status === "confirmed"
                             ? "bg-emerald-100 text-emerald-800"
                             : b.status === "pending"
@@ -1045,7 +1045,7 @@ const Dashboard = () => {
                   <div key={rep.id} className="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-between gap-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase ${
                           rep.status === "fixed"
                             ? "bg-emerald-100 text-emerald-800"
                             : rep.status === "new"
@@ -1061,7 +1061,7 @@ const Dashboard = () => {
                       <p className="text-xs text-slate-600">{rep.description || rep.suggested_value || "Reported venue discrepancy."}</p>
                     </div>
 
-                    <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                    <span className="text-xs text-slate-400 font-mono shrink-0">
                       Report #{rep.id}
                     </span>
                   </div>

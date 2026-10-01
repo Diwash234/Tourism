@@ -168,7 +168,7 @@ export default function TourismJobs() {
                     <p className="text-xs text-slate-500">Applied {new Date(a.created_at).toLocaleDateString()}{a.reviewed_at ? ` · reviewed ${new Date(a.reviewed_at).toLocaleDateString()}` : ""}</p>
                     {a.admin_note && <p className="text-xs text-slate-600 mt-1 italic">“{a.admin_note}”</p>}
                   </div>
-                  <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase w-fit ${badge[a.status] || "bg-slate-100"}`}>{a.status}</span>
+                  <span className={`text-xs px-3 py-1.5 rounded-full font-black uppercase w-fit ${badge[a.status] || "bg-slate-100"}`}>{a.status}</span>
                 </div>
               ))}
             </div>

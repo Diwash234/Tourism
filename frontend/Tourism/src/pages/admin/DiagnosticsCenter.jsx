@@ -264,19 +264,19 @@ function ErrorsPanel() {
           <div key={e.id} className="py-3">
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div className="flex items-start gap-3 min-w-0 flex-1">
-                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${severityColor[e.severity] || severityColor.error}`}>
+                <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${severityColor[e.severity] || severityColor.error}`}>
                   {e.severity}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-bold text-stone-900">{e.error_type}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-600">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-stone-100 text-stone-600">
                       {sourceLabel[e.source] || e.source}
                     </span>
-                    {e.resolved && <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">resolved</span>}
+                    {e.resolved && <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">resolved</span>}
                   </div>
                   <p className="text-sm text-stone-600 truncate">{e.error_message}</p>
-                  <div className="flex items-center gap-3 mt-1 text-[11px] text-stone-500 flex-wrap">
+                  <div className="flex items-center gap-3 mt-1 text-xs text-stone-500 flex-wrap">
                     <span className="inline-flex items-center gap-1"><FiClock /> {new Date(e.last_seen).toLocaleString()}</span>
                     <span>×{e.occurrences}</span>
                     {e.groupCount > 1 && <span className="px-1.5 py-0.5 rounded bg-stone-100 font-semibold">{e.groupCount} events</span>}
@@ -302,7 +302,7 @@ function ErrorsPanel() {
               </div>
             </div>
             {selected[e.id] && e.traceback && (
-              <pre className="mt-2 text-[11px] bg-stone-900 text-stone-100 p-3 rounded-lg overflow-x-auto max-h-64">
+              <pre className="mt-2 text-xs bg-stone-900 text-stone-100 p-3 rounded-lg overflow-x-auto max-h-64">
                 {e.traceback}
               </pre>
             )}
@@ -372,7 +372,7 @@ function AuditPanel() {
                   {new Date(l.timestamp).toLocaleString()}
                 </td>
                 <td className="py-2 pr-3">
-                  <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${severityColor[l.severity] || severityColor.info}`}>{l.severity}</span>
+                  <span className={`text-xs font-bold uppercase px-2 py-0.5 rounded ${severityColor[l.severity] || severityColor.info}`}>{l.severity}</span>
                 </td>
                 <td className="py-2 pr-3 text-xs text-stone-600">{l.category}</td>
                 <td className="py-2 pr-3 text-sm font-medium text-stone-800">{l.action}</td>
