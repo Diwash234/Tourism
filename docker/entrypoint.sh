@@ -124,9 +124,12 @@ PY
   echo "entrypoint: backfilling missing destination media from verified seed"
   python manage.py sync_seed_media_postgres \
     || echo "entrypoint: WARNING - media backfill skipped"
-  # Reconcile the destination budget table on every deploy. The importer is
-  # idempotent (update_or_create) and makes the tracked CSV usable on Render
-  # instead of depending on the optional ML process being online.
+  # Reconcile the destination budget table. This one still runs on every boot
+  # because it is cheap now (it used to perform 5,018 unindexed name lookups and
+  # never finished, which is what stalled the container past its health check).
+  # tourist_budgetestimation is a projection of the tracked CSV, so it is safe to
+  # replace wholesale, and leaving it stale is what made the public estimator
+  # report "unavailable" with a null total.
   echo "entrypoint: importing verified destination budget dataset"
   python manage.py import_budget \
     || echo "entrypoint: WARNING - budget dataset import skipped"
@@ -151,14 +154,16 @@ PY
   python manage.py enrich_destinations \
     || echo "entrypoint: WARNING - destination enrichment skipped"
 
-  # Recompute nearest hospital/police/hotel proximity from the service tables
-  # - only right after a fresh seed, so curated values on later boots are
-  # never overwritten.
-  if [ "$SEEDED" = "1" ]; then
-    echo "entrypoint: computing nearest hospital/police/hotel for seeded destinations"
-    python manage.py enrich_destination_nearby_services \
-      || echo "entrypoint: WARNING - nearby-service enrichment skipped"
-  fi
+  # Recompute nearest hospital/police/hotel proximity from the service tables.
+  #
+  # This used to be guarded by `if [ "$SEEDED" = "1" ]`, but SEEDED is never
+  # assigned anywhere in this script, so the comparison always failed and the
+  # enrichment silently never ran. Every destination's nearest-service fields
+  # stayed empty in production even though the service tables were imported a
+  # few steps above. Run it unconditionally.
+  echo "entrypoint: computing nearest hospital/police/hotel for destinations"
+  python manage.py enrich_destination_nearby_services \
+    || echo "entrypoint: WARNING - nearby-service enrichment skipped"
 
   python - <<'PY'
 import os

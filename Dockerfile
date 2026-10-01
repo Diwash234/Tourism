@@ -13,8 +13,11 @@ COPY frontend/Tourism/package-lock.json ./package-lock.json
 # and is compatible with the Node 22/npm toolchain used by this image.
 RUN npm --version && node --version
 
+# Ensure package-lock.json is valid and install dependencies
+RUN npm ci --no-audit --no-fund --prefer-offline || npm install --no-audit --no-fund --prefer-offline
+
 COPY frontend/Tourism/ ./
-RUN npm ci --no-audit --no-fund
+RUN npm run build
 
 ARG VITE_SITE_URL=""
 ENV VITE_SITE_URL=$VITE_SITE_URL

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
 import destinationApi from "../api/destinationApi"
-import { useTranslation } from "../i18n/TranslationContext"
+import { useTranslation } from "./useTranslation"
 
 /**
  * Hook to fetch and manage translated content for a destination.
