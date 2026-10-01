@@ -1,5 +1,5 @@
 """
-Caching utilities for expensive queries and computed values.
+Caching utilities for the Tourism platform.
 """
 import hashlib
 import json
@@ -8,7 +8,6 @@ from functools import wraps
 from typing import Any, Callable, Optional
 
 from django.core.cache import cache
-from django.db.models import QuerySet
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +29,14 @@ def generate_cache_key(prefix: str, *args, **kwargs) -> str:
 
 
 def cached(ttl: int = DEFAULT_CACHE_TTL, key_prefix: str = ""):
-    """Decorator that caches a function's return value."""
+    """
+    Decorator that caches a function's return value.
+
+    Usage:
+        @cached(ttl=600, key_prefix="destinations")
+        def get_destinations():
+            ...
+    """
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -45,7 +51,7 @@ def cached(ttl: int = DEFAULT_CACHE_TTL, key_prefix: str = ""):
     return decorator
 
 
-def cached_queryset(queryset: QuerySet, cache_key: str, ttl: int = DEFAULT_CACHE_TTL) -> list:
+def cached_queryset(queryset, cache_key: str, ttl: int = DEFAULT_CACHE_TTL):
     """Cache a queryset's evaluated results."""
     result = cache.get(cache_key)
     if result is not None:
@@ -55,7 +61,12 @@ def cached_queryset(queryset: QuerySet, cache_key: str, ttl: int = DEFAULT_CACHE
     return result
 
 
-def invalidate_cache_pattern(pattern: str):
+def invalidate_cache(key: str):
+    """Invalidate a specific cache key."""
+    cache.delete(key)
+
+
+def invalidate_pattern(pattern: str):
     """Invalidate all cache keys matching a pattern (requires Redis)."""
     try:
         from django_redis import get_redis_connection
@@ -64,12 +75,11 @@ def invalidate_cache_pattern(pattern: str):
         if keys:
             redis.delete(*keys)
     except Exception:
-        # Fallback: clear entire cache (safe but less precise)
         cache.clear()
 
 
 def get_cache_stats() -> dict:
-    """Return basic cache statistics."""
+    """Get basic cache statistics."""
     try:
         from django_redis import get_redis_connection
         redis = get_redis_connection("default")

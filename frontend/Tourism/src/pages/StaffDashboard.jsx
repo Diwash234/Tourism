@@ -206,9 +206,9 @@ export default function StaffDashboard({ module = "dashboard" }) {
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap gap-2 items-center">
                   <b className="text-slate-900">{task.title}</b>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${STATUS_STYLE[task.status] || STATUS_STYLE.pending}`}>{task.status.replaceAll("_", " ")}</span>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${task.priority === "urgent" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"}`}>{task.priority}</span>
-                  {task.is_escalated && <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-600 text-white font-bold">ESCALATED</span>}
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-bold uppercase ${STATUS_STYLE[task.status] || STATUS_STYLE.pending}`}>{task.status.replaceAll("_", " ")}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${task.priority === "urgent" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"}`}>{task.priority}</span>
+                  {task.is_escalated && <span className="text-xs px-2 py-0.5 rounded-full bg-rose-600 text-white font-bold">ESCALATED</span>}
                 </div>
                 <p className="text-sm text-slate-600 mt-1">{task.description}</p>
                 <p className="text-xs text-slate-400 mt-1"><FiClock className="inline"/> Due {task.due_date && task.due_date < todayStr && !["completed", "cancelled"].includes(task.status) ? <span className="text-rose-600 font-bold">{task.due_date} (overdue)</span> : (task.due_date || "not set")}{task.hotel ? ` · ${task.hotel}` : ""}</p>
@@ -253,7 +253,7 @@ export default function StaffDashboard({ module = "dashboard" }) {
       <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={NOTE_ACTIONS[taskModal.action].label}>
         <div className="bg-white rounded-3xl p-6 max-w-lg w-full space-y-4 shadow-2xl">
           <div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#102A2E]">{NOTE_ACTIONS[taskModal.action].label}</span>
+            <span className="text-xs font-black uppercase tracking-widest text-[#102A2E]">{NOTE_ACTIONS[taskModal.action].label}</span>
             <h3 className="text-lg font-black text-slate-900">{taskModal.task.title}</h3>
           </div>
           <textarea

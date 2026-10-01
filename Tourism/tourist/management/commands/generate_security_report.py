@@ -3,6 +3,9 @@ Management command to generate a security report.
 """
 from django.core.management.base import BaseCommand
 from django.conf import settings
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 
 class Command(BaseCommand):
@@ -13,63 +16,58 @@ class Command(BaseCommand):
         self.stdout.write("SECURITY REPORT")
         self.stdout.write("=" * 60)
 
-        checks = []
-
         # Debug mode
+        self.stdout.write("\nDebug Mode:")
         if settings.DEBUG:
-            checks.append(("DEBUG is enabled", False, "Set DEBUG=False in production"))
+            self.stdout.write(self.style.ERROR("  DEBUG is True - should be False in production"))
         else:
-            checks.append(("DEBUG is disabled", True, ""))
+            self.stdout.write(self.style.SUCCESS("  DEBUG is False"))
 
-        # Secret key
-        if settings.SECRET_KEY and len(settings.SECRET_KEY) > 20:
-            checks.append(("SECRET_KEY is strong", True, ""))
-        else:
-            checks.append(("SECRET_KEY is weak", False, "Use a longer, random secret key"))
-
-        # HTTPS
+        # HTTPS settings
+        self.stdout.write("\nHTTPS Settings:")
         if settings.SECURE_SSL_REDIRECT:
-            checks.append(("SSL redirect enabled", True, ""))
+            self.stdout.write(self.style.SUCCESS("  SECURE_SSL_REDIRECT is True"))
         else:
-            checks.append(("SSL redirect disabled", False, "Enable SECURE_SSL_REDIRECT in production"))
+            self.stdout.write(self.style.WARNING("  SECURE_SSL_REDIRECT is False"))
 
-        # HSTS
-        if settings.SECURE_HSTS_SECONDS > 0:
-            checks.append(("HSTS enabled", True, ""))
-        else:
-            checks.append(("HSTS disabled", False, "Enable SECURE_HSTS_SECONDS in production"))
-
-        # Session cookie
         if settings.SESSION_COOKIE_SECURE:
-            checks.append(("Session cookie secure", True, ""))
+            self.stdout.write(self.style.SUCCESS("  SESSION_COOKIE_SECURE is True"))
         else:
-            checks.append(("Session cookie not secure", False, "Enable SESSION_COOKIE_SECURE in production"))
+            self.stdout.write(self.style.WARNING("  SESSION_COOKIE_SECURE is False"))
 
-        # CSRF cookie
         if settings.CSRF_COOKIE_SECURE:
-            checks.append(("CSRF cookie secure", True, ""))
+            self.stdout.write(self.style.SUCCESS("  CSRF_COOKIE_SECURE is True"))
         else:
-            checks.append(("CSRF cookie not secure", False, "Enable CSRF_COOKIE_SECURE in production"))
+            self.stdout.write(self.style.WARNING("  CSRF_COOKIE_SECURE is False"))
 
         # Allowed hosts
+        self.stdout.write("\nAllowed Hosts:")
         if settings.ALLOWED_HOSTS and "*" not in settings.ALLOWED_HOSTS:
-            checks.append(("ALLOWED_HOSTS is specific", True, ""))
+            self.stdout.write(self.style.SUCCESS(f"  {', '.join(settings.ALLOWED_HOSTS)}"))
         else:
-            checks.append(("ALLOWED_HOSTS is wildcard", False, "Set specific ALLOWED_HOSTS in production"))
+            self.stdout.write(self.style.ERROR("  ALLOWED_HOSTS is empty or contains '*'"))
 
-        # CORS
-        if settings.CORS_ALLOWED_ORIGINS:
-            checks.append(("CORS origins configured", True, ""))
-        else:
-            checks.append(("CORS origins not configured", False, "Set CORS_ALLOWED_ORIGINS in production"))
+        # User statistics
+        self.stdout.write("\nUser Statistics:")
+        total_users = User.objects.count()
+        staff_users = User.objects.filter(is_staff=True).count()
+        superusers = User.objects.filter(is_superuser=True).count()
+        unverified = User.objects.filter(is_verified=False).count()
+        self.stdout.write(f"  Total users: {total_users}")
+        self.stdout.write(f"  Staff users: {staff_users}")
+        self.stdout.write(f"  Superusers: {superusers}")
+        self.stdout.write(f"  Unverified users: {unverified}")
 
-        # Display results
-        self.stdout.write("\nSecurity checks:")
-        for check_name, passed, recommendation in checks:
-            status = "PASS" if passed else "FAIL"
-            style = self.style.SUCCESS if passed else self.style.ERROR
-            self.stdout.write(style(f"  [{status}] {check_name}"))
-            if recommendation:
-                self.stdout.write(f"         → {recommendation}")
+        # Inactive admin accounts
+        from django.utils import timezone
+        from datetime import timedelta
+        inactive_admins = User.objects.filter(
+            is_staff=True,
+            last_login__lt=timezone.now() - timedelta(days=90)
+        ).count()
+        if inactive_admins:
+            self.stdout.write(self.style.WARNING(f"  Inactive admin accounts (90+ days): {inactive_admins}"))
 
         self.stdout.write("\n" + "=" * 60)
+        self.stdout.write("Security report completed")
+        self.stdout.write("=" * 60)

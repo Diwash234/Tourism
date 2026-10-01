@@ -844,7 +844,7 @@ export default function Navigation() {
             <span className="text-xs font-black uppercase text-amber-300 flex items-center gap-1.5">
               <FiShield className="text-amber-400" /> Route Safety Alerts
             </span>
-            <span className="text-[10px] text-slate-400 font-extrabold">
+            <span className="text-xs text-slate-400 font-extrabold">
               {routeAlerts.length ? `${routeAlerts.length} active alert${routeAlerts.length > 1 ? "s" : ""} near destination` : "No active alerts recorded"}
             </span>
           </div>
@@ -858,12 +858,12 @@ export default function Navigation() {
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
               {routeAlerts.map((alert) => (
                 <div key={alert.id} className="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase block">
+                  <span className="text-xs font-bold text-slate-400 uppercase block">
                     {alert.alert_type} · {alert.severity}
                   </span>
                   <p className="font-extrabold text-amber-200">{alert.title}</p>
-                  <p className="text-[10px] text-slate-300 line-clamp-2">{alert.description}</p>
-                  <p className="text-[10px] text-slate-500">
+                  <p className="text-xs text-slate-300 line-clamp-2">{alert.description}</p>
+                  <p className="text-xs text-slate-500">
                     Source: {alert.source || "Information unavailable"}
                     {alert.is_verified ? " · ✓ Verified" : " · Unverified"}
                   </p>
