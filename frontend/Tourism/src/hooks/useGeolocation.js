@@ -167,7 +167,7 @@ const useGeolocation = ({ auto = true, enableIpFallback = true } = {}) => {
           if (!ok) setError(message)
         }
       },
-      { enableHighAccuracy: true, timeout: 20000, maximumAge: 300000 }
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: forceFresh ? 0 : 300000 }
     )
   }, [readCache, writeCache, enableIpFallback, fetchIpLocation])
 
