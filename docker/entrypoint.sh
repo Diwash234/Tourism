@@ -47,63 +47,48 @@ with connection.cursor() as cur:
 PY
   )
 
-  SEEDED=0
+  # ALWAYS load all seed sources - no SEEDED flag to prevent multiple loads
   if [ "$DATA_EXISTS" = "0" ]; then
-    echo "entrypoint: PostgreSQL destination catalogue is empty - loading seed data"
+    echo "entrypoint: PostgreSQL destination catalogue is empty - loading ALL seed data sources"
 
     # 1. Canonical verified snapshot (tracked in git): destinations WITH
     #    categories, hotels, hospitals, police stations, restaurants, OSM
-    #    services and published CMS pages.  Refuses to run against a database
-    #    that already has users/destinations, so a failure falls through.
+    #    services and published CMS pages.
     if [ -f "/app/Tourism/dataset/verified_tourism_data.json" ]; then
-      echo "entrypoint: trying verified snapshot (destinations + services + CMS)"
-      if python manage.py import_verified_snapshot /app/Tourism/dataset/verified_tourism_data.json; then
-        SEEDED=1
-      else
-        echo "entrypoint: verified snapshot not loadable - trying next source"
-      fi
+      echo "entrypoint: loading verified snapshot (destinations + services + CMS)"
+      python manage.py import_verified_snapshot /app/Tourism/dataset/verified_tourism_data.json || echo "entrypoint: WARNING - verified snapshot load failed"
     fi
 
     # 2. Local prebuilt fixture (not in git; present only on custom images).
-    if [ "$SEEDED" = "0" ] && [ -f "/app/Tourism/load.json" ]; then
-      echo "entrypoint: trying prebuilt load.json fixture"
-      if python manage.py loaddata /app/Tourism/load.json; then
-        SEEDED=1
-      else
-        echo "entrypoint: load.json failed - trying next source"
-      fi
+    if [ -f "/app/Tourism/load.json" ]; then
+      echo "entrypoint: loading prebuilt load.json fixture"
+      python manage.py loaddata /app/Tourism/load.json || echo "entrypoint: WARNING - load.json load failed"
     fi
 
     # 3. Convert the tracked dataset catalogue (embeds the category table so
     #    destination FKs always resolve on a fresh migrated database).
-    if [ "$SEEDED" = "0" ] && [ -f "/app/Tourism/dataset/data.json" ]; then
+    if [ -f "/app/Tourism/dataset/data.json" ]; then
       echo "entrypoint: converting dataset/data.json to a fixture"
-      if python manage.py convert_dataset_to_fixture --output /tmp/tourism-load.json \
-        && python manage.py loaddata /tmp/tourism-load.json; then
-        SEEDED=1
-      else
-        echo "entrypoint: dataset conversion failed - trying next source"
-      fi
+      python manage.py convert_dataset_to_fixture --output /tmp/tourism-load.json \
+        && python manage.py loaddata /tmp/tourism-load.json \
+        || echo "entrypoint: WARNING - dataset conversion/load failed"
       rm -f /tmp/tourism-load.json
     fi
 
     # 4. Published seed SQLite archive.
-    if [ "$SEEDED" = "0" ] && [ -f "/app/downloads/nepal-tourism-seed.sqlite3.gz" ]; then
+    if [ -f "/app/downloads/nepal-tourism-seed.sqlite3.gz" ]; then
       echo "entrypoint: importing published seed archive"
-      if python manage.py import_public_seed_postgres; then
-        SEEDED=1
-      fi
-    fi
-
-    if [ "$SEEDED" = "0" ]; then
-      echo "entrypoint: WARNING - no tourism seed data found"
+      python manage.py import_public_seed_postgres || echo "entrypoint: WARNING - seed archive import failed"
     fi
   else
     echo "entrypoint: PostgreSQL already contains $DATA_EXISTS destinations - preserving catalogue"
   fi
 
-  # Import hotels, hospitals, police from CSV (after seed or on existing DB)
-  # These are idempotent and will only add missing records
+  # ALWAYS import additional data sources (idempotent: only adds missing records)
+  # These run regardless of whether data was seeded above
+  echo "entrypoint: importing OSM destinations"
+  python manage.py import_osm_destinations || echo "entrypoint: WARNING - OSM destinations import skipped"
+
   echo "entrypoint: importing hotels from hotel.csv"
   python manage.py import_hotels_csv || echo "entrypoint: WARNING - hotel CSV import skipped"
   
@@ -114,6 +99,34 @@ PY
   echo "entrypoint: importing police directory"
   python manage.py import_police --csv dataset/nearbypolice.csv \
     || echo "entrypoint: WARNING - police CSV import skipped"
+  
+  echo "entrypoint: importing risk data"
+  python manage.py import_risk \
+    || echo "entrypoint: WARNING - risk CSV import skipped"
+
+  # Reconcile the destination budget table on every deploy. The importer is
+  # idempotent (update_or_create) and makes the tracked CSV usable on Render
+  # instead of depending on the optional ML process being online.
+  echo "entrypoint: importing verified destination budget dataset"
+  python manage.py import_budget \
+    || echo "entrypoint: WARNING - budget dataset import skipped"
+
+  echo "entrypoint: importing sourced emergency and nearby-service records"
+  python manage.py import_emergency_services \
+    || echo "entrypoint: WARNING - emergency services import skipped"
+  python manage.py seed_district_services \
+    || echo "entrypoint: WARNING - district services seed skipped"
+
+  # Import additional bundled datasets
+  echo "entrypoint: importing bundled hotel, hospital, police and risk datasets"
+  python manage.py import_hotels_csv --csv dataset/hotel.csv \
+    || echo "entrypoint: WARNING - hotel CSV import skipped"
+  python manage.py import_hospital --csv dataset/hospital.csv \
+    || echo "entrypoint: WARNING - hospital CSV import skipped"
+  python manage.py import_police --csv dataset/nearbypolice.csv \
+    || echo "entrypoint: WARNING - police CSV import skipped"
+  python manage.py import_risk \
+    || echo "entrypoint: WARNING - risk CSV import skipped"
   
   # Import risk data
   echo "entrypoint: importing risk data"
