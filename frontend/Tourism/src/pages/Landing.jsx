@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { Link } from "react-router-dom"
 import { FiArrowRight, FiCompass, FiMapPin, FiShield } from "react-icons/fi"
 import { useI18n } from "../i18n"
@@ -40,6 +40,42 @@ const FAQ_ITEMS = [
   { question: "How do I add a place I discovered?", answer: "Signed-in travellers can use the submission forms. A place is published only after the platform's review process, so the public catalogue stays trustworthy." },
 ]
 
+function EventsSection({ events = [] }) {
+  if (!events.length) return null
+  return (
+    <section className="container-app section-space" aria-labelledby="events-section-title">
+      <div className="flex flex-col gap-3 border-b border-[var(--ny-border)] pb-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="ny-kicker">Cultural calendar & gatherings</p>
+          <h2 id="events-section-title" className="mt-2">Upcoming festivals & mountain events</h2>
+        </div>
+        <Link to="/discover" className="text-sm font-semibold text-[var(--ny-green)] hover:underline">
+          Discover all festivals <FiArrowRight size={14} className="inline" aria-hidden="true" />
+        </Link>
+      </div>
+      <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        {events.slice(0, 4).map((evt) => (
+          <article key={evt.id} className="ny-card flex flex-col justify-between p-5">
+            <div>
+              <div className="flex items-center justify-between text-xs font-semibold text-[var(--ny-green)] mb-2">
+                <span>📅 {evt.date || "Upcoming"}</span>
+                {evt.location && <span className="text-[var(--ny-text-secondary)] truncate max-w-[120px]">📍 {evt.location}</span>}
+              </div>
+              <h3 className="font-bold text-base text-[var(--ny-text)] line-clamp-2">{evt.title}</h3>
+              {evt.summary && <p className="mt-2 text-xs leading-relaxed text-[var(--ny-text-secondary)] line-clamp-3">{evt.summary}</p>}
+            </div>
+            <div className="mt-4 pt-3 border-t border-[var(--ny-border)]">
+              <Link to={`/destinations?q=${encodeURIComponent(evt.location || evt.title)}`} className="text-xs font-bold text-[var(--ny-green)] hover:underline flex items-center gap-1">
+                Explore location <FiArrowRight size={12} />
+              </Link>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 const HOME_KEYS = ["hero", "features", "featured", "case-studies", "highlights", "symbols", "culture", "provinces", "marquee", "testimonials", "faq", "cta"]
 
 export default function Landing() {
@@ -56,6 +92,43 @@ export default function Landing() {
     return Array.isArray(items) && items.length ? items : null
   })()
   const featureItems = cmsFeatureItems
+
+  const publishedEvents = useMemo(() => {
+    const rawEvents = publicConfig.settings?.cms_content_events
+    if (Array.isArray(rawEvents) && rawEvents.length > 0) {
+      return rawEvents.filter((e) => !e.status || e.status === "published")
+    }
+    return []
+  }, [publicConfig.settings?.cms_content_events])
+
+  const combinedNotices = useMemo(() => {
+    const list = [...(publicConfig.notices || [])]
+    const cmsNotices = publicConfig.settings?.cms_content_notices
+    if (Array.isArray(cmsNotices) && cmsNotices.length > 0) {
+      const published = cmsNotices.filter((n) => !n.status || n.status === "published")
+      published.forEach((n) => {
+        if (!list.some((existing) => existing.title === n.title)) {
+          list.push({
+            id: n.id,
+            kind: n.category?.toLowerCase() || n.kind || "info",
+            title: n.title,
+            body: n.body || n.content,
+            destination_name: n.location || n.destination_name,
+          })
+        }
+      })
+    }
+    return list
+  }, [publicConfig.notices, publicConfig.settings?.cms_content_notices])
+
+  const publishedFaqs = useMemo(() => {
+    const cmsFaqs = publicConfig.settings?.cms_content_faqs
+    if (Array.isArray(cmsFaqs) && cmsFaqs.length > 0) {
+      const active = cmsFaqs.filter((item) => !item.status || item.status === "published")
+      if (active.length > 0) return active
+    }
+    return FAQ_ITEMS
+  }, [publicConfig.settings?.cms_content_faqs])
 
   useEffect(() => {
     let active = true
@@ -76,7 +149,11 @@ export default function Landing() {
     <div className="ny-page overflow-x-hidden bg-[var(--ny-bg)]">
       {showBlock("hero") && <HeroCinematic />}
       <NearYouSection destinations={destinations} />
-      {publicConfig.notices?.length > 0 && <section className="container-app pt-8"><VisitorNoticeBanner notices={publicConfig.notices} /></section>}
+      {combinedNotices.length > 0 && (
+        <section className="container-app pt-8">
+          <VisitorNoticeBanner notices={combinedNotices} />
+        </section>
+      )}
 
       {showBlock("features") && <section className="container-app section-space"><div className="max-w-2xl"><p className="ny-kicker">A calmer way to travel</p><h2 className="mt-2">{copy("features", "title", "From first idea to a safer route")}</h2><p className="mt-2 text-sm leading-6 text-[var(--ny-text-secondary)]">{copy("features", "body", "Explore the country, compare the details that matter and keep the next useful action close at hand.")}</p></div><div className="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">{(featureItems || DEFAULT_FEATURES).map((item) => { const Icon = typeof item.icon === "function" ? item.icon : null; const title = item.title || "Explore Nepal"; const description = item.description || item.body || "Explore the live catalogue."; const url = item.url || "/destinations"; const content = <><span className="grid h-11 w-11 place-items-center rounded-[var(--ny-radius-md)] bg-[var(--ny-soft-green)] text-[var(--ny-green)]">{Icon ? <Icon size={20} aria-hidden="true" /> : <span aria-hidden="true">{item.emoji || "✦"}</span>}</span><h3 className="mt-5 text-lg font-bold">{title}</h3><p className="mt-2 text-sm leading-6 text-[var(--ny-text-secondary)]">{description}</p><span className="mt-auto pt-5 text-sm font-semibold text-[var(--ny-green)]">Explore <FiArrowRight size={14} className="inline" aria-hidden="true" /></span></>; return <Link key={title} to={url} className="ny-card flex h-full flex-col p-5 hover:-translate-y-0.5">{content}</Link> })}</div></section>}
 
@@ -90,8 +167,9 @@ export default function Landing() {
 
       {showBlock("provinces") && <section className="container-app section-space"><div className="max-w-2xl"><p className="ny-kicker">Across the country</p><h2 className="mt-2">Explore by province</h2><p className="mt-2 text-sm text-[var(--ny-text-secondary)]">Start with a province, then follow the places that fit your route.</p></div><div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">{PROVINCES.map(([province, city]) => <Link key={province} to={`/destinations?q=${encodeURIComponent(city)}`} className="ny-card flex min-h-28 flex-col justify-between p-4"><span className="font-bold">{province}</span><span className="mt-3 text-xs text-[var(--ny-text-secondary)]">{city}</span><span className="mt-3 text-xs font-semibold text-[var(--ny-green)]">Explore →</span></Link>)}</div></section>}
       {showBlock("marquee") && <ProvinceMarquee />}
+      {publishedEvents.length > 0 && <EventsSection events={publishedEvents} />}
       {showBlock("testimonials") && <TestimonialsSection />}
-      {showBlock("faq") && <section className="container-app section-space"><div className="max-w-2xl"><p className="ny-kicker">Before you go</p><h2 className="mt-2">{copy("faq", "title", "Frequently asked questions")}</h2>{copy("faq", "body", "Everything travellers ask before beginning a journey in Nepal.") && <p className="mt-2 text-sm leading-6 text-[var(--ny-text-secondary)]">{copy("faq", "body", "Everything travellers ask before beginning a journey in Nepal.")}</p>}</div><div className="mx-auto mt-7 max-w-3xl"><FAQAccordion items={FAQ_ITEMS} /></div></section>}
+      {showBlock("faq") && <section className="container-app section-space"><div className="max-w-2xl"><p className="ny-kicker">Before you go</p><h2 className="mt-2">{copy("faq", "title", "Frequently asked questions")}</h2>{copy("faq", "body", "Everything travellers ask before beginning a journey in Nepal.") && <p className="mt-2 text-sm leading-6 text-[var(--ny-text-secondary)]">{copy("faq", "body", "Everything travellers ask before beginning a journey in Nepal.")}</p>}</div><div className="mx-auto mt-7 max-w-3xl"><FAQAccordion items={publishedFaqs} /></div></section>}
       {showBlock("cta") && <StickyCTA />}
       {extras?.length > 0 && <section className="container-app section-space"><CMSExtras sections={extras} /></section>}
       <p className="sr-only">Nepal Yatra traveller information portal language: {t("language.name") || "English"}</p>
