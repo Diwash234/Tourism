@@ -1140,43 +1140,51 @@ function translateLegacyDom(root = document.body) {
 const translationCache = new Map()
 
 async function translatePageUi(root = document.body) {
-  // Machine translation only ever runs for a language we ship a dictionary
-  // for; for anything else it would rewrite the visible page into a language
-  // chosen at random by a remote LLM/Google tier (and fail silently).
   if (typeof document === "undefined" || currentLang === "en" || !DICTS[currentLang] || !root) return
-  const reverse = new Map(Object.entries(en).map(([key, value]) => [value, key]))
   const texts = []
   const nodes = []
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
   let node
   while ((node = walker.nextNode())) {
-    if (!node.parentElement || ["SCRIPT","STYLE","CODE","PRE"].includes(node.parentElement.tagName)) continue
+    const parent = node.parentElement
+    if (!parent || ["SCRIPT", "STYLE", "CODE", "PRE", "NOSCRIPT"].includes(parent.tagName)) continue
+    if (parent.closest?.("[data-no-translate], input, textarea, select, option, svg")) continue
     const original = originalText.get(node) || node.nodeValue
     const trimmed = original.trim()
-    if (!trimmed || !reverse.has(trimmed)) continue
-    if (translationCache.has(`${currentLang}:${trimmed}`)) {
-      node.nodeValue = original.replace(trimmed, translationCache.get(`${currentLang}:${trimmed}`))
+    if (!trimmed || trimmed.length < 2) continue
+    if (/^[\\d\\W_]+$/.test(trimmed)) continue
+    const cacheKey = `${currentLang}:${trimmed}`
+    if (translationCache.has(cacheKey)) {
+      node.nodeValue = original.replace(trimmed, translationCache.get(cacheKey))
       continue
     }
-    texts.push(trimmed); nodes.push(node)
+    texts.push(trimmed)
+    nodes.push(node)
   }
-  const unique = [...new Set(texts)].slice(0, 100)
-  if (!unique.length) return
-  try {
-    const { data } = await translationApi.translateBatch({ items: unique, target_language: currentLang, source_language: "en" })
-    const translated = Array.isArray(data?.translations) ? data.translations : []
-    unique.forEach((text, index) => translationCache.set(`${currentLang}:${text}`, translated[index] || text))
-    nodes.forEach((textNode) => {
-      const original = originalText.get(textNode) || textNode.nodeValue
-      const trimmed = original.trim()
-      const value = translationCache.get(`${currentLang}:${trimmed}`)
-      if (value) textNode.nodeValue = original.replace(trimmed, value)
-    })
-  } catch {
-    /* Machine translation is best-effort: a failed batch leaves the text as-is. */
+  const unique = [...new Set(texts)]
+  for (let start = 0; start < unique.length; start += 100) {
+    const batch = unique.slice(start, start + 100)
+    try {
+      const { data } = await translationApi.translateBatch({
+        items: batch,
+        target_language: currentLang,
+        source_language: "en",
+      })
+      const translated = Array.isArray(data?.translations) ? data.translations : []
+      batch.forEach((text, index) => {
+        translationCache.set(`${currentLang}:${text}`, translated[index] || text)
+      })
+    } catch {
+      /* Keep the original English text when the translation service is unavailable. */
+    }
   }
+  nodes.forEach((textNode) => {
+    const original = originalText.get(textNode) || textNode.nodeValue
+    const trimmed = original.trim()
+    const value = translationCache.get(`${currentLang}:${trimmed}`)
+    if (value) textNode.nodeValue = original.replace(trimmed, value)
+  })
 }
-
 function enableLegacyTranslationBridge() {
   if (typeof document === "undefined") return
   queueMicrotask(() => { translateLegacyDom(); translatePageUi() })
