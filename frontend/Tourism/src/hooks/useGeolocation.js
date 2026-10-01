@@ -87,9 +87,10 @@ const useGeolocation = ({ auto = true, enableIpFallback = true } = {}) => {
     return false
   }, [])
 
-  const request = useCallback(async () => {
-    // Try cache first for instant display
-    const cached = readCache()
+  const request = useCallback(async (forceFresh = false) => {
+    // Automatic location can use a short cache, but an explicit refresh/
+    // "Use My Location" action must request a fresh browser GPS fix.
+    const cached = forceFresh ? null : readCache()
     if (cached) {
       setCoords({ latitude: cached.latitude, longitude: cached.longitude })
       setAccuracy(cached.accuracy)
@@ -172,7 +173,7 @@ const useGeolocation = ({ auto = true, enableIpFallback = true } = {}) => {
 
   const refresh = useCallback(() => {
     ipFallbackAttempted.current = false
-    request()
+    request(true)
   }, [request])
 
   const clear = useCallback(() => {
