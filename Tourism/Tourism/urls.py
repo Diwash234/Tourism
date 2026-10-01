@@ -37,9 +37,9 @@ urlpatterns = [
     # Explicit auth routes are kept at the project URL layer as a deployment
     # compatibility guard. They resolve before the larger tourist include and
     # make the public login/logout contract unambiguous on Render.
-    path("api/v1/auth/login/", tourist.views_auth.LoginView.as_view(), name="auth-login-project"),
+    path("api/v1/auth/login/", views_auth.LoginView.as_view(), name="auth-login-project"),
     path("api/v1/auth/login", tourist.views_auth.LoginView.as_view(), name="auth-login-project-noslash"),
-    path("api/v1/auth/logout/", tourist.views_auth.LogoutView.as_view(), name="auth-logout-project"),
+    path("api/v1/auth/logout/", views_auth.LogoutView.as_view(), name="auth-logout-project"),
     path("api/v1/auth/logout", tourist.views_auth.LogoutView.as_view(), name="auth-logout-project-noslash"),
     path("api/v1/", include("tourist.urls")),
 
