@@ -1,85 +1,68 @@
-"""Production-grade database backup: gzip dump + SHA-256 sidecar + rotation.
-
-Usage:
-    python manage.py backup_database [--dir backups] [--keep 7]
 """
-import gzip
-import hashlib
-import io
+Management command to backup the database.
+"""
 import os
-from datetime import datetime, timezone
+import subprocess
+from datetime import datetime
+from pathlib import Path
 
+from django.core.management.base import BaseCommand
 from django.conf import settings
-from django.core.management import call_command
-from django.core.management.base import BaseCommand, CommandError
 
 
 class Command(BaseCommand):
-    help = "Dump the database to backups/, verify with SHA-256, rotate old archives."
+    help = "Backup the database"
 
     def add_arguments(self, parser):
-        parser.add_argument("--dir", default=os.path.join(str(settings.BASE_DIR), "backups"))
-        parser.add_argument("--keep", type=int, default=7)
+        parser.add_argument(
+            "--output-dir",
+            type=str,
+            default="backups",
+            help="Output directory for the backup file",
+        )
 
     def handle(self, *args, **options):
-        out_dir = options["dir"]
-        os.makedirs(out_dir, exist_ok=True)
-        stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-        engine = settings.DATABASES["default"]["ENGINE"]
-        ext = "sqlite" if "sqlite3" in engine else "sql"
-        path = os.path.join(out_dir, f"backup-{stamp}.{ext}.gz")
+        output_dir = Path(options["output_dir"])
+        output_dir.mkdir(parents=True, exist_ok=True)
 
-        buf = io.StringIO()
-        if "sqlite3" in engine:
-            # Portable dump that works without external tools.
-            call_command("dumpdata", "--natural-foreign", "--natural-primary",
-                         "-e", "contenttypes", "-e", "auth.permission",
-                         "-e", "admin.logentry", "--indent", "1", stdout=buf)
-            data = buf.getvalue().encode("utf-8")
-        else:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        db_name = settings.DATABASES["default"]["NAME"]
+
+        if settings.DATABASES["default"]["ENGINE"] == "django.db.backends.sqlite3":
+            backup_file = output_dir / f"backup_{timestamp}.sqlite3"
+            self.stdout.write(f"Creating SQLite backup: {backup_file}")
+
+            # For SQLite, we can simply copy the file
             import shutil
-            import subprocess
-            db = settings.DATABASES["default"]
-            # pg_dump may live outside PATH (e.g. bundled/postgres-binaries
-            # installs). Allow an explicit PG_DUMP override, then PATH lookup,
-            # then fail with an actionable message instead of a raw OSError.
-            pg_dump = os.environ.get("PG_DUMP") or shutil.which("pg_dump")
-            if not pg_dump:
-                raise CommandError(
-                    "pg_dump not found on PATH. Install PostgreSQL client "
-                    "tools or set the PG_DUMP environment variable to the "
-                    "full path of the pg_dump binary.")
-            env = dict(os.environ, PGPASSWORD=str(db.get("PASSWORD") or ""))
-            proc = subprocess.run(
-                [pg_dump, "-h", str(db.get("HOST") or "localhost"),
-                 "-p", str(db.get("PORT") or 5432), "-U", str(db.get("USER") or ""),
-                 "-d", str(db.get("NAME") or ""), "--no-owner"],
-                capture_output=True, env=env, check=True)
-            data = proc.stdout
+            shutil.copy2(db_name, backup_file)
 
-        with gzip.open(path, "wb") as fh:
-            fh.write(data)
-        digest = hashlib.sha256(data).hexdigest()
-        with open(path + ".sha256", "w") as fh:
-            fh.write(f"{digest}  {os.path.basename(path)}\n")
+        elif settings.DATABASES["default"]["ENGINE"] == "django.db.backends.postgresql":
+            backup_file = output_dir / f"backup_{timestamp}.sql"
+            self.stdout.write(f"Creating PostgreSQL backup: {backup_file}")
 
-        # verify the archive we just wrote
-        with gzip.open(path, "rb") as fh:
-            if hashlib.sha256(fh.read()).hexdigest() != digest:
-                raise RuntimeError(f"Backup verification FAILED for {path}")
+            # Use pg_dump for PostgreSQL
+            env = os.environ.copy()
+            env["PGPASSWORD"] = settings.DATABASES["default"]["PASSWORD"]
 
-        # rotation
-        archives = sorted(f for f in os.listdir(out_dir)
-                          if f.endswith(".gz") and os.path.getmtime(os.path.join(out_dir, f)))
-        removed = []
-        while len(archives) > options["keep"]:
-            old = archives.pop(0)
-            for suffix in ("", ".sha256"):
-                p = os.path.join(out_dir, old + suffix)
-                if os.path.exists(p):
-                    os.remove(p)
-            removed.append(old)
+            cmd = [
+                "pg_dump",
+                "-h", settings.DATABASES["default"]["HOST"],
+                "-p", str(settings.DATABASES["default"]["PORT"]),
+                "-U", settings.DATABASES["default"]["USER"],
+                "-d", db_name,
+                "-f", str(backup_file),
+            ]
 
-        self.stdout.write(self.style.SUCCESS(
-            f"Backup OK: {path} ({len(data)} bytes, sha256={digest[:16]}...) "
-            f"verified; removed={removed or 'none'}"))
+            try:
+                subprocess.run(cmd, env=env, check=True)
+            except subprocess.CalledProcessError as exc:
+                self.stderr.write(f"Backup failed: {exc}")
+                return
+            except FileNotFoundError:
+                self.stderr.write("pg_dump not found. Please install PostgreSQL client tools.")
+                return
+        else:
+            self.stderr.write(f"Unsupported database engine: {settings.DATABASES['default']['ENGINE']}")
+            return
+
+        self.stdout.write(self.style.SUCCESS(f"Backup created successfully: {backup_file}"))
