@@ -2,12 +2,19 @@ import { useEffect, useRef, useState } from "react"
 import useSeo from "../../hooks/useSeo"
 import { useParams, useNavigate, Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
-import { FiMapPin, FiPhoneCall, FiDollarSign, FiShield, FiCoffee, FiGlobe, FiClock, FiNavigation, FiChevronLeft, FiChevronRight, FiX, FiActivity, FiTruck, FiCompass, FiExternalLink, FiBookOpen, FiSun, FiImage } from "react-icons/fi"
+import { FiMapPin, FiPhoneCall, FiDollarSign, FiShield, FiCoffee, FiGlobe, FiClock, FiNavigation, FiChevronLeft, FiChevronRight, FiX, FiActivity, FiTruck, FiCompass, FiExternalLink, FiBookOpen, FiSun, FiImage, FiGlobe } from "react-icons/fi"
 
 import destinationApi from "../../api/destinationApi"
 import emergencyApi from "../../api/emergencyApi"
 import userApi from "../../api/userApi"
 import { formatCoords, hasValidCoords, placeLocationLabel, INFO_UNAVAILABLE } from "../../utils/placeUtils"
+import { LOCATION_ICON_URL } from "../../utils/locationIcons"
+import { getDestinationImageUrl } from "../../utils/imageUtils"
+import { photoApi } from "../../services/api"
+import usePublicConfig from "../../hooks/usePublicConfig"
+import { CMSExtras } from "../../components/cms/CMSBlock"
+import { useTranslation } from "../../i18n/TranslationContext"
+import useDestinationTranslation from "../../hooks/useDestinationTranslation"
 import { LOCATION_ICON_URL } from "../../utils/locationIcons"
 import { getDestinationImageUrl } from "../../utils/imageUtils"
 import { photoApi } from "../../services/api"
@@ -61,12 +68,23 @@ export default function DestinationDetails() {
 
   const { isAuthenticated } = useAuth()
   const { showToast } = useToast()
+  const { lang } = useTranslation()
   const { extras } = usePublicConfig().pageCMS("destination-detail", ["hero", "about", "gallery", "video", "map"])
   const [videoFile, setVideoFile] = useState(null)
   const [videoBusy, setVideoBusy] = useState(false)
 
   const [destination, setDestination] = useState(null)
   const [loadError, setLoadError] = useState("")
+
+  // Translation for destination content
+  const { translated, loading: translationLoading, error: translationError, refresh: refreshTranslation } =
+    useDestinationTranslation(slug, !!(destination && lang !== "en"))
+
+  // Helper to get translated content with fallback
+  const t = useCallback((field) => {
+    if (translated && translated[field] != null) return translated[field]
+    return destination?.[field] ?? ""
+  }, [translated, destination])
   // Nearby & all destinations — nearest-first, paginated (radius covers all of Nepal)
   const [nearbyDests, setNearbyDests] = useState([])
   const [nearbyHasMore, setNearbyHasMore] = useState(false)
@@ -82,13 +100,14 @@ export default function DestinationDetails() {
   // §104: per-page SEO from real record data only — admin-controlled
   // overrides where set, safe generated defaults otherwise.
   const seoDescription = destination
-    ? destination.meta_description ||
-      (destination.description || destination.short_description || "").replace(/\s+/g, " ").slice(0, 155) ||
-      `Visitor information for ${destination.name}, Nepal.`
+    ? (translated?.description || translated?.short_description ||
+        destination.meta_description ||
+        (destination.description || destination.short_description || "").replace(/\s+/g, " ").slice(0, 155) ||
+        `Visitor information for ${destination.name}, Nepal.`)
     : ""
   useSeo({
     title: destination
-      ? destination.seo_title || `${destination.name}${destination.district ? `, ${destination.district}` : ""}`
+      ? (translated?.name || destination.seo_title || `${destination.name}${destination.district ? `, ${destination.district}` : ""}`)
       : "Destination",
     description: seoDescription,
     path: slug ? `/destinations/${slug}` : undefined,
@@ -98,8 +117,9 @@ export default function DestinationDetails() {
       ? {
           "@context": "https://schema.org",
           "@type": "TouristAttraction",
-          name: destination.name,
-          description: seoDescription || undefined,
+          name: translated?.name || destination.name,
+          description: (translated?.description || destination.meta_description ||
+            (destination.description || destination.short_description || "").replace(/\s+/g, " ").slice(0, 155)) || undefined,
           ...(destination.district ? { address: { "@type": "PostalAddress", addressLocality: destination.district, addressCountry: "NP" } } : {}),
           ...(hasValidCoords(destination.latitude, destination.longitude)
             ? { geo: { "@type": "GeoCoordinates", latitude: Number(destination.latitude), longitude: Number(destination.longitude) } }
@@ -530,10 +550,10 @@ export default function DestinationDetails() {
           {/* Section 1: About & Introduction */}
           <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-white">
             <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
-              <FiCompass className="text-primary-700" /> About {destination.name}
+              <FiCompass className="text-primary-700" /> About {t("name")}
             </h2>
             <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
-              {destination.description || `${INFO_UNAVAILABLE} — we will update soon`}
+              {t("description") || `${INFO_UNAVAILABLE} — we will update soon`}
             </p>
 
             {destination.tourism_importance && (
@@ -544,35 +564,35 @@ export default function DestinationDetails() {
           </div>
 
           {/* Section 2: Historical, Cultural & Religious Background */}
-          {(destination.history || destination.cultural_significance || destination.religious_significance) && (
+          {(t("history") || t("cultural_significance") || t("religious_significance")) && (
             <div className="card-base p-6 sm:p-8 space-y-5 shadow-xl border border-primary-100 rounded-3xl bg-white">
               <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
                 Cultural, religious and historical heritage
               </h2>
 
-              {destination.history && (
+              {t("history") && (
                 <div className="space-y-1.5">
                   <h4 className="font-bold text-sm text-primary-900">Historical Origins & Heritage:</h4>
                   <p className="text-gray-700 text-xs sm:text-sm leading-relaxed whitespace-pre-line">
-                    {destination.history}
+                    {t("history")}
                   </p>
                 </div>
               )}
 
-              {destination.cultural_significance && (
+              {t("cultural_significance") && (
                 <div className="space-y-1.5 pt-2 border-t">
                   <h4 className="font-bold text-sm text-primary-900">Cultural Customs & Traditions:</h4>
                   <p className="text-gray-700 text-xs sm:text-sm leading-relaxed">
-                    {destination.cultural_significance}
+                    {t("cultural_significance")}
                   </p>
                 </div>
               )}
 
-              {destination.religious_significance && (
+              {t("religious_significance") && (
                 <div className="space-y-1.5 pt-2 border-t">
                   <h4 className="font-bold text-sm text-primary-900">Religious Significance & Sacred Lore:</h4>
                   <p className="text-gray-700 text-xs sm:text-sm leading-relaxed">
-                    {destination.religious_significance}
+                    {t("religious_significance")}
                   </p>
                 </div>
               )}
