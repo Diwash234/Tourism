@@ -77,6 +77,39 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class DestinationListSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source="category.name", read_only=True)
+    cover_image = serializers.SerializerMethodField()
+
+    def get_cover_image(self, obj):
+        # Imported production data primarily stores reusable remote media in
+        # DestinationImage.external_url rather than an ImageField. Expose the
+        # actual approved cover URL through the existing frontend contract.
+        if getattr(obj, "cover_image", None):
+            try:
+                return obj.cover_image.url
+            except Exception:
+                pass
+        gallery = getattr(obj, "gallery", None)
+        if gallery is not None:
+            photo = next(
+                (
+                    p for p in gallery.all()
+                    if getattr(p, "verification_status", "approved") == "approved"
+                    and (getattr(p, "is_cover", False) or getattr(p, "external_url", ""))
+                ),
+                None,
+            )
+            if photo:
+                if getattr(photo, "image_path", ""):
+                    from .utils import public_media_url
+                    return public_media_url(photo.image_path)
+                if getattr(photo, "external_url", ""):
+                    return photo.external_url
+                if getattr(photo, "image", None):
+                    try:
+                        return photo.image.url
+                    except Exception:
+                        pass
+        return ""
 
     class Meta:
         model = Destination
