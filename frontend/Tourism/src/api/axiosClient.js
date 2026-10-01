@@ -19,6 +19,14 @@ const PUBLIC_READ_PREFIXES = [
   "/stats/",
   "/nearby/",
   "/categories/",
+  "/discover-nepal/",
+  "/featured-destinations/",
+  "/marketplace/",
+  "/reviews/",
+  "/emergency/",
+  "/emergency-contacts/",
+  "/risk/",
+  "/recommendations/",
 ]
 
 const isPublicReadRequest = (config) => {
