@@ -11,7 +11,7 @@ COPY frontend/Tourism/package.json ./package.json
 COPY frontend/Tourism/package-lock.json ./package-lock.json
 
 # Keep the build deterministic. npm 10 + lockfile v3 is supported by Node 20.
-RUN npm --version && node --version && npm ci --no-audit --no-fund
+RUN npm --version && node --version && rm -f npm-shrinkwrap.json && npm install --no-audit --no-fund --prefer-offline
 
 COPY frontend/Tourism/ ./
 
