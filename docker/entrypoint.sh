@@ -69,6 +69,10 @@ PY
       echo "entrypoint: loading data from generated transient fixture"
       python manage.py loaddata /tmp/tourism-load.json
       rm -f /tmp/tourism-load.json
+      if [ -f "/app/downloads/nepal-tourism-database.sqlite3.gz" ]; then
+        echo "entrypoint: restoring missing legacy user accounts from SQLite snapshot"
+        python manage.py import_legacy_users || echo "entrypoint: WARNING - legacy user migration skipped"
+      fi
       # A successful loaddata command is not enough: verify that the public
       # catalogue and media rows really reached PostgreSQL before the server
       # starts. This prevents a green-looking deployment with an empty API.
