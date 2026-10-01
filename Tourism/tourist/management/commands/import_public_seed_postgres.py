@@ -30,7 +30,6 @@ SOURCE_MODELS = [
     "tourist.policestation",
     "tourist.restaurant",
     "tourist.osmessentialservice",
-    "tourist.destinationtransitroute",
 ]
 
 
