@@ -10,8 +10,8 @@ WORKDIR /app/frontend
 COPY frontend/Tourism/package.json ./package.json
 COPY frontend/Tourism/package-lock.json ./package-lock.json
 
-# Fail early with a useful message if the deterministic lockfile is missing.
-RUN test -s package-lock.json && npm ci
+# Keep the build deterministic. npm 10 + lockfile v3 is supported by Node 20.
+RUN npm --version && node --version && npm ci --no-audit --no-fund
 
 COPY frontend/Tourism/ ./
 

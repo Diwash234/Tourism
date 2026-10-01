@@ -9,7 +9,6 @@ import { resolveSmartSearch } from "../../utils/smartSearch"
 import TourismLogo from "../branding/TourismLogo"
 import LanguageSwitcher from "../common/LanguageSwitcher"
 import ProfileMenu from "./ProfileMenu"
-import { useI18n } from "../../i18n"
 import usePublicConfig from "../../hooks/usePublicConfig"
 import useTheme from "../../context/ThemeContext"
 import { resolveNavbarFeatures } from "../../utils/navbarFeatures"
@@ -28,7 +27,6 @@ const Navbar = () => {
   const [searchOpen, setSearchOpen] = useState(false)
   const [sidebarOpen, , toggleSidebar] = useSidebarState()
   const { isAuthenticated, user, isAdmin, isStaff } = useAuth()
-  const { t } = useI18n()
   const navigate = useNavigate()
   const [managedLinks, setManagedLinks] = useState(NAV_LINKS)
   const [openMenu, setOpenMenu] = useState(null)
@@ -229,87 +227,11 @@ const Navbar = () => {
           )}
         </div>
 
-        {/* User actions — always visible from md up */}
+        {/* User actions — authentication controls are intentionally not part of the public navigation. */}
         <div className="hidden md:flex items-center gap-2 shrink-0 ml-auto">
-          {features.language_switcher && (
-            <div className="hidden lg:block">
-              <LanguageSwitcher compact />
-            </div>
-          )}
-          {isAuthenticated ? (
-            <>
-              {isAdmin && (
-                <Link to="/admin" className="text-xs font-black uppercase tracking-wide rounded-lg bg-white text-emerald-950 hover:bg-emerald-50 px-2.5 py-1.5 xl:px-3 xl:py-2">
-                  Admin
-                </Link>
-              )}
-              {isStaff && !isAdmin && (
-                <Link to="/staff" className="text-xs font-black uppercase tracking-wide rounded-lg bg-amber-400 text-amber-950 hover:bg-amber-300 px-2.5 py-1.5 xl:px-3 xl:py-2">
-                  Staff
-                </Link>
-              )}
-              {features.theme_toggle && <button
-                type="button"
-                onClick={toggleTheme}
-                className="text-[#BDEBD9] hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors"
-                aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
-                title={isDark ? "Light mode" : "Dark mode"}
-              >
-                {isDark ? <FiSun size={18} /> : <FiMoon size={18} />}
-              </button>}
-              {features.notifications && <Link
-                to="/notifications"
-                className="text-[#BDEBD9] hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors"
-                aria-label="Notifications"
-              >
-                <FiBell size={18} />
-              </Link>}
-
-              {features.profile && <ProfileMenu />}
-            </>
-          ) : (
-            <>
-              <Link to="/login" className="inline-flex min-h-10 items-center justify-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-[var(--ny-radius-sm)] border border-emerald-600 text-white hover:bg-white/10 transition-colors xl:px-4 xl:py-2">
-                {t("nav.login")}
-              </Link>
-              <Link to="/register" className="btn-primary min-h-10 text-sm py-1.5 px-3 xl:px-4 xl:py-2">
-                {t("nav.signup")}
-              </Link>
-            </>
-          )}
-        </div>
-
-        {/* Mobile user actions (below md) */}
-        <div className="md:hidden flex items-center gap-1 shrink-0 ml-auto">
-          {features.theme_toggle && (
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="p-1.5 rounded-lg text-[#BDEBD9] hover:text-white hover:bg-white/10 transition-colors"
-              aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
-            >
-              {isDark ? <FiSun size={18} /> : <FiMoon size={18} />}
-            </button>
-          )}
-          {isAuthenticated ? (
-            <>
-              {features.notifications && (
-                <Link to="/notifications" className="p-1.5 rounded-lg text-[#BDEBD9] hover:text-white hover:bg-white/10 transition-colors" aria-label="Notifications">
-                  <FiBell size={18} />
-                </Link>
-              )}
-              {features.profile && <ProfileMenu />}
-            </>
-          ) : (
-            <>
-              <Link to="/login" className="text-xs font-bold px-2 py-2 min-h-10 rounded-lg bg-[var(--ny-green)] text-white hover:bg-emerald-500 transition-colors">
-                {t("nav.login")}
-              </Link>
-              <Link to="/register" className="text-xs font-bold px-2 py-2 min-h-10 rounded-lg border border-emerald-600 text-[#C7D9D2] hover:bg-white/10 transition-colors">
-                {t("nav.signup")}
-              </Link>
-            </>
-          )}
+          {features.theme_toggle && <button type="button" onClick={toggleTheme} className="text-[#BDEBD9] hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors" aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"} title={isDark ? "Light mode" : "Dark mode"}>{isDark ? <FiSun size={18} /> : <FiMoon size={18} />}</button>}
+          {isAuthenticated && features.notifications && <Link to="/notifications" className="text-[#BDEBD9] hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors" aria-label="Notifications"><FiBell size={18} /></Link>}
+          {isAuthenticated && features.profile && <ProfileMenu />}
         </div>
 
         {/* Expanding search bar (below 1200px) */}
