@@ -7,8 +7,11 @@ FROM node:20-alpine AS frontend
 
 WORKDIR /app/frontend
 
-COPY frontend/Tourism/package*.json ./
-RUN npm ci
+COPY frontend/Tourism/package.json ./package.json
+COPY frontend/Tourism/package-lock.json ./package-lock.json
+
+# Fail early with a useful message if the deterministic lockfile is missing.
+RUN test -s package-lock.json && npm ci
 
 COPY frontend/Tourism/ ./
 
