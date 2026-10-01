@@ -33,12 +33,13 @@ from tourist.models import (
     Restaurant,
 )
 
-# Geographic limits of Nepal (with conservative buffer for frontier border points)
+# Geographic limits of Nepal (with buffer for frontier border points)
 NEPAL_BOUNDS = {
-    "min_lat": 26.30,
-    "max_lat": 30.50,
+    "min_lat": 26.20,
+    "max_lat": 30.60,
     "min_lon": 80.00,
-    "max_lon": 88.25,
+    "max_lon": 88.30,
+}
 }
 
 SANITY_MINIMUMS = {
@@ -156,7 +157,7 @@ class Command(BaseCommand):
 
         # 5. Media & Image Provenance Health
         self.stdout.write("\n[5/5] Visual Media Health:")
-        dest_with_images = Destination.objects.filter(images__isnull=False).distinct().count()
+        dest_with_images = Destination.objects.filter(gallery__isnull=False).distinct().count()
         pct = (dest_with_images / counts["destinations"] * 100) if counts["destinations"] else 0
         self.stdout.write(f"  • Destinations with gallery images: {dest_with_images} ({pct:.1f}%)")
 

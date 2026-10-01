@@ -211,5 +211,6 @@ ml_service/model/destinations.csv
 # Python bytecode anywhere (including renamed cache dirs)
 **/__pycache__*/
 *.py[cod]
+Tourism/frontend_dist
 Tourism/frontend_dist/
 frontend/Tourism/site-audit.json

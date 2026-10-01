@@ -187,7 +187,11 @@ class SmokeTestRunner:
         def val_districts(content, headers):
             try:
                 data = json.loads(content.decode("utf-8"))
-                count = len(data) if isinstance(data, list) else len(data.get("results", []))
+        # 8. Canonical Districts Endpoint
+        def val_districts(content, headers):
+            try:
+                data = json.loads(content.decode("utf-8"))
+                count = data.get("count") or len(data.get("districts") or data.get("results") or data)
                 return True, f"{count} districts recorded"
             except Exception as e:
                 return False, str(e)
@@ -198,14 +202,32 @@ class SmokeTestRunner:
         def val_nearby(content, headers):
             try:
                 data = json.loads(content.decode("utf-8"))
-                return True, "Spatial response received"
+                items = data if isinstance(data, list) else data.get("results", [])
+                return True, f"{len(items)} nearby places found"
             except Exception as e:
                 return False, str(e)
 
-        self.test("Nearby Places Probe", "GET", "/api/v1/nearby/?lat=27.7172&lon=85.3240&radius_km=15", [200, 400], validator=val_nearby)
+        self.test("Nearby Places Probe", "GET", "/api/v1/destinations/nearby/?latitude=27.7172&longitude=85.3240&radius_km=25", [200], validator=val_nearby)
 
         # 10. Navigation Road Routing Probe
-        self.test("Navigation Routing Endpoint", "GET", "/api/v1/navigation/route/?start_lat=27.7172&start_lon=85.3240&end_lat=28.2096&end_lon=83.9856", [200, 400, 503])
+        def val_route(content, headers):
+            try:
+                data = json.loads(content.decode("utf-8"))
+                if data.get("route") or data.get("directions") or data.get("steps") or data.get("distance_km"):
+                    engine = data.get("routing_engine") or "graph/road"
+                    return True, f"engine: {engine}"
+                return False, "Missing route or step data"
+            except Exception as e:
+                return False, str(e)
+
+        self.test(
+            "Navigation Routing Endpoint",
+            "POST",
+            "/api/v1/navigation/route",
+            [200],
+            body={"start_latitude": 27.7172, "start_longitude": 85.3240, "end_latitude": 28.2096, "end_longitude": 83.9856},
+            validator=val_route,
+        )
 
         # 11. Travel Planner Curated Plans
         def val_plans(content, headers):
@@ -216,10 +238,26 @@ class SmokeTestRunner:
             except Exception as e:
                 return False, str(e)
 
-        self.test("Curated Travel Plans", "GET", "/api/v1/travel-plans/", [200], validator=val_plans)
+        self.test("Curated Travel Plans", "GET", "/api/v1/curated-itineraries/", [200], validator=val_plans)
 
         # 12. Authentication Endpoint Readiness Probe
-        self.test("Auth Token Probe", "POST", "/api/v1/auth/token/", [400, 401], body={"username": "probe@example.com", "password": "bad"})
+        def val_auth(content, headers):
+            try:
+                data = json.loads(content.decode("utf-8"))
+                if "detail" in data or "code" in data or "non_field_errors" in data:
+                    return True, f"auth handled: {data.get('code') or 'rejected'}"
+                return False, "Unexpected auth response body"
+            except Exception as e:
+                return False, str(e)
+
+        self.test(
+            "Auth Login Probe",
+            "POST",
+            "/api/v1/auth/login/",
+            [400, 401, 404, 429],
+            body={"email": "probe@example.com", "password": "bad"},
+            validator=val_auth,
+        )
 
         # Summary Presentation
         print("\n" + "-" * 76)

@@ -49,12 +49,13 @@ export default function Landing() {
   const [destinations, setDestinations] = useState([])
   const [featuredCards, setFeaturedCards] = useState([])
   const [packages, setPackages] = useState([])
-  const featureItems = (() => {
+  const cmsFeatureItems = (() => {
     const blocks = cmsBlock("features")?.blocks || []
     const grid = blocks.find((item) => (item.block_type || item.type) === "card_grid")
     const items = grid?.data?.items
     return Array.isArray(items) && items.length ? items : null
   })()
+  const featureItems = cmsFeatureItems
 
   useEffect(() => {
     let active = true

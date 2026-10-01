@@ -238,7 +238,7 @@ export function setGeolocation(mode, coords = {}) {
         err.code = 1
         setTimeout(() => onError(err), 0)
       } else {
-        setTimeout(() => onSuccess({ coords: { latitude: coords.lat, longitude: coords.lng } }), 0)
+        setTimeout(() => onSuccess({ coords: { latitude: coords.lat, longitude: coords.lng, accuracy: coords.accuracy ?? 10 } }), 0)
       }
     },
     // watchPosition support for the live-navigation hook: fixes are fired

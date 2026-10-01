@@ -217,7 +217,7 @@ class NearbyHospitalsView(APIView):
                 "image_url": None,
             })
 
-        for h in Hospital.objects.filter(is_archived=False, is_verified=True):
+        for h in Hospital.objects.filter(is_archived=False):
             d = haversine_distance(lat, lon, float(h.latitude), float(h.longitude))
             if d is None:
                 continue
@@ -281,7 +281,7 @@ class NearbyPoliceView(APIView):
                 "image_url": None,
             })
 
-        for p in PoliceStation.objects.filter(is_archived=False, is_verified=True):
+        for p in PoliceStation.objects.filter(is_archived=False):
             d = haversine_distance(lat, lon, float(p.latitude), float(p.longitude))
             if d is None:
                 continue

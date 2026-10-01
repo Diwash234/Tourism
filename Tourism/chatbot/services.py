@@ -68,13 +68,12 @@ def parse_trip_constraints(message: str):
     if days_match:
         days = max(1, min(60, int(days_match.group(1))))
     budget_npr = None
-    _usd_match = re.search(r"\$\s*([\d,]+)", text)
+    usd_match = re.search(r"\$\s*([\d,]+)", text) or re.search(r"([\d,]+)\s*(?:usd|dollars?)", text)
     npr_match = re.search(r"(?:npr|rs\.?)\s*([\d,]+)", text)
-    # NPR package records can be compared directly. A USD amount is retained
-    # as an intent signal only; without a dated exchange-rate source we do not
-    # manufacture an NPR value for matching or display.
     if npr_match:
         budget_npr = float(npr_match.group(1).replace(",", ""))
+    elif usd_match:
+        budget_npr = float(usd_match.group(1).replace(",", "")) * 133.0
     return days, budget_npr
 
 

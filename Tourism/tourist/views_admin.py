@@ -3470,6 +3470,11 @@ class AdminCMSView(APIView):
         label = getattr(obj, "title", None) or getattr(obj, "key", str(obj.pk))
         cascade = obj.sections.count() if resource == "pages" else 0
         if resource == "pages":
+            if obj.status == "draft":
+                obj.sections.all().delete()
+                obj.delete()
+                self._invalidate_public_caches()
+                return Response({"message": f"Deleted page “{label}”", "deleted": True})
             obj.status = "draft"
             obj.is_enabled = False
             obj.scheduled_publish_at = None

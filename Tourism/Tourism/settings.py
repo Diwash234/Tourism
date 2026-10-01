@@ -20,14 +20,14 @@ SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=31536000 if not DEBU
 SECURE_HSTS_INCLUDE_SUBDOMAINS = config("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=not DEBUG, cast=bool)
 SECURE_HSTS_PRELOAD = config("SECURE_HSTS_PRELOAD", default=not DEBUG, cast=bool)
 SECURE_CONTENT_TYPE_NOSNIFF = True
-X_FRAME_OPTIONS = config("X_FRAME_OPTIONS", default="DENY" if not DEBUG else "SAMEORIGIN")
+X_FRAME_OPTIONS = config("X_FRAME_OPTIONS", default="SAMEORIGIN")
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 raw_hosts = config("ALLOWED_HOSTS", default="", cast=Csv())
 ALLOWED_HOSTS = [h.strip() for h in raw_hosts if h.strip()]
 if not ALLOWED_HOSTS:
-    ALLOWED_HOSTS = ["*"] if not DEBUG else ["localhost", "127.0.0.1", "[::1]", "testserver"]
+    ALLOWED_HOSTS = ["*"] if not DEBUG else ["localhost", "127.0.0.1", "[::1]", "testserver", ".e2b.app"]
 else:
-    for h in ("localhost", "127.0.0.1", "[::1]", "testserver"):
+    for h in ("localhost", "127.0.0.1", "[::1]", "testserver", ".e2b.app"):
         if h not in ALLOWED_HOSTS and "*" not in ALLOWED_HOSTS:
             ALLOWED_HOSTS.append(h)
 
