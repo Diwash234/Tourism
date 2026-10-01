@@ -25,7 +25,7 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Destination, Hotel, Hospital, MLInsight, OSMEssentialService, PoliceStation
+from .models import Destination, Hotel, Hospital, MLInsight, OSMEssentialService, PoliceStation, BudgetEstimation
 from .serializers import (
     DestinationListSerializer,
     MLInsightSerializer,
@@ -639,6 +639,45 @@ class BudgetPredictionView(APIView):
 
 
         if result is None:
+            # Production fallback: use the verified per-destination budget rows
+            # imported from budget_features.csv. This keeps the public estimator
+            # useful even when the optional ML process is warming/restarting.
+            if destination is not None:
+                recorded = BudgetEstimation.objects.filter(destination=destination).first()
+                if recorded:
+                    multiplier = {"budget": 0.75, "mid": 1.0, "standard": 1.0, "luxury": 1.8}.get(
+                        data.get("budget_level"), 1.0
+                    )
+                    days = max(1, int(data.get("days") or 1))
+                    travelers = max(1, int(data.get("travelers") or 1))
+                    daily = (
+                        float(recorded.food_cost_per_day or 0)
+                        + float(recorded.accommodation_per_night or 0)
+                        + float(recorded.local_transport or 0)
+                    ) * multiplier
+                    trip = (daily * days + float(recorded.transport_cost or 0) + float(recorded.entry_fee or 0)) * travelers
+                    body = {
+                        "source": "dataset_db",
+                        "dataset": {"destinations": BudgetEstimation.objects.count()},
+                        "estimated_daily_budget": round(daily * travelers, 2),
+                        "estimated_trip_budget": round(trip, 2),
+                        "estimated_total": round(trip, 2),
+                        "total": round(trip, 2),
+                        "total_budget_usd": round(trip, 2),
+                        "breakdown": {
+                            "accommodation": round(float(recorded.accommodation_per_night or 0) * days * travelers * multiplier, 2),
+                            "food": round(float(recorded.food_cost_per_day or 0) * days * travelers * multiplier, 2),
+                            "transport": round(float(recorded.transport_cost or 0) * travelers, 2),
+                            "activities": round(float(recorded.entry_fee or 0) * travelers, 2),
+                            "shopping": 0,
+                        },
+                        "living_costs_available": True,
+                        "matched_destination": {"id": destination.id, "name": destination.name, "district": destination.district or ""},
+                        "days": days,
+                        "travelers": travelers,
+                    }
+                    body.update(_official_budget_context(body, data, destination))
+                    return Response(body, status=status.HTTP_200_OK)
             if destination is None:
                 return Response(
                     {"detail": "Budget prediction service unavailable."},
