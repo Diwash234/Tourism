@@ -31,7 +31,6 @@ export const ADMIN_NAV_GROUPS = [
     ]],
     ["destination_features", "Featured Destinations", BsStar],
     ["marketplace", "Travel Packages & Partners", BsBriefcase],
-    ["visitor_desk", "News & Notices", BsMegaphone],
     ["review_moderation", "Reviews & Ratings", BsStar],
     ["feedback_workspace", "Feedback & Enquiries", BsChatDots],
     ["content_lifecycle", "Content Lifecycle", BsLayers],
