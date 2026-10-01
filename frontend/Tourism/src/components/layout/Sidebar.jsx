@@ -69,6 +69,8 @@ const GROUPS = [
       { to: "/personal-details", label: "Personal Details", tk: "sidebar.personal_details", icon: "card", color: "himalaya" },
       { to: "/notifications", label: "Notifications", icon: "inbox", color: "saffron" },
       { to: "/my-submissions", label: "My Submissions", tk: "sidebar.submissions", icon: "check-square", color: "saffron" },
+      { to: "/support", label: "Customer Support", icon: "inbox", color: "emerald" },
+      { to: "/contact", label: "Contact & Feedback", icon: "mail", color: "sky" },
       { to: "/history", label: "Visit History", tk: "sidebar.history", icon: "clock", color: "stone" },
       { to: "/destinations/submit", label: "Submit Place", tk: "sidebar.submit", icon: "plus", color: "saffron" },
       { to: "/submit-service", label: "Submit a Service", icon: "hospital", color: "emerald" },
