@@ -17,33 +17,78 @@ class Command(BaseCommand):
 
         content = """# Security Awareness
 
-## Password Security
+## Common Threats
 
-- Use unique passwords for each account
-- Use a password manager
-- Enable MFA where available
-- Never share passwords
+### Phishing
+- Spear phishing
+- Whaling
+- Smishing
+- Vishing
 
-## Phishing Awareness
+### Malware
+- Ransomware
+- Trojans
+- Spyware
+- Keyloggers
 
-- Verify sender email addresses
-- Hover over links before clicking
-- Be urgent requests for sensitive information
+### Social Engineering
+- Pretexting
+- Baiting
+- Tailgating
+- Quid pro quo
+
+### Physical Threats
+- Tailgating
+- Dumpster diving
+- Shoulder surfing
+- Device theft
+
+## Best Practices
+
+### Email Security
+- Verify sender
+- Check links
+- Don't open attachments
 - Report suspicious emails
 
-## Data Handling
+### Web Security
+- Check for HTTPS
+- Avoid public Wi-Fi
+- Use a VPN
+- Keep browsers updated
 
-- Classify data appropriately
-- Store data securely
-- Dispose of data properly
-- Report data breaches immediately
+### Mobile Security
+- Use strong PINs
+- Enable remote wipe
+- Install updates
+- Be cautious with apps
 
-## Physical Security
+### Social Media
+- Limit personal information
+- Check privacy settings
+- Be cautious with friend requests
+- Think before posting
 
-- Lock your screen when away
-- Secure mobile devices
-- Shred sensitive documents
-- Report suspicious activity
+## Incident Reporting
+
+### What to Report
+- Suspicious emails
+- Unauthorized access
+- Data breaches
+- Lost devices
+- Security vulnerabilities
+
+### How to Report
+- Email: security@example.com
+- Phone: +1-555-0123
+- Online: https://example.com/report
+- In person: Security office
+
+### After Reporting
+- Preserve evidence
+- Don't investigate yourself
+- Cooperate with investigation
+- Learn from the incident
 """
 
         with open(docs_dir / "AWARENESS.md", "w") as f:

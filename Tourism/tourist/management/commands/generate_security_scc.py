@@ -19,21 +19,26 @@ class Command(BaseCommand):
 
 ## Parties
 
-- Data Exporter: [Exporter Name]
-- Data Importer: Nepal Tourism Platform
+- **Exporter:** [Exporter Name]
+- **Importer:** [Importer Name]
 
-## Transfer Details
+### Clauses
+- Security measures
+- Data protection
+- Audit rights
 
-- Categories of data subjects: [list]
-- Categories of personal data: [list]
-- Frequency of transfer: [frequency]
-- Nature of processing: [description]
+### Liability
+- Limitation of liability
+- Indemnification
 
-## Safeguards
+### Governing Law
+This agreement is governed by the laws of [Jurisdiction].
 
-- Technical measures: Encryption, access controls
-- Organizational measures: Policies, training
-- Audit rights: Annual audit permitted
+### Signatures
+
+**Exporter:** _________________ Date: _________
+
+**Importer:** _________________ Date: _________
 """
 
         with open(docs_dir / "SCC.md", "w") as f:

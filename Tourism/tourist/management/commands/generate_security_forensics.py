@@ -19,31 +19,112 @@ class Command(BaseCommand):
 
 ## Evidence Collection
 
-1. **Preserve** - Create forensic images
-2. **Document** - Record chain of custody
-3. **Analyze** - Examine evidence
-4. **Report** - Document findings
+### Principles
+- Preserve original evidence
+- Document everything
+- Maintain chain of custody
+- Use forensically sound methods
 
-## Tools
+### Collection Methods
+- Disk imaging
+- Memory capture
+- Network traffic capture
+- Log collection
+- Mobile device extraction
 
+### Tools
 - FTK Imager
+- EnCase
 - Autopsy
-- Wireshark
 - Volatility
+- Wireshark
 
-## Procedures
+## Evidence Handling
 
-### Disk Imaging
-1. Write-block the source drive
-2. Create bit-for-bit copy
-3. Verify hash integrity
-4. Store securely
+### Chain of Custody
+- Document who handled evidence
+- When and where it was handled
+- What was done with it
+- Where it was stored
 
-### Log Analysis
-1. Collect relevant logs
-2. Establish timeline
-3. Identify anomalies
-4. Correlate events
+### Storage
+- Secure location
+- Access controls
+- Environmental controls
+- Backup procedures
+
+### Documentation
+- Detailed notes
+- Photographs
+- Diagrams
+- Timelines
+
+## Analysis
+
+### Disk Analysis
+- File system examination
+- Deleted file recovery
+- Timeline analysis
+- Keyword searching
+
+### Memory Analysis
+- Process examination
+- Network connection analysis
+- Malware detection
+- Credential extraction
+
+### Network Analysis
+- Traffic reconstruction
+- Protocol analysis
+- Anomaly detection
+- Attribution
+
+### Mobile Analysis
+- Call and message history
+- Location data
+- Application data
+- Cloud data
+
+## Reporting
+
+### Report Structure
+- Executive summary
+- Methodology
+- Findings
+- Conclusions
+- Recommendations
+
+### Documentation
+- Detailed findings
+- Supporting evidence
+- Tools used
+- Limitations
+
+### Presentation
+- Clear and concise
+- Technical accuracy
+- Visual aids
+- Stakeholder appropriate
+
+## Legal Considerations
+
+### Admissibility
+- Relevance
+- Reliability
+- Authenticity
+- Chain of custody
+
+### Privacy
+- Data protection
+- Access controls
+- Retention policies
+- Disclosure requirements
+
+### Compliance
+- Regulatory requirements
+- Industry standards
+- Organizational policies
+- Legal obligations
 """
 
         with open(docs_dir / "FORENSICS.md", "w") as f:

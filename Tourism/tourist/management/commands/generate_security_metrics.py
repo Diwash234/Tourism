@@ -1,5 +1,5 @@
 """
-Management command to generate security metrics.
+Management command to generate security metrics report.
 """
 from pathlib import Path
 
@@ -7,10 +7,10 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
-    help = "Generate security metrics"
+    help = "Generate security metrics report"
 
     def handle(self, *args, **options):
-        self.stdout.write("Generating security metrics...")
+        self.stdout.write("Generating security metrics report...")
 
         docs_dir = Path("docs/security")
         docs_dir.mkdir(parents=True, exist_ok=True)
@@ -38,14 +38,22 @@ class Command(BaseCommand):
 
 ## Incident Metrics
 
-| Type | Count | Trend |
-|------|-------|-------|
-| Security incidents | 0 | - |
-| False positives | 0 | - |
-| Escalated incidents | 0 | - |
+| Type | Count | Avg Resolution |
+|------|-------|----------------|
+| Security Incidents | 0 | - |
+| Data Breaches | 0 | - |
+| Unauthorized Access | 0 | - |
+
+## Compliance Status
+
+| Standard | Status | Last Audit |
+|----------|--------|------------|
+| GDPR | Compliant | - |
+| ISO 27001 | In Progress | - |
+| SOC 2 | Planned | - |
 """
 
         with open(docs_dir / "METRICS.md", "w") as f:
             f.write(content)
 
-        self.stdout.write(self.style.SUCCESS(f"Security metrics generated at {docs_dir / 'METRICS.md'}"))
+        self.stdout.write(self.style.SUCCESS(f"Security metrics report generated at {docs_dir / 'METRICS.md'}"))

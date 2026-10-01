@@ -19,21 +19,28 @@ class Command(BaseCommand):
 
 ## Parties
 
-- Covered Entity: [CE Name]
-- Business Associate: Nepal Tourism Platform
+- **Covered Entity:** [Entity Name]
+- **Business Associate:** [Associate Name]
 
-## PHI Handling
+### Services
+- Description of services
+- PHI handling
+- Security measures
 
-- Use only for agreed purposes
-- Implement safeguards
-- Report breaches within 24 hours
-- Return or destroy PHI upon termination
+### Obligations
+- Safeguards
+- Breach notification
+- Compliance
 
-## Compliance
+### Term
+- Duration
+- Termination
 
-- HIPAA Security Rule
-- HIPAA Privacy Rule
-- HITECH Act
+### Signatures
+
+**Covered Entity:** _________________ Date: _________
+
+**Business Associate:** _________________ Date: _________
 """
 
         with open(docs_dir / "BAA.md", "w") as f:

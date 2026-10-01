@@ -19,28 +19,40 @@ class Command(BaseCommand):
 
 ## Parties
 
-- Disclosing Party: Nepal Tourism Platform
-- Receiving Party: [Recipient Name]
+- **Disclosing Party:** [Party Name]
+- **Receiving Party:** [Party Name]
 
 ## Definition
 
-Confidential Information includes all non-public information disclosed.
+Confidential Information includes all non-public information shared between parties.
 
 ## Obligations
 
+The Receiving Party agrees to:
 - Maintain confidentiality
+- Not disclose to third parties
 - Use only for intended purpose
-- Limit access to need-to-know
-- Return or destroy upon request
+
+## Exceptions
+
+This agreement does not apply to information that:
+- Is publicly available
+- Is independently developed
+- Is required to be disclosed by law
 
 ## Term
 
-This agreement remains in effect for 2 years from signing.
+This agreement is effective for two years from the date of signature.
+
+## Remedies
+
+Breach of this agreement may result in legal action.
 
 ## Signatures
 
-Disclosing Party: _________________ Date: _________
-Receiving Party: _________________ Date: _________
+**Disclosing Party:** _________________ Date: _________
+
+**Receiving Party:** _________________ Date: _________
 """
 
         with open(docs_dir / "NDA.md", "w") as f:

@@ -19,31 +19,32 @@ class Command(BaseCommand):
 
 ## Parties
 
-- Client: [Client Name]
-- Provider: Nepal Tourism Platform
+- **Client:** [Client Name]
+- **Provider:** [Provider Name]
 
-## Services
+### Services
+- Security services
+- Support services
+- Consulting services
 
-- Platform hosting and maintenance
-- Security monitoring and incident response
-- Data backup and recovery
-- Technical support
+### Terms
+- Payment terms: Net 30
+- Renewal: Automatic
+- Termination: 30 days notice
 
-## Terms
+### Liability
+- Limitation of liability
+- Indemnification
+- Insurance requirements
 
-### Payment
-Monthly fees due on the 1st of each month.
+### Governing Law
+This agreement is governed by the laws of [Jurisdiction].
 
-### Term
-Initial term of 1 year, auto-renewing.
+### Signatures
 
-### Termination
-Either party may terminate with 90 days notice.
+**Client:** _________________ Date: _________
 
-## Signatures
-
-Client: _________________ Date: _________
-Provider: _________________ Date: _________
+**Provider:** _________________ Date: _________
 """
 
         with open(docs_dir / "MSA.md", "w") as f:

@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { FiCopy, FiCheck } from "react-icons/fi"
-import { useToast } from "./Toast"
+import useToast from "../../hooks/useToast"
 
 /**
  * Copy-to-clipboard button with success feedback.

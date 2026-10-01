@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { FiShare2, FiCheck, FiCopy, FiTwitter, FiFacebook } from "react-icons/fi"
-import { useToast } from "./Toast"
+import useToast from "../../hooks/useToast"
 
 /**
  * Share button with native Web Share API fallback to copy link.

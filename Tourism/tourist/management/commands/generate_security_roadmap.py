@@ -1,5 +1,5 @@
 """
-Management command to generate a security roadmap.
+Management command to generate security roadmap.
 """
 from pathlib import Path
 
@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
-    help = "Generate a security roadmap"
+    help = "Generate security roadmap"
 
     def handle(self, *args, **options):
         self.stdout.write("Generating security roadmap...")
@@ -18,24 +18,72 @@ class Command(BaseCommand):
         content = """# Security Roadmap
 
 ## Q1 2026
-- [ ] Implement MFA
-- [ ] Security awareness training
-- [ ] Vulnerability scanning automation
+
+### January
+- [ ] Implement MFA for all accounts
+- [ ] Conduct security awareness training
+- [ ] Review access controls
+
+### February
+- [ ] Deploy WAF
+- [ ] Implement rate limiting
+- [ ] Conduct vulnerability assessment
+
+### March
+- [ ] Penetration testing
+- [ ] Review incident response plan
+- [ ] Update security policies
 
 ## Q2 2026
-- [ ] Penetration testing
-- [ ] Bug bounty program launch
-- [ ] Security metrics dashboard
+
+### April
+- [ ] Implement SIEM
+- [ ] Deploy endpoint protection
+- [ ] Review data classification
+
+### May
+- [ ] Conduct red team exercise
+- [ ] Review third-party security
+- [ ] Update disaster recovery plan
+
+### June
+- [ ] ISO 27001 certification
+- [ ] Review compliance status
+- [ ] Update security training
 
 ## Q3 2026
-- [ ] SOC 2 compliance
-- [ ] Security architecture review
-- [ ] Incident response drill
+
+### July
+- [ ] Implement zero trust architecture
+- [ ] Review network segmentation
+- [ ] Conduct security audit
+
+### August
+- [ ] Deploy DLP
+- [ ] Review encryption standards
+- [ ] Update access policies
+
+### September
+- [ ] SOC 2 Type II audit
+- [ ] Review vendor security
+- [ ] Update incident response plan
 
 ## Q4 2026
-- [ ] Annual security audit
-- [ ] Security roadmap review
-- [ ] Next year planning
+
+### October
+- [ ] Implement threat intelligence
+- [ ] Review security metrics
+- [ ] Conduct tabletop exercise
+
+### November
+- [ ] Review security architecture
+- [ ] Update security policies
+- [ ] Plan next year's security budget
+
+### December
+- [ ] Annual security review
+- [ ] Update security roadmap
+- [ ] Review compliance status
 """
 
         with open(docs_dir / "ROADMAP.md", "w") as f:

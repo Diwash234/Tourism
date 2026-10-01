@@ -19,31 +19,51 @@ class Command(BaseCommand):
 
 ## Parties
 
-- Client: [Client Name]
-- Provider: Nepal Tourism Platform
+- **Client:** [Client Name]
+- **Provider:** [Provider Name]
 
 ## Services
 
+### Security Services
 - Security monitoring
 - Incident response
 - Vulnerability management
 - Compliance support
 
-## Terms
+### Service Levels
+- Response time: 1 hour
+- Resolution time: 4 hours
+- Availability: 99.9%
 
-### Payment
-Monthly fees due on the 1st of each month.
+## Responsibilities
 
-### Term
-Initial term of 1 year, auto-renewing.
+### Client Responsibilities
+- Provide access to systems
+- Implement security controls
+- Report security incidents
 
-### Termination
-Either party may terminate with 30 days notice.
+### Provider Responsibilities
+- Monitor security systems
+- Respond to incidents
+- Provide security reports
+
+## Confidentiality
+
+Both parties agree to maintain confidentiality of all information shared.
+
+## Term
+
+This contract is effective for one year from the date of signature.
+
+## Termination
+
+Either party may terminate this contract with 30 days written notice.
 
 ## Signatures
 
-Client: _________________ Date: _________
-Provider: _________________ Date: _________
+**Client:** _________________ Date: _________
+
+**Provider:** _________________ Date: _________
 """
 
         with open(docs_dir / "CONTRACT.md", "w") as f:

@@ -19,29 +19,27 @@ class Command(BaseCommand):
 
 ## Project Information
 
-- Project name: [Name]
-- Date: [Date]
-- Assessor: [Name]
+- **Project Name:**
+- **Date:**
+- **Assessor:**
 
-## Data Processing
+### Description
+- Purpose of processing
+- Data flows
+- Systems involved
 
-- Purpose: [description]
-- Data categories: [list]
-- Data subjects: [list]
-- Retention period: [period]
+### Risks
+- Identified risks
+- Likelihood
+- Impact
 
-## Risk Assessment
+### Mitigations
+- Proposed measures
+- Residual risk
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Privacy violation | Low | High | Encryption |
-| Data breach | Low | High | Access controls |
-
-## Recommendations
-
-- Implement privacy by design
-- Conduct regular audits
-- Provide privacy training
+### Approval
+- Approved by:
+- Date:
 """
 
         with open(docs_dir / "PIA.md", "w") as f:

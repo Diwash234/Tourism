@@ -18,34 +18,139 @@ class Command(BaseCommand):
         content = """# Security Incident Response
 
 ## Phase 1: Preparation
-- Incident response team assigned
-- Communication channels established
-- Tools and access ready
+
+### Team Roles
+- Incident Commander
+- Security Analysts
+- Communications Lead
+- Legal Counsel
+- Management
+
+### Resources
+- Contact list
+- Tools and systems
+- Documentation
+- Communication channels
+
+### Training
+- Regular drills
+- Tabletop exercises
+- Skill development
+- Awareness programs
 
 ## Phase 2: Identification
-- Detect and classify the incident
-- Assess scope and impact
-- Document initial findings
+
+### Detection
+- Monitoring alerts
+- User reports
+- Automated scans
+- External notifications
+
+### Analysis
+- Scope assessment
+- Impact evaluation
+- Root cause analysis
+- Evidence collection
+
+### Classification
+- Severity levels
+- Incident types
+- Priority assignment
+- Escalation criteria
 
 ## Phase 3: Containment
-- Short-term containment
-- Long-term containment
-- Evidence preservation
+
+### Short-term
+- Isolate affected systems
+- Block malicious traffic
+- Disable compromised accounts
+- Preserve evidence
+
+### Long-term
+- Implement additional monitoring
+- Apply temporary fixes
+- Update security controls
+- Communicate with stakeholders
 
 ## Phase 4: Eradication
-- Remove threat
-- Patch vulnerabilities
-- Harden systems
+
+### Removal
+- Remove malware
+- Close vulnerabilities
+- Reset credentials
+- Clean systems
+
+### Verification
+- Confirm removal
+- Test systems
+- Validate fixes
+- Monitor for recurrence
 
 ## Phase 5: Recovery
-- Restore systems
-- Monitor for recurrence
-- Validate integrity
+
+### Restoration
+- Restore from backups
+- Rebuild systems
+- Re-enable services
+- Verify functionality
+
+### Validation
+- Test all systems
+- Confirm data integrity
+- Verify security controls
+- Monitor for issues
 
 ## Phase 6: Lessons Learned
-- Post-incident review
+
+### Review
+- Timeline analysis
+- Response evaluation
+- Identification of gaps
+- Recommendations
+
+### Documentation
+- Incident report
+- Action items
+- Process improvements
+- Training needs
+
+### Implementation
 - Update procedures
-- Share knowledge
+- Implement improvements
+- Provide training
+- Monitor effectiveness
+
+## Incident Types
+
+### Data Breach
+- Identify affected data
+- Assess impact
+- Notify affected parties
+- Implement remediation
+
+### Malware Infection
+- Identify malware type
+- Determine scope
+- Remove malware
+- Prevent recurrence
+
+### Unauthorized Access
+- Identify compromised accounts
+- Determine access level
+- Revoke access
+- Investigate cause
+
+### Denial of Service
+- Identify attack type
+- Implement mitigation
+- Coordinate with ISP
+- Monitor for recurrence
+
+### Insider Threat
+- Identify suspicious activity
+- Gather evidence
+- Involve HR and legal
+- Implement controls
 """
 
         with open(docs_dir / "INCIDENT_RESPONSE.md", "w") as f:
