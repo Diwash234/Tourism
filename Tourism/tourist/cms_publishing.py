@@ -8,6 +8,13 @@ working untouched.
 """
 
 
+
+def invalidate_public_config_cache():
+    """Bump the public-config cache version after a CMS publish."""
+    from django.core.cache import cache
+    from django.utils import timezone
+    cache.set("public_config_version", str(timezone.now().timestamp()), 3600)
+
 def section_snapshot(section):
     """Frozen, public-safe representation of a section + its visible blocks."""
     return {
