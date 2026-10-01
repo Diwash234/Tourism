@@ -796,7 +796,7 @@ export default function Navigation() {
                       <span className="block truncate font-bold text-slate-800">
                         {r.label || `${r.origin_name || "Current Location"} → ${r.destination_name}`}
                       </span>
-                      <span className="block text-[10px] text-slate-500">
+                      <span className="block text-xs text-slate-500 dark:text-slate-400">
                         {r.transport_mode}
                         {r.distance_km != null ? ` · ${Number(r.distance_km).toFixed(1)} km` : ""}
                         {r.duration_min != null ? ` · ${Math.floor(r.duration_min / 60)}h ${r.duration_min % 60}m` : ""}

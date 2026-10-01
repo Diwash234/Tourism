@@ -164,7 +164,7 @@ export default function StaffDashboard({ module = "dashboard" }) {
           ].map(([label, value, cls]) => (
             <div key={label} className="bg-white border rounded-2xl p-3 text-center">
               <b className={`text-2xl ${cls}`}>{value ?? 0}</b>
-              <p className="text-[10px] text-slate-500 uppercase font-bold">{label}</p>
+              <p className="text-xs text-slate-500 uppercase font-bold">{label}</p>
             </div>
           ))}
         </section>

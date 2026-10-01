@@ -1,47 +1,48 @@
 """
-Test helpers and factories for the Tourism API.
+Test helpers and utilities for the Tourism API.
 """
 import json
-from datetime import timedelta
 
-from django.utils import timezone
+from django.test import TestCase
 from rest_framework.test import APIClient
 
-from .models import User, Category, Destination, Review, TravelPlan
+from .models import User, Category, Destination
 
 
-class TestDataFactory:
-    """Factory for creating test data."""
+class TourismTestCase(TestCase):
+    """Base test case with common helpers."""
 
-    @staticmethod
-    def create_user(email=None, role='tourist', is_verified=True, **kwargs):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = self.create_user()
+        self.category = self.create_category()
+        self.destination = self.create_destination()
+
+    def create_user(self, email=None, role='tourist', **kwargs):
         """Create a test user."""
         if email is None:
-            email = f"test_{timezone.now().timestamp()}@example.com"
+            email = f"test_{self._testMethodName}@example.com"
         return User.objects.create_user(
             email=email,
             password='testpass123',
             first_name='Test',
             last_name='User',
             role=role,
-            is_verified=is_verified,
             **kwargs
         )
 
-    @staticmethod
-    def create_category(name=None, **kwargs):
+    def create_category(self, name=None, **kwargs):
         """Create a test category."""
         if name is None:
-            name = f"Category {timezone.now().timestamp()}"
+            name = f"Category {self._testMethodName}"
         return Category.objects.create(name=name, **kwargs)
 
-    @staticmethod
-    def create_destination(name=None, category=None, is_published=True, **kwargs):
+    def create_destination(self, name=None, category=None, **kwargs):
         """Create a test destination."""
         if name is None:
-            name = f"Destination {timezone.now().timestamp()}"
+            name = f"Destination {self._testMethodName}"
         if category is None:
-            category = TestDataFactory.create_category()
+            category = self.category
         return Destination.objects.create(
             name=name,
             slug=name.lower().replace(' ', '-'),
@@ -51,76 +52,77 @@ class TestDataFactory:
             province='Bagmati',
             latitude=27.7172,
             longitude=85.3240,
-            is_published=is_published,
+            is_published=True,
             **kwargs
         )
 
-    @staticmethod
-    def create_review(user=None, destination=None, rating=5, **kwargs):
-        """Create a test review."""
-        if user is None:
-            user = TestDataFactory.create_user()
-        if destination is None:
-            destination = TestDataFactory.create_destination()
-        return Review.objects.create(
-            user=user,
-            destination=destination,
-            rating=rating,
-            comment='Test review comment',
-            is_approved=True,
-            **kwargs
-        )
-
-    @staticmethod
-    def create_travel_plan(user=None, **kwargs):
-        """Create a test travel plan."""
-        if user is None:
-            user = TestDataFactory.create_user()
-        return TravelPlan.objects.create(
-            user=user,
-            name='Test Travel Plan',
-            start_date=timezone.now().date(),
-            end_date=timezone.now().date() + timedelta(days=7),
-            **kwargs
-        )
-
-
-class APITestHelper:
-    """Helper for API tests."""
-
-    def __init__(self):
-        self.client = APIClient()
-
-    def authenticate(self, user):
+    def authenticate(self, user=None):
         """Authenticate the test client."""
+        if user is None:
+            user = self.user
         self.client.force_authenticate(user=user)
 
-    def get(self, url, **kwargs):
-        """Make a GET request."""
-        return self.client.get(url, **kwargs)
+    def get_json(self, url, **kwargs):
+        """Make a GET request and return JSON response."""
+        response = self.client.get(url, **kwargs)
+        return response, json.loads(response.content)
 
-    def post(self, url, data=None, **kwargs):
-        """Make a POST request."""
-        return self.client.post(url, data, **kwargs)
+    def post_json(self, url, data=None, **kwargs):
+        """Make a POST request and return JSON response."""
+        response = self.client.post(url, data, format='json', **kwargs)
+        return response, json.loads(response.content)
 
-    def put(self, url, data=None, **kwargs):
-        """Make a PUT request."""
-        return self.client.put(url, data, **kwargs)
+    def put_json(self, url, data=None, **kwargs):
+        """Make a PUT request and return JSON response."""
+        response = self.client.put(url, data, format='json', **kwargs)
+        return response, json.loads(response.content)
 
-    def patch(self, url, data=None, **kwargs):
-        """Make a PATCH request."""
-        return self.client.patch(url, data, **kwargs)
+    def patch_json(self, url, data=None, **kwargs):
+        """Make a PATCH request and return JSON response."""
+        response = self.client.patch(url, data, format='json', **kwargs)
+        return response, json.loads(response.content)
 
-    def delete(self, url, **kwargs):
-        """Make a DELETE request."""
-        return self.client.delete(url, **kwargs)
+    def delete_json(self, url, **kwargs):
+        """Make a DELETE request and return JSON response."""
+        response = self.client.delete(url, **kwargs)
+        return response, json.loads(response.content) if response.content else None
 
-    def assert_status(self, response, expected_status):
-        """Assert response status code."""
-        assert response.status_code == expected_status, \
-            f"Expected status {expected_status}, got {response.status_code}: {response.content}"
 
-    def assert_json_contains(self, response, key):
-        """Assert JSON response contains key."""
+class AuthTestCase(TourismTestCase):
+    """Test case for authentication tests."""
+
+    def test_login_success(self):
+        """Test successful login."""
+        response = self.client.post('/api/v1/auth/login/', {
+            'email': self.user.email,
+            'password': 'testpass123'
+        }, format='json')
+        self.assertEqual(response.status_code, 200)
         data = json.loads(response.content)
-        assert key in data, f"Expected key '{key}' in response: {data}"
+        self.assertIn('access', data)
+        self.assertIn('refresh', data)
+
+    def test_login_failure(self):
+        """Test failed login."""
+        response = self.client.post('/api/v1/auth/login/', {
+            'email': self.user.email,
+            'password': 'wrongpassword'
+        }, format='json')
+        self.assertEqual(response.status_code, 401)
+
+
+class RBACTestCase(TourismTestCase):
+    """Test case for RBAC tests."""
+
+    def test_tourist_cannot_access_admin(self):
+        """Test that tourists cannot access admin endpoints."""
+        self.authenticate()
+        response = self.client.get('/api/v1/admin/stats/')
+        self.assertEqual(response.status_code, 403)
+
+    def test_admin_can_access_admin(self):
+        """Test that admins can access admin endpoints."""
+        admin = self.create_user(role='admin', is_staff=True)
+        self.authenticate(admin)
+        response = self.client.get('/api/v1/admin/stats/')
+        self.assertIn(response.status_code, [200, 404])  # 404 if no data

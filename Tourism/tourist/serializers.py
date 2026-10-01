@@ -1099,8 +1099,27 @@ class ItineraryRequestSerializer(serializers.Serializer):
         default=["culture"],
     )
 
+    # Optional scalars a cached or older frontend bundle may still send as a
+    # blank string ("Not decided" for the month, an empty budget box). A blank
+    # string carries no answer, so it must fall back to the field default
+    # instead of failing the whole plan with 400.
+    _BLANK_AS_UNSET = (
+        "nationality",
+        "days",
+        "travelers",
+        "budget_npr",
+        "budget_level",
+        "travel_style",
+        "travel_type",
+        "travel_month",
+    )
+
     def to_internal_value(self, data):
         data = data.copy() if hasattr(data, "copy") else dict(data)
+        for key in self._BLANK_AS_UNSET:
+            value = data.get(key)
+            if isinstance(value, str) and not value.strip():
+                data.pop(key, None)
         raw_budget = data.get("budget_npr")
         if raw_budget is not None:
             if isinstance(raw_budget, str):
