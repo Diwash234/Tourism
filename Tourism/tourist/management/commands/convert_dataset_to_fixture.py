@@ -96,7 +96,17 @@ class Command(BaseCommand):
 
             # Add images. The photo URL belongs in external_url: DestinationImage
             # has no "image_url" field, and loaddata rejects unknown fields.
-            for img in dest_data.get("images", []):
+            images = dest_data.get("images", [])
+            if not images:
+                # Use placeholder image for destinations without images
+                images = [{
+                    "id": dest_data["id"] * 1000,
+                    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Nepal_Mount_Everest.jpg/960px-Nepal_Mount_Everest.jpg",
+                    "caption": "Nepal Tourism",
+                    "is_cover": True,
+                    "status": "approved"
+                }]
+            for img in images:
                 img_timestamp = img.get("created_at") or timestamp
                 fixture.append({
                     "model": "tourist.destinationimage",
