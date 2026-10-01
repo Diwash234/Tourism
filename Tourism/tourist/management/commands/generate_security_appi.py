@@ -35,7 +35,7 @@ class Command(BaseCommand):
 
 - [ ] Privacy policy published
 - [ ] Purpose of use disclosed
-- [ ] Retention period stated
+- [ ] Data collection notice provided
 - [ ] Third party provision disclosed
 
 ## Security
@@ -57,8 +57,8 @@ class Command(BaseCommand):
 
 - [ ] Anonymization standards met
 - [ ] Re-identification prevention
-- [ ] Disclosure restrictions
 - [ ] Processing restrictions
+- [ ] Disclosure restrictions
 
 ## Data Subject Rights
 

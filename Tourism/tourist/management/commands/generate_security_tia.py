@@ -28,7 +28,6 @@ class Command(BaseCommand):
 
 - **Categories of data:**
 - **Volume of data:**
-- **Frequency of transfer:**
 - **Sensitivity of data:**
 
 ## 3. Legal Framework

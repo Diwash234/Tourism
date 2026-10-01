@@ -76,13 +76,14 @@ class Command(BaseCommand):
 
 - [ ] 13(1): Information to be provided
 - [ ] 13(2): Additional information
-- [ ] 13(3): Exceptions
+- [ ] 13(3): Time period for response
+- [ ] 13(4): Exceptions
 
 ## Article 14: Information Where Data Not Obtained from Data Subject
 
 - [ ] 14(1): Information to be provided
 - [ ] 14(2): Additional information
-- [ ] 14(3): Exceptions
+- [ ] 14(3): Time period for response
 - [ ] 14(4): Exceptions
 - [ ] 14(5): Exceptions
 

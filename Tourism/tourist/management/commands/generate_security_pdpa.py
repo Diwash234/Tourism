@@ -30,14 +30,13 @@ class Command(BaseCommand):
 - [ ] Purposes specified
 - [ ] Notice of purposes provided
 - [ ] No use beyond specified purposes
-- [ ] Purpose documented
 
 ## Notification
 
 - [ ] Privacy policy published
 - [ ] Data collection notice provided
 - [ ] Purpose disclosure
-- [ ] Retention period stated
+- [ ] Third party disclosure
 
 ## Access and Correction
 
@@ -58,7 +57,6 @@ class Command(BaseCommand):
 - [ ] Access controls
 - [ ] Encryption
 - [ ] Incident response
-- [ ] Regular audits
 
 ## Retention Limitation
 
@@ -72,24 +70,18 @@ class Command(BaseCommand):
 - [ ] Adequacy requirements
 - [ ] Contractual safeguards
 
-## Data Breach Notification
-
-- [ ] 3-day notification to PDPC
-- [ ] Notification to affected individuals
-- [ ] Documentation of breaches
-- [ ] Risk assessment
-
 ## Accountability
 
 - [ ] Data protection officer appointed
 - [ ] Policies and procedures documented
 - [ ] Staff training
-- [ ] DPO contact published
+- [ ] Regular audits
 
-## Do Not Call Registry
+## Data Breach Notification
 
-- [ ] DNC registry checked
-- [ ] Marketing messages compliant
+- [ ] 3-day notification to PDPC
+- [ ] Notification to affected individuals
+- [ ] Documentation of breaches
 """
 
         with open(docs_dir / "PDPA_FULL.md", "w") as f:

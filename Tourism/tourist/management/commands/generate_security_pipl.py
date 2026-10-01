@@ -59,7 +59,6 @@ class Command(BaseCommand):
 - [ ] Right to delete
 - [ ] Right to withdraw consent
 - [ ] Right to explanation
-- [ ] Right to portability
 
 ## Security Measures
 
@@ -69,7 +68,6 @@ class Command(BaseCommand):
 - [ ] Security training
 - [ ] Incident response
 - [ ] Regular security audits
-- [ ] Data classification
 
 ## Compliance
 
@@ -77,14 +75,6 @@ class Command(BaseCommand):
 - [ ] Privacy impact assessment
 - [ ] Regular compliance audits
 - [ ] Incident reporting to CAC
-- [ ] Data localization compliance
-
-## Large Platforms
-
-- [ ] Independent compliance audit
-- [ ] Social responsibility reports
-- [ ] Content moderation
-- [ ] Algorithm transparency
 """
 
         with open(docs_dir / "PIPL_FULL.md", "w") as f:

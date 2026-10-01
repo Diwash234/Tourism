@@ -25,9 +25,8 @@ class Command(BaseCommand):
 - [ ] IV - Research
 - [ ] V - Contract execution
 - [ ] VI - Regular exercise of rights
-- [ ] VII - Credit protection
-- [ ] VIII - Health protection
-- [ ] IX - Legitimate interest
+- [ ] VII - Health protection
+- [ ] VIII - Legitimate interest
 - [ ] X - Vital interest protection
 
 ## Data Subject Rights (Article 18)

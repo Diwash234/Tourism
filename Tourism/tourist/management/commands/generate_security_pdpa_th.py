@@ -22,15 +22,13 @@ class Command(BaseCommand):
 - [ ] Explicit consent obtained
 - [ ] Written consent for sensitive data
 - [ ] Consent withdrawal mechanism
-- [ ] Parental consent for minors
-- [ ] No pre-ticked consent boxes
+- [ ] Consent records maintained
 
 ## Notice
 
-- [ ] Purpose of collection
-- [ ] Data retention period
-- [ ] Rights of data subjects
-- [ ] Contact information
+- [ ] Privacy policy published
+- [ ] Data collection notice provided
+- [ ] Purpose disclosure
 - [ ] Third party disclosure
 
 ## Data Subject Rights
@@ -50,7 +48,6 @@ class Command(BaseCommand):
 - [ ] Encryption
 - [ ] Incident response
 - [ ] Regular audits
-- [ ] Staff training
 
 ## Data Breach
 
@@ -58,14 +55,12 @@ class Command(BaseCommand):
 - [ ] Authority notification
 - [ ] Data subject notification
 - [ ] Documentation
-- [ ] Risk assessment
 
 ## Cross-Border Transfer
 
 - [ ] Adequacy decision
 - [ ] Appropriate safeguards
 - [ ] Consent for transfer
-- [ ] Contractual clauses
 
 ## Sensitive Data
 
@@ -75,7 +70,6 @@ class Command(BaseCommand):
 - [ ] Religious beliefs protected
 - [ ] Health data protected
 - [ ] Biometric data protected
-- [ ] Genetic data protected
 
 ## DPO
 

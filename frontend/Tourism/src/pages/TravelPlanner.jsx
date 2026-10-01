@@ -370,12 +370,12 @@ export default function TravelPlanner() {
           </div>
 
           {geoError && (
-            <p role="status" className="mt-3 text-[12px] font-semibold text-amber-700 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
+            <p role="status" className="mt-3 text-xs font-semibold text-amber-700 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
               {t("tp.gps_unavailable")}
             </p>
           )}
           {error && (
-            <p role="alert" className="mt-3 text-[13px] font-bold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
+            <p role="alert" className="mt-3 text-sm font-bold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
               {error}
             </p>
           )}

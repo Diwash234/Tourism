@@ -43,10 +43,6 @@ class Command(BaseCommand):
 - [ ] Correction request process
 - [ ] Verification of requester
 
-### Right to Limit Use of Sensitive PI
-- [ ] Limit use request process
-- [ ] Sensitive PI identified
-
 ### Right to Non-Discrimination
 - [ ] No discrimination for exercising rights
 - [ ] No different pricing
@@ -56,20 +52,15 @@ class Command(BaseCommand):
 
 ### Notice at Collection
 - [ ] Privacy policy updated
-- [ ] Notice at point of collection
-- [ ] Categories of PI disclosed
-- [ ] Purposes disclosed
-- [ ] Retention period stated
+- [ ] Data collection notice provided
+- [ ] Purpose disclosure
+- [ ] Third party disclosure
 
 ### Service Provider Contracts
 - [ ] Contracts with service providers
 - [ ] Prohibition on selling/sharing PI
 - [ ] Certification of understanding
 - [ ] Right to monitor
-
-### Contractor Agreements
-- [ ] Contractor agreements in place
-- [ ] Similar protections as service providers
 
 ### Risk Assessments
 - [ ] Risk assessments conducted

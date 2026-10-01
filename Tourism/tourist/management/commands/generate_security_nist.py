@@ -109,7 +109,6 @@ class Command(BaseCommand):
 - [ ] IR-6: Incident Reporting
 - [ ] IR-7: Incident Response Assistance
 - [ ] IR-8: Incident Response Plan
-- [ ] IR-9: Information Spillage Response
 
 ## Maintenance (MA)
 
@@ -147,9 +146,6 @@ class Command(BaseCommand):
 - [ ] PE-14: Temperature and Humidity Controls
 - [ ] PE-15: Water Damage Protection
 - [ ] PE-16: Delivery and Removal
-- [ ] PE-17: Alternate Work Site
-- [ ] PE-18: Location of Information System Components
-- [ ] PE-19: Information Leakage
 
 ## Planning (PL)
 

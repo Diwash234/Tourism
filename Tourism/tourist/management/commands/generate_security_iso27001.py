@@ -26,11 +26,13 @@ class Command(BaseCommand):
 
 ### 5.2 Information Security Roles and Responsibilities
 - [ ] Roles and responsibilities defined
-- [ ] Segregation of duties
+- [ ] Roles and responsibilities assigned
+- [ ] Roles and responsibilities communicated
 
 ### 5.3 Threat Intelligence
 - [ ] Threat intelligence collected
 - [ ] Threat intelligence analyzed
+- [ ] Threat intelligence used
 
 ### 5.4 Information Security in Project Management
 - [ ] Security requirements in projects
@@ -39,6 +41,7 @@ class Command(BaseCommand):
 ### 5.5 Inventory of Information and Other Associated Assets
 - [ ] Asset inventory maintained
 - [ ] Asset ownership assigned
+- [ ] Asset inventory reviewed
 
 ### 5.6 Acceptable Use of Information and Other Associated Assets
 - [ ] Acceptable use policy
@@ -64,9 +67,9 @@ class Command(BaseCommand):
 - [ ] ICT supply chain security
 - [ ] ICT supply chain risks
 
-### 5.12 Monitoring, Reviewing and Managing Changes in Supplier Relationships
-- [ ] Supplier monitoring
-- [ ] Supplier review
+### 5.12 Information Security When Dealing with Suppliers
+- [ ] Supplier security monitoring
+- [ ] Supplier security review
 
 ### 5.13 Information Security for the Use of Cloud Services
 - [ ] Cloud security requirements
@@ -109,12 +112,12 @@ class Command(BaseCommand):
 - [ ] Segregation enforced
 
 ### 5.23 Duties After Termination or Change of Employment
-- [ ] Termination procedures
-- [ ] Change of role procedures
+- [ ] Post-employment responsibilities
+- [ ] Responsibilities communicated
 
 ### 5.24 Information Security Awareness, Education and Training
-- [ ] Security awareness program
-- [ ] Security training provided
+- [ ] Awareness program
+- [ ] Training provided
 
 ### 5.25 Disciplinary Process
 - [ ] Disciplinary process defined
@@ -122,7 +125,7 @@ class Command(BaseCommand):
 
 ### 5.26 Responsibilities After Termination or Change of Employment
 - [ ] Post-employment responsibilities
-- [ ] Responsibilities communicated
+- [ ] Responsibilities enforced
 
 ### 5.27 Confidentiality or Non-Disclosure Agreements
 - [ ] NDAs in place
