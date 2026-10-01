@@ -84,55 +84,37 @@ PY
     echo "entrypoint: PostgreSQL already contains $DATA_EXISTS destinations - preserving catalogue"
   fi
 
-  # ALWAYS import additional data sources (idempotent: only adds missing records)
-  # These run regardless of whether data was seeded above
-  echo "entrypoint: importing OSM destinations"
-  python manage.py import_osm_destinations || echo "entrypoint: WARNING - OSM destinations import skipped"
+  # Existing Render databases must not rebuild large catalogues on every boot.
+  # Re-running expensive imports before Daphne binds its port can make Render
+  # time out even when PostgreSQL is healthy. Importers remain manually
+  # runnable; normal boots only import a catalogue when its table is empty.
+  run_if_table_empty() {
+    table="$1"; label="$2"; shift 2
+    count=$(python - <<PY
+import os
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Tourism.settings")
+import django
+django.setup()
+from django.db import connection
+with connection.cursor() as cur:
+    cur.execute("SELECT COUNT(*) FROM ${table}")
+    print(cur.fetchone()[0])
+PY
+)
+    if [ "$count" = "0" ]; then
+      echo "entrypoint: $label table is empty - importing"
+      "$@" || echo "entrypoint: WARNING - $label import skipped"
+    else
+      echo "entrypoint: $label already has $count rows - preserving"
+    fi
+  }
 
-  echo "entrypoint: importing hotels from hotel.csv"
-  python manage.py import_hotels_csv || echo "entrypoint: WARNING - hotel CSV import skipped"
-  
-  echo "entrypoint: importing hospital directory"
-  python manage.py import_hospital --csv dataset/hospital_cleaned.csv \
-    || echo "entrypoint: WARNING - hospital CSV import skipped"
-  
-  echo "entrypoint: importing police directory"
-  python manage.py import_police --csv dataset/nearbypolice.csv \
-    || echo "entrypoint: WARNING - police CSV import skipped"
-  
-  echo "entrypoint: importing risk data"
-  python manage.py import_risk \
-    || echo "entrypoint: WARNING - risk CSV import skipped"
+  run_if_table_empty tourist_osmtourismplace "OSM tourism places" python manage.py import_osm_destinations
+  run_if_table_empty tourist_hotel "hotels" python manage.py import_hotels_csv
+  run_if_table_empty tourist_hospital "hospitals" python manage.py import_hospital --csv dataset/hospital_cleaned.csv
+  run_if_table_empty tourist_policestation "police" python manage.py import_police --csv dataset/nearbypolice.csv
+  run_if_table_empty tourist_riskincident "risk" python manage.py import_risk
 
-  # Reconcile the destination budget table on every deploy. The importer is
-  # idempotent (update_or_create) and makes the tracked CSV usable on Render
-  # instead of depending on the optional ML process being online.
-  echo "entrypoint: importing verified destination budget dataset"
-  python manage.py import_budget \
-    || echo "entrypoint: WARNING - budget dataset import skipped"
-
-  echo "entrypoint: importing sourced emergency and nearby-service records"
-  python manage.py import_emergency_services \
-    || echo "entrypoint: WARNING - emergency services import skipped"
-  python manage.py seed_district_services \
-    || echo "entrypoint: WARNING - district services seed skipped"
-
-  # Import additional bundled datasets
-  echo "entrypoint: importing bundled hotel, hospital, police and risk datasets"
-  python manage.py import_hotels_csv --csv dataset/hotel.csv \
-    || echo "entrypoint: WARNING - hotel CSV import skipped"
-  python manage.py import_hospital --csv dataset/hospital.csv \
-    || echo "entrypoint: WARNING - hospital CSV import skipped"
-  python manage.py import_police --csv dataset/nearbypolice.csv \
-    || echo "entrypoint: WARNING - police CSV import skipped"
-  python manage.py import_risk \
-    || echo "entrypoint: WARNING - risk CSV import skipped"
-  
-  # Import risk data
-  echo "entrypoint: importing risk data"
-  python manage.py import_risk \
-    || echo "entrypoint: WARNING - risk CSV import skipped"
-  
   # Post-seed enrichment is best-effort: one missing data file must never
   # abort the boot (set -e would kill daphne and fail the whole deploy).
   echo "entrypoint: repairing external cover-image paths"
