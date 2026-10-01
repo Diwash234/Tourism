@@ -1077,8 +1077,9 @@ function detectLang() {
     english: "en",
   }
   if (prefMap[String(pref).toLowerCase()]) return prefMap[String(pref).toLowerCase()]
-  const nav = (window.navigator?.language || "en").slice(0, 2)
-  return DICTS[nav] ? nav : "en"
+  // English is the product default. Never infer a different UI language
+  // from the browser/OS locale; users can explicitly select Nepali or Hindi.
+  return "en"
 }
 
 function persistLang(code) {
