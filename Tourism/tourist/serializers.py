@@ -9,7 +9,7 @@ from rest_framework import serializers
 
 from .image_server import image_server_url
 from .models import (
-    Language, Category, Destination, DestinationImage, DestinationVideo,
+    User, Language, Category, Destination, DestinationImage, DestinationVideo,
     DestinationTranslation, Review, Rating, Favorite, VisitHistory, Budget,
     Alert, EmergencyContact, Notification, NotificationPreference, DeviceToken, Hospital,
     PoliceStation, Hotel,
@@ -780,17 +780,38 @@ class TravelerDocumentSerializer(serializers.ModelSerializer):
 # Auth Serializers
 # ---------------------------------------------------------------------------
 class RegisterSerializer(serializers.Serializer):
+    """Create a public tourist account using Django's password hashing.
+
+    This is a plain Serializer because the public registration payload is
+    intentionally smaller than the User model. Plain DRF Serializers must
+    implement ``create()`` themselves; otherwise ``serializer.save()``
+    raises ``NotImplementedError``.
+    """
+
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True, min_length=8)
     password_confirm = serializers.CharField(write_only=True)
     first_name = serializers.CharField(required=False, allow_blank=True)
     last_name = serializers.CharField(required=False, allow_blank=True)
+    phone_number = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+
+    def validate_email(self, value):
+        email = value.strip().lower()
+        if User.objects.filter(email__iexact=email).exists():
+            raise serializers.ValidationError("An account with this email already exists.")
+        return email
 
     def validate(self, data):
         if data["password"] != data["password_confirm"]:
-            raise serializers.ValidationError("Passwords do not match")
+            raise serializers.ValidationError({"password_confirm": "Passwords do not match"})
         return data
 
+    def create(self, validated_data):
+        validated_data.pop("password_confirm", None)
+        password = validated_data.pop("password")
+        if validated_data.get("phone_number") in ("", None):
+            validated_data["phone_number"] = None
+        return User.objects.create_user(password=password, **validated_data)
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
