@@ -93,19 +93,25 @@ class Command(BaseCommand):
                 created += 1
                 continue
 
-            kwargs = {
-                "email": email,
-                "password": password,  # already a Django password hash
-                "first_name": row["first_name"] if "first_name" in columns else "",
-                "last_name": row["last_name"] if "last_name" in columns else "",
-                "is_active": bool(row["is_active"]) if "is_active" in columns else True,
-                "is_staff": bool(row["is_staff"]) if "is_staff" in columns else False,
-                "is_superuser": bool(row["is_superuser"]) if "is_superuser" in columns else False,
-                "date_joined": row["date_joined"] if "date_joined" in columns and row["date_joined"] else None,
+            # Copy compatible profile/auth fields as well as the password
+            # hash. Never copy sessions, tokens or OAuth secrets.
+            safe_columns = {
+                "first_name", "last_name", "phone_number", "phone_verified",
+                "auth_provider", "provider_uid", "role", "managed_district",
+                "bio", "country", "city", "location_source", "latitude",
+                "longitude", "gps_accuracy_m", "gps_recorded_at",
+                "gps_validated_at", "gps_validation_state",
+                "gps_validation_reasons", "is_verified", "is_active",
+                "is_staff", "is_superuser", "date_joined",
             }
-            # Only pass fields that the current custom User actually has.
-            valid_fields = {f.name for f in User._meta.fields}
-            kwargs = {k: v for k, v in kwargs.items() if k in valid_fields and v is not None}
+            kwargs = {"email": email, "password": password}
+            for field in safe_columns:
+                if field in columns and field in {f.name for f in User._meta.fields}:
+                    value = row[field]
+                    if field in {"phone_verified", "is_verified", "is_active", "is_staff", "is_superuser"}:
+                        value = bool(value)
+                    if value is not None:
+                        kwargs[field] = value
             User.objects.create(**kwargs)
             created += 1
 
