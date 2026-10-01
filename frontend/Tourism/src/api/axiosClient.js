@@ -10,6 +10,24 @@ export const isGuestPreview = () => {
   }
 }
 
+const PUBLIC_READ_PREFIXES = [
+  "/destinations",
+  "/search/",
+  "/config/public/",
+  "/navigation/",
+  "/health/",
+  "/stats/",
+  "/nearby/",
+  "/categories/",
+]
+
+const isPublicReadRequest = (config) => {
+  const method = String(config?.method || "get").toLowerCase()
+  if (!["get", "head", "options"].includes(method)) return false
+  const url = String(config?.url || "")
+  return PUBLIC_READ_PREFIXES.some((prefix) => url === prefix || url.startsWith(prefix))
+}
+
 const axiosClient = axios.create({
   baseURL: BASE_URL,
   headers: { "Content-Type": "application/json" },
@@ -29,7 +47,7 @@ export const clearAuthStorage = () => {
 // Attach access token to request if present (per-request only — never on
 // axiosClient.defaults, which would leak a stale token after logout).
 axiosClient.interceptors.request.use((config) => {
-  if (isGuestPreview() || config._retryNoAuth) {
+  if (isGuestPreview() || config._retryNoAuth || isPublicReadRequest(config)) {
     if (config.headers) {
       delete config.headers.Authorization
       if (typeof config.headers.delete === "function") {
