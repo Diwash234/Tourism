@@ -1,23 +1,15 @@
-import React from "react"
 import { FiHelpCircle } from "react-icons/fi"
 
 /**
- * Safe icon wrapper that renders a fallback if the primary icon fails.
- * Usage: <SafeIcon icon={FiMapPin} size={16} className="text-ny-green" />
+ * Safe icon wrapper. React rendering errors belong to an Error Boundary;
+ * try/catch around JSX cannot catch them and also violates the React compiler
+ * error-boundary rule.
  */
 export const SafeIcon = ({ icon: Icon, fallback = FiHelpCircle, ...props }) => {
-  try {
-    if (!Icon) return <Fallback {...props} />
-    return <Icon {...props} />
-  } catch {
-    return <Fallback {...props} />
-  }
+  const IconComponent = Icon || fallback || FiHelpCircle
+  return <IconComponent {...props} />
 }
 
-/**
- * Pre-validated icon map — use this when you need to look up an icon by
- * key from API data. Returns a safe fallback for unknown keys.
- */
 export const getIcon = (key, iconMap, fallback = FiHelpCircle) => {
   return iconMap[key] || fallback
 }
