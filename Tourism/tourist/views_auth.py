@@ -69,12 +69,32 @@ class RegisterView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        _issue_email_verification(user)
+
+        # Account creation must not be rolled back because an optional
+        # verification-email provider is unavailable/misconfigured on Render.
+        # The account is persisted first; the user can sign in and use the
+        # resend-verification flow once SMTP is configured.
+        verification_pending = False
+        try:
+            _issue_email_verification(user)
+            verification_pending = True
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Registration email verification setup failed for %s: %s", user.email, exc)
+
         if user.phone_number:
-            issue_phone_verification(user)
+            try:
+                issue_phone_verification(user)
+            except Exception as exc:  # noqa: BLE001
+                logger.exception("Registration phone verification setup failed for %s: %s", user.email, exc)
+
         return Response(
             {
-                "message": "Registration successful. Please check your email to verify your account.",
+                "message": (
+                    "Registration successful. Please check your email to verify your account."
+                    if verification_pending
+                    else "Registration successful. Email verification is temporarily unavailable; you can request it again from the login page."
+                ),
+                "verification_pending": verification_pending,
                 "user": UserProfileSerializer(user).data,
             },
             status=status.HTTP_201_CREATED,
