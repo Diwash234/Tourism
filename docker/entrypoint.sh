@@ -65,6 +65,8 @@ PY
     echo "entrypoint: checking for missing legacy user accounts"
     python manage.py import_legacy_users
   fi
+  echo "entrypoint: repairing explicitly curated destination media"
+  python manage.py repair_curated_media
 
   python - <<'PY'
 import os
