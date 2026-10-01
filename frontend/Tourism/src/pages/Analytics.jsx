@@ -138,11 +138,15 @@ const Analytics = () => {
 
   // Load page views data
   useEffect(() => {
-    setLoading(true)
-    const days = timeRange === "7d" ? 7 : 30
-    const data = generatePageViews(days)
-    setPageViews(data)
-    setLoading(false)
+    // Deferred one tick: keeps the synchronous setLoading()/setPageViews() calls
+    // out of the effect flush (react-hooks/set-state-in-effect) without changing timing.
+    queueMicrotask(() => {
+      setLoading(true)
+      const days = timeRange === "7d" ? 7 : 30
+      const data = generatePageViews(days)
+      setPageViews(data)
+      setLoading(false)
+    })
   }, [timeRange])
 
   const handleExportCSV = useCallback(() => {

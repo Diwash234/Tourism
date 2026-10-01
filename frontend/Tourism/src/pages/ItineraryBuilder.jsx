@@ -28,10 +28,10 @@ const ItineraryBuilder = () => {
     })
   }
 
-  const addStop = (dayIndex) => {
+  const addStop = (dayIndex, id) => {
     const newDays = [...itinerary.days]
     newDays[dayIndex].stops.push({
-      id: Date.now(),
+      id,
       name: '',
       time: '',
       notes: ''
@@ -143,7 +143,7 @@ const ItineraryBuilder = () => {
               <h3 className="text-lg font-semibold">Day {day.day}</h3>
               <div className="flex gap-2">
                 <button
-                  onClick={() => addStop(dayIndex)}
+                  onClick={() => addStop(dayIndex, Date.now())}
                   className="px-3 py-1 text-emerald-600 hover:bg-emerald-50 rounded-lg text-sm flex items-center gap-1"
                 >
                   <FiPlus className="w-4 h-4" />

@@ -118,7 +118,13 @@ const ResponsiveChart = ({
 
   if (type === 'pie') {
     const total = data.reduce((sum, d) => sum + (d[yKey] || 0), 0)
-    let currentAngle = 0
+    // Precompute each slice's angle and cumulative start angle as pure prefix
+    // sums (identical left-to-right accumulation as before, without mutating a
+    // variable after render completes).
+    const sliceAngles = data.map((d) => ((d[yKey] || 0) / total) * 360)
+    const startAngles = sliceAngles.map((_, index) =>
+      sliceAngles.slice(0, index).reduce((sum, angle) => sum + angle, 0)
+    )
 
     return (
       <div className={className}>
@@ -126,10 +132,8 @@ const ResponsiveChart = ({
         <div className="flex items-center gap-4">
           <svg viewBox="0 0 100 100" className="w-32 h-32">
             {data.map((item, index) => {
-              const value = item[yKey] || 0
-              const angle = (value / total) * 360
-              const startAngle = currentAngle
-              currentAngle += angle
+              const angle = sliceAngles[index]
+              const startAngle = startAngles[index]
 
               const startRad = (startAngle * Math.PI) / 180
               const endRad = ((startAngle + angle) * Math.PI) / 180

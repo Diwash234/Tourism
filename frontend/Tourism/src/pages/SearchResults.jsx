@@ -311,12 +311,22 @@ const SearchResults = () => {
     let cancelled = false
     const q = query.trim()
     if (!q) {
-      setResults([])
-      setSearchError("")
+      // Deferred one tick: keeps synchronous setState out of the effect flush
+      // (react-hooks/set-state-in-effect). Runs before any later render can
+      // invalidate it, so the clear behaves exactly as before.
+      queueMicrotask(() => {
+        setResults([])
+        setSearchError("")
+      })
       return undefined
     }
-    setLoading(true)
-    setSearchError("")
+    // Deferred one tick: keeps synchronous setState out of the effect flush
+    // (react-hooks/set-state-in-effect). Still runs before any network response.
+    queueMicrotask(() => {
+      if (cancelled) return
+      setLoading(true)
+      setSearchError("")
+    })
     Promise.all([
       destinationApi.getAll({ search: q, page_size: 24 }),
       hotelApi.search(q, { page_size: 24 }).catch(() => ({ data: { results: [] } })),

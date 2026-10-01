@@ -59,7 +59,10 @@ export const useDebouncedCallback = (callback, delay = 300) => {
  */
 export const useThrottle = (value, limit = 300) => {
   const [throttledValue, setThrottledValue] = useState(value)
-  const lastRan = useRef(Date.now())
+  // Lazy initializer keeps render pure; the mount timestamp is copied into the
+  // ref below (ref initializers cannot be lazy).
+  const [startTime] = useState(() => Date.now())
+  const lastRan = useRef(startTime)
 
   useEffect(() => {
     const handler = setTimeout(() => {

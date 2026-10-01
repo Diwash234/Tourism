@@ -1,9 +1,15 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { FiChevronLeft, FiChevronRight, FiMoreHorizontal } from "react-icons/fi"
 
 export default function Pagination({ page, totalPages, onPageChange, pageSize, onPageSizeChange, totalItems }) {
   const [jumpValue, setJumpValue] = useState(String(page || 1))
-  useEffect(() => { setJumpValue(String(page || 1)) }, [page])
+  // Keep the jump input in sync with the page prop by adjusting during render
+  // (the effect that used to do this was banned by react-hooks/set-state-in-effect).
+  const [prevPage, setPrevPage] = useState(page)
+  if (page !== prevPage) {
+    setPrevPage(page)
+    setJumpValue(String(page || 1))
+  }
   const currentPage = Math.min(Math.max(Number(page) || 1, 1), Math.max(Number(totalPages) || 1, 1))
   const safeTotalPages = Math.max(Number(totalPages) || 1, 1)
   const getPageNumbers = () => {

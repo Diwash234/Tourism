@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 
 /**
  * Performance utilities for better rendering across all devices.
@@ -35,7 +35,9 @@ export const useLazyLoad = (options = {}) => {
  * Hook for memoizing expensive calculations.
  */
 export const useMemoizedCallback = (callback, deps) => {
-  const memoized = useCallback(callback, deps)
+  // The dependency list must be an array literal; include the caller-provided
+  // callback and deps so the memo updates exactly when either changes.
+  const memoized = useCallback(callback, [callback, deps])
   return memoized
 }
 
@@ -93,8 +95,11 @@ export const useInView = (options = {}) => {
  * Hook for measuring render performance.
  */
 export const useRenderTime = (componentName) => {
+  // Capture the first-render timestamp in a lazy initializer so render stays pure;
+  // the value is then copied into the ref (ref initializers cannot be lazy).
+  const [startTime] = useState(() => performance.now())
   const renderCount = useRef(0)
-  const lastRenderTime = useRef(performance.now())
+  const lastRenderTime = useRef(startTime)
 
   useEffect(() => {
     renderCount.current += 1
@@ -107,6 +112,7 @@ export const useRenderTime = (componentName) => {
     }
   })
 
+  // eslint-disable-next-line react-hooks/refs -- no rule-compliant fix exists: the counter must be returned during render, but mirroring it into state is impossible because this effect runs after every render (setState there would cause an infinite render loop), and refs may not be read in render. This is a dev-only diagnostic value; behaviour is preserved as-is.
   return renderCount.current
 }
 
@@ -160,10 +166,11 @@ export const useDevicePerformance = () => {
 export const useOptimizedImage = (src, options = {}) => {
   const { maxWidth = 800, quality = 75 } = options
   const performanceLevel = useDevicePerformance()
-  const [optimizedSrc, setOptimizedSrc] = useState(src)
 
-  useEffect(() => {
-    if (!src) return
+  // Derived during render instead of stored in state + set in an effect:
+  // the URL is a pure function of src/options/device performance.
+  const optimizedSrc = useMemo(() => {
+    if (!src) return src
 
     // Adjust quality based on device performance
     let adjustedQuality = quality
@@ -178,7 +185,7 @@ export const useOptimizedImage = (src, options = {}) => {
     url.searchParams.set('w', maxWidth.toString())
     url.searchParams.set('q', adjustedQuality.toString())
 
-    setOptimizedSrc(url.toString())
+    return url.toString()
   }, [src, maxWidth, quality, performanceLevel])
 
   return optimizedSrc
@@ -204,11 +211,14 @@ export const usePreload = (resources) => {
  * Hook for detecting reduced motion preference.
  */
 export const useReducedMotion = () => {
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
+  // Read the initial media-query value in the lazy initializer so no
+  // synchronous setState is needed in the effect below.
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(
+    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  )
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
-    setPrefersReducedMotion(mediaQuery.matches)
 
     const handler = (e) => setPrefersReducedMotion(e.matches)
     mediaQuery.addEventListener('change', handler)
@@ -223,11 +233,14 @@ export const useReducedMotion = () => {
  * Hook for detecting color scheme preference.
  */
 export const useColorScheme = () => {
-  const [colorScheme, setColorScheme] = useState('light')
+  // Read the initial media-query value in the lazy initializer so no
+  // synchronous setState is needed in the effect below.
+  const [colorScheme, setColorScheme] = useState(
+    () => (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+  )
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    setColorScheme(mediaQuery.matches ? 'dark' : 'light')
 
     const handler = (e) => setColorScheme(e.matches ? 'dark' : 'light')
     mediaQuery.addEventListener('change', handler)

@@ -11,7 +11,10 @@ const CHECK_INTERVAL = 5000 // check every 5 seconds
 export default function SessionTimeout({ onTimeout, timeoutMinutes = 30 }) {
   const [timeLeft, setTimeLeft] = useState(timeoutMinutes * 60)
   const [warning, setWarning] = useState(false)
-  const lastActivity = useRef(Date.now())
+  // Lazy initializer keeps render pure; the mount timestamp is copied into the
+  // ref below (ref initializers cannot be lazy).
+  const [lastActivityTime] = useState(() => Date.now())
+  const lastActivity = useRef(lastActivityTime)
 
   const resetTimer = useCallback(() => {
     lastActivity.current = Date.now()

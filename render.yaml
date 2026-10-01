@@ -2,7 +2,7 @@ services:
   - type: web
     name: tourism-recommendation
     runtime: docker
-    plan: 0.5c-512mb
+    plan: free
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /health/
@@ -12,7 +12,7 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: ALLOWED_HOSTS
-        value: "*"
+        sync: false
       # Render injects the existing tourism_db private connection string.
       # The real URL/password stays in Render, not Git.
       - key: DATABASE_URL

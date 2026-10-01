@@ -5,19 +5,27 @@ import { useState, useEffect } from 'react'
  * Returns whether the current viewport matches the query.
  */
 export const useMediaQuery = (query) => {
-  const [matches, setMatches] = useState(false)
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(query).matches : false
+  )
+  const [prevQuery, setPrevQuery] = useState(query)
+
+  // Adjust during render when the query prop changes (React's documented
+  // pattern) — a synchronous setState inside the effect is banned by
+  // react-hooks/set-state-in-effect.
+  if (query !== prevQuery) {
+    setPrevQuery(query)
+    setMatches(typeof window !== 'undefined' ? window.matchMedia(query).matches : false)
+  }
 
   useEffect(() => {
     const media = window.matchMedia(query)
-    if (media.matches !== matches) {
-      setMatches(media.matches)
-    }
 
     const listener = (e) => setMatches(e.matches)
     media.addEventListener('change', listener)
 
     return () => media.removeEventListener('change', listener)
-  }, [matches, query])
+  }, [query])
 
   return matches
 }

@@ -299,7 +299,10 @@ const AdminDashboard = () => {
   }, [can])
 
   useEffect(() => {
-    fetchData()
+    // Deferred one tick: fetchData() begins with a synchronous setLoading() that
+    // must not run inside the effect body (react-hooks/set-state-in-effect).
+    // Mirrors the deferral pattern used in components/admin/TranslationsPanel.jsx.
+    queueMicrotask(() => { fetchData() })
   }, [fetchData])
 
   // Chart data

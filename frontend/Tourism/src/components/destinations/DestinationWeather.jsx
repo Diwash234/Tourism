@@ -7,18 +7,23 @@ import { FiSun, FiCloud, FiCloudRain, FiCloudSnow, FiWind, FiDroplets, FiThermom
  */
 export default function DestinationWeather({ lat, lng, destinationName }) {
   const [weather, setWeather] = useState(null)
-  const [loading, setLoading] = useState(true)
+  // Start in the loading state only when there is something to fetch, so the
+  // effect below never has to set state synchronously.
+  const [loading, setLoading] = useState(
+    () =>
+      Boolean(lat) &&
+      Boolean(lng) &&
+      Boolean(import.meta.env.VITE_OPENWEATHER_API_KEY)
+  )
   const [error, setError] = useState(null)
 
   useEffect(() => {
     if (!lat || !lng) {
-      setLoading(false)
       return
     }
 
     const apiKey = import.meta.env.VITE_OPENWEATHER_API_KEY
     if (!apiKey) {
-      setLoading(false)
       return
     }
 

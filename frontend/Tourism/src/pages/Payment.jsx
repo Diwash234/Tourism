@@ -141,6 +141,9 @@ const Payment = () => {
     cvv: "",
   })
   const [walletId, setWalletId] = useState("")
+  // Booking reference is generated once when payment succeeds (in the handler),
+  // so no Date.now() runs during render (react-hooks/purity).
+  const [bookingReference, setBookingReference] = useState("")
 
   const selectedMethod = useMemo(
     () => PAYMENT_METHODS.find((m) => m.id === paymentMethod),
@@ -163,6 +166,7 @@ const Payment = () => {
     setProcessing(false)
 
     if (success) {
+      setBookingReference(`NYP-${Date.now().toString(36).toUpperCase()}`)
       setPaymentStatus("success")
       setStep(2)
       showToast("Payment successful! Booking confirmed.", "success")
@@ -190,7 +194,7 @@ const Payment = () => {
       <div className="ny-page mx-auto w-full max-w-2xl">
         <Receipt
           booking={{
-            reference: `NYP-${Date.now().toString(36).toUpperCase()}`,
+            reference: bookingReference,
             ...BOOKING_SUMMARY,
             method: selectedMethod?.label,
           }}

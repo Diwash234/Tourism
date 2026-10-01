@@ -13,11 +13,14 @@ import Badge from "../common/Badge"
 export default function DestinationNearby({ destination, radius = 50 }) {
   const { t } = useTranslation()
   const [nearby, setNearby] = useState([])
-  const [loading, setLoading] = useState(true)
+  // Start in the loading state only when there is something to fetch, so the
+  // effect below never has to set state synchronously.
+  const [loading, setLoading] = useState(
+    () => Boolean(destination?.latitude) && Boolean(destination?.longitude)
+  )
 
   useEffect(() => {
     if (!destination?.latitude || !destination?.longitude) {
-      setLoading(false)
       return
     }
 

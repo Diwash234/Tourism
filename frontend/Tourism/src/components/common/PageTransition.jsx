@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useLocation } from "react-router-dom"
 
 /**
@@ -10,11 +10,11 @@ export default function PageTransition({ children }) {
   const [displayLocation, setDisplayLocation] = useState(location)
   const [transitionStage, setTransitionStage] = useState("fadeIn")
 
-  useEffect(() => {
-    if (location.pathname !== displayLocation.pathname) {
-      setTransitionStage("fadeOut")
-    }
-  }, [location, displayLocation])
+  // Start the fade-out when the route changes by adjusting during render
+  // (the effect that used to do this was banned by react-hooks/set-state-in-effect).
+  if (location.pathname !== displayLocation.pathname && transitionStage !== "fadeOut") {
+    setTransitionStage("fadeOut")
+  }
 
   const handleAnimationEnd = () => {
     if (transitionStage === "fadeOut") {
