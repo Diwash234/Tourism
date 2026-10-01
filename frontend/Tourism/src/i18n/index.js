@@ -1200,6 +1200,12 @@ export function setLang(code) {
   if (!DICTS[code]) return
   currentLang = code
   persistLang(code)
+  try {
+    window.localStorage.setItem("tourism_preferred_language", code)
+    window.dispatchEvent(new CustomEvent("tourism-language-change", { detail: { code } }))
+  } catch {
+    /* preference persistence is best effort */
+  }
   listeners.forEach((fn) => fn(code))
   enableLegacyTranslationBridge()
 }
