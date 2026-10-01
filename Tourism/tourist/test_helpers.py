@@ -52,7 +52,8 @@ class TourismTestCase(TestCase):
             province='Bagmati',
             latitude=27.7172,
             longitude=85.3240,
-            is_published=True,
+            status="approved",
+            is_active=True,
             **kwargs
         )
 
@@ -122,7 +123,9 @@ class RBACTestCase(TourismTestCase):
 
     def test_admin_can_access_admin(self):
         """Test that admins can access admin endpoints."""
-        admin = self.create_user(role='admin', is_staff=True)
+        admin = self.create_user(
+            email=f"admin_{self._testMethodName}@example.com",
+            role='admin', is_staff=True)
         self.authenticate(admin)
         response = self.client.get('/api/v1/admin/stats/')
         self.assertIn(response.status_code, [200, 404])  # 404 if no data
