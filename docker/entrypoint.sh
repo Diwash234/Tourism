@@ -240,17 +240,15 @@ if destinations == 0:
 PY
 fi
 
-# ML microservice (budget estimates, itinerary planning, safety scoring) as a
-# background uvicorn on 127.0.0.1:8001 -- Django talks to it at
-# ML_SERVICE_URL. Deferred 20s so its pandas/sklearn import spike (~300MB)
-# never overlaps the migration/seed python processes on Render's 512MB free
-# instance (an OOM there fails the health check and blocks every deploy);
-# Django's honest fallbacks cover the first seconds. Never aborts the boot.
-if [ -f /app/ml_service/app.py ]; then
-  echo "entrypoint: scheduling ML service on 127.0.0.1:8001 (starts in 20s)"
-  nohup sh -c 'sleep 20; cd /app/ml_service && exec python -m uvicorn app:app --host 127.0.0.1 --port 8001' >> /tmp/ml-service.log 2>&1 &
+# Optional ML microservice. Render's free 512 MiB instances can OOM while
+# pandas/sklearn and the trained models are imported. The Django application
+# has deterministic CSV/database fallbacks, so the heavy sidecar is OFF by
+# default. Set START_ML_SERVICE=1 only when the service has enough memory.
+START_ML_SERVICE="${START_ML_SERVICE:-0}"
+if [ "$START_ML_SERVICE" = "1" ] && [ -f /app/ml_service/app.py ]; then
+  echo "entrypoint: starting optional ML service on 127.0.0.1:8001"
+  nohup sh -c 'cd /app/ml_service && exec python -m uvicorn app:app --host 127.0.0.1 --port 8001 --workers 1' >> /tmp/ml-service.log 2>&1 &
 else
-  echo "entrypoint: WARNING - ml_service/app.py missing; budget/itinerary/safety will degrade"
+  echo "entrypoint: ML sidecar disabled; Django CSV/database fallbacks remain active"
 fi
-
 exec "$@"
