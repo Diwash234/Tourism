@@ -38,7 +38,7 @@ const useGeolocation = ({ auto = true, enableIpFallback = true } = {}) => {
       const raw = localStorage.getItem(CACHE_KEY)
       if (!raw) return null
       const cached = JSON.parse(raw)
-      if (!cached || !cached.latitude || !cached.longitude) return null
+      if (!cached || cached.latitude == null || cached.longitude == null) return null
       if (Date.now() - cached.timestamp > CACHE_TTL) {
         localStorage.removeItem(CACHE_KEY)
         return null
@@ -118,6 +118,19 @@ const useGeolocation = ({ auto = true, enableIpFallback = true } = {}) => {
           accuracy: pos.coords.accuracy ?? null,
         }
         const validation = validateGpsPosition(candidate)
+        // A coarse GPS fix is still useful for nearby search. Keep it as a
+        // usable source instead of treating accuracy as a hard failure; the
+        // UI can show the accuracy and the user can refine it when needed.
+        if (!validation.valid && validation.reason?.toLowerCase().includes("accuracy")) {
+          setCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude })
+          setAccuracy(pos.coords.accuracy ?? null)
+          setSource("gps")
+          setError(null)
+          setCode(null)
+          setLoading(false)
+          writeCache(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy ?? null)
+          return
+        }
         if (!validation.valid) {
           setCoords(null)
           setAccuracy(null)
@@ -153,7 +166,7 @@ const useGeolocation = ({ auto = true, enableIpFallback = true } = {}) => {
           if (!ok) setError(message)
         }
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 300000 }
     )
   }, [readCache, writeCache, enableIpFallback, fetchIpLocation])
 
