@@ -890,7 +890,7 @@ export default function Navigation() {
               <button
                 key={tab.id}
                 onClick={() => setAmenityTab(tab.id)}
-                className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-center transition-all ${
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold text-center transition-all ${
                   amenityTab === tab.id
                     ? "bg-[#102A2E] text-white shadow"
                     : "bg-white text-gray-700 hover:bg-emerald-100 border border-[#E5E0D5]"
@@ -900,14 +900,14 @@ export default function Navigation() {
               </button>
             ))}
             <div className="flex flex-wrap items-center gap-1.5 w-full pt-1">
-              <span className="text-[10px] font-black uppercase text-slate-500 mr-1">Radius</span>
+              <span className="text-xs font-black uppercase text-slate-500 mr-1">Radius</span>
               {NEARBY_RADII_KM.map((r) => (
                 <button
                   key={r}
                   type="button"
                   aria-pressed={nearbyRadiusKm === r}
                   onClick={() => setNearbyRadiusKm(r)}
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition ${nearbyRadiusKm === r ? "bg-emerald-700 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                  className={`px-2 py-0.5 rounded-full text-xs font-bold transition ${nearbyRadiusKm === r ? "bg-emerald-700 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
                 >
                   {r} km
                 </button>
@@ -922,11 +922,11 @@ export default function Navigation() {
             return (
               <div key={card.id} className="p-3 rounded-2xl bg-white border border-[#E5E0D5] shadow-sm space-y-2 flex flex-col justify-between hover:shadow-md transition">
                 <div>
-                  <span className="px-2 py-0.5 rounded bg-[#F7F8F5] text-[#1D5146] text-[10px] font-black uppercase block w-fit">
+                  <span className="px-2 py-0.5 rounded bg-[#F7F8F5] text-[#1D5146] text-xs font-black uppercase block w-fit">
                     {card.category}
                   </span>
                   <h4 className="font-bold text-slate-900 text-xs mt-1 truncate">{card.name}</h4>
-                  <p className="text-[10px] text-slate-500 truncate">{card.address}</p>
+                  <p className="text-xs text-slate-500 truncate">{card.address}</p>
                 </div>
                 <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
                   <span className="font-black text-emerald-700">{card.distance}</span>

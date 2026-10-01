@@ -26,31 +26,31 @@ class Command(BaseCommand):
 ## Authorization
 - [ ] Role-based access control
 - [ ] Object-level permissions
-- [ ] API rate limiting
+- [ ] Access review
 
 ## Data Protection
 - [ ] Encryption at rest
 - [ ] Encryption in transit
-- [ ] Data minimization
-- [ ] Secure deletion
+- [ ] Data classification
+- [ ] Data retention
 
 ## Infrastructure
-- [ ] Firewall configuration
-- [ ] DDoS protection
-- [ ] Regular backups
-- [ ] Monitoring and alerting
+- [ ] Firewalls
+- [ ] IDS/IPS
+- [ ] Monitoring
+- [ ] Incident Response
 
 ## Application Security
-- [ ] Input validation
-- [ ] Output encoding
-- [ ] CSRF protection
-- [ ] XSS prevention
-- [ ] SQL injection prevention
+- [ ] Secure coding
+- [ ] Code review
+- [ ] Penetration testing
+- [ ] Vulnerability scanning
 
-## Incident Response
-- [ ] Incident response plan
-- [ ] Communication plan
-- [ ] Post-incident review
+## Compliance
+- [ ] GDPR
+- [ ] ISO 27001
+- [ ] SOC 2
+- [ ] PCI DSS
 """
 
         with open(docs_dir / "CHECKLIST.md", "w") as f:

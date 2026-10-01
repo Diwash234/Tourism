@@ -55,10 +55,13 @@ class Command(BaseCommand):
                 or dest_data.get("updated_at")
                 or self.FALLBACK_TIMESTAMP
             )
+            lat = dest_data.get("latitude")
+            lon = dest_data.get("longitude")
             fixture.append({
                 "model": "tourist.destination",
                 "pk": dest_data["id"],
                 "fields": {
+                    "external_id": dest_data.get("external_id"),
                     "name": dest_data["name"],
                     "slug": dest_data["slug"],
                     "city": dest_data.get("city", ""),
@@ -68,11 +71,23 @@ class Command(BaseCommand):
                     "province": dest_data.get("province", ""),
                     "municipality": dest_data.get("municipality", ""),
                     "ward_number": dest_data.get("ward_number"),
-                    "latitude": dest_data.get("latitude"),
-                    "longitude": dest_data.get("longitude"),
+                    "latitude": lat,
+                    "longitude": lon,
                     "distance_from_kathmandu_km": dest_data.get("distance_from_kathmandu_km"),
                     "description": dest_data.get("description", ""),
                     "short_description": dest_data.get("short_description", ""),
+                    "type": dest_data.get("type", ""),
+                    "seo_title": dest_data.get("seo_title", ""),
+                    "meta_description": dest_data.get("meta_description", ""),
+                    "og_image_url": dest_data.get("og_image_url", ""),
+                    "meta_robots": dest_data.get("meta_robots", ""),
+                    "search_visible": dest_data.get("search_visible", True),
+                    "source": dest_data.get("source", ""),
+                    "provenance": dest_data.get("provenance", "imported"),
+                    "imported_data": dest_data.get("imported_data", {}),
+                    "imported_at": dest_data.get("imported_at"),
+                    "correction_reason": dest_data.get("correction_reason", ""),
+                    "cover_image": dest_data.get("cover_image"),
                     "status": dest_data.get("status", "approved"),
                     "created_at": timestamp,
                     "updated_at": dest_data.get("updated_at") or timestamp,

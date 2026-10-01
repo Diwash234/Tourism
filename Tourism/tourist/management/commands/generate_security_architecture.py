@@ -1,5 +1,5 @@
 """
-Management command to generate security architecture document.
+Management command to generate a security architecture document.
 """
 from pathlib import Path
 
@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
-    help = "Generate security architecture document"
+    help = "Generate a security architecture document"
 
     def handle(self, *args, **options):
         self.stdout.write("Generating security architecture document...")

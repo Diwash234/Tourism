@@ -22,8 +22,7 @@ class Command(BaseCommand):
 - User data (PII)
 - Authentication credentials
 - Payment information
-- Application source code
-- Infrastructure
+- Travel preferences
 
 ## Threats
 
@@ -31,19 +30,27 @@ class Command(BaseCommand):
 
 | Threat | Description | Mitigation |
 |--------|-------------|------------|
-| Spoofing | Impersonating users | JWT tokens, MFA |
-| Tampering | Modifying data | Input validation, signatures |
+| Spoofing | Impersonating users | MFA, strong auth |
+| Tampering | Modifying data | Input validation, encryption |
 | Repudiation | Denying actions | Audit logging |
 | Information Disclosure | Leaking data | Encryption, access control |
-| Denial of Service | Service disruption | Rate limiting, scaling |
-| Elevation of Privilege | Unauthorized access | RBAC, permissions |
+| Denial of Service | Disrupting service | Rate limiting, scaling |
+| Elevation of Privilege | Gaining unauthorized access | RBAC, least privilege |
 
 ## Attack Surface
 
 - Web application
 - API endpoints
-- Admin panel
+- Network communications
 - Third-party integrations
+
+## Risk Assessment
+
+| Risk | Likelihood | Impact | Score |
+|------|------------|--------|-------|
+| Data breach | Medium | High | 6 |
+| DDoS attack | Low | Medium | 2 |
+| Insider threat | Low | High | 2 |
 """
 
         with open(docs_dir / "THREAT_MODEL.md", "w") as f:
