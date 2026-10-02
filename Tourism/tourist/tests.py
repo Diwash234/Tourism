@@ -275,18 +275,31 @@ class AuthTests(APITestCase):
         access = login_resp.data["access"]
         old_jti = RefreshToken(login_resp.data["refresh"]).payload["jti"]
 
+        # new_password_confirm is part of this endpoint's contract: the
+        # Settings page renders old_password / new_password / new_password_confirm
+        # and rejects a mismatch client-side before posting.
         wrong = self.client.post(
             reverse("auth-change-password"),
             HTTP_AUTHORIZATION=f"Bearer {access}",
-            data={"old_password": "WrongPass1!", "new_password": "NewPass456!"},
+            data={"old_password": "WrongPass1!", "new_password": "NewPass456!",
+                  "new_password_confirm": "NewPass456!"},
         )
         self.assertEqual(wrong.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("old_password", wrong.data)
 
+        mismatched = self.client.post(
+            reverse("auth-change-password"),
+            HTTP_AUTHORIZATION=f"Bearer {access}",
+            data={"old_password": "OldPass123!", "new_password": "NewPass456!",
+                  "new_password_confirm": "NewPass789!"},
+        )
+        self.assertEqual(mismatched.status_code, status.HTTP_400_BAD_REQUEST)
+
         ok = self.client.post(
             reverse("auth-change-password"),
             HTTP_AUTHORIZATION=f"Bearer {access}",
-            data={"old_password": "OldPass123!", "new_password": "NewPass456!"},
+            data={"old_password": "OldPass123!", "new_password": "NewPass456!",
+                  "new_password_confirm": "NewPass456!"},
         )
         self.assertEqual(ok.status_code, status.HTTP_200_OK)
         user.refresh_from_db()

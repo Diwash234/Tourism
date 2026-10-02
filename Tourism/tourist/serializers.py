@@ -1074,12 +1074,33 @@ class RegisterSerializer(serializers.Serializer):
     first_name = serializers.CharField(required=False, allow_blank=True)
     last_name = serializers.CharField(required=False, allow_blank=True)
     phone_number = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    # Accepted only so it can be *rejected*. A role field that is simply
+    # undeclared would be dropped silently: a client asking for
+    # {"role": "admin"} got a 201 and a tourist account with no indication
+    # that its request had been ignored. Declaring it as an input field and
+    # refusing anything privileged makes the constraint explicit and keeps
+    # staff accounts on the admin-created path. An explicit "tourist" is
+    # allowed because that is what these accounts are anyway.
+    #
+    # It must NOT be read_only: DRF skips input processing -- and therefore
+    # validate_role below -- entirely for read_only fields, which silently
+    # reinstates the exact bug this field exists to prevent.
+    role = serializers.CharField(required=False, allow_blank=True)
 
     def validate_email(self, value):
         email = value.strip().lower()
         if User.objects.filter(email__iexact=email).exists():
             raise serializers.ValidationError("An account with this email already exists.")
         return email
+
+    def validate_role(self, value):
+        requested = str(value or "").strip().lower()
+        if requested and requested != User.Role.TOURIST:
+            raise serializers.ValidationError(
+                "Staff roles cannot be chosen at signup. Register as a tourist "
+                "account; an administrator grants staff access separately."
+            )
+        return User.Role.TOURIST
 
     def validate(self, data):
         if data["password"] != data["password_confirm"]:
@@ -1133,11 +1154,88 @@ class SMSVerificationSerializer(serializers.Serializer):
 
 
 class UserProfileSerializer(serializers.Serializer):
+    """
+    The account's public profile, as returned to the client.
+
+    Two things it must do beyond the writable profile fields:
+
+    * It is a **read** serializer, but it is declared as a plain
+      ``Serializer`` with only writable fields, so it emitted just
+      ``first_name``/``last_name``/``phone_number``/``bio``/
+      ``preferred_language``. Login, register and profile GET all return this
+      as ``user``, so every one of them shipped a payload with no ``id``, no
+      ``email``, no ``role`` and no ``is_verified`` -- which is what made the
+      login response's ``verification_required`` flag meaningless (the UI was
+      told "verify your email" and then had no way to know whether the account
+      was verified) and made ``user.id`` raise KeyError client-side.
+    * ``role`` and the privilege flags are **read-only**. They are included so
+      the client can render the right UI, and deliberately excluded from
+      writable input: accepting them would let anyone PATCH their way to admin.
+      ``UpdateProfileSerializer`` (below) is the only writable path, and it
+      does not list them either.
+    """
+
+    id = serializers.IntegerField(read_only=True)
+    email = serializers.EmailField(read_only=True)
     first_name = serializers.CharField(required=False, allow_blank=True)
     last_name = serializers.CharField(required=False, allow_blank=True)
     phone_number = serializers.CharField(required=False, allow_blank=True)
     bio = serializers.CharField(required=False, allow_blank=True)
     preferred_language = serializers.CharField(required=False, allow_blank=True)
+    full_name = serializers.SerializerMethodField()
+    role = serializers.CharField(read_only=True)
+    is_verified = serializers.BooleanField(read_only=True)
+    is_staff = serializers.BooleanField(read_only=True)
+    is_superuser = serializers.BooleanField(read_only=True)
+    is_active = serializers.BooleanField(read_only=True)
+
+    def get_full_name(self, obj):
+        return f"{obj.first_name or ''} {obj.last_name or ''}".strip() or None
+
+    def to_representation(self, instance):
+        # Never echo the password hash back to the client. With declared
+        # fields this cannot happen, but keeping the guard means a future field
+        # added here cannot silently start leaking credentials.
+        return {
+            key: value
+            for key, value in super().to_representation(instance).items()
+            if key not in {"password", "password_hash"}
+        }
+
+    def update(self, instance, validated_data):
+        """Persist the writable profile fields.
+
+        This method has to exist: ProfileView is a RetrieveUpdateAPIView bound
+        to this serializer, so without it every PATCH /auth/profile/ raised
+        NotImplementedError and answered 500. The client could read the profile
+        but not change their own name.
+
+        Only the five declared writable fields are applied, using an explicit
+        whitelist rather than validated_data, so a future field added as
+        read_only can never start being written here by accident.
+        """
+        writable = (
+            "first_name",
+            "last_name",
+            "phone_number",
+            "bio",
+            "preferred_language",
+        )
+        changed = [
+            name for name in writable if name in validated_data
+        ]
+        for name in changed:
+            setattr(instance, name, validated_data[name])
+        if changed:
+            instance.save(update_fields=changed)
+        return instance
+
+    def create(self, validated_data):
+        raise NotImplementedError(
+            "UserProfileSerializer is for reading and updating the account "
+            "that is already authenticated; it cannot create users. Use "
+            "RegisterView / RegisterSerializer."
+        )
 
 
 class ChangeEmailSerializer(serializers.Serializer):
@@ -1199,10 +1297,19 @@ class ResetPasswordOtpVerifySerializer(serializers.Serializer):
     email = serializers.EmailField()
     code = serializers.CharField(max_length=6)
     new_password = serializers.CharField(min_length=8)
-    new_password_confirm = serializers.CharField()
+    # Optional on purpose. The OTP flow already proves control of the inbox
+    # with a 6-digit code, so the client is not at risk of a typo-locked
+    # account, and requiring the echo field meant every client that sent just
+    # {email, code, new_password} -- which is exactly what
+    # frontend/Tourism/src/pages/auth/ForgotPassword.jsx does -- got a 400
+    # "This field is required" and could never reset a password at all.
+    # When it IS sent it must still match, so a client that does offer a
+    # confirm box still gets the typo check.
+    new_password_confirm = serializers.CharField(required=False, allow_blank=True)
 
     def validate(self, data):
-        if data["new_password"] != data["new_password_confirm"]:
+        confirm = data.get("new_password_confirm")
+        if confirm and confirm != data["new_password"]:
             raise serializers.ValidationError("Passwords do not match")
         return data
 
