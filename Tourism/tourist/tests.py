@@ -609,6 +609,11 @@ class PhotoAndDataSourceTests(APITestCase):
         self.assertTrue(photo.is_promoted)
         self.assertTrue(photo.is_cover)
 
+    # Without this override the assertion depends on whether the machine
+    # running the suite happens to have OPENWEATHER_API_KEY in .env. With a key
+    # present the view makes a live call and returns 200, so the test failed
+    # for anyone who had one configured. The precondition is now explicit.
+    @override_settings(OPENWEATHER_API_KEY="")
     def test_weather_returns_503_without_api_key(self):
         response = self.client.get(reverse("destination-weather", kwargs={"slug": self.destination.slug}))
         self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
@@ -732,7 +737,9 @@ class CompatibilityRouteTests(APITestCase):
         response = self.client.get("/api/v1/weather/current/")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    @override_settings(OPENWEATHER_API_KEY="")
     def test_weather_current_compat_returns_503_without_key(self):
+        # Explicit no-key precondition; see the note on the sibling test.
         response = self.client.get("/api/v1/weather/current/", {"lat": 28.15, "lng": 84.05})
         self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
 
