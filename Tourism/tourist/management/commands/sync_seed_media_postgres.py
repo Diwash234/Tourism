@@ -34,28 +34,6 @@ class Command(BaseCommand):
             with gzip.open(ARCHIVE, "rb") as src, sqlite_path.open("wb") as dst:
                 dst.write(src.read())
 
-<<<<<<< HEAD
-            previous = connection.settings_dict.get("NAME")
-            connection.close()
-            settings.DATABASES["default"]["NAME"] = str(sqlite_path)
-            connection.settings_dict["NAME"] = str(sqlite_path)
-            try:
-                source_rows = list(
-                    DestinationImage.objects.filter(
-                        destination__isnull=False,
-                        external_url__gt="",
-                    ).values(
-                        "destination__slug", "destination__name", "external_url",
-                        "caption", "is_cover", "verification_status", "source",
-                        "source_url", "source_platform", "photographer",
-                        "license_type", "copyright_status", "alt_text", "is_verified",
-                    )
-                )
-            finally:
-                connection.close()
-                settings.DATABASES["default"]["NAME"] = previous
-                connection.settings_dict["NAME"] = previous
-=======
             conn = sqlite3.connect(str(sqlite_path))
             cur = conn.cursor()
             cur.execute("""
@@ -68,7 +46,6 @@ class Command(BaseCommand):
             """)
             raw_rows = cur.fetchall()
             conn.close()
->>>>>>> origin/arena/01a0ed99-tourism
 
             by_slug = {}
             by_name = {}
@@ -114,13 +91,8 @@ class Command(BaseCommand):
                         external_url=row["external_url"],
                         caption=row["caption"] or destination.name,
                         is_cover=bool(row["is_cover"]),
-<<<<<<< HEAD
-                        verification_status=row["verification_status"] or DestinationImage.ImageStatus.APPROVED,
-                        is_verified=bool(row.get("is_verified", True)),
-=======
                         is_verified=True,
                         verification_status=DestinationImage.ImageStatus.APPROVED,
->>>>>>> origin/arena/01a0ed99-tourism
                         source=row["source"] or DestinationImage.Source.ADMIN,
                         source_url=row["source_url"] or "",
                         source_platform=row["source_platform"] or "",
