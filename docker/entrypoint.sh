@@ -232,6 +232,9 @@ PY
   else
     echo "entrypoint: heavy data repairs disabled on normal web boot"
     run_if_table_empty tourist_budgetestimation "budget" python manage.py import_budget
+    echo "entrypoint: repairing public visibility for approved seed media"
+    python manage.py repair_public_media_visibility \
+      || echo "entrypoint: WARNING - public media visibility repair skipped"
   fi
 
   # Data audit: intentionally fails the deploy instead of looking healthy
