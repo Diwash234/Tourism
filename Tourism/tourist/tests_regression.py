@@ -4810,17 +4810,21 @@ class ReconcileCatalogueCommandTests(TestCase):
         return Destination.objects.create(**fields)
 
     def test_hides_only_osm_imported_rows(self):
-        junk = self._dest("osm-junk-node", imported_at=timezone.now(), type="node")
-        junk_way = self._dest("osm-junk-way", imported_at=timezone.now(), type="way")
+        # Explicit high pks: these stand for OSM-CREATED rows, which always
+        # live outside the seed pk set (seed pks top out near 8.7k).
+        junk = self._dest("osm-junk-node", pk=910001, imported_at=timezone.now(), type="node")
+        junk_way = self._dest("osm-junk-way", pk=910002, imported_at=timezone.now(), type="way")
         user_submitted = self._dest(
             "user-submitted-osm-like",
+            pk=910003,
             imported_at=timezone.now(),
             type="node",
             is_user_submitted=True,
         )
-        fixture_style = self._dest("fixture-style-row", imported_at=None, type="")
+        fixture_style = self._dest("fixture-style-row", pk=910004, imported_at=None, type="")
         staff_created = self._dest(
             "staff-created-osm-like",
+            pk=910005,
             imported_at=timezone.now(),
             type="relation",
             created_by=make_superuser(),
@@ -4834,6 +4838,55 @@ class ReconcileCatalogueCommandTests(TestCase):
         for row in (user_submitted, fixture_style, staff_created):
             row.refresh_from_db()
             self.assertTrue(row.is_active, f"{row.slug} must stay public")
+
+    def test_seed_pk_rows_with_osm_signature_stay_active(self):
+        # The load-bearing safety property: the importer's enrich path stamps
+        # imported_at onto seed rows matched by external_id, and
+        # convert_dataset_to_fixture copies the CSV type into the same rows —
+        # so seed rows can carry the FULL OSM marker signature and must still
+        # never be hidden. pk=2 is owned by both tracked seed files.
+        seed_row = self._dest(
+            "seed-row-osm-stamped",
+            pk=2,
+            imported_at=timezone.now(),
+            type="node",
+            provenance=Destination.Provenance.IMPORTED,
+        )
+        osm_row = self._dest("osm-created-row", pk=910006, imported_at=timezone.now(), type="node")
+
+        call_command("reconcile_catalogue")
+
+        seed_row.refresh_from_db()
+        osm_row.refresh_from_db()
+        self.assertTrue(
+            seed_row.is_active,
+            "a seed-pk row carrying the OSM signature must never be deactivated",
+        )
+        self.assertFalse(osm_row.is_active, "a non-seed OSM row must be hidden")
+
+    def test_restore_flag_reactivates_only_seed_signature_rows(self):
+        wrongly_hidden_seed = self._dest(
+            "wrongly-hidden-seed",
+            pk=4,  # owned by data.json
+            imported_at=timezone.now(),
+            type="node",
+            is_active=False,
+        )
+        admin_hidden_nonseed = self._dest(
+            "admin-hidden-nonseed",
+            pk=910007,
+            imported_at=timezone.now(),
+            type="node",
+            is_active=False,
+        )
+        call_command("reconcile_catalogue", restore_hidden_seed=True)
+        wrongly_hidden_seed.refresh_from_db()
+        admin_hidden_nonseed.refresh_from_db()
+        self.assertTrue(wrongly_hidden_seed.is_active, "seed rows hidden by a marker-only run must be restorable")
+        self.assertFalse(
+            admin_hidden_nonseed.is_active,
+            "the restore flag must not touch non-seed rows",
+        )
 
     def test_never_reactivates_admin_hidden_rows(self):
         hidden = self._dest(
@@ -4867,8 +4920,8 @@ class ReconcileCatalogueCommandTests(TestCase):
         self.assertTrue(curated.is_featured, "a second run must not un-feature anything")
 
     def test_hides_junk_from_the_public_listing(self):
-        self._dest("osm-junk-listed", imported_at=timezone.now(), type="node")
-        self._dest("legit-place", provenance="manual", imported_at=None, type="")
+        self._dest("osm-junk-listed", pk=910008, imported_at=timezone.now(), type="node")
+        self._dest("legit-place", pk=910009, provenance="manual", imported_at=None, type="")
         call_command("reconcile_catalogue")
         visible = Destination.objects.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)
         public = Destination.publicly_visible(visible)
