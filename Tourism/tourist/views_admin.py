@@ -1987,59 +1987,6 @@ class AdminDataExplorerView(APIView):
             return None
         return apps.get_model(self.RESOURCES[resource][0])
 
-    def _bulk_action(self, request, resource, model):
-        """Apply safe workflow actions to up to 100 selected records."""
-        if not model or resource not in self.MODELS:
-            return Response({"detail": "Unsupported CMS resource"}, status=400)
-        ids = request.data.get("ids") or []
-        if not isinstance(ids, list) or not ids:
-            return Response({"detail": "Select one or more records"}, status=400)
-        ids = list(dict.fromkeys(ids))[:100]
-        action = str(request.data.get("bulk_action") or "").strip()
-        if action not in {"publish", "unpublish", "archive", "activate", "deactivate"}:
-            return Response({"detail": "Unsupported bulk action"}, status=400)
-        capability = "approve" if action in {"publish", "unpublish"} else "change"
-        module = self.RESOURCE_CAPABILITIES.get(resource, ("content", "view"))[0]
-        _require_capability(request, module, capability)
-        objects = list(model.objects.filter(pk__in=ids))
-        found = {str(obj.pk) for obj in objects}
-        missing = [value for value in ids if str(value) not in found]
-        if missing:
-            return Response({"detail": "Some selected records no longer exist.", "missing_ids": missing}, status=404)
-        blockers = []
-        if action == "publish":
-            for obj in objects:
-                gate = self._publication_gate(resource, obj)
-                if not gate["ok"]:
-                    row = self._row(resource, obj)
-                    blockers.append({"id": obj.pk, "name": row.get("title") or row.get("label") or str(obj.pk), "publication_gate": gate})
-            if blockers:
-                return Response({"detail": "Bulk publish blocked: fix all selected records first.", "blocked": blockers}, status=409)
-        now = timezone.now()
-        with transaction.atomic():
-            for obj in objects:
-                if action == "publish":
-                    if resource == "pages": obj.status, obj.is_enabled, obj.published_at, obj.scheduled_publish_at = "published", True, now, None
-                    elif resource == "sections": obj.status, obj.is_visible, obj.published_at, obj.scheduled_publish_at = "published", True, now, None
-                    elif resource == "navigation": obj.is_active = True
-                    elif resource == "media": obj.verification_status, obj.is_verified = "approved", True
-                elif action == "unpublish":
-                    if resource == "pages": obj.status, obj.is_enabled, obj.published_at = "draft", False, None
-                    elif resource == "sections": obj.status, obj.is_visible, obj.published_at = "draft", False, None
-                    elif resource == "navigation": obj.is_active = False
-                    elif resource == "media": obj.verification_status, obj.is_verified = "rejected", False
-                elif action in {"archive", "deactivate"}:
-                    field = "is_archived" if hasattr(obj, "is_archived") else ("is_active" if hasattr(obj, "is_active") else "is_visible")
-                    setattr(obj, field, False)
-                elif action == "activate":
-                    field = "is_active" if hasattr(obj, "is_active") else ("is_visible" if hasattr(obj, "is_visible") else "is_enabled")
-                    setattr(obj, field, True)
-                if hasattr(obj, "updated_by"): obj.updated_by = request.user
-                obj.save()
-                if action == "publish": self._sync_published_record(resource, obj)
-                self._revision(resource, obj, request.user, action if action in {"publish", "unpublish"} else "update")
-        self._invalidate_public_caches()
-        return Response({"message": f"{len(objects)} {resource} record(s) {action} complete", "updated": len(objects), "ids": [obj.pk for obj in objects]})
     def patch(self, request):
         """Generic row editing for every explorer resource.
 
@@ -3077,7 +3024,12 @@ class AdminCMSView(APIView):
                 results.append({
                     "id": page.id, "title": page.title, "route": page.route,
                     "status": page.status, "section_count": len(section_rows),
-                    "navigation_items": list(ManagedNavigationItem.objects.filter(route=page.route).values("id", "label", "location", "is_active")),
+                    # "route" is included because the query already filters on it, so every
+                    # item returned has that same value -- but without it in the
+                    # projection the dependency map cannot show an editor
+                    # *which* route a nav item points at, which is the entire
+                    # purpose of this resource.
+                    "navigation_items": list(ManagedNavigationItem.objects.filter(route=page.route).values("id", "label", "location", "route", "is_active")),
                     "links": links,
                     "seo": {"title": page.seo_title or "", "description": page.meta_description or "", "og_image": page.og_image_url or ""},
                     "publication_gate": self._publication_gate("pages", page),
@@ -3501,6 +3453,68 @@ class AdminCMSView(APIView):
                                 object_type=resource, object_id=str(obj.pk))
         return Response({"message": f"Archived “{label}”" + (f" and its {cascade} section(s)" if cascade else ""), "record": self._row(resource, obj)})
 
+    def _bulk_action(self, request, resource, model):
+        """Apply safe workflow actions to up to 100 selected records.
+
+        Lives here, not on AdminDataExplorerView, because it depends on
+        _publication_gate / _row / _revision / _sync_published_record /
+        _invalidate_public_caches -- all of which are AdminCMSView members.
+        AdminCMSView.patch() dispatches action="bulk" straight to this
+        method; when it was missing the endpoint raised AttributeError and
+        every bulk publish/unpublish/archive from the admin UI returned a
+        500 instead of the 409 publication-gate conflict it should report.
+        """
+        if not model or resource not in self.MODELS:
+            return Response({"detail": "Unsupported CMS resource"}, status=400)
+        ids = request.data.get("ids") or []
+        if not isinstance(ids, list) or not ids:
+            return Response({"detail": "Select one or more records"}, status=400)
+        ids = list(dict.fromkeys(ids))[:100]
+        action = str(request.data.get("bulk_action") or "").strip()
+        if action not in {"publish", "unpublish", "archive", "activate", "deactivate"}:
+            return Response({"detail": "Unsupported bulk action"}, status=400)
+        capability = "approve" if action in {"publish", "unpublish"} else "change"
+        module = self.RESOURCE_CAPABILITIES.get(resource, ("content", "view"))[0]
+        _require_capability(request, module, capability)
+        objects = list(model.objects.filter(pk__in=ids))
+        found = {str(obj.pk) for obj in objects}
+        missing = [value for value in ids if str(value) not in found]
+        if missing:
+            return Response({"detail": "Some selected records no longer exist.", "missing_ids": missing}, status=404)
+        blockers = []
+        if action == "publish":
+            for obj in objects:
+                gate = self._publication_gate(resource, obj)
+                if not gate["ok"]:
+                    row = self._row(resource, obj)
+                    blockers.append({"id": obj.pk, "name": row.get("title") or row.get("label") or str(obj.pk), "publication_gate": gate})
+            if blockers:
+                return Response({"detail": "Bulk publish blocked: fix all selected records first.", "blocked": blockers}, status=409)
+        now = timezone.now()
+        with transaction.atomic():
+            for obj in objects:
+                if action == "publish":
+                    if resource == "pages": obj.status, obj.is_enabled, obj.published_at, obj.scheduled_publish_at = "published", True, now, None
+                    elif resource == "sections": obj.status, obj.is_visible, obj.published_at, obj.scheduled_publish_at = "published", True, now, None
+                    elif resource == "navigation": obj.is_active = True
+                    elif resource == "media": obj.verification_status, obj.is_verified = "approved", True
+                elif action == "unpublish":
+                    if resource == "pages": obj.status, obj.is_enabled, obj.published_at = "draft", False, None
+                    elif resource == "sections": obj.status, obj.is_visible, obj.published_at = "draft", False, None
+                    elif resource == "navigation": obj.is_active = False
+                    elif resource == "media": obj.verification_status, obj.is_verified = "rejected", False
+                elif action in {"archive", "deactivate"}:
+                    field = "is_archived" if hasattr(obj, "is_archived") else ("is_active" if hasattr(obj, "is_active") else "is_visible")
+                    setattr(obj, field, False)
+                elif action == "activate":
+                    field = "is_active" if hasattr(obj, "is_active") else ("is_visible" if hasattr(obj, "is_visible") else "is_enabled")
+                    setattr(obj, field, True)
+                if hasattr(obj, "updated_by"): obj.updated_by = request.user
+                obj.save()
+                if action == "publish": self._sync_published_record(resource, obj)
+                self._revision(resource, obj, request.user, action if action in {"publish", "unpublish"} else "update")
+        self._invalidate_public_caches()
+        return Response({"message": f"{len(objects)} {resource} record(s) {action} complete", "updated": len(objects), "ids": [obj.pk for obj in objects]})
     def patch(self, request):
         resource = request.data.get("resource")
         if resource in self.RESOURCE_CAPABILITIES:

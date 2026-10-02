@@ -589,7 +589,7 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
     permission_classes = [CanSubmitPlace]
     filterset_class = DestinationFilter
     search_fields = ["name", "description", "city", "country"]
-    ordering_fields = ["average_rating", "entry_fee", "created_at", "name", "views_count"]
+    ordering_fields = ["average_rating", "entry_fee", "created_at", "name", "views_count", "is_featured"]
     lookup_field = "slug"
 
     def get_serializer_class(self):

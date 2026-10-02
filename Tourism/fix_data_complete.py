@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Fix data.json - fill missing city_english, add proper images, fix Korean/Chinese text."""
+"""Fix data.json - replace Korean/Chinese text with English, add proper images, fix missing fields."""
 import json
 from pathlib import Path
 import math
@@ -38,7 +38,7 @@ DISTRICT_TO_CITY = {
     "Okhaldhunga": "Okhaldhunga", "Sankhuwasabha": "Khandbari", "Bhojpur": "Bhojpur",
 }
 
-# Nepal landmark photos (Wikimedia Commons)
+# Wikimedia Commons placeholder images
 PLACEHOLDER_IMAGES = {
     "default": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Nepal_Mount_Everest.jpg/960px-Nepal_Mount_Everest.jpg",
     "kathmandu": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Kathmandu_Durbar_Square.jpg/960px-Kathmandu_Durbar_Square.jpg",
@@ -46,33 +46,6 @@ PLACEHOLDER_IMAGES = {
     "everest": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Nepal_Mount_Everest.jpg/960px-Nepal_Mount_Everest.jpg",
     "chitwan": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Siddharthanagar%2C_Nepal%2C_9_April_2019_1.jpg/960px-Siddharthanagar%2C_Nepal%2C_9_April_2019_1.jpg",
     "lumbini": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Siddharthanagar%2C_Nepal%2C_9_April_2019_1.jpg/960px-Siddharthanagar%2C_Nepal%2C_9_April_2019_1.jpg",
-    "default_hotel": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Siddharthanagar%2C_Nepal%2C_9_April_2019_1.jpg/960px-Siddharthanagar%2C_Nepal%2C_9_April_2019_1.jpg",
-}
-
-# District to major city mapping
-DISTRICT_TO_CITY = {
-    "Kathmandu": "Kathmandu", "Lalitpur": "Lalitpur", "Bhaktapur": "Bhaktapur",
-    "Kavrepalanchok": "Dhulikhel", "Sindhupalchok": "Barabise", "Nuwakot": "Bidur",
-    "Rasuwa": "Dhunche", "Dhading": "Dhading Besi", "Makwanpur": "Hetauda",
-    "Chitwan": "Bharatpur", "Gorkha": "Gorkha", "Lamjung": "Besisahar",
-    "Tanahun": "Damauli", "Syangja": "Putalibazar", "Kaski": "Pokhara",
-    "Manang": "Chame", "Mustang": "Jomsom", "Myagdi": "Beni", "Parbat": "Kushma",
-    "Baglung": "Baglung", "Gulmi": "Tamghas", "Palpa": "Tansen", "Nawalparasi": "Ramgram",
-    "Rupandehi": "Butwal", "Kapilvastu": "Taulihawa", "Arghakhanchi": "Sandhikharka",
-    "Pyuthan": "Pyuthan", "Rolpa": "Liwang", "Rukum": "Musikot", "Salyan": "Salyan",
-    "Surkhet": "Birendranagar", "Dailekh": "Dailekh", "Jajarkot": "Khalanga",
-    "Dolpa": "Dunai", "Jumla": "Chandannath", "Kalikot": "Manma", "Mugu": "Gamgadhi",
-    "Humla": "Simikot", "Bajura": "Martadi", "Bajhang": "Chainpur", "Achham": "Mangalsen",
-    "Doti": "Dipayal", "Kailali": "Dhangadhi", "Kanchanpur": "Mahendranagar",
-    "Dadeldhura": "Dadeldhura", "Baitadi": "Dasharathchand", "Darchula": "Darchula",
-    "Sindhuli": "Sindhuli", "Ramechhap": "Manthali", "Dolakha": "Charikot",
-    "Solukhumbu": "Salleri", "Okhaldhunga": "Okhaldhunga", "Khotang": "Diktel",
-    "Udayapur": "Gaighat", "Saptari": "Rajbiraj", "Siraha": "Siraha", "Dhanusa": "Janakpur",
-    "Mahottari": "Jaleshwar", "Sarlahi": "Malangwa", "Rautahat": "Gaur", "Bara": "Kalaiya",
-    "Parsa": "Birgunj", "Taplejung": "Phungling", "Panchthar": "Phidim", "Ilam": "Ilam",
-    "Jhapa": "Bhadrapur", "Morang": "Biratnagar", "Sunsari": "Inaruwa", "Dhankuta": "Dhankuta",
-    "Terhathum": "Myrung", "Sankhuwasabha": "Khandbari", "Bhojpur": "Bhojpur",
-    "Okhaldhunga": "Okhaldhunga", "Sankhuwasabha": "Khandbari", "Bhojpur": "Bhojpur",
 }
 
 def get_placeholder_image(district, city_english):
@@ -80,23 +53,30 @@ def get_placeholder_image(district, city_english):
     city_key = (city_english or "").lower().strip()
     district_key = district.lower().strip() if district else ""
     
-    # Check for specific landmark
-    for key, url in {
-        "kathmandu": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Kathmandu_Durbar_Square.jpg/960px-Kathmandu_Durbar_Square.jpg",
-        "pokhara": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Siddharthanagar%2C_Nepal%2C_9_April_2019_1.jpg/960px-Siddharthanagar%2C_Nepal%2C_9_April_2019_1.jpg",
-        "everest": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Nepal_Mount_Everest.jpg/960px-Nepal_Mount_Everest.jpg",
-        "chitwan": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Siddharthanagar%2C_Nepal%2C_9_April_2019_1.jpg/960px-Siddharthanagar%2C_Nepal%2C_9_April_2019_1.jpg",
-        "lumbini": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Siddharthanagar%2C_Nepal%2C_9_April_2019_1.jpg/960px-Siddharthanagar%2C_Nepal%2C_9_April_2019_1.jpg",
-    }.items():
+    for key, url in PLACEHOLDER_IMAGES.items():
         if key in city_key or key in district_key:
             return url
-    
-    # Default
-    return "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Nepal_Mount_Everest.jpg/960px-Nepal_Mount_Everest.jpg"
+    return PLACEHOLDER_IMAGES["default"]
+
+def has_chinese_korean(text):
+    """Check if text contains Chinese or Korean characters."""
+    if not text:
+        return False
+    for char in text:
+        if '\u4e00' <= char <= '\u9fff' or '\uac00' <= char <= '\ud7af':
+            return True
+    return False
 
 fixed_count = 0
 for dest_id, dest_data in destinations.items():
-    # Fix city_english
+    # Fix city_english - replace Korean/Chinese with English
+    if dest_data.get("city") and has_chinese_korean(dest_data["city"]):
+        if dest_data.get("city_english"):
+            dest_data["city"] = dest_data["city_english"]
+        elif dest_data.get("district") and dest_data["district"] in DISTRICT_TO_CITY:
+            dest_data["city"] = DISTRICT_TO_CITY[dest_data["district"]]
+    
+    # Fix city_english if missing
     if not dest_data.get("city_english") and dest_data.get("district"):
         district = dest_data.get("district", "").strip()
         if district in DISTRICT_TO_CITY:
@@ -121,6 +101,11 @@ for dest_id, dest_data in destinations.items():
         distance = 6371 * c
         dest_data["distance_from_kathmandu_km"] = round(distance, 1)
     
+    # Fix Korean/Chinese in city_nepali - replace with English if city_english exists
+    if dest_data.get("city_nepali") and has_chinese_korean(dest_data["city_nepali"]):
+        if dest_data.get("city_english"):
+            dest_data["city_nepali"] = dest_data["city_english"]
+    
     # Add placeholder images if empty
     if not dest_data.get("images") or len(dest_data.get("images", [])) == 0:
         placeholder_url = get_placeholder_image(
@@ -134,12 +119,15 @@ for dest_id, dest_data in destinations.items():
             "is_cover": True,
             "status": "approved"
         }]
-    
-    # Fix Korean/Chinese text in city fields
-    if dest_data.get("city") and any(ord(c) > 127 for c in dest_data["city"]):
-        # Replace with city_english if available
-        if dest_data.get("city_english"):
-            dest_data["city"] = dest_data["city_english"]
+    else:
+        # Fix existing images - ensure they have proper URL field
+        for img in dest_data.get("images", []):
+            if "url" not in img and "external_url" in img:
+                img["url"] = img["external_url"]
+            elif "url" not in img and "image_url" in img:
+                img["url"] = img["image_url"]
+            if "url" not in img:
+                img["url"] = PLACEHOLDER_IMAGES["default"]
 
 # Save fixed data
 data_path = Path(__file__).resolve().parent / "dataset" / "data.json"

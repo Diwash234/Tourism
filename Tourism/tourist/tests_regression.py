@@ -14,8 +14,11 @@ Each test pins one previously-fixed behavior so it cannot silently regress:
 """
 from unittest.mock import patch
 
+from django.core.management import call_command
 from django.test import TestCase
+from django.urls import reverse
 from django.utils import timezone
+from rest_framework import status
 from rest_framework.test import APIClient
 
 from .location.search_service import LocationSearchService
@@ -2485,9 +2488,14 @@ class HomepageCMSDraftPublishTests(TestCase):
 
 class CMSBulkAndMediaTests(TestCase):
     def setUp(self):
+        # Plain TestCase gives a django.test.Client, which has no
+        # force_authenticate() and no support for format="json" or
+        # response.data. These tests need the DRF client.
+        self.client = APIClient()
         self.admin = User.objects.create_superuser(email='cmsbulk@test.local', password='Pass@12345')
         self.client.force_authenticate(user=self.admin)
         self.destination = Destination.objects.create(name='CMS Media Test', slug='cms-media-test')
+        from .models import DestinationImage
         self.media = DestinationImage.objects.create(destination=self.destination, external_url='https://example.com/original.jpg', verification_status='pending')
         self.page = ManagedPage.objects.create(route='/bulk-test', key='bulk-test', title='Bulk Test', meta_description='A valid page for bulk CMS testing.', seo_title='Bulk Test | Nepal Tourism', og_image_url='https://example.com/og.jpg', status='draft', is_enabled=False, updated_by=self.admin)
         ContentSection.objects.create(page=self.page, key='hero', title='Hero', body='Valid content', status='published', is_visible=True, updated_by=self.admin)
@@ -2502,12 +2510,38 @@ class CMSBulkAndMediaTests(TestCase):
         response = self.client.patch(reverse('admin-cms'), {'resource': 'media', 'id': self.media.id, 'external_url': 'http://bad.example/image.jpg'}, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_bulk_publish_uses_publication_gate(self):
+    def test_bulk_publish_succeeds_for_a_page_that_passes_the_gate(self):
+        # self.page in setUp satisfies every hard blocker the publication gate
+        # checks (title, key, internal route, meta description, one visible
+        # published section), so a bulk publish of it must succeed.
         response = self.client.patch(reverse('admin-cms'), {'resource': 'pages', 'action': 'bulk', 'bulk_action': 'publish', 'ids': [self.page.id]}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        self.assertEqual(response.data["updated"], 1)
+        self.page.refresh_from_db()
+        self.assertEqual(self.page.status, "published")
+        self.assertTrue(self.page.is_enabled)
+
+    def test_bulk_publish_uses_publication_gate(self):
+        # The gate must also apply to bulk publishes, not just single-record
+        # ones: a page missing its meta description is a hard blocker, so the
+        # whole batch is refused with 409 and the record stays a draft.
+        blocked = ManagedPage.objects.create(
+            route="/blocked-test", key="blocked-test", title="Blocked Test",
+            meta_description="", status="draft", is_enabled=False, updated_by=self.admin,
+        )
+        response = self.client.patch(reverse('admin-cms'), {'resource': 'pages', 'action': 'bulk', 'bulk_action': 'publish', 'ids': [blocked.id]}, format='json')
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT, response.content)
+        codes = [item["publication_gate"]["blockers"][0]["code"] for item in response.data["blocked"]]
+        self.assertIn("missing_seo_description", codes)
+        blocked.refresh_from_db()
+        self.assertEqual(blocked.status, "draft")
+        self.assertFalse(blocked.is_enabled)
 
 class CMSContentMapTests(TestCase):
     def setUp(self):
+        # Needs APIClient, not django.test.Client: force_authenticate() and
+        # response.data are DRF-only.
+        self.client = APIClient()
         self.admin = User.objects.create_superuser(email="cmsmap@test.local", password="Pass@12345")
         self.client.force_authenticate(user=self.admin)
         self.page = ManagedPage.objects.create(
@@ -2530,6 +2564,9 @@ class CMSContentMapTests(TestCase):
 
 class CMSWorkspaceMapTests(TestCase):
     def setUp(self):
+        # Needs APIClient, not django.test.Client: force_authenticate() and
+        # response.data are DRF-only.
+        self.client = APIClient()
         self.admin = User.objects.create_superuser(email="cmsworkspace@test.local", password="Pass@12345")
         self.client.force_authenticate(user=self.admin)
         self.page = ManagedPage.objects.create(route="/workspace-map", key="workspace-map", title="Workspace Map", status="published", is_enabled=True, meta_description="Workspace map test", updated_by=self.admin)
@@ -4747,3 +4784,92 @@ class RenderHealthProbeExemptionTests(TestCase):
         body = resp.json()
         self.assertEqual(body["status"], "ok")
         self.assertEqual(body["checks"]["database"]["status"], "ok")
+
+
+class ReconcileCatalogueCommandTests(TestCase):
+    """reconcile_catalogue hides OSM junk and pins the curated featured set.
+
+    The OSM marker triple (provenance=imported + imported_at set + type in
+    node/way/relation) is what separates bulk-imported CSV junk from every
+    legitimate seed: fixture/data.json/load.json rows carry imported_at=NULL
+    and an empty type, and user submissions set is_user_submitted or
+    created_by. The command must also never reactivate a hidden row and must
+    be safe to run on every boot.
+    """
+
+    def _dest(self, slug, **overrides):
+        fields = dict(
+            name=slug.replace("-", " ").title(),
+            slug=slug,
+            country="Nepal",
+            status=Destination.SubmissionStatus.APPROVED,
+            is_active=True,
+            provenance=Destination.Provenance.IMPORTED,
+        )
+        fields.update(overrides)
+        return Destination.objects.create(**fields)
+
+    def test_hides_only_osm_imported_rows(self):
+        junk = self._dest("osm-junk-node", imported_at=timezone.now(), type="node")
+        junk_way = self._dest("osm-junk-way", imported_at=timezone.now(), type="way")
+        user_submitted = self._dest(
+            "user-submitted-osm-like",
+            imported_at=timezone.now(),
+            type="node",
+            is_user_submitted=True,
+        )
+        fixture_style = self._dest("fixture-style-row", imported_at=None, type="")
+        staff_created = self._dest(
+            "staff-created-osm-like",
+            imported_at=timezone.now(),
+            type="relation",
+            created_by=make_superuser(),
+        )
+
+        call_command("reconcile_catalogue")
+
+        for row in (junk, junk_way):
+            row.refresh_from_db()
+            self.assertFalse(row.is_active, f"{row.slug} (OSM junk) must be hidden")
+        for row in (user_submitted, fixture_style, staff_created):
+            row.refresh_from_db()
+            self.assertTrue(row.is_active, f"{row.slug} must stay public")
+
+    def test_never_reactivates_admin_hidden_rows(self):
+        hidden = self._dest(
+            "admin-hidden-row",
+            provenance="manual",
+            imported_at=None,
+            type="attraction",
+            is_active=False,
+        )
+        call_command("reconcile_catalogue")
+        hidden.refresh_from_db()
+        self.assertFalse(hidden.is_active, "is_active=False is an admin decision and must survive")
+
+    def test_pins_curated_featured_slugs_idempotently(self):
+        curated = self._dest(
+            "swayambhunath-stupa-monkey-temple",
+            provenance="manual",
+            imported_at=None,
+            type="temple",
+        )
+        not_curated = self._dest("not-curated-row", provenance="manual", imported_at=None, type="")
+
+        call_command("reconcile_catalogue")
+        curated.refresh_from_db()
+        not_curated.refresh_from_db()
+        self.assertTrue(curated.is_featured, "curated slug must be pinned to is_featured")
+        self.assertFalse(not_curated.is_featured, "rows outside the curated file must never be featured")
+
+        call_command("reconcile_catalogue")
+        curated.refresh_from_db()
+        self.assertTrue(curated.is_featured, "a second run must not un-feature anything")
+
+    def test_hides_junk_from_the_public_listing(self):
+        self._dest("osm-junk-listed", imported_at=timezone.now(), type="node")
+        self._dest("legit-place", provenance="manual", imported_at=None, type="")
+        call_command("reconcile_catalogue")
+        visible = Destination.objects.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)
+        public = Destination.publicly_visible(visible)
+        self.assertEqual(list(public.values_list("slug", flat=True)), ["legit-place"])
