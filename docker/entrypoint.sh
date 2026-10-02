@@ -129,4 +129,10 @@ echo "entrypoint: auditing facility coordinates and authentic destination covers
 python manage.py audit_and_mark_approximate_coordinates || true
 python manage.py cleanup_fake_covers || true
 
+# Start ML microservice daemon in background so local budget, routing, and risk models are reachable
+if [ -d "/app/ml_service" ]; then
+  echo "entrypoint: starting ML service daemon on port 8001"
+  python -m uvicorn app:app --app-dir /app/ml_service --host 127.0.0.1 --port 8001 >/dev/null 2>&1 &
+fi
+
 exec "$@"

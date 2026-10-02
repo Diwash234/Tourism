@@ -509,13 +509,19 @@ def _official_budget_context(result, data, destination):
             "source_key": "doi_visa", "estimate": False,
         })
     totals = tr.fee_totals(fee_lines, travelers, snap)
-    known_npr = to_npr(known_usd)
+    calibrated_npr = result.get("total_budget_npr") or result.get("known_cost_total_npr")
+    known_npr = calibrated_npr if calibrated_npr is not None else to_npr(known_usd)
     grand_npr = round(known_npr + totals["group_npr"], 2) if known_npr is not None else None
+
+    res_breakdown_npr = {k: v for k, v in (result.get("breakdown_npr") or {}).items() if isinstance(v, (int, float))}
+    clean_breakdown_npr = {k: res_breakdown_npr.get(k) if res_breakdown_npr.get(k) is not None else to_npr(v) for k, v in breakdown_usd.items()}
+    if "emergency_reserve" in res_breakdown_npr:
+        clean_breakdown_npr["emergency_reserve"] = res_breakdown_npr["emergency_reserve"]
 
     return {
         "exchange_rate": fx.snapshot_meta(snap) | ({"usd_to_npr": float(rate)} if rate is not None else {}),
         "known_cost_total_npr": known_npr,
-        "breakdown_npr": {k: to_npr(v) for k, v in breakdown_usd.items()},
+        "breakdown_npr": clean_breakdown_npr,
         "official_fees": {
             "lines": totals["lines"],
             "per_person_npr": totals["per_person_npr"],
@@ -666,9 +672,15 @@ class BudgetPredictionView(APIView):
             {"id": destination.id, "name": destination.name, "district": destination.district or ""}
             if destination else None)
 
-        flattened["total"] = result.get(
-            "estimated_total"
-        )
+        total_usd = result.get("total_budget_usd") or result.get("estimated_total")
+        flattened["total"] = total_usd
+        flattened["total_budget_usd"] = total_usd
+        flattened["daily_cost_usd"] = result.get("daily_cost_usd") or (round(total_usd / max(1, data["days"]), 2) if total_usd else None)
+
+        total_npr = result.get("total_budget_npr") or flattened.get("known_cost_total_npr") or flattened.get("trip_total_npr")
+        if total_npr is not None:
+            flattened["total_budget_npr"] = total_npr
+            flattened["daily_budget_npr"] = round(total_npr / max(1, data["days"]), 2)
 
         flattened.update(
             result.get(

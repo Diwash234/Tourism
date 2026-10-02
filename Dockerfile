@@ -41,8 +41,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY Tourism/requirements.txt /app/Tourism/
 RUN pip install --no-cache-dir -r /app/Tourism/requirements.txt
 
-# Copy Django project
+# Copy Django project and ML service
 COPY Tourism/ /app/Tourism/
+COPY ml_service/ /app/ml_service/
 
 # Copy compiled React frontend into Django static directory
 # The built SPA is served from the site root by WhiteNoise (WHITENOISE_ROOT):
