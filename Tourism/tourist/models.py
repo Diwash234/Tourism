@@ -778,9 +778,20 @@ class Destination(TimeStampedModel):
         related, sitemap, galleries) must filter through this — a record is
         public only when explicitly approved AND active. Draft, submitted,
         pending, rejected and archived records are never public.
+
+        Also excludes unreadable import garbage: rows whose name is
+        CJK/Hangul with no Latin or Devanagari letters at all (double-encoded
+        OSM tags — e.g. a Korean hotel name under "destinations"). Those
+        never belong in a public catalogue and are the "image unavailable"
+        cards. A name that also carries Devanagari or Latin stays visible:
+        "मकालु 马卡鲁峰" is Makalu, not garbage.
         """
         qs = queryset if queryset is not None else cls.objects.all()
-        return qs.filter(is_active=True, status=cls.SubmissionStatus.APPROVED)
+        qs = qs.filter(is_active=True, status=cls.SubmissionStatus.APPROVED)
+        unreadable = qs.filter(name__regex="[\u4e00-\u9fff\uac00-\ud7af]").exclude(
+            name__regex="[A-Za-z\u0900-\u097f]"
+        )
+        return qs.exclude(pk__in=unreadable.values("pk"))
 
 
 class DestinationTranslation(models.Model):
