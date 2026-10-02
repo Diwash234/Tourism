@@ -39,13 +39,13 @@ services:
       # processes. Set to "0" if a 512 MiB instance ever OOMs -- Django
       # falls back to deterministic CSV/database answers without it.
       - key: START_ML_SERVICE
-        value: "1"
+        value: "0"
       - key: ACCESS_TOKEN_LIFETIME_MIN
         value: "60"
       - key: REFRESH_TOKEN_LIFETIME_DAYS
         value: "7"
       - key: NOTIFICATION_WORKER_ENABLED
-        value: "true"
+        value: "false"
       - key: NOTIFICATION_WORKER_INTERVAL
         value: "60"
       - key: LOCAL_GRAPH_ROUTING_ENABLED
@@ -56,6 +56,10 @@ services:
         value: "50"
       - key: FX_AUTO_REFRESH
         value: "true"
+      - key: TOURISM_DATA_MODE
+        value: "database"
+      - key: RUN_DATA_REPAIRS_ON_BOOT
+        value: "0"
 
 databases:
   - name: tourism_db
