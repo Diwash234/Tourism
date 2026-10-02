@@ -168,41 +168,6 @@ class ImageAcquisitionPipeline:
             if len(collected) >= limit:
                 break
 
-        # 2. If fewer than 10 collected, top up from the curated, openly-
-        #    licensed Nepal photo catalog (commercial-safe). This keeps the
-        #    count high without fabricating images or shipping a
-        #    non-commercial "AI" asset into a commercial product.
-        if len(collected) < 10:
-            try:
-                from . import photo_catalog
-                base = None
-                # pull a varied set from the matching pool
-                cat = getattr(getattr(destination, "category", None), "name", "") or ""
-                pool = photo_catalog._category_pool(cat) or photo_catalog.GENERAL_PHOTOS
-                for photo in pool:
-                    if len(collected) >= 10:
-                        break
-                    if any(c.get("url") == photo["url"] for c in collected):
-                        continue
-                    if not photo.get("url") or not photo.get("author") or not photo.get("license") or not photo.get("source_url"):
-                        continue
-                    if str(photo.get("source_url", "")).startswith("static://") or photo.get("source") == "reference":
-                        continue
-                    if str(photo.get("url", "")).startswith(("/api/image/", "/images/generated/")):
-                        continue
-                    collected.append({
-                        "url": photo["url"],
-                        "thumbnailUrl": photo.get("thumb") or photo["url"],
-                        "source": photo.get("source", "curated"),
-                        "author": photo.get("author", ""),
-                        "license": photo.get("license", ""),
-                        "sourceUrl": photo.get("source_url", ""),
-                        "isAiGenerated": False,
-                        "relevance_score": 60,
-                    })
-            except Exception:  # noqa: BLE001
-                pass
-
         # 3. Save provenance records to database
         stored_items = []
         for idx, item in enumerate(collected[:limit]):
@@ -277,6 +242,26 @@ class ImageAcquisitionPipeline:
             "caption": img.caption,
         }
 
+    def _destination_query(self, destination: Destination) -> str:
+        parts = [destination.name, destination.district or "", "Nepal"]
+        category = getattr(getattr(destination, "category", None), "name", "")
+        if category:
+            parts.append(category)
+        return " ".join(dict.fromkeys(p.strip() for p in parts if p and p.strip()))
+
+    def _relevance_score(self, destination: Destination, text: str) -> int:
+        haystack = re.sub(r"[^a-z0-9 ]+", " ", (text or "").lower())
+        name_words = [w for w in re.findall(r"[a-z0-9]+", destination.name.lower()) if len(w) > 2]
+        district = (destination.district or "").lower().strip()
+        score = 35
+        if "nepal" in haystack:
+            score += 15
+        if name_words:
+            score += int(40 * sum(1 for w in name_words if w in haystack) / len(name_words))
+        if district and district in haystack:
+            score += 10
+        return min(score, 100)
+
     # -- Waterfall Provider Methods --
     def _search_wikimedia_commons(self, destination: Destination, name_clean: str, dist_clean: str) -> List[Dict[str, Any]]:
         # Live query to Wikimedia Commons API if network allows, with fast timeout
@@ -340,26 +325,184 @@ class ImageAcquisitionPipeline:
         return results
 
     def _search_unsplash(self, destination: Destination, name_clean: str, dist_clean: str) -> List[Dict[str, Any]]:
-        # Checked against Unsplash API / curated repository
-        for k, seeds in CURATED_PROVENANCE_SEEDS.items():
-            if k in name_clean or k in dist_clean:
-                return [s for s in seeds if s["source"] == "unsplash"]
-        return [s for s in GENERAL_NEPAL_CATALOG if s["source"] == "unsplash"]
+        """Live Unsplash search. Never substitutes an unrelated seeded image."""
+        if not settings.UNSPLASH_ACCESS_KEY:
+            return []
+        query = self._destination_query(destination)
+        try:
+            res = requests.get(
+                "https://api.unsplash.com/search/photos",
+                params={"query": query, "per_page": 8, "content_filter": "high"},
+                headers={"Authorization": f"Client-ID {settings.UNSPLASH_ACCESS_KEY}", "Accept-Version": "v1"},
+                timeout=5,
+            )
+            res.raise_for_status()
+            results = []
+            for item in res.json().get("results", []):
+                text = " ".join(filter(None, [
+                    item.get("alt_description"), item.get("description"),
+                    destination.name, destination.district or "", "Nepal",
+                ]))
+                score = self._relevance_score(destination, text)
+                if score < 55:
+                    continue
+                results.append({
+                    "url": item.get("urls", {}).get("regular") or item.get("urls", {}).get("full"),
+                    "thumbnailUrl": item.get("urls", {}).get("small"),
+                    "source": "unsplash",
+                    "author": (item.get("user") or {}).get("name", ""),
+                    "license": "Unsplash License",
+                    "sourceUrl": (item.get("links") or {}).get("html", "https://unsplash.com"),
+                    "isAiGenerated": False,
+                    "relevance_score": score,
+                })
+            return [x for x in results if x["url"]]
+        except (requests.RequestException, ValueError, KeyError) as exc:
+            logger.warning("Unsplash search failed for %s: %s", destination.name, exc)
+            return []
 
     def _search_pexels(self, destination: Destination, name_clean: str, dist_clean: str) -> List[Dict[str, Any]]:
-        for k, seeds in CURATED_PROVENANCE_SEEDS.items():
-            if k in name_clean or k in dist_clean:
-                return [s for s in seeds if s["source"] == "pexels"]
-        return [s for s in GENERAL_NEPAL_CATALOG if s["source"] == "pexels"]
+        """Live Pexels search."""
+        if not settings.PEXELS_API_KEY:
+            return []
+        query = self._destination_query(destination)
+        try:
+            res = requests.get(
+                "https://api.pexels.com/v1/search",
+                params={"query": query, "per_page": 8},
+                headers={"Authorization": settings.PEXELS_API_KEY},
+                timeout=5,
+            )
+            res.raise_for_status()
+            results = []
+            for item in res.json().get("photos", []):
+                text = item.get("alt", "")
+                score = self._relevance_score(destination, text)
+                if score < 55:
+                    continue
+                src = item.get("src") or {}
+                results.append({
+                    "url": src.get("large") or src.get("original"),
+                    "thumbnailUrl": src.get("medium") or src.get("small"),
+                    "source": "pexels",
+                    "author": item.get("photographer", ""),
+                    "license": "Pexels License",
+                    "sourceUrl": item.get("url", "https://www.pexels.com"),
+                    "isAiGenerated": False,
+                    "relevance_score": score,
+                })
+            return [x for x in results if x["url"]]
+        except (requests.RequestException, ValueError, KeyError) as exc:
+            logger.warning("Pexels search failed for %s: %s", destination.name, exc)
+            return []
 
     def _search_flickr(self, destination: Destination, name_clean: str, dist_clean: str) -> List[Dict[str, Any]]:
-        for k, seeds in CURATED_PROVENANCE_SEEDS.items():
-            if k in name_clean or k in dist_clean:
-                return [s for s in seeds if s["source"] == "flickr"]
-        return [s for s in GENERAL_NEPAL_CATALOG if s["source"] == "flickr"]
+        """Live Flickr search restricted to reusable Creative Commons licenses."""
+        if not settings.FLICKR_API_KEY:
+            return []
+        query = self._destination_query(destination)
+        try:
+            res = requests.get(
+                "https://www.flickr.com/services/rest/",
+                params={
+                    "method": "flickr.photos.search",
+                    "api_key": settings.FLICKR_API_KEY,
+                    "text": query,
+                    "tags": "Nepal",
+                    "license": "1,2,3,4,5,6,7,9,10",
+                    "content_type": 1,
+                    "media": "photos",
+                    "safe_search": 1,
+                    "sort": "relevance",
+                    "per_page": 12,
+                    "extras": "description,license,owner_name,url_m,url_l,url_o",
+                    "format": "json",
+                    "nojsoncallback": 1,
+                },
+                timeout=5,
+            )
+            res.raise_for_status()
+            data = res.json()
+            license_names = {
+                1: "CC BY-NC-SA 2.0",
+                2: "CC BY-NC 2.0",
+                3: "CC BY-NC-ND 2.0",
+                4: "CC BY 2.0",
+                5: "CC BY-SA 2.0",
+                6: "CC BY-ND 2.0",
+                7: "No known copyright restrictions",
+                9: "CC0 1.0",
+                10: "Public Domain Mark",
+            }
+            results = []
+            for item in data.get("photos", {}).get("photo", []):
+                license_id = int(item.get("license") or 0)
+                license_name = license_names.get(license_id, "")
+                if not license_name:
+                    continue
+                text = " ".join(filter(None, [
+                    item.get("title"), item.get("description", {}).get("_content") if isinstance(item.get("description"), dict) else item.get("description"),
+                    item.get("tags"), destination.name, destination.district or "", "Nepal",
+                ]))
+                score = self._relevance_score(destination, text)
+                if score < 55:
+                    continue
+                photo_id = item.get("id")
+                source_url = f"https://www.flickr.com/photos/{item.get('owner')}/{photo_id}" if item.get("owner") and photo_id else "https://www.flickr.com"
+                results.append({
+                    "url": item.get("url_l") or item.get("url_o") or item.get("url_m"),
+                    "thumbnailUrl": item.get("url_m") or item.get("url_l"),
+                    "source": "flickr",
+                    "author": item.get("ownername", ""),
+                    "license": license_name,
+                    "sourceUrl": source_url,
+                    "isAiGenerated": False,
+                    "relevance_score": score,
+                })
+            return [x for x in results if x["url"]]
+        except (requests.RequestException, ValueError, KeyError) as exc:
+            logger.warning("Flickr search failed for %s: %s", destination.name, exc)
+            return []
 
     def _search_pixabay(self, destination: Destination, name_clean: str, dist_clean: str) -> List[Dict[str, Any]]:
-        return [s for s in GENERAL_NEPAL_CATALOG if s["source"] == "pixabay"]
+        """Live Pixabay search."""
+        if not settings.PIXABAY_API_KEY:
+            return []
+        query = self._destination_query(destination)
+        try:
+            res = requests.get(
+                "https://pixabay.com/api/",
+                params={
+                    "key": settings.PIXABAY_API_KEY,
+                    "q": query,
+                    "image_type": "photo",
+                    "safesearch": "true",
+                    "per_page": 8,
+                    "order": "popular",
+                },
+                timeout=5,
+            )
+            res.raise_for_status()
+            results = []
+            for item in res.json().get("hits", []):
+                text = item.get("tags", "")
+                score = self._relevance_score(destination, text)
+                if score < 55:
+                    continue
+                results.append({
+                    "url": item.get("largeImageURL") or item.get("webformatURL"),
+                    "thumbnailUrl": item.get("webformatURL"),
+                    "source": "pixabay",
+                    "author": item.get("user", ""),
+                    "license": "Pixabay License",
+                    "sourceUrl": item.get("pageURL", "https://pixabay.com"),
+                    "isAiGenerated": False,
+                    "relevance_score": score,
+                })
+            return [x for x in results if x["url"]]
+        except (requests.RequestException, ValueError, KeyError) as exc:
+            logger.warning("Pixabay search failed for %s: %s", destination.name, exc)
+            return []
 
     # -- Optional/extended providers -------------------------------------
     # These providers return curated, properly-attributed records when no
