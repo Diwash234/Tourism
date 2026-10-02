@@ -128,6 +128,10 @@ const adminApi = {
   // Free web image search + save (Wikimedia / DuckDuckGo / Openverse)
   fetchWebImages: (destination, num = 12) =>
     axiosClient.post("/admin/fetch-images/", { destination, num }),
+  searchMultiSourceImages: (payload) =>
+    axiosClient.post("/admin/images/multi-search/", payload),
+  importMediaImage: (payload) =>
+    axiosClient.post("/admin/images/import-media/", payload),
   generateAIImages: (destination, num = 12) =>
     axiosClient.post("/admin/generate-ai-images/", { destination, num }),
   deleteDestinationImage: (id, destinationId = null) => destinationId

@@ -58,6 +58,11 @@ export const CMS_JOURNALS = [
   { id: "journals", label: "Journal Section", icon: BsJournalBookmark, defaultCount: 2 },
 ]
 
+export const CMS_MEDIA_TOOLS = [
+  { id: "image_search_import", label: "Image Search & Import", icon: BsSearch, defaultCount: null },
+  { id: "media_library", label: "Media Library", icon: BsImage, defaultCount: null },
+]
+
 export default function CmsSubSidebar({
   activeView = "overview",
   activeSubId = null,
@@ -390,6 +395,42 @@ export default function CmsSubSidebar({
                   {count !== null && count > 0 && (
                     <span className="px-1.5 py-0.2 rounded-full text-[10px] font-semibold bg-slate-800 text-slate-300 border border-slate-700/60 shrink-0">
                       {count}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* MEDIA & IMAGES */}
+        <div>
+          <div className="px-2 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            Media &amp; Images
+          </div>
+          <div className="space-y-0.5">
+            {CMS_MEDIA_TOOLS.map(item => {
+              const Icon = item.icon
+              const isSelected = activeView === "media" && activeSubId === item.id
+
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => onSelectView("media", item.id)}
+                  className={`w-full group flex items-center justify-between px-3 py-1.5 rounded-lg text-left transition-all ${
+                    isSelected
+                      ? "bg-[#1D4ED8] text-white font-semibold shadow-sm"
+                      : "text-slate-300 hover:text-white hover:bg-slate-800/60"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 truncate">
+                    <Icon size={14} className={isSelected ? "text-white" : "text-slate-400 group-hover:text-slate-200"} />
+                    <span className="truncate">{item.label}</span>
+                  </div>
+                  {item.id === "image_search_import" && (
+                    <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      6 Sources
                     </span>
                   )}
                 </button>

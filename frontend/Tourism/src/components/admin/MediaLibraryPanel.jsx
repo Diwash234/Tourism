@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
-import { FiArrowDown, FiArrowUp, FiPlus, FiUpload, FiX } from "react-icons/fi"
+import { FiArrowDown, FiArrowUp, FiPlus, FiUpload, FiX, FiSearch } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import destinationApi from "../../api/destinationApi"
 import PlaceholderImage from "../common/PlaceholderImage"
 import useToast from "../../hooks/useToast"
 import ImageCropper from "./ImageCropper"
+import ImageSearchImportPanel from "./cms/ImageSearchImportPanel"
 
 const emptyUpload = { destination_id: "", caption: "", alt_text: "", external_url: "", source_url: "", license: "" }
 
@@ -80,6 +81,7 @@ export default function MediaLibraryPanel() {
   const [editingMedia, setEditingMedia] = useState(null)
   const [editForm, setEditForm] = useState({ caption: "", alt_text: "", external_url: "", photographer: "", license_type: "" })
   const [replacementFile, setReplacementFile] = useState(null)
+  const [showMultiSearch, setShowMultiSearch] = useState(false)
 
   const handleSetCover = async (image) => {
     try {
@@ -235,10 +237,30 @@ export default function MediaLibraryPanel() {
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div>
           <h2 className="text-2xl font-black text-emerald-950">Central Media Library</h2>
-          <p className="text-sm text-slate-500">{data.count.toLocaleString()} database images. Upload local files, add licensed external media, crop, reorder galleries and select covers.</p>
+          <p className="text-sm text-slate-500">{data.count.toLocaleString()} database images. Upload local files, search 6 licensed media libraries, crop, reorder galleries and select covers.</p>
         </div>
-        <button onClick={() => setShowUpload(true)} className="ml-auto flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-3 font-bold text-white"><FiPlus />Add image</button>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowMultiSearch(!showMultiSearch)}
+            className="flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-3 font-bold text-white shadow-md text-xs cursor-pointer"
+          >
+            <FiSearch /> {showMultiSearch ? "Close Image Search" : "Search 6 Image Providers"}
+          </button>
+          <button onClick={() => setShowUpload(true)} className="flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-3 font-bold text-white text-xs cursor-pointer"><FiPlus />Add image</button>
+        </div>
       </header>
+
+      {showMultiSearch && (
+        <div className="rounded-2xl border border-blue-500/30 bg-slate-950 p-4 shadow-xl">
+          <ImageSearchImportPanel
+            initialDestinationId={destinationFilter?.id}
+            onImageImported={() => {
+              load(data.page)
+            }}
+          />
+        </div>
+      )}
       <div className="flex flex-col gap-2 rounded-2xl border border-emerald-200 bg-white p-3 sm:flex-row">
         <input className="input-field" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search destination, caption or URL…" />
         <select className="input-field sm:w-44" value={status} onChange={(e) => setStatus(e.target.value)}>

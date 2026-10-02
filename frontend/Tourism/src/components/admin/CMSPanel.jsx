@@ -17,6 +17,8 @@ import CmsGlobalSectionEditor from "./cms/CmsGlobalSectionEditor"
 import CmsContentCollectionEditor from "./cms/CmsContentCollectionEditor"
 import CmsJournalsEditor from "./cms/CmsJournalsEditor"
 import CmsDashboardOverview from "./cms/CmsDashboardOverview"
+import ImageSearchImportPanel from "./cms/ImageSearchImportPanel"
+import MediaLibraryPanel from "./MediaLibraryPanel"
 
 const sectionTypes = ["text", "heading", "image", "gallery", "cards", "faq", "cta", "map", "video", "audio", "marquee", "animation", "media", "form", "table", "figure", "testimonials", "contact", "breadcrumbs", "search"]
 
@@ -326,7 +328,18 @@ export default function CMSPanel({ defaultResource = "pages" }) {
           />
         )}
 
-        {/* 5. PAGE & SECTIONS WORKSPACE */}
+        {/* 5. MEDIA & IMAGE SEARCH IMPORT STUDIO */}
+        {activeView === "media" && (
+          <div>
+            {activeSubId === "image_search_import" || !activeSubId ? (
+              <ImageSearchImportPanel />
+            ) : (
+              <MediaLibraryPanel />
+            )}
+          </div>
+        )}
+
+        {/* 6. PAGE & SECTIONS WORKSPACE */}
         {activeView === "page" && selectedPage && (
           <div className="space-y-6">
             {/* Page Header Bar */}

@@ -88,19 +88,23 @@ def _require_destination_access(request, destination, module, action="view"):
 
 
 def _recompute_destination_cover(destination):
-    """Keep the denormalized cover consistent with approved media only."""
+    """Keep the denormalized cover consistent with approved, destination-specific media only."""
+    from .serializers import verified_destination_photos, resolve_image_url, image_server_url
     destination.refresh_from_db()
-    eligible = destination.gallery.filter(
-        verification_status=DestinationImage.ImageStatus.APPROVED,
-        is_verified=True,
-    ).order_by("-is_cover", "ordering", "id")
-    cover = eligible.first()
-    new_url = _media_public_url(cover) if cover else ""
+    photos = verified_destination_photos(destination)
+    cover = next((photo for photo in photos if photo.is_cover), None) or (photos[0] if photos else None)
+    new_url = ""
     if cover:
-        destination.gallery.exclude(pk=cover.pk).filter(is_cover=True).update(is_cover=False)
         if not cover.is_cover:
+            destination.gallery.exclude(pk=cover.pk).filter(is_cover=True).update(is_cover=False)
             cover.is_cover = True
             cover.save(update_fields=["is_cover", "updated_at"])
+        if cover.image_path:
+            new_url = image_server_url(cover.image_path)
+        elif cover.external_url:
+            new_url = cover.external_url
+        elif cover.image:
+            new_url = resolve_image_url(cover.image) or ""
     if str(destination.cover_image or "") != new_url:
         destination.cover_image = new_url
         destination.save(update_fields=["cover_image", "updated_at"])
@@ -5139,6 +5143,150 @@ class FetchWebImagesView(APIView):
             saved += 1
             first = False
         return Response({"destination": dest.name, "found": len(hits), "saved": saved})
+
+
+class AdminMultiSourceImageSearchView(APIView):
+    """Multi-source image search API across Wikimedia, Openverse, Flickr, Unsplash, Pexels, Pixabay.
+
+    Calculates Location Match %, Keyword Match %, and Confidence Score.
+    """
+    permission_classes = [IsAdminOrStaff]
+
+    def post(self, request):
+        from tourist.services.image_search.search import multi_source_image_search
+
+        destination_id = request.data.get("destination_id")
+        query = (request.data.get("query") or "").strip()
+        district = (request.data.get("district") or "").strip()
+        province = (request.data.get("province") or "").strip()
+        country = (request.data.get("country") or "Nepal").strip()
+        sources = request.data.get("sources") or ["wikimedia", "openverse", "flickr", "unsplash", "pexels", "pixabay"]
+        limit = max(4, min(int(request.data.get("limit", 24)), 60))
+
+        dest = None
+        if destination_id:
+            dest = Destination.objects.filter(pk=destination_id).first()
+            if dest:
+                if not query:
+                    query = dest.name
+                if not district:
+                    district = dest.district or ""
+                if not province:
+                    province = dest.province or ""
+
+        if not query and dest:
+            query = dest.name
+
+        if not query:
+            return Response({"detail": "Query or destination_id is required"}, status=400)
+
+        hits = multi_source_image_search(
+            query=query,
+            destination=dest,
+            district=district,
+            province=province,
+            country=country,
+            sources=sources,
+            limit=limit,
+        )
+
+        return Response({
+            "query": query,
+            "district": district,
+            "province": province,
+            "country": country,
+            "destination": {
+                "id": dest.id,
+                "name": dest.name,
+                "slug": dest.slug,
+                "district": dest.district,
+                "province": dest.province,
+            } if dest else None,
+            "total_found": len(hits),
+            "results": [h.to_dict() for h in hits],
+        })
+
+
+class AdminImageImportMediaView(APIView):
+    """Import and attach a selected image from search results to a destination.
+
+    Stores:
+      - image URL
+      - source website / platform
+      - photographer / author
+      - license
+      - attribution requirement
+      - original source page URL
+      - destination ID
+      - confidence / match score
+      - is_cover option
+    """
+    permission_classes = [IsAdminOrStaff]
+
+    def post(self, request):
+        destination_id = request.data.get("destination_id")
+        image_url = (request.data.get("image_url") or "").strip()
+        thumbnail_url = (request.data.get("thumbnail_url") or image_url).strip()
+        caption = (request.data.get("caption") or "").strip()
+        source_platform = request.data.get("source_platform") or "web"
+        source_url = (request.data.get("source_url") or "").strip()
+        photographer = (request.data.get("photographer") or "").strip()[:150]
+        license_type = (request.data.get("license_type") or "CC BY-SA").strip()[:100]
+        attribution_requirement = (request.data.get("attribution_requirement") or "").strip()
+        confidence_score = float(request.data.get("confidence_score") or 90) / 100.0
+        is_cover = bool(request.data.get("is_cover", False))
+
+        if not destination_id:
+            return Response({"detail": "destination_id is required"}, status=400)
+        if not image_url:
+            return Response({"detail": "image_url is required"}, status=400)
+
+        dest = Destination.objects.filter(pk=destination_id).first()
+        if not dest:
+            return Response({"detail": "Destination not found"}, status=404)
+
+        # Check if already in destination gallery
+        img = dest.gallery.filter(external_url=image_url).first()
+        if not img:
+            img = DestinationImage.objects.create(
+                destination=dest,
+                external_url=image_url,
+                thumbnail_url=thumbnail_url,
+                caption=caption or f"{dest.name} — {source_platform.title()}",
+                source=DestinationImage.Source.ADMIN,
+                source_platform=source_platform,
+                source_url=source_url,
+                photographer=photographer,
+                license_type=license_type,
+                copyright_status="verified_reusable",
+                is_cover=is_cover,
+                destination_match_score=round(confidence_score, 3),
+                is_verified=True,
+                verification_status=DestinationImage.ImageStatus.APPROVED,
+                uploaded_by=request.user,
+            )
+        else:
+            img.is_verified = True
+            img.verification_status = DestinationImage.ImageStatus.APPROVED
+            if is_cover:
+                img.is_cover = True
+            img.save(update_fields=["is_verified", "verification_status", "is_cover", "updated_at"])
+
+        if is_cover or not dest.cover_image:
+            dest.gallery.exclude(pk=img.pk).filter(is_cover=True).update(is_cover=False)
+            dest.cover_image = image_url
+            dest.save(update_fields=["cover_image", "updated_at"])
+            _recompute_destination_cover(dest)
+
+        return Response({
+            "success": True,
+            "message": "Image successfully imported to destination gallery",
+            "image_id": img.id,
+            "image_url": image_url,
+            "is_cover": img.is_cover,
+            "destination_id": dest.id,
+            "destination_name": dest.name,
+        })
 
 
 class DeleteImageView(APIView):
