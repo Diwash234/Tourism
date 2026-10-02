@@ -220,14 +220,14 @@ export default function NepalExperienceSection({ section = null }) {
               <div className="space-y-3">
                 <div className="h-44 w-full relative overflow-hidden rounded-2xl bg-black">
                   <PlaceholderImage src={food.image} title={food.name} alt={food.name} className="h-full w-full transition-transform duration-500 hover:scale-105" />
-                  <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur text-amber-300 text-xs font-black uppercase">
+                  <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur text-amber-300 text-[10px] font-black uppercase">
                     {food.nepali}
                   </span>
                 </div>
                 <div>
                   <h3 className="text-lg font-black text-gray-900">{food.name}</h3>
                   <p className="text-xs font-bold text-amber-700 mt-0.5">{food.tagline}</p>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold mt-1">{food.region}</p>
+                  <p className="text-[11px] text-slate-500 font-semibold mt-1">{food.region}</p>
                 </div>
                 <p className="text-xs text-gray-600 leading-relaxed line-clamp-3">
                   {food.desc}

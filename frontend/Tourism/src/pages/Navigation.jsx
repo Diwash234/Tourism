@@ -5,9 +5,14 @@ import { useSearchParams, Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import MapView from "../components/map/MapView"
 import LiveNavigationPanel from "../components/navigation/LiveNavigationPanel"
-import "../components/map/MapillaryImages"
+import MapillaryImages from "../components/map/MapillaryImages"
 import useGeolocation from "../hooks/useGeolocation"
-import { FiNavigation, FiMapPin, FiShield, FiCompass, FiTarget, FiRadio, FiLayers, FiRepeat } from "react-icons/fi"
+import {
+  FiNavigation, FiMapPin, FiShield,
+  FiCompass, FiTarget, FiRadio, FiLayers, FiRepeat,
+  FiCheckCircle, FiAlertTriangle, FiPhoneCall, FiSun, FiZap, FiTruck, FiCoffee,
+  FiPrinter
+} from "react-icons/fi"
 import { TurnIcon } from "../utils/uiIcons"
 import navigationApi from "../api/navigationApi"
 import emergencyApi from "../api/emergencyApi"
@@ -16,9 +21,9 @@ import { savedRoutesApi } from "../services/api"
 import nearbyApi from "../api/nearbyApi"
 import destinationApi from "../api/destinationApi"
 import axiosClient from "../api/axiosClient"
-import "../utils/formatDistance"
+import { formatDistance, formatDuration } from "../utils/formatDistance"
 import { RouteQualityBadge, routeQuality } from "../utils/routeQuality"
-import { hasValidCoords, minDistanceToPathKm } from "../utils/placeUtils"
+import { formatCoords, hasValidCoords, minDistanceToPathKm } from "../utils/placeUtils"
 
 const AMENITY_TABS = [
   { id: "hospitals", label: "Hospitals" },
@@ -49,6 +54,15 @@ const TRANSPORT_MODES = [
   { id: "Motorcycle", label: "Motorcycle", avgSpeed: 45 },
   { id: "Flight", label: "Mountain flight", avgSpeed: 250 },
   { id: "Walking / Trek", label: "Walking / trek", avgSpeed: 5 },
+]
+
+const NEPAL_CORRIDORS = [
+  { label: "Kathmandu ➔ Pokhara", origin: "Kathmandu", dest: "Pokhara", icon: "🏔️", hwy: "Prithvi Hwy (200 km)" },
+  { label: "Kathmandu ➔ Chitwan", origin: "Kathmandu", dest: "Chitwan National Park", icon: "🐅", hwy: "Narayangarh (148 km)" },
+  { label: "Pokhara ➔ Muktinath", origin: "Pokhara", dest: "Muktinath", icon: "🛕", hwy: "Mustang (3,800m)" },
+  { label: "Kathmandu ➔ Lumbini", origin: "Kathmandu", dest: "Lumbini", icon: "☸️", hwy: "East-West Hwy (285 km)" },
+  { label: "Kathmandu ➔ Nagarkot", origin: "Kathmandu", dest: "Nagarkot", icon: "🌄", hwy: "Valley Rim (28 km)" },
+  { label: "Pokhara ➔ Nayapul", origin: "Pokhara", dest: "Nayapul", icon: "🥾", hwy: "Annapurna Trailhead (42 km)" },
 ]
 
 const haversineKm = (lat1, lng1, lat2, lng2) => {
@@ -121,10 +135,10 @@ export default function Navigation() {
   const [routeAlerts, setRouteAlerts] = useState([])
   const [alertsLoaded, setAlertsLoaded] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [_error, setError] = useState("")
-  const [_emergencyDir, setEmergencyDir] = useState(null)
-  const [_nearbyDests, _setNearbyDests] = useState([])
-  const [_featuredDests, setFeaturedDests] = useState([])
+  const [error, setError] = useState("")
+  const [emergencyDir, setEmergencyDir] = useState(null)
+  const [nearbyDests, setNearbyDests] = useState([])
+  const [featuredDests, setFeaturedDests] = useState([])
   const [nearbyPlaces, setNearbyPlaces] = useState([])
   const [nearbyLoading, setNearbyLoading] = useState(false)
 
@@ -153,9 +167,12 @@ export default function Navigation() {
   const usingMyLocation = originQuery.trim().toLowerCase() === "my current location"
 
   const handleUseMyLocation = () => {
-    // Explicit current-location actions always request a fresh browser fix.
-    setOriginQuery("My Current Location")
+    if (position) {
+      setOriginQuery("My Current Location")
+      return
+    }
     retryGeo()
+    setOriginQuery("My Current Location")
   }
 
   const handleGetRoute = async (targetDest = null, targetOrigin = null) => {
@@ -543,14 +560,62 @@ export default function Navigation() {
             <button onClick={() => setGameMode(true)} className={`p-2.5 rounded-xl border text-left ${gameMode ? 'bg-amber-400 text-slate-950 font-black' : 'bg-slate-800 border-slate-700 text-slate-300'}`}>🎯 Compass Radar HUD</button>
             <div className="p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-300">
               <span className="block font-bold text-amber-300">Altitude Matrix</span>
-              <span className="text-xs text-slate-400">{getDistrictAltitude(destination)}</span>
+              <span className="text-[10px] text-slate-400">{getDistrictAltitude(destination)}</span>
             </div>
           </div>
         </motion.div>
       )}
 
+      {/* Emergency Rescue Quick Bar */}
+      <div className="p-3.5 rounded-2xl bg-slate-900 text-white flex flex-wrap items-center justify-between gap-3 text-xs border border-slate-800 shadow-md">
+        <div className="flex items-center gap-2">
+          <FiShield className="text-amber-400 w-4 h-4 shrink-0" />
+          <span className="font-bold text-amber-300 text-xs">Himalayan Emergency Speed-Dial:</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 text-xs font-bold">
+          <a href="tel:1144" className="text-white hover:text-amber-300 transition-colors">👮 Tourist Police: <span className="text-amber-400">1144</span></a>
+          <span className="text-slate-600">·</span>
+          <a href="tel:1114" className="text-white hover:text-amber-300 transition-colors">🚁 APF Mountain Rescue: <span className="text-amber-400">1114</span></a>
+          <span className="text-slate-600">·</span>
+          <a href="tel:100" className="text-white hover:text-amber-300 transition-colors">🚔 Police: <span className="text-amber-400">100</span></a>
+          <span className="text-slate-600">·</span>
+          <a href="tel:102" className="text-white hover:text-amber-300 transition-colors">🚑 Ambulance: <span className="text-amber-400">102</span></a>
+          <span className="text-slate-600">·</span>
+          <a href="tel:+97714440292" className="text-white hover:text-amber-300 transition-colors">🏔️ HRA Rescue: <span className="text-amber-400">+977-1-4440292</span></a>
+        </div>
+      </div>
+
       {/* ROUTE SEARCH FORM: ORIGIN -> DESTINATION */}
       <div className="card-base p-5 border border-[#E5E0D5] rounded-3xl space-y-4 bg-white shadow-md">
+        {/* Curated Highway Corridors */}
+        <div className="border-b border-slate-100 pb-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-black uppercase text-slate-500 tracking-wider">
+              🏔️ Iconic Nepal Travel Corridors (1-Click Routes)
+            </span>
+          </div>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+            {NEPAL_CORRIDORS.map((c) => (
+              <button
+                key={c.label}
+                type="button"
+                onClick={() => {
+                  setOriginQuery(c.origin)
+                  setDestinationQuery(c.dest)
+                  handleGetRoute(c.dest, c.origin)
+                }}
+                className="shrink-0 px-3 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100 text-left transition-all group"
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm">{c.icon}</span>
+                  <span className="text-xs font-bold text-emerald-950 group-hover:text-emerald-700">{c.label}</span>
+                </div>
+                <span className="text-[10px] text-emerald-700 block mt-0.5">{c.hwy}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -579,7 +644,7 @@ export default function Navigation() {
               </button>
             </div>
 
-            <div className="flex flex-wrap gap-1.5 items-center text-xs">
+            <div className="flex flex-wrap gap-1.5 items-center text-[11px]">
               <span className="text-slate-500 font-semibold">Quick origin:</span>
               {["Kathmandu", "Pokhara", "Biratnagar", "Janakpur", "Nepalgunj", "Dhangadhi", "Ilam", "Mahendranagar"].map((city) => (
                 <button
@@ -607,7 +672,7 @@ export default function Navigation() {
             </div>
 
             {provinces.length > 0 && (
-              <div className="sm:col-span-2 text-xs">
+              <div className="sm:col-span-2 text-[11px]">
                 <button
                   type="button"
                   onClick={() => setOpenProvince(openProvince ? null : "__list")}
@@ -623,7 +688,7 @@ export default function Navigation() {
                         key={p.name}
                         type="button"
                         onClick={() => setOpenProvince(p.name)}
-                        className="px-2 py-1 rounded-full bg-white border text-xs font-bold text-slate-600 hover:bg-slate-100"
+                        className="px-2 py-1 rounded-full bg-white border text-[10px] font-bold text-slate-600 hover:bg-slate-100"
                       >
                         {p.name} <span className="text-slate-400">({p.destination_count})</span>
                       </button>
@@ -637,7 +702,7 @@ export default function Navigation() {
                         key={d.id}
                         type="button"
                         onClick={() => { setDestinationQuery(d.name); setOpenProvince(null) }}
-                        className="px-2 py-1 rounded-full bg-[#1D5146] text-white text-xs font-bold hover:opacity-90"
+                        className="px-2 py-1 rounded-full bg-[#1D5146] text-white text-[10px] font-bold hover:opacity-90"
                       >
                         {d.name}
                       </button>
@@ -651,7 +716,7 @@ export default function Navigation() {
             )}
           </div>
 
-          <div className="text-xs text-slate-500" role="status">
+          <div className="text-[11px] text-slate-500" role="status">
             {position ? (
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 <span>GPS fix acquired ({position.lat.toFixed(4)}, {position.lng.toFixed(4)})</span>
@@ -704,6 +769,15 @@ export default function Navigation() {
               )}
               <button
                 type="button"
+                onClick={() => window.print()}
+                disabled={steps.length === 0}
+                className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs whitespace-nowrap disabled:opacity-40 flex items-center gap-1.5"
+                title="Print turn-by-turn route guide for offline dead-zone mountain travel"
+              >
+                <FiPrinter size={13} /> Print Route
+              </button>
+              <button
+                type="button"
                 onClick={handleShareRoute}
                 disabled={!destinationQuery.trim()}
                 className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs whitespace-nowrap disabled:opacity-40"
@@ -722,6 +796,23 @@ export default function Navigation() {
           </div>
         </form>
       </div>
+
+      {/* High-Altitude Mountain & AMS Advisory */}
+      {destination?.altitude && Number(destination.altitude) >= 2500 && (
+        <div className="p-4 rounded-3xl bg-amber-50 border-2 border-amber-300 text-amber-950 flex items-start gap-3 shadow-sm">
+          <FiAlertTriangle className="text-amber-600 w-5 h-5 mt-0.5 shrink-0" />
+          <div className="space-y-1">
+            <h4 className="font-black text-sm text-amber-900 flex items-center gap-2">
+              🏔️ High-Altitude Mountain Zone ({destination.altitude}m recorded)
+            </h4>
+            <p className="text-xs text-amber-800 leading-relaxed">
+              You are navigating into high elevation territory above 2,500m. 
+              Ascend gradually (≤ 500m sleeping altitude gain per day), stay hydrated with 4L water daily, and never ignore early signs of AMS (headache, nausea, dizziness). 
+              In an altitude emergency, descend immediately or contact Himalayan Rescue (+977-1-4440292).
+            </p>
+          </div>
+        </div>
+      )}
 
       {offlineMode && (
         <div role="status" className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-xs font-bold text-amber-800">
@@ -750,7 +841,7 @@ export default function Navigation() {
                     role="tab"
                     aria-selected={routesTab === tab}
                     onClick={() => { setRoutesTab(tab); loadMyRoutes(tab) }}
-                    className={`px-3 py-1 rounded-full text-xs font-bold transition ${routesTab === tab ? "bg-emerald-700 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                    className={`px-3 py-1 rounded-full text-[11px] font-bold transition ${routesTab === tab ? "bg-emerald-700 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
                   >
                     {tab === "history" ? "History" : "⭐ Saved"}
                   </button>
@@ -789,7 +880,7 @@ export default function Navigation() {
                       <span className="block truncate font-bold text-slate-800">
                         {r.label || `${r.origin_name || "Current Location"} → ${r.destination_name}`}
                       </span>
-                      <span className="block text-xs text-slate-500 dark:text-slate-400">
+                      <span className="block text-[10px] text-slate-500">
                         {r.transport_mode}
                         {r.distance_km != null ? ` · ${Number(r.distance_km).toFixed(1)} km` : ""}
                         {r.duration_min != null ? ` · ${Math.floor(r.duration_min / 60)}h ${r.duration_min % 60}m` : ""}
@@ -837,7 +928,7 @@ export default function Navigation() {
             <span className="text-xs font-black uppercase text-amber-300 flex items-center gap-1.5">
               <FiShield className="text-amber-400" /> Route Safety Alerts
             </span>
-            <span className="text-xs text-slate-400 font-extrabold">
+            <span className="text-[10px] text-slate-400 font-extrabold">
               {routeAlerts.length ? `${routeAlerts.length} active alert${routeAlerts.length > 1 ? "s" : ""} near destination` : "No active alerts recorded"}
             </span>
           </div>
@@ -851,12 +942,12 @@ export default function Navigation() {
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
               {routeAlerts.map((alert) => (
                 <div key={alert.id} className="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
-                  <span className="text-xs font-bold text-slate-400 uppercase block">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">
                     {alert.alert_type} · {alert.severity}
                   </span>
                   <p className="font-extrabold text-amber-200">{alert.title}</p>
-                  <p className="text-xs text-slate-300 line-clamp-2">{alert.description}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-[10px] text-slate-300 line-clamp-2">{alert.description}</p>
+                  <p className="text-[10px] text-slate-500">
                     Source: {alert.source || "Information unavailable"}
                     {alert.is_verified ? " · ✓ Verified" : " · Unverified"}
                   </p>
@@ -883,7 +974,7 @@ export default function Navigation() {
               <button
                 key={tab.id}
                 onClick={() => setAmenityTab(tab.id)}
-                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold text-center transition-all ${
+                className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-center transition-all ${
                   amenityTab === tab.id
                     ? "bg-[#102A2E] text-white shadow"
                     : "bg-white text-gray-700 hover:bg-emerald-100 border border-[#E5E0D5]"
@@ -893,14 +984,14 @@ export default function Navigation() {
               </button>
             ))}
             <div className="flex flex-wrap items-center gap-1.5 w-full pt-1">
-              <span className="text-xs font-black uppercase text-slate-500 mr-1">Radius</span>
+              <span className="text-[10px] font-black uppercase text-slate-500 mr-1">Radius</span>
               {NEARBY_RADII_KM.map((r) => (
                 <button
                   key={r}
                   type="button"
                   aria-pressed={nearbyRadiusKm === r}
                   onClick={() => setNearbyRadiusKm(r)}
-                  className={`px-2 py-0.5 rounded-full text-xs font-bold transition ${nearbyRadiusKm === r ? "bg-emerald-700 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition ${nearbyRadiusKm === r ? "bg-emerald-700 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
                 >
                   {r} km
                 </button>
@@ -915,15 +1006,15 @@ export default function Navigation() {
             return (
               <div key={card.id} className="p-3 rounded-2xl bg-white border border-[#E5E0D5] shadow-sm space-y-2 flex flex-col justify-between hover:shadow-md transition">
                 <div>
-                  <span className="px-2 py-0.5 rounded bg-[#F7F8F5] text-[#1D5146] text-xs font-black uppercase block w-fit">
+                  <span className="px-2 py-0.5 rounded bg-[#F7F8F5] text-[#1D5146] text-[10px] font-black uppercase block w-fit">
                     {card.category}
                   </span>
                   <h4 className="font-bold text-slate-900 text-xs mt-1 truncate">{card.name}</h4>
-                  <p className="text-xs text-slate-500 truncate">{card.address}</p>
+                  <p className="text-[10px] text-slate-500 truncate">{card.address}</p>
                 </div>
                 <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
                   <span className="font-black text-emerald-700">{card.distance}</span>
-                  <span className="font-extrabold text-amber-700 text-xs">{card.bearing}</span>
+                  <span className="font-extrabold text-amber-700 text-[11px]">{card.bearing}</span>
                 </div>
               </div>
             )
@@ -984,7 +1075,7 @@ export default function Navigation() {
         <div className="card-base p-5 bg-slate-950 text-white rounded-3xl border border-slate-800 space-y-4 flex flex-col justify-between">
           <div className="space-y-3">
             <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-              <span className="text-xs font-black uppercase text-amber-400">Tactical HUD Navigation</span>
+              <span className="text-[10px] font-black uppercase text-amber-400">Tactical HUD Navigation</span>
               <span className="text-xs font-bold text-emerald-400">{distance ? `${distance} km` : "Location Active"}</span>
             </div>
 
@@ -994,7 +1085,7 @@ export default function Navigation() {
                   <TurnIcon step={currentStep} size={26} />
                 </div>
                 <div>
-                  <span className="text-xs font-extrabold uppercase text-amber-300">Next Maneuver</span>
+                  <span className="text-[10px] font-extrabold uppercase text-amber-300">Next Maneuver</span>
                   <p className="text-xs font-bold text-white leading-tight">{currentStep.instruction}</p>
                 </div>
               </div>
@@ -1010,7 +1101,7 @@ export default function Navigation() {
                   >
                     ◀ Prev
                   </button>
-                  <span className="text-xs font-bold text-slate-300">
+                  <span className="text-[10px] font-bold text-slate-300">
                     Step {currentStepIdx + 1} of {steps.length}
                   </span>
                   <button
@@ -1040,19 +1131,19 @@ export default function Navigation() {
                 {routeMeta.source && (
                   <div className="col-span-2 flex flex-wrap items-center gap-2 rounded-2xl bg-white/95 p-2 text-left" data-testid="navigation-route-quality">
                     <RouteQualityBadge source={routeMeta.source} />
-                    <span className="text-xs leading-4 text-slate-700">{routeQuality(routeMeta.source).detail}</span>
+                    <span className="text-[11px] leading-4 text-slate-700">{routeQuality(routeMeta.source).detail}</span>
                   </div>
                 )}
                 <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800">
-                  <span className="text-xs text-slate-400 block font-bold">Total Distance</span>
+                  <span className="text-[10px] text-slate-400 block font-bold">Total Distance</span>
                   <span className="text-lg font-black text-amber-300">{distance} km</span>
                 </div>
                 <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800">
-                  <span className="text-xs text-slate-400 block font-bold">
+                  <span className="text-[10px] text-slate-400 block font-bold">
                     {durationSource === "estimated" ? "Est. Duration (avg speed)" : "Duration"}
                   </span>
                   {durationSource === "unavailable" ? (
-                    <span className="text-xs font-bold text-amber-300 leading-tight block">
+                    <span className="text-[11px] font-bold text-amber-300 leading-tight block">
                       {durationNote || "Information unavailable"}
                     </span>
                   ) : (
@@ -1071,11 +1162,11 @@ export default function Navigation() {
                   {routeAlts && (
                     <div className="mt-2 space-y-1">
                       {routeAlts.alternatives.map((alt, i) => (
-                        <p key={i} className="text-xs text-slate-300">
+                        <p key={i} className="text-[11px] text-slate-300">
                           Alternative {i + 1}: <b className="text-amber-300">{alt.route_distance_km} km</b> · {alt.duration_min} min · {alt.status}
                         </p>
                       ))}
-                      <p className="text-xs text-slate-400">{routeAlts.alternatives_note}</p>
+                      <p className="text-[10px] text-slate-400">{routeAlts.alternatives_note}</p>
                     </div>
                   )}
                 </div>
@@ -1096,7 +1187,7 @@ export default function Navigation() {
                 {destination.short_description ? (
                   <p className="text-slate-300 line-clamp-2">{destination.short_description}</p>
                 ) : null}
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-400">
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-slate-400">
                   {destination.entry_fee ? <span>{destination.entry_fee}</span> : null}
                   {destination.best_time_to_visit ? <span>{destination.best_time_to_visit}</span> : null}
                   {destination.altitude != null ? <span>⛰️ {destination.altitude} m</span> : null}

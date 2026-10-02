@@ -118,7 +118,7 @@ const PasswordStrengthField = forwardRef((
 
       {/* Crack time watermark */}
       {value && (
-        <div className="mt-1 flex items-center gap-1.5 text-xs text-stone-600 dark:text-stone-400">
+        <div className="mt-1 flex items-center gap-1.5 text-[11px] text-stone-500">
           <FiAlertTriangle size={12} className={value && s.score < 2 ? "text-rose-500" : "text-emerald-500"} />
           <span>{crack}</span>
         </div>

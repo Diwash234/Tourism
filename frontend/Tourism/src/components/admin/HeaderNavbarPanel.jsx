@@ -97,7 +97,7 @@ export default function HeaderNavbarPanel() {
             <div key={feature.key} className="flex items-center gap-3 px-4 py-3">
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold text-slate-800">{feature.label}</p>
-                <p className="text-[11px] text-slate-500">{feature.description}</p>
+                <p className="text-xs text-slate-500">{feature.description}</p>
               </div>
               <button
                 onClick={() => toggle(feature.key)}

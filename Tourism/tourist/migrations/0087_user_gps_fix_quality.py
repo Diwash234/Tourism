@@ -15,7 +15,39 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # GPS fields already added by 0083_user_gps_fix_quality
+        migrations.AddField(
+            model_name="user",
+            name="gps_accuracy_m",
+            field=models.FloatField(
+                blank=True, null=True, help_text="Device-reported accuracy in metres"
+            ),
+        ),
+        migrations.AddField(
+            model_name="user",
+            name="gps_recorded_at",
+            field=models.DateTimeField(
+                blank=True, null=True, help_text="When the device took the fix"
+            ),
+        ),
+        migrations.AddField(
+            model_name="user",
+            name="gps_validated_at",
+            field=models.DateTimeField(blank=True, null=True),
+        ),
+        migrations.AddField(
+            model_name="user",
+            name="gps_validation_state",
+            field=models.CharField(
+                blank=True,
+                max_length=20,
+                help_text="precise / approximate / unusable",
+            ),
+        ),
+        migrations.AddField(
+            model_name="user",
+            name="gps_validation_reasons",
+            field=models.JSONField(blank=True, default=list),
+        ),
     ]
 
 

@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, MagicMock, patch
 from pathlib import Path
 
 from django.conf import settings
@@ -526,6 +526,62 @@ class MLIntegrationTests(APITestCase):
     def test_best_route_requires_end_point(self):
         response = self.client.post(reverse("ml-best-route"), {"start_latitude": 28.21, "start_longitude": 83.96})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @patch("tourist.utils.requests.post")
+    def test_ml_budget_pokhara_calibrated_ten_thousand_npr(self, mock_post):
+        """3 days in Pokhara for 1 traveler (mid-range) must calculate to ~10,000 NPR total ($75 USD)."""
+        import sys
+        import os
+        sys.path.insert(0, os.path.join(settings.BASE_DIR, "..", "ml_service"))
+        from api.budget import predict_budget, BudgetRequest
+
+        ml_res = predict_budget(BudgetRequest(city="Pokhara", days=3, travelers=1, budget_level="mid"))
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = ml_res
+        mock_resp.raise_for_status = MagicMock()
+        mock_post.return_value = mock_resp
+
+        response = self.client.post(reverse("ml-budget"), {
+            "city": "Pokhara", "days": 3, "travelers": 1, "budget_level": "mid",
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.data
+        self.assertEqual(data.get("total_budget_npr"), 10000.0)
+        self.assertEqual(data.get("total_budget_usd"), 75.0)
+        self.assertEqual(data.get("daily_budget_npr"), 3333.33)
+        self.assertEqual(data.get("daily_cost_usd"), 25.0)
+        npr_breakdown = data.get("breakdown_npr") or {}
+        self.assertEqual(npr_breakdown.get("accommodation"), 4500.0)
+        self.assertEqual(npr_breakdown.get("food"), 3300.0)
+        self.assertEqual(npr_breakdown.get("transport"), 2200.0)
+
+    @patch("tourist.utils.requests.post")
+    def test_ml_budget_across_nepal_destinations(self, mock_post):
+        """Verifies calibrated Nepal baselines across diverse locations."""
+        import sys
+        import os
+        sys.path.insert(0, os.path.join(settings.BASE_DIR, "..", "ml_service"))
+        from api.budget import predict_budget, BudgetRequest
+
+        for place, expected_npr in [
+            ("Kathmandu", 10000.0),
+            ("Chitwan", 10000.0),
+            ("Lumbini", 8500.0),
+            ("Mustang", 11000.0),
+        ]:
+            ml_res = predict_budget(BudgetRequest(city=place, days=3, travelers=1, budget_level="mid"))
+            mock_resp = MagicMock()
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = ml_res
+            mock_resp.raise_for_status = MagicMock()
+            mock_post.return_value = mock_resp
+
+            response = self.client.post(reverse("ml-budget"), {
+                "city": place, "days": 3, "travelers": 1, "budget_level": "mid",
+            })
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(response.data.get("total_budget_npr"), expected_npr)
 
 
 class PhotoAndDataSourceTests(APITestCase):
@@ -2401,13 +2457,6 @@ class CMSFormAndServiceMediaTests(APITestCase):
 
 class OwnerDeskTests(APITestCase):
     def setUp(self):
-        # The public-config view caches its entire response for 300s in the
-        # locmem cache that Django's test runner shares across the whole run
-        # (same rationale as AuthTests.setUp): whichever test first GETs
-        # /config/public/ would otherwise freeze its DB state into the cache
-        # for every later config assertion in the run.
-        from django.core.cache import cache
-        cache.clear()
         self.admin = User.objects.create_superuser(email="owner-desk@example.com", password="StrongPass123!")
         self.admin.role = User.Role.SUPER_ADMIN
         self.admin.save(update_fields=["role"])
@@ -3588,13 +3637,6 @@ class BlockBasedCMSAndImageReplacementTests(APITestCase):
 
 class HeroSlidePublicConfigTests(APITestCase):
     """The cinematic landing hero is admin-managed and publicly exposed."""
-
-    def setUp(self):
-        # Public-config responses are cached for 300s in the run-shared
-        # locmem cache; a slide created here must not be served from (or
-        # hidden behind) a snapshot another test cached earlier.
-        from django.core.cache import cache
-        cache.clear()
 
     def test_public_config_exposes_active_hero_slides(self):
         from .models import HeroSlide

@@ -1,7 +1,10 @@
-import { useEffect, useState, useCallback, useRef } from "react"
+import { useEffect, useState, useCallback, useRef, useMemo } from "react"
 import { useSearchParams, Link, useNavigate } from "react-router-dom"
-import { motion } from "framer-motion"
-import { FiChevronDown, FiFilter, FiMapPin, FiNavigation, FiPlus, FiX } from "react-icons/fi"
+import { motion, AnimatePresence } from "framer-motion"
+import {
+  FiChevronDown, FiFilter, FiMapPin, FiNavigation, FiPlus, FiX,
+  FiGrid, FiList, FiCompass, FiShield, FiSun, FiCheck, FiArrowRight
+} from "react-icons/fi"
 
 import destinationApi from "../../api/destinationApi"
 import userApi from "../../api/userApi"
@@ -29,6 +32,24 @@ const TYPE_OPTIONS = [
   { label: "Attractions", value: "attraction" },
   { label: "Hotels & stays", value: "hotel" },
   { label: "All places", value: "all" },
+]
+
+const NEPAL_PROVINCES = [
+  { id: "", label: "All Provinces" },
+  { id: "Bagmati", label: "Bagmati" },
+  { id: "Gandaki", label: "Gandaki" },
+  { id: "Koshi", label: "Koshi" },
+  { id: "Lumbini", label: "Lumbini" },
+  { id: "Karnali", label: "Karnali" },
+  { id: "Sudurpashchim", label: "Sudurpashchim" },
+  { id: "Madhesh", label: "Madhesh" },
+]
+
+const ALTITUDE_TIERS = [
+  { id: "all", label: "All Altitudes" },
+  { id: "low", label: "🌿 Lowlands (<1,000m)" },
+  { id: "mid", label: "⛰️ Mid-Hills (1,000–2,500m)" },
+  { id: "high", label: "🏔️ High Himalaya (>2,500m)" },
 ]
 
 // Fine-grained category chips
@@ -114,6 +135,40 @@ export default function DestinationList() {
   const requestSequence = useRef(0)
   const [didYouMean, setDidYouMean] = useState(null)
   const [isGpsSorted, setIsGpsSorted] = useState(false)
+  const [viewMode, setViewMode] = useState("grid")
+  const [selectedProvince, setSelectedProvince] = useState("")
+  const [altitudeTier, setAltitudeTier] = useState("all")
+  const [compareList, setCompareList] = useState([])
+  const [showCompareModal, setShowCompareModal] = useState(false)
+
+  const handleToggleCompare = (destination) => {
+    setCompareList((prev) => {
+      const exists = prev.some((d) => d.id === destination.id)
+      if (exists) {
+        return prev.filter((d) => d.id !== destination.id)
+      }
+      if (prev.length >= 3) {
+        showToast("You can compare up to 3 destinations at once.", "info")
+        return prev
+      }
+      return [...prev, destination]
+    })
+  }
+
+  const displayedDestinations = useMemo(() => {
+    return destinations.filter((d) => {
+      if (selectedProvince && d.province && !d.province.toLowerCase().includes(selectedProvince.toLowerCase())) {
+        return false
+      }
+      if (altitudeTier !== "all") {
+        const alt = Number(d.altitude) || 0
+        if (altitudeTier === "low" && alt >= 1000) return false
+        if (altitudeTier === "mid" && (alt < 1000 || alt > 2500)) return false
+        if (altitudeTier === "high" && alt <= 2500) return false
+      }
+      return true
+    })
+  }, [destinations, selectedProvince, altitudeTier])
 
   // Keep browser back/forward and same-path query navigation authoritative.
   useEffect(() => {
@@ -359,44 +414,182 @@ export default function DestinationList() {
         </div>
         {locationError && <p className="mt-3 text-xs text-[var(--ny-text-muted)]">Location was not shared. You can browse all destinations or try again.</p>}
         {type !== "hotel" && <div id="destination-category-filters" className="mt-4 border-t border-[var(--ny-border)] pt-4"><div className={`${showAllCategories ? "max-w-full flex-nowrap overflow-x-auto no-scrollbar" : "flex flex-wrap"} gap-2`} role="group" aria-label="Destination categories">{visibleCategoryChips.map((c) => <button key={c.value} type="button" onClick={() => { setCategoryChip(c.value); setPage(1); setLetter("") }} className={`shrink-0 rounded-full border min-h-11 px-3.5 py-2 text-xs font-semibold transition ${categoryChip === c.value ? "border-[var(--ny-green)] bg-[var(--ny-green)] text-white" : "border-[var(--ny-border)] bg-white text-[var(--ny-text-secondary)] hover:border-[var(--ny-green)] hover:bg-[var(--ny-soft-green)] hover:text-[var(--ny-green)]"}`} aria-pressed={categoryChip === c.value}>{c.label}</button>)}</div>{!showAllCategories && <p className="mt-3 text-xs text-[var(--ny-text-muted)]">Showing the most useful categories first. Use More filters for the complete catalogue.</p>}</div>}
+
+        {/* Province Quick Filter Bar */}
+        <div className="mt-3 pt-3 border-t border-[var(--ny-border)] flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-xs">
+          <span className="font-bold text-slate-500 shrink-0 text-[11px] mr-1">Province:</span>
+          {NEPAL_PROVINCES.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => setSelectedProvince(p.id)}
+              className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-bold transition ${
+                selectedProvince === p.id
+                  ? "bg-emerald-800 text-white shadow-2xs"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Altitude Tier & Layout View Switcher */}
+        <div className="mt-3 pt-3 border-t border-[var(--ny-border)] flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="font-bold text-slate-500 text-[11px] mr-1">Altitude Zone:</span>
+            {ALTITUDE_TIERS.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => setAltitudeTier(a.id)}
+                className={`px-2.5 py-1 rounded-full font-bold transition ${
+                  altitudeTier === a.id
+                    ? "bg-amber-600 text-white shadow-2xs"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+              >
+                {a.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setViewMode("grid")}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                viewMode === "grid" ? "bg-white text-emerald-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <FiGrid className="inline mr-1" /> Grid
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("list")}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                viewMode === "list" ? "bg-white text-emerald-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <FiList className="inline mr-1" /> Compact List
+            </button>
+          </div>
+        </div>
       </section>
 
       {type === "attraction" && !query && <div className="ny-horizontal-scroll no-scrollbar -mx-1 w-full overflow-x-auto px-1 pb-1" aria-label="Browse destinations alphabetically"><div className="flex w-max items-center gap-1.5"><span className="mr-1 whitespace-nowrap text-xs font-bold uppercase tracking-[0.08em] text-[var(--ny-text-muted)]">A–Z</span><button type="button" onClick={() => { setLetter(""); setPage(1) }} className={`grid h-11 min-w-11 place-items-center rounded-[var(--ny-radius-sm)] px-2 text-xs font-semibold ${letter === "" ? "bg-[var(--ny-green)] text-white" : "text-[var(--ny-green)] hover:bg-[var(--ny-soft-green)]"}`} aria-label="Show all destinations">All</button>{ALPHABET.map((L) => <button key={L} type="button" onClick={() => { setLetter(L); setPage(1) }} className={`grid h-11 min-w-11 place-items-center rounded-[var(--ny-radius-sm)] px-2 text-xs font-semibold ${letter === L ? "bg-[var(--ny-green)] text-white" : "text-[var(--ny-green)] hover:bg-[var(--ny-soft-green)]"}`} aria-label={`Show destinations starting with ${L}`}>{L}</button>)}</div></div>}
 
       {!loading && !loadError && <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-[var(--ny-text-secondary)]"><span>Showing <strong className="text-[var(--ny-text)]">{totalCount.toLocaleString()}</strong> places{isGpsSorted ? " nearest to your location" : ""}{query ? ` for “${query}”` : ""}{letter ? ` starting with “${letter}”` : ""}</span>{(query || letter || categoryChip) && <button type="button" onClick={() => { setQuery(""); setLetter(""); setCategoryChip(""); setPage(1) }} className="inline-flex min-h-11 items-center gap-1 font-semibold text-[var(--ny-green)] hover:underline"><FiX size={14} aria-hidden="true" /> Clear filters</button>}</div>}
 
-      {/* Grid */}
+      {/* Results View */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 min-[1240px]:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => <DestinationCardSkeleton key={i} />)}
         </div>
       ) : loadError ? (
         <ErrorState title="Could not load destinations" message={loadError} onRetry={() => setReloadNonce((value) => value + 1)} />
-      ) : destinations.length > 0 ? (
+      ) : displayedDestinations.length > 0 ? (
         <div className="space-y-8">
-          {/* Section heading completes the page hierarchy:
-              breadcrumb -> h1 (page) -> h2 (results) -> cards -> h2 (featured) */}
           <div className="flex flex-wrap items-end justify-between gap-2">
             <h2 className="text-xl sm:text-2xl font-black">
               {query ? `Results for “${query}”` : letter ? `Destinations starting with “${letter}”` : "All Nepal destinations"}
             </h2>
             <p className="text-xs text-gray-500 font-bold">
-              {destinations.length} shown{isGpsSorted ? " · nearest first" : ""}
+              {displayedDestinations.length} of {destinations.length} places shown{isGpsSorted ? " · nearest first" : ""}
             </p>
           </div>
-          <motion.div
-            layout
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 min-[1240px]:grid-cols-3 gap-6"
-          >
-            {destinations.map((d) => (
-              <DestinationCard
-                key={d.id}
-                destination={d}
-                isFavorite={!!favoriteMap[d.id]}
-                onToggleFavorite={() => handleToggleFavorite(d.id)}
-              />
-            ))}
-          </motion.div>
+
+          {/* Grid View */}
+          {viewMode === "grid" && (
+            <motion.div
+              layout
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 min-[1240px]:grid-cols-3 gap-6"
+            >
+              {displayedDestinations.map((d) => (
+                <DestinationCard
+                  key={d.id}
+                  destination={d}
+                  isFavorite={!!favoriteMap[d.id]}
+                  onToggleFavorite={() => handleToggleFavorite(d.id)}
+                  onCompare={handleToggleCompare}
+                  isCompared={compareList.some((c) => c.id === d.id)}
+                />
+              ))}
+            </motion.div>
+          )}
+
+          {/* Compact List View */}
+          {viewMode === "list" && (
+            <div className="space-y-3">
+              {displayedDestinations.map((d) => {
+                const isCompared = compareList.some((c) => c.id === d.id)
+                return (
+                  <div
+                    key={d.id}
+                    className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  >
+                    <div className="flex items-start sm:items-center gap-3 min-w-0">
+                      <div className="w-14 h-14 rounded-xl bg-slate-100 overflow-hidden shrink-0">
+                        {d.cover_image_url || d.cover_image ? (
+                          <img
+                            src={d.cover_image_url || d.cover_image}
+                            alt={d.name}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xl">🏔️</div>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-sm text-slate-900 truncate">{d.name}</h4>
+                          {d.category_name && (
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-bold">
+                              {d.category_name}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500 truncate mt-0.5">
+                          {[d.district, d.province].filter(Boolean).join(", ")}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-slate-600">
+                          {d.altitude && <span className="font-semibold text-amber-800">⛰️ {d.altitude}m</span>}
+                          {Number(d.average_rating) > 0 && <span className="text-amber-500 font-bold">★ {Number(d.average_rating).toFixed(1)}</span>}
+                          {d.best_time_to_visit && <span>Best: {d.best_time_to_visit}</span>}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleCompare(d)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                          isCompared ? "bg-emerald-700 text-white" : "border border-slate-300 hover:bg-slate-50 text-slate-700"
+                        }`}
+                      >
+                        {isCompared ? "✓ Compared" : "+ Compare"}
+                      </button>
+                      <Link
+                        to={`/destinations/${d.slug}`}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center gap-1"
+                      >
+                        Explore <FiArrowRight size={13} />
+                      </Link>
+                      <Link
+                        to={`/navigation?dest=${encodeURIComponent(d.name)}`}
+                        className="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1"
+                        title="Road navigation"
+                      >
+                        <FiNavigation size={13} /> Route
+                      </Link>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
 
           {totalPages > 1 && (
             <div className="flex justify-center pt-4">
@@ -412,13 +605,126 @@ export default function DestinationList() {
         <>
           {didYouMean && <div className="ny-panel mb-4 flex flex-wrap items-center justify-between gap-3 p-4 text-sm"><span className="text-[var(--ny-text-secondary)]">Did you mean <strong className="text-[var(--ny-text)]">{didYouMean.name}</strong>?</span><button type="button" onClick={() => { setQuery(didYouMean.name); setDidYouMean(null); setPage(1) }} className="ny-btn ny-btn-secondary min-h-10 px-3">Use suggestion</button></div>}
           <EmptyState
-            title={query || letter || categoryChip ? "No destinations match these filters" : "No destinations are available yet"}
-            subtitle={query || letter || categoryChip ? "Try a different search, clear a filter, or browse the complete catalogue." : "The live catalogue is still loading or has no published places for this view."}
-            action={query ? <button type="button" onClick={handleResearchQuery} disabled={researching} className="ny-btn ny-btn-secondary">{researching ? "Checking…" : "Research this place"}</button> : (query || letter || categoryChip) && <button type="button" onClick={() => { setQuery(""); setLetter(""); setCategoryChip(""); setPage(1) }} className="ny-btn ny-btn-primary">Clear filters</button>}
+            title={query || letter || categoryChip || selectedProvince || altitudeTier !== "all" ? "No destinations match these filters" : "No destinations are available yet"}
+            subtitle="Try clearing a filter or searching for another destination."
+            action={<button type="button" onClick={() => { setQuery(""); setLetter(""); setCategoryChip(""); setSelectedProvince(""); setAltitudeTier("all"); setPage(1) }} className="ny-btn ny-btn-primary">Clear all filters</button>}
             secondaryAction={<Link to="/destinations" className="ny-btn ny-btn-secondary">Browse all destinations</Link>}
           />
         </>
       )}
+
+      {/* Floating Comparison Dock */}
+      {compareList.length > 0 && (
+        <div className="fixed bottom-4 left-4 right-4 z-40 max-w-2xl mx-auto p-3.5 rounded-2xl bg-slate-900 text-white shadow-2xl border border-slate-700 flex flex-wrap items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-black uppercase tracking-wider text-amber-400">⚖️ Compare ({compareList.length}/3):</span>
+            <div className="flex items-center gap-1.5 overflow-x-auto max-w-[280px]">
+              {compareList.map((c) => (
+                <span key={c.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-800 text-xs font-semibold text-slate-200">
+                  <span className="truncate max-w-[90px]">{c.name}</span>
+                  <button type="button" onClick={() => handleToggleCompare(c)} className="text-slate-400 hover:text-white">✕</button>
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowCompareModal(true)}
+              className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow-md"
+            >
+              Compare Side-by-Side
+            </button>
+            <button
+              type="button"
+              onClick={() => setCompareList([])}
+              className="px-2.5 py-2 text-xs font-bold text-slate-400 hover:text-white"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Comparison Modal */}
+      <AnimatePresence>
+        {showCompareModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              className="w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-6"
+            >
+              <div className="flex items-center justify-between border-b pb-4">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-800">Himalayan Destinations Matrix</span>
+                  <h3 className="text-xl font-black text-slate-900 mt-1">Side-by-Side Comparison</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCompareModal(false)}
+                  className="p-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600"
+                >
+                  <FiX size={18} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {compareList.map((item) => (
+                  <div key={item.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between space-y-4">
+                    <div>
+                      <div className="h-32 rounded-xl overflow-hidden bg-slate-200 mb-3">
+                        {item.cover_image_url || item.cover_image ? (
+                          <img src={item.cover_image_url || item.cover_image} alt={item.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-3xl">🏔️</div>
+                        )}
+                      </div>
+                      <h4 className="font-black text-base text-slate-900">{item.name}</h4>
+                      <p className="text-xs text-slate-500">{[item.district, item.province].filter(Boolean).join(", ")}</p>
+
+                      <div className="space-y-2 mt-4 text-xs">
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-slate-500">Altitude</span>
+                          <span className="font-bold text-amber-800">{item.altitude ? `${item.altitude}m` : "Sub-alpine (<1500m)"}</span>
+                        </div>
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-slate-500">Best Season</span>
+                          <span className="font-bold text-slate-800">{item.best_time_to_visit || "Autumn / Spring"}</span>
+                        </div>
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-slate-500">Entry / Budget</span>
+                          <span className="font-bold text-emerald-800">{item.budget_estimate ? `NPR ${item.budget_estimate}` : item.entry_fee || "Standard Fee"}</span>
+                        </div>
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-slate-500">Safety Risk</span>
+                          <span className="font-bold text-slate-800">{item.risk_level || "Low"}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-2 border-t">
+                      <Link
+                        to={`/destinations/${item.slug}`}
+                        className="w-full py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs text-center block"
+                      >
+                        Explore Destination →
+                      </Link>
+                      <Link
+                        to={`/navigation?dest=${encodeURIComponent(item.name)}`}
+                        className="w-full py-2 rounded-xl border border-slate-300 hover:bg-white text-slate-800 font-bold text-xs text-center block"
+                      >
+                        Navigate Route ➔
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {featuredDestinations.length > 0 && !query && !letter && (
         <section className="space-y-5 border-t border-[var(--ny-border)] pt-10" aria-labelledby="featured-destinations-title">

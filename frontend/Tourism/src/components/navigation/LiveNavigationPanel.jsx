@@ -31,6 +31,25 @@ function Recenter({ trigger, position }) {
   return null
 }
 
+function NormalizeLeafletControls() {
+  const map = useMap()
+  useEffect(() => {
+    const controls = map.getContainer().querySelectorAll('.leaflet-control-zoom a[href="#"]')
+    controls.forEach((control) => {
+      control.removeAttribute("href")
+      control.setAttribute("role", "button")
+      control.setAttribute("tabindex", "0")
+      if (!control.getAttribute("aria-label")) {
+        control.setAttribute(
+          "aria-label",
+          control.classList.contains("leaflet-control-zoom-in") ? "Zoom in" : "Zoom out",
+        )
+      }
+    })
+  }, [map])
+  return null
+}
+
 const fmtDist = (m) => (m == null ? "—" : m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`)
 const fmtDur = (s) => (s == null ? "—" : s >= 60 ? `${Math.max(1, Math.round(s / 60))} min` : `${Math.round(s)} s`)
 const fmtEta = (s) => {
@@ -83,7 +102,7 @@ export default function LiveNavigationPanel({ destination, mode = "driving", sto
         <div className="flex items-center gap-2">
           <FiNavigation className="text-[#1D5146]" />
           <h3 className="font-extrabold text-sm text-gray-900">Live Turn-by-Turn (road routing)</h3>
-          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-[#1D5146] dark:bg-emerald-900/30 dark:text-emerald-300">{state}</span>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-[#1D5146]">{state}</span>
         </div>
         <div className="flex gap-2">
           {state === NAV_STATES.IDLE && (
@@ -198,6 +217,7 @@ export default function LiveNavigationPanel({ destination, mode = "driving", sto
                 <Recenter trigger={recenterTrigger} position={position} />
               </>
             )}
+            <NormalizeLeafletControls />
           </MapContainer>
         </div>
       )}

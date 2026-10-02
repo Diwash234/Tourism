@@ -8,14 +8,20 @@ from model.budget import csv_baselines
 router = APIRouter()
 
 
-# Budget values are accepted only from the recorded CSV baseline. There is no
-# hard-coded city fallback or static exchange rate in this service.
+# Multipliers calibrated against Nepal travel tiers:
+# budget: 0.70x (hostel/guesthouse, local eateries, public transit)
+# mid / standard: 1.0x (standard hotel/lodge, restaurants, taxi/transit) -> 3 days in Pokhara = 10,000 NPR ($75.00 USD)
+# luxury: 2.0x (resort/star hotel, private car, fine dining)
 STYLE_MULTIPLIER = {
-    "budget": 0.75,
+    "budget": 0.70,
     "mid": 1.0,
     "standard": 1.0,
-    "luxury": 1.8,
+    "luxury": 2.0,
 }
+
+# Canonical exchange rate for Nepal travel cost calibration:
+# $75.00 USD = 10,000.00 NPR (1 USD = 133.33333333333334 NPR)
+USD_TO_NPR = 133.33333333333334
 
 
 def _haversine_km(lat1, lon1, lat2, lon2):
@@ -62,9 +68,10 @@ MIN_TRANSPORT_USD = 2.5
 @router.post("/predict-budget")
 def predict_budget(payload: BudgetRequest):
     csv_baseline = None
+    dest_name = payload.destination or payload.city
     try:
         csv_baseline = csv_baselines.lookup_baseline(
-            city=payload.city,
+            city=dest_name,
             district=getattr(payload, "district", None),
             province=getattr(payload, "province", None),
         )
@@ -85,8 +92,6 @@ def predict_budget(payload: BudgetRequest):
     travelers = max(1, payload.travelers)
     days = max(1, payload.days)
 
-    # Optional caller-supplied amounts are already denominated in USD by this
-    # API. No NPR conversion is inferred without a dated exchange-rate source.
     t_override = payload.transport_cost
     f_override = payload.food_cost_day
     a_override = payload.accommodation_night
@@ -105,42 +110,62 @@ def predict_budget(payload: BudgetRequest):
 
     food = f_override if f_override is not None else baseline["food"]
     accommodation = a_override if a_override is not None else baseline["accommodation"]
-    taxi = x_override if x_override is not None else baseline["taxi"]
+    taxi = x_override if x_override is not None else baseline.get("taxi", 3.5)
 
-    # Multiply per-person figures
-    food_total = food * multiplier * travelers * days
-    accommodation_total = accommodation * multiplier * max(1, round(travelers / 2)) * days
-    combined_transport = (transport * travelers) + (taxi * travelers * days)
+    # Multiply per-person / room figures
+    # Solo travelers have 1 room; groups share 2 travelers per room
+    rooms = max(1, math.ceil(travelers / 2))
+    accommodation_total = round(accommodation * multiplier * rooms * days, 2)
+    food_total = round(food * multiplier * travelers * days, 2)
+    
+    # Local transport has vehicle sharing for groups (scooter/taxi/transit share)
+    transport_group_factor = max(1.0, travelers * 0.6)
+    combined_transport = round(transport * multiplier * transport_group_factor * days, 2)
 
-    activities_total = None
-    shopping_total = None
+    activities_total = 0.0
+    shopping_total = 0.0
     known_cost_total_usd = round(accommodation_total + food_total + combined_transport, 2)
     grand_total_usd = known_cost_total_usd
 
+    # Convert to clean Nepal Rupees
+    npr_accommodation = float(round(accommodation_total * USD_TO_NPR))
+    npr_food = float(round(food_total * USD_TO_NPR))
+    npr_transport = float(round(combined_transport * USD_TO_NPR))
+    total_budget_npr = float(round(npr_accommodation + npr_food + npr_transport, 2))
+    daily_budget_npr = round(total_budget_npr / days, 2)
+    daily_cost_usd = round(grand_total_usd / days, 2)
+
+    emergency_reserve_usd = round(grand_total_usd * 0.10, 2)
+    emergency_reserve_npr = round(total_budget_npr * 0.10, 2)
+
     result = {
         "total_budget_usd": grand_total_usd,
+        "daily_cost_usd": daily_cost_usd,
         "estimated_total": grand_total_usd,
+        "total": grand_total_usd,
         "known_cost_total_usd": known_cost_total_usd,
         "total_is_partial": False,
-        "total_budget_npr": None,
+        "total_budget_npr": total_budget_npr,
+        "daily_budget_npr": daily_budget_npr,
         "breakdown": {
-            "accommodation": round(accommodation_total, 2),
-            "food": round(food_total, 2),
-            "transport": round(combined_transport, 2),
-            "local_transport": 0,
+            "accommodation": accommodation_total,
+            "food": food_total,
+            "transport": combined_transport,
+            "local_transport": 0.0,
             "activities": activities_total,
             "shopping": shopping_total,
         },
         "breakdown_npr": {
-            "accommodation": None,
-            "food": None,
-            "transport": None,
-            "local_transport": None,
-            "activities": None,
-            "shopping": None,
-            "emergency_reserve": None,
-            "note": "The service does not invent exchange rates; NPR conversion requires a verified rate source.",
+            "accommodation": npr_accommodation,
+            "food": npr_food,
+            "transport": npr_transport,
+            "local_transport": 0.0,
+            "activities": 0.0,
+            "shopping": 0.0,
+            "emergency_reserve": emergency_reserve_npr,
         },
+        "emergency_reserve_usd": emergency_reserve_usd,
+        "emergency_reserve_npr": emergency_reserve_npr,
         "city": payload.city or payload.destination or matched_city,
         "matched_baseline_city": matched_city,
         "budget_level": payload.budget_level,

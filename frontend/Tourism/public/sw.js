@@ -1,237 +1,101 @@
-/**
- * Service Worker for Nepal Tourism Platform
+/* Nepal Yatra service worker.
  *
- * Strategies:
- * - Cache-first for static assets (JS, CSS, images)
- * - Network-first for API calls with offline fallback
- * - Offline page fallback for navigation requests
- * - Background sync for form submissions
+ * Offline scope is deliberately small and honest:
+ *  - the app shell (index.html) and the hashed JS/CSS it has loaded;
+ *  - a public allowlist of safety data a traveller may need without signal:
+ *    national emergency hotlines, visa/permit/fee requirements, NRB exchange
+ *    rates and NTB season guidance. These are network-first: a cached copy is
+ *    used only when the network fails, and it is marked with X-NY-Offline so
+ *    the UI can say it may be out of date.
+ * Nothing user-specific (auth, bookings, plans) and no POST is ever cached.
  */
+const VERSION = "ny-v1"
+const SHELL = `${VERSION}-shell`
+const ASSETS = `${VERSION}-assets`
+const DATA = `${VERSION}-data`
+const MAX_ASSETS = 150
 
-const _CACHE_NAME = "nepal-tourism-v4"
-const STATIC_CACHE = "nepal-tourism-static-v4"
-const API_CACHE = "nepal-tourism-api-v4"
-const OFFLINE_URL = "/offline.html"
-
-// Assets to precache on install
-const PRECACHE_ASSETS = [
-  "/",
-  "/index.html",
-  "/offline.html",
-  "/manifest.json",
+const SHELL_URLS = ["/", "/manifest.webmanifest", "/favicon.svg", "/pwa/icon-192.png"]
+const OFFLINE_DATA = [
+  /^\/api\/v1\/emergency\/national-hotlines\/?$/,
+  /^\/api\/v1\/travel-requirements\/?$/,
+  /^\/api\/v1\/fx\/rates\/?$/,
+  /^\/api\/v1\/season-guide\/?$/,
 ]
 
-// ─── Install Event ───────────────────────────────────────────────────────────
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(STATIC_CACHE).then((cache) => {
-      return cache.addAll(PRECACHE_ASSETS)
-    })
-  )
-  self.skipWaiting()
+  event.waitUntil(caches.open(SHELL).then((c) => c.addAll(SHELL_URLS)).then(() => self.skipWaiting()))
 })
 
-// ─── Activate Event ──────────────────────────────────────────────────────────
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((name) => name !== STATIC_CACHE && name !== API_CACHE)
-          .map((name) => caches.delete(name))
-      )
-    })
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => !k.startsWith(`${VERSION}-`)).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim()),
   )
-  self.clients.claim()
 })
 
-// ─── Fetch Event ─────────────────────────────────────────────────────────────
+async function trim(cacheName, max) {
+  const cache = await caches.open(cacheName)
+  const keys = await cache.keys()
+  for (let i = 0; i < keys.length - max; i += 1) await cache.delete(keys[i])
+}
+
+async function networkFirstData(request) {
+  const cache = await caches.open(DATA)
+  try {
+    const response = await fetch(request)
+    if (response.ok) await cache.put(request, response.clone())
+    return response
+  } catch (err) {
+    // Vary (Cookie/Authorization) must not hide the offline copy; the fallback
+    // ignores the query string (requirements carry fees for every nationality).
+    const cached = (await cache.match(request, { ignoreVary: true })) || (await cache.match(request, { ignoreVary: true, ignoreSearch: true }))
+    if (!cached) throw err
+    const headers = new Headers(cached.headers)
+    headers.set("X-NY-Offline", "1")
+    return new Response(await cached.blob(), { status: 200, statusText: "OK (offline copy)", headers })
+  }
+}
+
+async function navigation(request) {
+  try {
+    const response = await fetch(request)
+    if (response.ok) (await caches.open(SHELL)).put("/", response.clone())
+    return response
+  } catch {
+    const shell = await caches.match("/")
+    return shell || new Response("<h1>You're offline</h1><p>Reconnect to load Nepal Yatra.</p>", { headers: { "Content-Type": "text/html" } })
+  }
+}
+
+async function cacheFirstAsset(request) {
+  const cached = await caches.match(request)
+  if (cached) return cached
+  const response = await fetch(request)
+  if (response.ok) {
+    const cache = await caches.open(ASSETS)
+    await cache.put(request, response.clone())
+    trim(ASSETS, MAX_ASSETS)
+  }
+  return response
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event
+  if (request.method !== "GET") return
   const url = new URL(request.url)
+  if (url.origin !== self.location.origin) return
 
-  // Skip non-GET requests for caching (but handle background sync)
-  if (request.method !== "GET") {
-    return
-  }
-
-  // Skip chrome-extension and other non-http requests
-  if (!url.protocol.startsWith("http")) {
-    return
-  }
-
-  // API calls: Network-first with cache fallback
-  if (url.pathname.startsWith("/api/")) {
-    event.respondWith(networkFirst(request))
-    return
-  }
-
-  // Static assets: Cache-first with network fallback
-  if (
-    url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)$/) ||
-    url.pathname.startsWith("/assets/")
-  ) {
-    event.respondWith(cacheFirst(request))
-    return
-  }
-
-  // Navigation requests: Network-first with offline fallback
   if (request.mode === "navigate") {
-    event.respondWith(networkFirstWithOfflineFallback(request))
+    event.respondWith(navigation(request))
     return
   }
-
-  // Default: Stale-while-revalidate
-  event.respondWith(staleWhileRevalidate(request))
-})
-
-// ─── Caching Strategies ──────────────────────────────────────────────────────
-
-/**
- * Cache-first strategy for static assets
- * Returns cached version if available, otherwise fetches from network
- */
-async function cacheFirst(request) {
-  // Hashed Vite assets must never be allowed to pin an obsolete deployment.
-  // Always ask the network first; only use an exact cached response offline.
-  try {
-    const response = await fetch(request, { cache: "no-store" })
-    if (response.ok) {
-      const cache = await caches.open(STATIC_CACHE)
-      await cache.put(request, response.clone())
-    }
-    return response
-  } catch (err) {
-    const cached = await caches.match(request)
-    if (cached) return cached
-    throw err
+  if (url.pathname.startsWith("/api/")) {
+    if (OFFLINE_DATA.some((rx) => rx.test(url.pathname))) event.respondWith(networkFirstData(request))
+    return // every other API call goes straight to the network
   }
-}
-
-/**
- * Network-first strategy for API calls
- * Tries network first, falls back to cache if offline
- */
-async function networkFirst(request) {
-  try {
-    const response = await fetch(request)
-    if (response.ok) {
-      const cache = await caches.open(API_CACHE)
-      cache.put(request, response.clone())
-    }
-    return response
-  } catch (err) {
-    const cached = await caches.match(request)
-    if (cached) {
-      return cached
-    }
-    return new Response(JSON.stringify({ detail: "Tourism API is temporarily offline." }), { status: 503, headers: { "Content-Type": "application/json" } })
-  }
-}
-
-/**
- * Network-first with offline page fallback for navigations
- */
-async function networkFirstWithOfflineFallback(request) {
-  try {
-    const response = await fetch(request)
-    if (response.ok) {
-      const cache = await caches.open(STATIC_CACHE)
-      cache.put(request, response.clone())
-    }
-    return response
-  } catch (err) {
-    const cached = await caches.match(request)
-    if (cached) {
-      return cached
-    }
-    return (await caches.match(OFFLINE_URL)) || new Response("<!doctype html><html><body><h1>Nepal Tourism is offline</h1><p>Please reconnect and refresh.</p></body></html>", { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } })
-  }
-}
-
-/**
- * Stale-while-revalidate strategy
- * Returns cached version immediately, updates cache in background
- */
-async function staleWhileRevalidate(request) {
-  const cached = await caches.match(request)
-
-  const fetchPromise = fetch(request)
-    .then(async (response) => {
-      if (response.ok) {
-        const cache = await caches.open(STATIC_CACHE)
-        await cache.put(request, response.clone())
-      }
-      return response
-    })
-    .catch(() => cached)
-
-  return cached || fetchPromise
-}
-
-// ─── Background Sync ────────────────────────────────────────────────────────
-self.addEventListener("sync", (event) => {
-  if (event.tag === "sync-forms") {
-    event.waitUntil(syncFormData())
+  if (url.pathname.startsWith("/assets/") || url.pathname.startsWith("/pwa/")) {
+    event.respondWith(cacheFirstAsset(request))
   }
 })
-
-async function syncFormData() {
-  // Get pending form submissions from IndexedDB or localStorage
-  // and retry them when back online
-  const db = await openDB()
-  const pending = await db.getAll("pendingForms")
-
-  for (const form of pending) {
-    try {
-      await fetch(form.url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form.data),
-      })
-      await db.delete("pendingForms", form.id)
-    } catch (err) {
-      console.warn("Background sync failed for form:", form.id)
-    }
-  }
-}
-
-// ─── Push Notifications ──────────────────────────────────────────────────────
-self.addEventListener("push", (event) => {
-  if (!event.data) return
-
-  const data = event.data.json()
-  const options = {
-    body: data.body,
-    icon: "/icon-192x192.png",
-    badge: "/badge-72x72.png",
-    data: { url: data.url },
-  }
-
-  event.waitUntil(
-    self.registration.showNotification(data.title, options)
-  )
-})
-
-self.addEventListener("notificationclick", (event) => {
-  event.notification.close()
-  const url = event.notification.data?.url || "/"
-  event.waitUntil(
-    self.clients.openWindow(url)
-  )
-})
-
-// ─── Helper: Open IndexedDB ──────────────────────────────────────────────────
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open("OfflineFormsDB", 1)
-    request.onerror = () => reject(request.error)
-    request.onsuccess = () => resolve(request.result)
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result
-      if (!db.objectStoreNames.contains("pendingForms")) {
-        db.createObjectStore("pendingForms", { keyPath: "id", autoIncrement: true })
-      }
-    }
-  })
-}

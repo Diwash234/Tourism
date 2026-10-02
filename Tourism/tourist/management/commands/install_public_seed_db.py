@@ -196,6 +196,127 @@ class Command(BaseCommand):
                 self.stdout.write(f"  {table}: {count}")
 
     def _install(self, extracted: Path, force: bool) -> Path:
+        if connection.vendor == "postgresql":
+            try:
+                from tourist.models import Destination
+                dest_count = Destination.objects.count()
+            except Exception:
+                dest_count = 0
+
+            if dest_count > 0 and not force:
+                raise CommandError(
+                    f"PostgreSQL database already contains {dest_count} destinations.\n"
+                    "Use --force to import seed data into PostgreSQL anyway."
+                )
+
+            self.stdout.write("Transferring seed database records into PostgreSQL ...")
+            from django.db import connections
+
+            # 1. Bring the extracted SQLite seed file up to the current schema so all models & columns match
+            self.stdout.write("Aligning seed database schema migrations...")
+            orig_default_conf = dict(settings.DATABASES["default"])
+            connections["default"].close()
+            if "default" in connections:
+                del connections["default"]
+            settings.DATABASES["default"] = {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": str(extracted),
+            }
+            connections.databases["default"] = connections.configure_settings(settings.DATABASES)["default"]
+            try:
+                call_command("migrate", interactive=False, verbosity=0)
+            finally:
+                connections["default"].close()
+                if "default" in connections:
+                    del connections["default"]
+                settings.DATABASES["default"] = orig_default_conf
+                connections.databases["default"] = orig_default_conf
+
+            # 2. Configure seed_sqlite connection pointing to the migrated seed database
+            new_dbs = {
+                **settings.DATABASES,
+                "seed_sqlite": {
+                    "ENGINE": "django.db.backends.sqlite3",
+                    "NAME": str(extracted),
+                },
+            }
+            configured = connections.configure_settings(new_dbs)
+            settings.DATABASES["seed_sqlite"] = configured["seed_sqlite"]
+            connections.databases["seed_sqlite"] = configured["seed_sqlite"]
+
+            # 3. Transfer records model-by-model in FK dependency order to bound memory usage (< 40MB peak)
+            models_to_transfer = [
+                "tourist.Category",
+                "tourist.Province",
+                "tourist.District",
+                "tourist.Language",
+                "tourist.EmergencyContact",
+                "tourist.SiteSetting",
+                "tourist.BrandingAsset",
+                "tourist.ManagedPage",
+                "tourist.ContentSection",
+                "tourist.ContentBlock",
+                "tourist.HeroSlide",
+                "tourist.ManagedNavigationItem",
+                "tourist.Destination",
+                "tourist.DestinationImage",
+                "tourist.DestinationTransitRoute",
+                "tourist.Hotel",
+                "tourist.Hospital",
+                "tourist.PoliceStation",
+                "tourist.Restaurant",
+                "tourist.OSMEssentialService",
+                "tourist.Alert",
+                "tourist.CurrentHazard",
+                "tourist.VisitorNotice",
+            ]
+            import gc
+            for model_name in models_to_transfer:
+                fixture_file = tempfile.NamedTemporaryFile(
+                    mode="w+", suffix=".json", encoding="utf-8", delete=False
+                )
+                try:
+                    call_command(
+                        "dumpdata",
+                        model_name,
+                        "--database", "seed_sqlite",
+                        "--natural-foreign",
+                        "--natural-primary",
+                        stdout=fixture_file,
+                    )
+                    fixture_file.flush()
+                    fixture_file.close()
+
+                    if os.path.getsize(fixture_file.name) > 4:
+                        call_command("loaddata", fixture_file.name, database="default")
+                        self.stdout.write(f"  transferred {model_name}")
+                except Exception as exc:
+                    self.stdout.write(self.style.WARNING(f"  notice on {model_name}: {exc}"))
+                finally:
+                    try:
+                        os.unlink(fixture_file.name)
+                    except OSError:
+                        pass
+                    gc.collect()
+
+            connections["seed_sqlite"].close()
+            connections.databases.pop("seed_sqlite", None)
+            settings.DATABASES.pop("seed_sqlite", None)
+
+            from django.core.management.color import no_style
+            from django.apps import apps
+            sequence_sql = connection.ops.sequence_reset_sql(no_style(), apps.get_models())
+            with connection.cursor() as cursor:
+                for sql in sequence_sql:
+                    if sql.strip():
+                        try:
+                            cursor.execute(sql)
+                        except Exception:
+                            pass
+
+            self.stdout.write(self.style.SUCCESS("Installed seed database into PostgreSQL."))
+            return extracted
+
         target = database_path()
         if target.exists() and target.stat().st_size:
             occupied = self._occupant_summary(target)
@@ -239,6 +360,10 @@ class Command(BaseCommand):
             probe.close()
 
     def _report(self, target: Path) -> None:
+        if connection.vendor == "postgresql":
+            self._print_summary()
+            return
+
         # Point this process at the freshly installed file, then always put the
         # connection back so the rest of the process (and test teardown) still
         # sees the database it started with.
@@ -255,31 +380,54 @@ class Command(BaseCommand):
             connection.settings_dict["NAME"] = previous
 
     def _print_summary(self) -> None:
-        summary = database_path()
-        probe = sqlite3.connect(summary)
-        try:
+        if connection.vendor == "postgresql":
+            from django.apps import apps
             self.stdout.write("")
-            self.stdout.write(self.style.SUCCESS("Seed database ready."))
-            for table in (
-                "tourist_destination",
-                "tourist_destinationimage",
-                "tourist_hotel",
-                "tourist_hospital",
-                "tourist_policestation",
-                "tourist_restaurant",
-                "tourist_osmessentialservice",
-                "tourist_destinationtransitroute",
-                "tourist_managedpage",
-                "tourist_contentsection",
-                "tourist_user",
+            self.stdout.write(self.style.SUCCESS("PostgreSQL database ready."))
+            for model_name in (
+                "tourist.Destination",
+                "tourist.DestinationImage",
+                "tourist.Hotel",
+                "tourist.Hospital",
+                "tourist.PoliceStation",
+                "tourist.Restaurant",
+                "tourist.OSMEssentialService",
+                "tourist.DestinationTransitRoute",
+                "tourist.ManagedPage",
+                "tourist.ContentSection",
+                "tourist.User",
             ):
                 try:
-                    count = probe.execute(f'select count(*) from "{table}"').fetchone()[0]
-                except sqlite3.Error:
-                    continue
-                self.stdout.write(f"  {table}: {count}")
-        finally:
-            probe.close()
+                    m = apps.get_model(model_name)
+                    self.stdout.write(f"  {m._meta.db_table}: {m.objects.count()}")
+                except Exception:
+                    pass
+        else:
+            summary = database_path()
+            probe = sqlite3.connect(summary)
+            try:
+                self.stdout.write("")
+                self.stdout.write(self.style.SUCCESS("Seed database ready."))
+                for table in (
+                    "tourist_destination",
+                    "tourist_destinationimage",
+                    "tourist_hotel",
+                    "tourist_hospital",
+                    "tourist_policestation",
+                    "tourist_restaurant",
+                    "tourist_osmessentialservice",
+                    "tourist_destinationtransitroute",
+                    "tourist_managedpage",
+                    "tourist_contentsection",
+                    "tourist_user",
+                ):
+                    try:
+                        count = probe.execute(f'select count(*) from "{table}"').fetchone()[0]
+                    except sqlite3.Error:
+                        continue
+                    self.stdout.write(f"  {table}: {count}")
+            finally:
+                probe.close()
 
         self.stdout.write("")
         self.stdout.write(

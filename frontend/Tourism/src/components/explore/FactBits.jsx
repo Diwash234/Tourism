@@ -40,7 +40,7 @@ export const OpenNowBadge = ({ hours, compact = false }) => {
     : hours.state === "closed" ? "bg-slate-100 text-slate-700 border-slate-200" : "bg-white text-slate-500 border-slate-200"
   return (
     <span title={[hours.raw, hours.note].filter(Boolean).join(" · ")}
-      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold ${style}`}>
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${style}`}>
       <FiClock size={11} aria-hidden="true" />
       {compact && hours.state === "unknown" ? "Hours unknown" : hours.label}
     </span>

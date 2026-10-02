@@ -1,191 +1,259 @@
-"""Import hospital records and attach them to the nearest *relevant* destination.
-
-The previous importer queried every destination for every hospital. On a Render
-database with ~13k destinations that became an O(hospitals * destinations)
-operation and could keep the web service from binding its port. It also only
-matched an exact destination name, so perfectly valid Kathmandu/Lalitpur/etc.
-hospital rows were discarded.
-
-This importer builds small in-memory indexes for destination names, places and
-coordinate grid cells. It remains idempotent and never invents a destination:
-a hospital is attached only when a name/place match exists or its coordinates
-are within the configured geographic radius of a real destination.
-"""
-import re
-import unicodedata
-from collections import defaultdict
-from math import atan2, cos, radians, sin, sqrt
-
 import pandas as pd
+from math import radians, sin, cos, sqrt, atan2
+
 from django.core.management.base import BaseCommand
 
 from tourist.models import Destination, Hospital
 
 
-EARTH_RADIUS_KM = 6371.0
-COORDINATE_MATCH_RADIUS_KM = 30.0
-GRID_DEGREES = 0.25
-
 
 def calculate_distance(lat1, lon1, lat2, lon2):
-    lat1, lon1, lat2, lon2 = map(float, (lat1, lon1, lat2, lon2))
-    lat1, lon1, lat2, lon2 = map(radians, (lat1, lon1, lat2, lon2))
+    """
+    Calculate distance between two coordinates in KM
+    """
+
+    R = 6371
+
+    lat1 = radians(float(lat1))
+    lon1 = radians(float(lon1))
+
+    lat2 = radians(float(lat2))
+    lon2 = radians(float(lon2))
+
+
     dlat = lat2 - lat1
     dlon = lon2 - lon1
-    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
-    return EARTH_RADIUS_KM * 2 * atan2(sqrt(a), sqrt(1 - a))
 
 
-def normalize(value):
-    value = unicodedata.normalize("NFKD", str(value or "")).encode("ascii", "ignore").decode()
-    value = value.lower().strip()
-    return re.sub(r"[^a-z0-9]+", " ", value).strip()
+    a = (
+        sin(dlat / 2) ** 2
+        +
+        cos(lat1)
+        *
+        cos(lat2)
+        *
+        sin(dlon / 2) ** 2
+    )
 
 
-def grid_key(lat, lon):
-    return (int(float(lat) / GRID_DEGREES), int(float(lon) / GRID_DEGREES))
+    c = 2 * atan2(
+        sqrt(a),
+        sqrt(1 - a)
+    )
 
 
-def _text_candidates(value):
-    normalized = normalize(value)
-    if not normalized:
-        return []
-    parts = normalized.split()
-    # Include the full place and useful suffix-free forms. This handles values
-    # such as "Maharajgunj Kathmandu" without pretending the hospital itself is
-    # a destination.
-    candidates = [normalized]
-    if len(parts) > 1:
-        candidates.append(" ".join(parts[-2:]))
-        candidates.extend(parts)
-    return list(dict.fromkeys(candidates))
+    return R * c
 
 
-class DestinationIndex:
-    def __init__(self):
-        rows = list(
-            Destination.objects.values(
-                "id", "name", "city", "district", "province", "latitude", "longitude"
+
+def find_destination(
+    name,
+    latitude,
+    longitude
+):
+
+    # 1. Match destination name
+
+    if name:
+
+        try:
+
+            return Destination.objects.get(
+                name__iexact=name.strip()
             )
-        )
-        self.by_name = defaultdict(list)
-        self.by_place = defaultdict(list)
-        self.grid = defaultdict(list)
-        self.destinations = {}
 
-        for row in rows:
-            lat, lon = row["latitude"], row["longitude"]
-            if lat is None or lon is None:
-                continue
-            self.destinations[row["id"]] = row
-            for value in (row["name"],):
-                key = normalize(value)
-                if key:
-                    self.by_name[key].append(row)
-            for value in (row["city"], row["district"], row["province"]):
-                key = normalize(value)
-                if key:
-                    self.by_place[key].append(row)
-            self.grid[grid_key(lat, lon)].append(row)
+        except Destination.DoesNotExist:
 
-    def _nearest(self, lat, lon, candidates):
-        best = None
-        best_distance = None
-        for row in candidates:
-            distance = calculate_distance(lat, lon, row["latitude"], row["longitude"])
-            if best_distance is None or distance < best_distance:
-                best, best_distance = row, distance
-        if best is not None and best_distance <= COORDINATE_MATCH_RADIUS_KM:
-            return best
+            pass
+
+
+
+    # 2. Match by coordinates
+
+    if not latitude or not longitude:
         return None
 
-    def find(self, destination_name, district, latitude, longitude):
-        for candidate in _text_candidates(destination_name):
-            rows = self.by_name.get(candidate) or self.by_place.get(candidate)
-            if rows:
-                return self._nearest(latitude, longitude, rows) or rows[0]
 
-        for candidate in _text_candidates(district):
-            rows = self.by_place.get(candidate)
-            if rows:
-                return self._nearest(latitude, longitude, rows) or rows[0]
 
-        lat_cell, lon_cell = grid_key(latitude, longitude)
-        candidates = []
-        for dlat in (-1, 0, 1):
-            for dlon in (-1, 0, 1):
-                candidates.extend(self.grid.get((lat_cell + dlat, lon_cell + dlon), []))
-        return self._nearest(latitude, longitude, candidates)
+    nearest_destination = None
+    nearest_distance = None
+
+
+
+    destinations = Destination.objects.exclude(
+        latitude__isnull=True,
+        longitude__isnull=True
+    )
+
+
+
+    for destination in destinations:
+
+
+        distance = calculate_distance(
+
+            latitude,
+            longitude,
+
+            destination.latitude,
+            destination.longitude
+
+        )
+
+
+        if (
+            nearest_distance is None
+            or distance < nearest_distance
+        ):
+
+            nearest_distance = distance
+            nearest_destination = destination
+
+
+
+    # Himalaya locations can be spread out
+    # 20 KM matching radius
+
+    if nearest_distance and nearest_distance <= 20:
+
+        return nearest_destination
+
+
+
+    return None
+
+
 
 
 class Command(BaseCommand):
-    help = "Import hospitals from CSV and attach them to verified nearby destinations."
+
+    help = "Import hospitals from CSV"
+
+
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            "--csv",
-            default="dataset/hospital_cleaned.csv",
-            help="CSV path (raw dataset/hospital.csv also works — headers are normalised)",
-        )
+        parser.add_argument("--csv", default="dataset/hospital_cleaned.csv",
+                            help="CSV path (raw dataset/hospital.csv also works — headers are normalised)")
 
     def handle(self, *args, **kwargs):
-        path = kwargs.get("csv") or "dataset/hospital_cleaned.csv"
-        df = pd.read_csv(path)
-        df.columns = (
-            df.columns.str.strip().str.lower().str.replace(" ", "_", regex=False)
+
+
+        df = pd.read_csv(
+            kwargs.get("csv") or "dataset/hospital_cleaned.csv"
         )
 
-        required = {"hospital_name", "latitude", "longitude"}
-        missing = required - set(df.columns)
-        if missing:
-            raise ValueError(f"Hospital CSV is missing required columns: {sorted(missing)}")
 
-        df["latitude"] = pd.to_numeric(df["latitude"], errors="coerce")
-        df["longitude"] = pd.to_numeric(df["longitude"], errors="coerce")
-        df = df.dropna(subset=["latitude", "longitude"])
+        # normalize headers
 
-        index = DestinationIndex()
+        df.columns = (
+            df.columns
+            .str.strip()
+            .str.lower()
+            .str.replace(" ", "_")
+        )
+
+        # raw CSVs repeat the header row inside the data — keep only rows
+        # whose coordinates actually parse as numbers
+        df = df[
+            pd.to_numeric(df.get("latitude"), errors="coerce").notna()
+            & pd.to_numeric(df.get("longitude"), errors="coerce").notna()
+        ]
+
+
+
         created = 0
         skipped = 0
 
-        for _, row in df.iterrows():
-            name = str(row.get("hospital_name") or "").strip()
-            if not name:
-                continue
 
-            destination = index.find(
+
+        for _, row in df.iterrows():
+
+
+            destination = find_destination(
+
                 row.get("destination"),
-                row.get("district"),
-                row["latitude"],
-                row["longitude"],
+
+                row.get("latitude"),
+
+                row.get("longitude")
+
             )
 
-            if destination is None:
+
+
+            if not destination:
+
+
                 skipped += 1
+
+
                 self.stdout.write(
+
                     self.style.WARNING(
-                        f"Destination not found for hospital: {name} "
-                        f"({row.get('destination') or row.get('district') or 'no place'})"
+
+                        f"Destination not found for hospital: "
+                        f"{row['hospital_name']}"
+
                     )
+
                 )
+
                 continue
+
+
+
 
             Hospital.objects.update_or_create(
-                destination_id=destination["id"],
-                name=name,
+
+                destination=destination,
+
+                name=row["hospital_name"],
+
+
                 defaults={
-                    "address": str(row.get("address") or ""),
-                    "phone": str(row.get("phone") or ""),
-                    "latitude": row["latitude"],
-                    "longitude": row["longitude"],
-                    "district": str(row.get("district") or destination["district"] or ""),
-                },
+
+                    "address": row.get(
+                        "address",
+                        ""
+                    ),
+
+
+                    "phone": row.get(
+                        "phone",
+                        ""
+                    ),
+
+
+                    "latitude": row.get(
+                        "latitude"
+                    ),
+
+
+                    "longitude": row.get(
+                        "longitude"
+                    ),
+
+
+                    "district": row.get(
+                        "district",
+                        ""
+                    ),
+
+                }
+
             )
+
+
             created += 1
 
+
+
         self.stdout.write(
+
             self.style.SUCCESS(
-                f"Imported: {created}, Skipped: {skipped}, "
-                f"total_hospitals={Hospital.objects.count()}"
+
+                f"Imported: {created}, Skipped: {skipped}"
+
             )
+
         )

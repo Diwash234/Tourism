@@ -1,53 +1,125 @@
 import { useState } from "react"
-import { FiChevronLeft, FiChevronRight, FiMoreHorizontal } from "react-icons/fi"
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi"
 
-export default function Pagination({ page, totalPages, onPageChange, pageSize, onPageSizeChange, totalItems }) {
-  const [jumpValue, setJumpValue] = useState(String(page || 1))
-  // Keep the jump input in sync with the page prop by adjusting during render
-  // (the effect that used to do this was banned by react-hooks/set-state-in-effect).
-  const [prevPage, setPrevPage] = useState(page)
-  if (page !== prevPage) {
-    setPrevPage(page)
-    setJumpValue(String(page || 1))
+// Builds a windowed page list like [1, "…", 8, 9, 10, "…", 42] so a catalog
+// with hundreds of pages never renders hundreds of buttons (audit REQ-028).
+const buildWindow = (current, total) => {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages = new Set([1, total, current, current - 1, current + 1])
+  if (current <= 4) [2, 3, 4, 5].forEach((p) => pages.add(p))
+  if (current >= total - 3) [total - 4, total - 3, total - 2, total - 1].forEach((p) => pages.add(p))
+  const sorted = [...pages].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b)
+  const out = []
+  sorted.forEach((p, i) => {
+    if (i > 0 && p - sorted[i - 1] > 1) out.push("…")
+    out.push(p)
+  })
+  return out
+}
+
+const Pagination = ({ currentPage, totalPages, onPageChange }) => {
+  const [jump, setJump] = useState("")
+  const [jumpError, setJumpError] = useState("")
+  if (totalPages <= 1) return null
+
+  const go = (p) => {
+    if (p >= 1 && p <= totalPages && p !== currentPage) onPageChange(p)
   }
-  const currentPage = Math.min(Math.max(Number(page) || 1, 1), Math.max(Number(totalPages) || 1, 1))
-  const safeTotalPages = Math.max(Number(totalPages) || 1, 1)
-  const getPageNumbers = () => {
-    if (safeTotalPages <= 7) return Array.from({ length: safeTotalPages }, (_, index) => index + 1)
-    const pages = [1]
-    const left = Math.max(2, currentPage - 1)
-    const right = Math.min(safeTotalPages - 1, currentPage + 1)
-    if (left > 2) pages.push("...")
-    for (let number = left; number <= right; number += 1) pages.push(number)
-    if (right < safeTotalPages - 1) pages.push("...")
-    pages.push(safeTotalPages)
-    return pages
+
+  const submitJump = (e) => {
+    e.preventDefault()
+    const raw = jump.trim()
+    if (!/^\d+$/.test(raw)) {
+      setJumpError("Enter a page number (digits only).")
+      return
+    }
+    const n = parseInt(raw, 10)
+    if (n < 1 || n > totalPages) {
+      setJumpError(`Page must be between 1 and ${totalPages}.`)
+      return
+    }
+    setJumpError("")
+    setJump("")
+    go(n)
   }
-  const jumpToPage = (event) => {
-    event.preventDefault()
-    const value = jumpValue.trim()
-    if (!/^\\d+$/.test(value)) return
-    const requested = Number(value)
-    if (requested < 1 || requested > safeTotalPages) { setJumpValue(String(currentPage)); return }
-    onPageChange(requested)
-  }
-  if (safeTotalPages <= 1 && !onPageSizeChange) return null
-  const firstItem = totalItems ? (currentPage - 1) * pageSize + 1 : 0
-  const lastItem = totalItems ? Math.min(currentPage * pageSize, totalItems) : 0
+
+  const btnBase =
+    "h-9 min-w-9 px-2 rounded-lg text-sm font-medium border transition-colors"
+
   return (
-    <nav className="flex flex-col gap-4 border-t border-[var(--ny-border)] py-4 sm:flex-row sm:items-center sm:justify-between" aria-label="Pagination">
-      <div className="flex flex-wrap items-center gap-2 text-sm text-[var(--ny-text-secondary)]">
-        {totalItems != null && <span>Showing {firstItem}–{lastItem} of {totalItems}</span>}
-        {onPageSizeChange && <label className="flex items-center gap-2"><span className="sr-only">Results per page</span><select value={pageSize} onChange={(event) => onPageSizeChange(Number(event.target.value))} className="min-h-9 rounded-lg border border-[var(--ny-border)] bg-[var(--ny-white)] px-2 text-sm" aria-label="Results per page">{[10, 20, 50, 100].map((size) => <option key={size} value={size}>{size} / page</option>)}</select></label>}
+    <div className="flex flex-col items-center gap-3 mt-8">
+      <div className="flex items-center justify-center gap-1.5 flex-wrap">
+        <button
+          onClick={() => go(currentPage - 1)}
+          disabled={currentPage === 1}
+          aria-label="Previous page"
+          className={`${btnBase} border-gray-200 p-2 disabled:opacity-40`}
+        >
+          <FiChevronLeft />
+        </button>
+        {buildWindow(currentPage, totalPages).map((page, i) =>
+          page === "…" ? (
+            <span key={`gap-${i}`} className="px-1 text-gray-400 select-none" aria-hidden="true">
+              …
+            </span>
+          ) : (
+            <button
+              key={page}
+              onClick={() => go(page)}
+              aria-label={`Page ${page}`}
+              aria-current={page === currentPage ? "page" : undefined}
+              className={
+                page === currentPage
+                  ? `${btnBase} bg-primary-500 text-white border-primary-500`
+                  : `${btnBase} border-gray-200 text-gray-600 hover:bg-gray-50`
+              }
+            >
+              {page}
+            </button>
+          )
+        )}
+        <button
+          onClick={() => go(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          aria-label="Next page"
+          className={`${btnBase} border-gray-200 p-2 disabled:opacity-40`}
+        >
+          <FiChevronRight />
+        </button>
       </div>
-      <div className="flex flex-wrap items-center justify-end gap-1.5">
-        <button type="button" onClick={() => onPageChange(currentPage - 1)} disabled={currentPage <= 1} className="ny-btn ny-btn-secondary ny-btn-sm" aria-label="Previous page"><FiChevronLeft size={15} aria-hidden="true" /><span className="hidden sm:inline">Previous</span></button>
-        <div className="hidden items-center gap-1 sm:flex">{getPageNumbers().map((number, index) => number === "..." ? <span key={"ellipsis-" + index} className="grid h-9 w-8 place-items-center text-[var(--ny-text-muted)]" aria-hidden="true"><FiMoreHorizontal size={15} /></span> : <button key={number} type="button" onClick={() => onPageChange(number)} aria-current={number === currentPage ? "page" : undefined} className={number === currentPage ? "grid h-9 min-w-9 place-items-center rounded-lg bg-[var(--ny-green)] px-2 text-sm font-bold text-white" : "grid h-9 min-w-9 place-items-center rounded-lg border border-[var(--ny-border)] bg-[var(--ny-white)] px-2 text-sm font-semibold text-[var(--ny-text-secondary)] hover:bg-[var(--ny-soft-green)]"}>{number}</button>)}</div>
-        <span className="px-2 text-xs font-semibold text-[var(--ny-text-secondary)] sm:hidden">Page {currentPage} of {safeTotalPages}</span>
-        <form onSubmit={jumpToPage} className="hidden items-center gap-1.5 md:flex" aria-label="Jump to page"><label htmlFor="pagination-jump" className="sr-only">Jump to page</label><input id="pagination-jump" value={jumpValue} onChange={(event) => setJumpValue(event.target.value)} inputMode="numeric" pattern="\\d+" placeholder="Jump to…" aria-label="Jump to page number" className="h-9 w-24 rounded-lg border border-[var(--ny-border)] bg-[var(--ny-white)] px-2 text-center text-sm" /><button type="submit" className="ny-btn ny-btn-secondary ny-btn-sm">Go</button></form>
-        <span className="hidden px-2 text-xs font-semibold text-[var(--ny-text-secondary)] lg:inline">Page {currentPage} of {safeTotalPages}</span>
-        <button type="button" onClick={() => onPageChange(currentPage + 1)} disabled={currentPage >= safeTotalPages} className="ny-btn ny-btn-secondary ny-btn-sm" aria-label="Next page"><span className="hidden sm:inline">Next</span><FiChevronRight size={15} aria-hidden="true" /></button>
-      </div>
-    </nav>
+
+      <form onSubmit={submitJump} className="flex items-center gap-2 text-sm text-gray-600">
+        <span aria-live="polite">
+          Page {currentPage} of {totalPages}
+        </span>
+        <label className="flex items-center gap-1.5">
+          <span className="sr-only">Go to page number</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={jump}
+            onChange={(e) => {
+              setJump(e.target.value)
+              if (jumpError) setJumpError("")
+            }}
+            placeholder="Jump to…"
+            className="h-9 w-24 rounded-lg border border-gray-200 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
+          />
+        </label>
+        <button
+          type="submit"
+          className="h-9 px-3 rounded-lg bg-primary-500 text-white text-sm font-medium hover:bg-primary-600"
+        >
+          Go
+        </button>
+        {jumpError && (
+          <span role="alert" className="text-red-600 text-xs">
+            {jumpError}
+          </span>
+        )}
+      </form>
+    </div>
   )
 }
+
+export default Pagination

@@ -1,40 +1,29 @@
-import { FiInbox, FiSearch, FiMapPin, FiHeart, FiCalendar } from "react-icons/fi"
+import { FiInbox } from "react-icons/fi"
 
 /**
- * Empty state component with icon, title, description, and optional action.
+ * One intentional empty state for catalogue, account, gallery and safety
+ * surfaces. It is deliberately compact so a missing API record never looks
+ * like a broken page.
  */
-export default function EmptyState({
-  icon = "inbox",
+const EmptyState = ({
   title = "Nothing here yet",
-  description = "There's nothing to display at the moment.",
-  actionLabel,
-  onAction,
+  subtitle = "There is no information to show yet.",
+  icon: Icon = FiInbox,
+  action,
+  secondaryAction,
   className = "",
-}) {
-  const icons = {
-    inbox: <FiInbox size={48} />,
-    search: <FiSearch size={48} />,
-    location: <FiMapPin size={48} />,
-    heart: <FiHeart size={48} />,
-    calendar: <FiCalendar size={48} />,
-  }
-
-  return (
-    <div className={`flex flex-col items-center justify-center py-12 px-6 text-center ${className}`}>
-      <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[var(--ny-soft-green)] text-[var(--ny-green)] mb-4">
-        {icons[icon] || icons.inbox}
+}) => (
+  <section className={`ny-empty ${className}`} role="status">
+    <span className="ny-empty-icon" aria-hidden="true"><Icon size={24} /></span>
+    <h2>{title}</h2>
+    {subtitle && <p>{subtitle}</p>}
+    {(action || secondaryAction) && (
+      <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
+        {action}
+        {secondaryAction}
       </div>
-      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{title}</h3>
-      <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mb-4">{description}</p>
-      {actionLabel && onAction && (
-        <button
-          type="button"
-          onClick={onAction}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--ny-green)] text-white text-sm font-semibold hover:bg-[var(--ny-emerald)] transition-colors"
-        >
-          {actionLabel}
-        </button>
-      )}
-    </div>
-  )
-}
+    )}
+  </section>
+)
+
+export default EmptyState

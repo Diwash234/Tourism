@@ -229,7 +229,7 @@ export default function CompareDestinations() {
         <button type="button" onClick={retryGeo} disabled={locating} className="ny-btn ny-btn-secondary min-h-11 self-start text-xs sm:self-auto"><FiNavigation size={15} aria-hidden="true" />{position ? "Location active" : locating ? "Finding location…" : geoError ? "Try location again" : "Use my location"}</button>
         <div>
           <p className="text-xs font-bold text-[#102A2E]">Comparing {selectedDestinations.length} of max 4 destinations</p>
-          <p className="text-xs text-gray-500">Add any approved place from the live catalogue.</p>
+          <p className="text-[11px] text-gray-500">Add any approved place from the live catalogue.</p>
         </div>
 
         {selectedDestinations.length < 4 && (
@@ -262,7 +262,7 @@ export default function CompareDestinations() {
                         className="w-full text-left p-2 rounded-xl hover:bg-[#F7F8F5] text-xs font-semibold text-gray-800 flex items-center justify-between"
                       >
                         <span className="truncate">{p.name}</span>
-                        <span className="text-xs text-emerald-700 font-bold ml-2">Add +</span>
+                        <span className="text-[10px] text-emerald-700 font-bold ml-2">Add +</span>
                       </button>
                     ))}
                 </div>
@@ -301,11 +301,11 @@ export default function CompareDestinations() {
                   </button>
                 )}
                 <div className="absolute bottom-3 left-3 right-3 text-white">
-                  <span className="px-2 py-0.5 rounded-full bg-amber-400 text-gray-950 text-xs font-black uppercase">
+                  <span className="px-2 py-0.5 rounded-full bg-amber-400 text-gray-950 text-[10px] font-black uppercase">
                     {dest.category}
                   </span>
                   <h3 className="text-lg font-black mt-1 leading-tight">{dest.name}</h3>
-                  <p className="text-xs text-purple-200">{dest.location}</p>
+                  <p className="text-[11px] text-purple-200">{dest.location}</p>
                 </div>
               </div>
 
@@ -346,13 +346,13 @@ export default function CompareDestinations() {
                   <span className="font-bold text-gray-500 flex items-center gap-1.5">
                     <FiTruck className="text-emerald-700" /> From Kathmandu:
                   </span>
-                  <p className="text-xs text-gray-700">{dest.distance_ktm}</p>
+                  <p className="text-[11px] text-gray-700">{dest.distance_ktm}</p>
                 </div>
                 <div className="py-1.5 border-b border-gray-100 space-y-1">
                   <span className="font-bold text-gray-500 flex items-center gap-1.5">
                     <FiNavigation className="text-emerald-600" /> From Your GPS:
                   </span>
-                  <p className="text-xs font-bold text-emerald-800">
+                  <p className="text-[11px] font-bold text-emerald-800">
                     {hasValidCoords(dest.lat, dest.lng) && position?.lat != null && position?.lng != null
                       ? `≈ ${calculateDistanceKm(position.lat, position.lng, dest.lat, dest.lng)} km away from you (straight line)`
                       : hasValidCoords(dest.lat, dest.lng)
@@ -364,10 +364,10 @@ export default function CompareDestinations() {
                   <span className="font-bold text-gray-500 flex items-center gap-1.5">
                     <FiShield className="text-rose-600" /> Safety notes:
                   </span>
-                  <p className="text-xs text-gray-700">{dest.permits}</p>
+                  <p className="text-[11px] text-gray-700">{dest.permits}</p>
                 </div>
                 <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <p className="text-xs text-gray-600 leading-relaxed italic">"{dest.highlight}"</p>
+                  <p className="text-[11px] text-gray-600 leading-relaxed italic">"{dest.highlight}"</p>
                 </div>
               </div>
             </div>

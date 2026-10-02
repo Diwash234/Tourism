@@ -26,7 +26,6 @@ from . import views_account
 from . import views_navigation
 from . import views_workforce
 from . import views_travel
-from translation.views import TranslateBatchView
 
 
 # NOTE (Round 21): login moved to views_auth.LoginView — SimpleJWT's stock
@@ -121,6 +120,11 @@ urlpatterns = [
     path("ml/best-route/", views_ml.BestRouteView.as_view(), name="ml-best-route"),
     path("ml/itinerary/", views_ml.ItineraryView.as_view(), name="ml-itinerary"),
     path("ml/itinerary/modify/", views_ml.AIItineraryModificationView.as_view(), name="ml-itinerary-modify"),
+    path("curated-itineraries/", views_itinerary.CuratedItineraryListView.as_view(), name="curated-itineraries-list"),
+    path("curated-itineraries/compare/", views_itinerary.CuratedItineraryCompareView.as_view(), name="curated-itineraries-compare"),
+    path("curated-itineraries/<slug:slug>/safety/", views_itinerary.CuratedItinerarySafetyView.as_view(), name="curated-itineraries-safety"),
+    path("curated-itineraries/<slug:slug>/packing/", views_itinerary.CuratedItineraryPackingView.as_view(), name="curated-itineraries-packing"),
+    path("curated-itineraries/<slug:slug>/", views_itinerary.CuratedItineraryDetailView.as_view(), name="curated-itineraries-detail"),
     # Mark an itinerary stop visited (plan -> execution tracking)
     path("itinerary-stops/<int:pk>/visit/", views_itinerary.ItineraryStopVisitView.as_view(), name="itinerary-stop-visit"),
     path("ml/results/", views_ml.MLResultWebhookView.as_view(), name="ml-results-webhook"),
@@ -252,6 +256,8 @@ urlpatterns = [
     path("feedback/<int:id>/message", views_admin.UserFeedbackMessageView.as_view(), name="user-feedback-message"),
     path("feedback/<int:id>/message/", views_admin.UserFeedbackMessageView.as_view(), name="user-feedback-message-slash"),
     path("admin/fetch-images/", views_admin.FetchWebImagesView.as_view(), name="admin-fetch-images"),
+    path("admin/images/multi-search/", views_admin.AdminMultiSourceImageSearchView.as_view(), name="admin-image-multi-search"),
+    path("admin/images/import-media/", views_admin.AdminImageImportMediaView.as_view(), name="admin-image-import-media"),
     path("admin/generate-ai-images/", views_admin.GenerateAIImagesView.as_view(), name="admin-generate-ai-images"),
     path("admin/download-ai-images/", views_admin.DownloadAIImagesView.as_view(), name="admin-download-ai-images"),
     path("admin/images/<int:id>", views_admin.DeleteImageView.as_view(), name="admin-delete-image"),
@@ -298,11 +304,6 @@ urlpatterns = [
     path("admin/newsletter/export.csv", views_account.NewsletterExportView.as_view(), name="admin-newsletter-export"),
     path("discover-nepal/", views.DiscoverNepalView.as_view(), name="discover-nepal"),
     path("translate/", views.TranslateTextView.as_view(), name="translate-text"),
-    # Page-level machine translation (src/i18n translatePageUi). This route
-    # was never wired: translation/urls.py stayed commented out, so every
-    # batch POST 404'd, the frontend catch kept the English text, and the UI
-    # only ever switched the handful of strings served by the local dicts.
-    path("translate/batch/", TranslateBatchView.as_view(), name="translate-batch"),
     path("images/resolve/", views_images.ImageResolveView.as_view(), name="images-resolve"),
     # Multi-source Image Acquisition & Provenance Pipeline API
     path("destinations/<str:slug>/images", views_images.DestinationImagesListView.as_view(), name="destination-images-list-no-slash"),

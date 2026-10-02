@@ -169,10 +169,7 @@ export default function SubmitPlacePage() {
       return
     }
     setSubmitting(true)
-    // Blank/unparseable fee means "not recorded": send the empty string so
-    // DRF's HTML-input rule maps it to null. The old `|| 0.0` wrote 0.00 for
-    // every blank fee, which the site then displayed as a real price.
-    const feeNum = parseFloat(form.entry_fee)
+    const feeNum = parseFloat(form.entry_fee) || 0.0
     const muniFinal = manualMuniMode ? (manualMuniText.trim() || selectedDistrict) : selectedMunicipality
 
     const formData = new FormData()
@@ -188,7 +185,7 @@ export default function SubmitPlacePage() {
           formData.append("longitude", lonRaw.toFixed(6))
         }
     formData.append("altitude", form.altitude.trim())
-    formData.append("entry_fee", Number.isFinite(feeNum) ? feeNum.toFixed(2) : "")
+    formData.append("entry_fee", feeNum.toFixed(2))
     formData.append("opening_hours", form.opening_hours.trim())
     formData.append("best_time_to_visit", form.best_time_to_visit.trim())
     formData.append("short_description", form.short_description.trim())
@@ -273,7 +270,7 @@ export default function SubmitPlacePage() {
           All 77 Districts & 753 Local Bodies
         </span>
         <PageHeader title="Submit a New Nepal Destination" subtitle="Share a place with evidence. Submissions are reviewed before they appear publicly." icon={FiMapPin} />
-        <p className="text-gray-500 dark:text-gray-400 text-sm max-w-2xl mx-auto mt-1">
+        <p className="text-gray-500 text-sm max-w-2xl mx-auto mt-1">
           Select or manually enter a district, municipality, village or ward, attach photos, and submit the record for review. Leave a field blank when it is not known.
         </p>
       </div>
@@ -303,11 +300,11 @@ export default function SubmitPlacePage() {
                 <div className="mt-2 p-2.5 rounded-xl bg-[#F7F8F5] border border-[#E5E0D5] text-xs text-[#102A2E] flex items-center justify-between">
                   <div>
                     <span className="font-bold">Administrative match:</span> {autoGeocodeMatch.district}, {autoGeocodeMatch.province}
-                    <span className="text-xs text-[#102A2E] ml-2">
+                    <span className="text-[11px] text-[#102A2E] ml-2">
                       (Provide GPS or coordinates manually for an exact map point.)
                     </span>
                   </div>
-                  <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-xs font-black uppercase">
+                  <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">
                     Name match
                   </span>
                 </div>
@@ -337,7 +334,7 @@ export default function SubmitPlacePage() {
               <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
                 <FiLayers className="text-emerald-700" /> 2. Administrative Location (77 Districts & Municipalities)
               </h3>
-              <p className="text-xs text-gray-400">
+              <p className="text-[11px] text-gray-400">
                 Choose the administrative area, then use GPS or enter coordinates manually. A district centre is not treated as an exact place location.
               </p>
             </div>
@@ -474,7 +471,7 @@ export default function SubmitPlacePage() {
           {/* Coordinates readout and manual adjustments */}
           <div className="mt-3 p-4 rounded-2xl bg-[#F7F8F5]/80 border border-[#E5E0D5] grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
             <div>
-              <label className="text-xs text-gray-500 font-bold uppercase">Latitude (DD)</label>
+              <label className="text-[10px] text-gray-500 font-bold uppercase">Latitude (DD)</label>
               <input
                 type="number"
                 step="any"
@@ -484,7 +481,7 @@ export default function SubmitPlacePage() {
               />
             </div>
             <div>
-              <label className="text-xs text-gray-500 font-bold uppercase">Longitude (DD)</label>
+              <label className="text-[10px] text-gray-500 font-bold uppercase">Longitude (DD)</label>
               <input
                 type="number"
                 step="any"
@@ -494,7 +491,7 @@ export default function SubmitPlacePage() {
               />
             </div>
             <div className="col-span-2 sm:col-span-1 flex flex-col justify-end">
-              <span className="text-xs text-gray-500 font-bold uppercase">Location Geocode</span>
+              <span className="text-[10px] text-gray-500 font-bold uppercase">Location Geocode</span>
               <p className="text-xs font-extrabold text-[#102A2E] mt-1">
                 {selectedDistrict}, Ward {selectedWard}
               </p>

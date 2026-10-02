@@ -125,7 +125,7 @@ export default function MarketplacePanel() {
       <div className="rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
-            <p className="text-[11px] font-black uppercase tracking-wider text-emerald-700">Travel services</p>
+            <p className="text-xs font-black uppercase tracking-wider text-emerald-700">Travel services</p>
             <h2 className="text-2xl font-black text-slate-900">Packages, partners & trip requests</h2>
             <p className="text-sm text-slate-300 mt-1 max-w-3xl">
               Add packages from this desk or after a hotel / operator applies. Travellers request to book or continue

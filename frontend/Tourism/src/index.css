@@ -73,9 +73,6 @@ body { background-color: var(--brand-background); }
   --ny-z-dropdown: 70;
   --ny-z-modal: 90;
   --ny-z-toast: 110;
-  --ny-chrome-bg: #063B32;
-  --ny-chrome-bg-strong: #042A24;
-  --ny-chrome-border: rgba(255,255,255,0.10);
 
   /* Legacy aliases used by existing feature code. */
   --text: var(--ny-text);
@@ -672,9 +669,6 @@ html.dark .container-app { color: #e2e8f0; }
    block re-skins the app chrome and every primitive-based surface.
    ========================================== */
 .dark {
-  --ny-chrome-bg: #021A15;
-  --ny-chrome-bg-strong: #01120F;
-  --ny-chrome-border: rgba(99,230,190,0.14);
   --brand-background: #0c1220;
   --text: #d6d3d1;            /* stone-300 */
   --text-h: #fafaf9;          /* stone-50 */
@@ -1323,30 +1317,3 @@ body.ny-cookie-visible .ny-footer-wrap {
 /* Form fields: visible label above every input, error text tied by aria-describedby. */
 .ny-field-label { display: block; margin-bottom: 0.375rem; font-size: 0.875rem; font-weight: 700; color: var(--ny-text); }
 .ny-field-error { margin-top: 0.25rem; font-size: 0.75rem; font-weight: 600; color: var(--ny-danger); }
-
-
-/* User-controlled reduced-motion preference. This complements the OS-level
-   prefers-reduced-motion rule and persists across sessions. */
-.reduce-motion *, .reduce-motion *::before, .reduce-motion *::after {
-  animation-duration: 0.01ms !important;
-  animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important;
-  scroll-behavior: auto !important;
-}
-
-
-/* Theme-aware public chrome. The navbar/sidebar used to remain hard-coded
-   emerald surfaces while the rest of the application changed theme. Keep the
-   same brand language, but make the chrome respond to the selected theme. */
-.ny-header {
-  background: var(--ny-chrome-bg) !important;
-  border-bottom-color: var(--ny-chrome-border) !important;
-}
-.sidebar-drawer {
-  background: var(--ny-chrome-bg) !important;
-  border-right-color: var(--ny-chrome-border) !important;
-}
-.ny-header .bg-\\[\\#063B32\\],
-.sidebar-drawer .bg-\\[\\#063B32\\] {
-  background-color: var(--ny-chrome-bg-strong) !important;
-}

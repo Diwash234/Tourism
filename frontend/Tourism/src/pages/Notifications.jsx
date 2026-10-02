@@ -101,8 +101,8 @@ export default function Notifications() {
               <button onClick={() => toggle(item)} className="flex-1 text-left" aria-label={item.is_read ? "Mark unread" : "Mark read"}>
                 <div className="flex flex-wrap gap-2 items-center">
                   <b className="text-gray-900">{item.title}</b>
-                  <span className="text-xs uppercase rounded-full bg-gray-100 px-2 py-0.5">{item.category}</span>
-                  <span className={`text-xs rounded-full px-2 py-0.5 ${item.delivery_status === "sent" ? "bg-emerald-100 text-emerald-700" : item.delivery_status === "failed" ? "bg-rose-100 text-rose-700" : "bg-sky-100 text-sky-700"}`}>
+                  <span className="text-[10px] uppercase rounded-full bg-gray-100 px-2 py-0.5">{item.category}</span>
+                  <span className={`text-[10px] rounded-full px-2 py-0.5 ${item.delivery_status === "sent" ? "bg-emerald-100 text-emerald-700" : item.delivery_status === "failed" ? "bg-rose-100 text-rose-700" : "bg-sky-100 text-sky-700"}`}>
                     {item.channel} · {item.delivery_status}
                   </span>
                 </div>

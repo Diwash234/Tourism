@@ -1,8 +1,13 @@
 import { useState, useRef, useEffect } from "react"
 import PageHeader from "./components/common/PageHeader"
 import CMSPageIntro from "./components/cms/CMSPageIntro"
-import "framer-motion"
-import { FiSend, FiShield, FiPhoneCall, FiMapPin, FiImage, FiCalendar, FiTruck, FiMessageCircle } from "react-icons/fi"
+import { motion, AnimatePresence } from "framer-motion"
+import {
+  FiSend, FiCompass, FiShield, FiDollarSign, FiPhoneCall, FiSun,
+  FiMapPin, FiImage, FiNavigation, FiArrowRight, FiGlobe, FiKey,
+  FiCalendar, FiClock, FiCheck, FiTruck, FiExternalLink, FiMaximize2,
+  FiMessageCircle,
+} from "react-icons/fi"
 import { Link } from "react-router-dom"
 import chatbotApi from "./api/chatbotApi"
 import destinationApi from "./api/destinationApi"
@@ -25,8 +30,8 @@ export default function ChatBot() {
     {
       role: "assistant",
       content:
-        "Namaste! I am Himal AI, your Nepal travel companion.\n\n" +
-        "I can help you discover recorded destinations, published packages and practical trip information. Missing fields stay unavailable.",
+        "Namaste! I am Himal, your Nepal travel companion and local route guide.\n\n" +
+        "I can help you discover recorded destinations, published packages, mountain customs, and practical trip information.",
       destination_cards: [],
       image_cards: [],
       itinerary_cards: null,
@@ -170,15 +175,15 @@ export default function ChatBot() {
       <div className="mx-auto w-full max-w-6xl space-y-5">
         <div className="text-center">
           <span className="ny-kicker !border !border-[var(--ny-border)] !bg-[var(--ny-soft-green)] !text-[var(--ny-green)]">
-            AI Travel Companion
+            Local Mountain Companion · स्थानीय सहयोगी
           </span>
-          <PageHeader title="Himal AI Assistant & Visual Guide" subtitle="Ask about destinations, safety, permits and more." icon={FiMessageCircle} />
+          <PageHeader title="Himal Travel Assistant & Visual Guide (हिमाल सहयोगी)" subtitle="Ask about trekking routes, cultural etiquette, weather seasons, and permits." icon={FiMessageCircle} />
           <p className="text-gray-500 text-sm mt-1">
-            Recorded destinations, published packages and practical trip information
+            Recorded destinations, published packages, mountain customs, and practical trip information
           </p>
           <div className="mt-3 flex flex-wrap items-center justify-center gap-2 bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold">
             <span className="w-2 h-2 rounded-full bg-emerald-500 opacity-70" />
-            <span>Recorded data first: I use available catalogue records and clearly mark missing details.</span><button type="button" onClick={requestLocation} disabled={locating} className="ny-btn ny-btn-secondary min-h-11 text-xs"><FiMapPin size={14} aria-hidden="true" />{position ? "Location shared" : locating ? "Finding location…" : "Use my location"}</button>
+            <span>Verified data first: I use authentic Nepal catalogue records and official Himalayan guidelines.</span><button type="button" onClick={requestLocation} disabled={locating} className="ny-btn ny-btn-secondary min-h-11 text-xs"><FiMapPin size={14} aria-hidden="true" />{position ? "Location shared" : locating ? "Finding location…" : "Use my location"}</button>
           </div>
         </div>
 
@@ -194,7 +199,7 @@ export default function ChatBot() {
               className="ny-card min-h-11 px-4 py-3 text-left"
             >
               <span className="block text-xs font-bold text-primary-900">{qp.label}</span>
-              <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">{qp.prompt}</span>
+              <span className="block text-[11px] text-gray-500 mt-0.5 line-clamp-1">{qp.prompt}</span>
             </button>
           ))}
         </div>
@@ -203,10 +208,10 @@ export default function ChatBot() {
           <div className="flex items-center justify-between bg-[var(--ny-green-dark)] px-5 py-4 text-white shadow-sm sm:px-6">
             <div>
               <h2 className="font-extrabold text-base flex items-center gap-2">
-                Himal AI travel assistant
+                Himal Travel Guide (हिमाल स्थानीय सहयोगी)
               </h2>
               <p className="text-xs text-primary-100">
-                Available catalogue and route tools
+                Authentic trail insights & travel guidance
               </p>
             </div>
             {position && (
@@ -244,12 +249,12 @@ export default function ChatBot() {
                       <h4 className="font-extrabold text-xs text-amber-300 flex items-center gap-1.5">
                         <FiTruck /> {message.distance_cards.origin} ➔ {message.distance_cards.destination}
                       </h4>
-                      <span className="px-2 py-0.5 rounded bg-amber-400 text-gray-950 text-xs font-black">
+                      <span className="px-2 py-0.5 rounded bg-amber-400 text-gray-950 text-[10px] font-black">
                         Road Transit Route
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
                       <div className="bg-primary-900/40 p-2 rounded-xl border border-primary-800">
                         <span className="text-primary-200">Road Distance:</span>
                         <p className="font-black text-white text-xs mt-0.5">{message.distance_cards.road_distance_km} km</p>
@@ -288,13 +293,13 @@ export default function ChatBot() {
                         <h4 className="font-bold text-xs text-primary-900 flex items-center gap-1.5">
                           <FiCalendar /> {message.itinerary_cards.days_count}-Day Plan: {message.itinerary_cards.destination}
                         </h4>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                        <p className="text-[10px] text-gray-500">
                           Planning estimate: <b>{message.itinerary_cards.total_estimated_npr != null ? `NPR ${message.itinerary_cards.total_estimated_npr.toLocaleString()}` : "Information unavailable"}</b>
                         </p>
                       </div>
                       <Link
                         to="/itinerary"
-                        className="px-3 py-1 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold"
+                        className="px-3 py-1 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[10px] font-bold"
                       >
                         Customize Itinerary ➔
                       </Link>
@@ -325,13 +330,13 @@ export default function ChatBot() {
                         <div key={i} className="rounded-xl overflow-hidden border border-primary-100 bg-white shadow-sm flex flex-col justify-between">
                           <div className="h-24 w-full relative bg-slate-900 overflow-hidden">
                             <PlaceholderImage src={img.url} title={img.caption} alt={img.caption} className="h-full w-full transition-transform hover:scale-105" />
-                            <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/70 text-amber-300 text-xs font-bold">
+                            <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/70 text-amber-300 text-[9px] font-bold">
                               {img.category}
                             </span>
                           </div>
-                          <div className="p-1.5 text-xs text-gray-500 dark:text-gray-400">
-                            <p className="font-bold text-gray-800 dark:text-gray-200 truncate">{img.caption}</p>
-                            <p className="text-xs text-emerald-600 truncate">{[img.photographer, img.license].filter(Boolean).join(" · ") || "Attribution unavailable"}</p>
+                          <div className="p-1.5 text-[9px] text-gray-500">
+                            <p className="font-bold text-gray-800 truncate">{img.caption}</p>
+                            <p className="text-[11px] text-emerald-600 truncate">{[img.photographer, img.license].filter(Boolean).join(" · ") || "Attribution unavailable"}</p>
                           </div>
                         </div>
                       ))}
@@ -358,17 +363,17 @@ export default function ChatBot() {
                             <h4 className="font-bold text-xs text-gray-900 leading-tight">{card.name}</h4>
                             <span className="text-xs text-amber-600 font-bold">{card.rating != null && card.rating !== "" ? `★ ${card.rating}` : "Rating unavailable"}</span>
                           </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{card.city || "Location unavailable"} · <b>{card.budget != null && card.budget !== "" ? card.budget : "Budget unavailable"}</b></p>
+                          <p className="text-[10px] text-gray-500">{card.city || "Location unavailable"} · <b>{card.budget != null && card.budget !== "" ? card.budget : "Budget unavailable"}</b></p>
                           <div className="flex gap-1.5 pt-1">
                             <Link
                               to={`/destinations/${card.slug}`}
-                              className="flex-1 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-center text-xs font-bold transition-colors"
+                              className="flex-1 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-center text-[10px] font-bold transition-colors"
                             >
                               View Details
                             </Link>
                             <Link
                               to={`/navigation?dest=${encodeURIComponent(card.name)}`}
-                              className="px-2.5 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-500 text-gray-950 text-center text-xs font-black transition-colors"
+                              className="px-2.5 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-500 text-gray-950 text-center text-[10px] font-black transition-colors"
                             >
                               Route ➔
                             </Link>
@@ -395,13 +400,13 @@ export default function ChatBot() {
                         <div key={i} className="p-2 bg-white rounded-xl border border-rose-100 flex justify-between items-center text-xs">
                           <div>
                             <p className="font-bold text-gray-900 truncate">{em.name}</p>
-                            <span className="text-xs text-gray-500 dark:text-gray-400">{em.type} ({em.district})</span>
+                            <span className="text-[10px] text-gray-500">{em.type} ({em.district})</span>
                           </div>
                           <a
                             href={em.phone && !em.phone_is_national_fallback ? `tel:${em.phone}` : "#"}
                              onClick={(event) => { if (!em.phone || em.phone_is_national_fallback) event.preventDefault() }}
                              aria-disabled={!em.phone || Boolean(em.phone_is_national_fallback)}
-                            className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1 shadow"
+                            className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] flex items-center gap-1 shadow"
                           >
                             <FiPhoneCall size={10} /> {em.phone && !em.phone_is_national_fallback ? `Call ${em.phone}` : "No local phone recorded"}
                           </a>
@@ -416,7 +421,7 @@ export default function ChatBot() {
             {sending && (
               <div className="flex items-center gap-2 text-xs text-primary-700 font-bold italic">
                 <span className="w-2 h-2 rounded-full bg-primary-600 animate-bounce"></span>
-                Himal AI is looking through available records…
+                Himal is consulting local routes and travel records…
               </div>
             )}
           </div>

@@ -2,7 +2,10 @@ import { useState } from "react"
 import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion, AnimatePresence } from "framer-motion"
-import { FiGlobe, FiVolume2, FiCopy, FiPlus, FiSearch, FiBookOpen, FiCompass, FiShield, FiCoffee, FiHeart, FiSmile } from "react-icons/fi"
+import {
+  FiGlobe, FiVolume2, FiCopy, FiPlus, FiSearch, FiCheck,
+  FiBookOpen, FiCompass, FiShield, FiCoffee, FiHeart, FiSmile
+} from "react-icons/fi"
 import useToast from "../hooks/useToast"
 
 const DIALECTS = [
@@ -214,7 +217,7 @@ const Language = () => {
             }`}
           >
             <p className="font-bold text-xs break-words">{d.name}</p>
-            <p className={`text-xs mt-1 break-words ${selectedDialect === d.id ? "text-amber-300" : "text-gray-500 dark:text-gray-400"}`}>
+            <p className={`text-[10px] mt-1 break-words ${selectedDialect === d.id ? "text-amber-300" : "text-gray-400"}`}>
               {d.region}
             </p>
           </button>
@@ -264,10 +267,10 @@ const Language = () => {
             >
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-[#1D5146]">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-[#1D5146]">
                     {phrase.category}
                   </span>
-                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                  <span className="text-[10px] font-semibold text-gray-400 uppercase">
                     {DIALECTS.find((d) => d.id === selectedDialect)?.name.split(" ")[0]}
                   </span>
                 </div>

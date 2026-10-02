@@ -27,8 +27,8 @@ export default function TurnByTurnNav({ steps = [], currentIdx = 0, onSelectStep
                 <TurnIcon step={step} size={26} />
               </div>
               <div>
-                <p className="text-xs font-bold text-gray-800 dark:text-gray-200 leading-snug">{step.instruction}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                <p className="text-xs font-bold text-gray-800 leading-snug">{step.instruction}</p>
+                <p className="text-[11px] text-gray-400 mt-0.5">
                   {step.distance_km != null
                     ? `${step.distance_km} km`
                     : step.distance_m != null

@@ -92,13 +92,6 @@ class GoogleOAuthCallbackView(APIView):
             if not email:
                 return Response({"detail": "Google account has no email."}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Security: only link accounts when Google confirms the email is verified
-            if not profile.get("email_verified", False):
-                return Response(
-                    {"detail": "Your Google email is not verified. Verify it in your Google account, then try again."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
             user = _get_or_link_user(
                 email=email,
                 provider=User.AuthProvider.GOOGLE,
@@ -150,7 +143,6 @@ class GithubOAuthCallbackView(APIView):
             profile = profile_response.json()
 
             email = profile.get("email")
-            email_verified = True  # Google always verifies; GitHub needs explicit check
             if not email:
                 emails_response = requests.get(
                     "https://api.github.com/user/emails",
@@ -158,21 +150,12 @@ class GithubOAuthCallbackView(APIView):
                     timeout=10,
                 )
                 emails_response.raise_for_status()
-                emails = emails_response.json()
-                primary = next((e for e in emails if e.get("primary")), None)
+                primary = next((e for e in emails_response.json() if e.get("primary")), None)
                 email = primary["email"] if primary else None
-                # Security: only link accounts when GitHub confirms the email is verified
-                email_verified = bool(primary and primary.get("verified"))
 
             if not email:
                 return Response(
                     {"detail": "GitHub account has no accessible email. Make an email public or use another login method."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            if not email_verified:
-                return Response(
-                    {"detail": "Your GitHub email is not verified. Verify it in GitHub settings, then try again."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 

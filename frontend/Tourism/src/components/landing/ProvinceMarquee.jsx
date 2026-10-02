@@ -1,4 +1,4 @@
-import "react"
+import React from "react"
 import { Link } from "react-router-dom"
 import usePublicConfig from "../../hooks/usePublicConfig"
 

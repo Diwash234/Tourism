@@ -1,5 +1,5 @@
 from decimal import Decimal
-from .phone_quality import is_unusable_phone, normalize_phone_artifact, usable_phone
+from .phone_quality import usable_phone
 
 from django.conf import settings
 from django.core.cache import cache
@@ -24,7 +24,7 @@ from .models import (
     CurrentHazard, RiskIncident, RiskObservation, RecommendationEvent, RiskNewsReport,
     SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, CMSContentTranslation, DestinationFeatureProfile, StaffCapabilityProfile,
     Restaurant, DestinationTransitRoute, TravelPlan, TravelPlanStop, HeroSlide,
-    TravelerDocument, RedirectRule, NewsletterSignup,
+    TravelerDocument, RedirectRule, NewsletterSignup, LocationHistory, SearchQuery, WebhookEndpoint, WebhookDelivery,
 )
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace, HasCapability, HasCapabilityOrReadOnly
 from .serializers import (
@@ -52,6 +52,11 @@ def _invalidate_public_content_caches():
     from django.core.cache import cache
     cache.delete("dest:map-points:v1")
     cache.delete("seo:sitemap:v1")
+    try:
+        cache.incr("public_config_version")
+    except Exception:
+        import time
+        cache.set("public_config_version", str(int(time.time())), 86400 * 30)
 
 
 def _check_rate_limit(key_prefix, limit, period_seconds):
@@ -261,16 +266,6 @@ class PublicConfigView(APIView):
         language = request.query_params.get("lang", "en")
         if not re.fullmatch(r"[a-z]{2,3}(?:-[A-Z]{2})?", language):
             language = "en"
-
-        # Publish operations bump this version so a traveller never
-        # receives a stale CMS snapshot just because the old five-minute
-        # response is still in cache.
-        public_config_version = cache.get("public_config_version", "0")
-        cache_key = f"public_config_v3:{language}:{public_config_version}"
-        cached_response = cache.get(cache_key)
-        if cached_response is not None:
-            return Response(cached_response)
-
         translations = {(row.target_resource, row.object_id): row.content for row in
             CMSContentTranslation.objects.filter(language_code=language)} if language != "en" else {}
         pages = ManagedPage.objects.filter(is_enabled=True, status="published").prefetch_related("sections")
@@ -381,17 +376,14 @@ class PublicConfigView(APIView):
         ]
         redirects = [{"old_path": r.old_path, "new_path": r.new_path, "permanent": r.is_permanent}
             for r in RedirectRule.objects.filter(is_active=True)]
-        response_data = {"mapillary_access_token": settings.MAPILLARY_ACCESS_TOKEN, "language": language,
+        return Response({"mapillary_access_token": settings.MAPILLARY_ACCESS_TOKEN, "language": language,
             # OAuth client IDs are public values (the same ones you'd put in
             # VITE_*_CLIENT_ID); exposing them means one backend .env update
             # enables the Google/GitHub buttons without touching the frontend.
             "oauth_client_ids": {"google": settings.GOOGLE_CLIENT_ID, "github": settings.GITHUB_CLIENT_ID},
             "settings": {item.key: item.value for item in SiteSetting.objects.filter(is_public=True)},
             "pages": page_rows, "navigation": navigation, "notices": notices, "catalog": catalog,
-            "hero_slides": hero_slides, "redirects": redirects}
-        # Cache the entire response for 5 minutes
-        cache.set(cache_key, response_data, 300)
-        return Response(response_data)
+            "hero_slides": hero_slides, "redirects": redirects})
 
 
 class NewsletterSubscribeView(APIView):
@@ -1746,11 +1738,6 @@ class InfrastructureSubmissionViewSet(viewsets.ModelViewSet):
         _require_capability(self.request, "safety", "delete")
         instance.delete()
 
-    # Allowed MIME types for file uploads
-    ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
-    ALLOWED_VIDEO_TYPES = {"video/mp4", "video/webm", "video/ogg"}
-    MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
-
     @action(detail=True, methods=["post"], url_path="media")
     def upload_media(self, request, pk=None):
         submission = self.get_object()
@@ -1762,38 +1749,7 @@ class InfrastructureSubmissionViewSet(viewsets.ModelViewSet):
         created = []
         for uploaded in files:
             content_type = (uploaded.content_type or "").lower()
-            # Validate file type
-            if content_type in self.ALLOWED_IMAGE_TYPES:
-                media_type = "image"
-            elif content_type in self.ALLOWED_VIDEO_TYPES:
-                media_type = "video"
-            else:
-                return Response(
-                    {"detail": f"File type '{content_type}' is not allowed. Allowed: JPEG, PNG, GIF, WebP, MP4, WebM, OGG."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            # Validate file size
-            if uploaded.size > self.MAX_FILE_SIZE:
-                return Response(
-                    {"detail": f"File '{uploaded.name}' exceeds the 50 MB size limit."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            # Validate file extension matches content type
-            ext = uploaded.name.lower().rsplit(".", 1)[-1] if "." in uploaded.name else ""
-            expected_ext = {
-                "image/jpeg": {"jpg", "jpeg"},
-                "image/png": {"png"},
-                "image/gif": {"gif"},
-                "image/webp": {"webp"},
-                "video/mp4": {"mp4"},
-                "video/webm": {"webm"},
-                "video/ogg": {"ogg"},
-            }.get(content_type, set())
-            if ext and ext not in expected_ext:
-                return Response(
-                    {"detail": f"File extension '.{ext}' does not match content type '{content_type}'."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+            media_type = "video" if content_type.startswith("video/") else "image"
             media = InfrastructureMedia.objects.create(
                 submission=submission, media_type=media_type, file=uploaded,
                 caption=request.data.get("caption", ""), is_primary=not submission.media.exists(),
@@ -2357,13 +2313,24 @@ class DestinationNearbyPOIsView(APIView):
                 for name, rlat, rlon, extra in pool:
                     d = haversine_distance(lat, lon, rlat, rlon)
                     if d is not None and d <= radius:
-                        found.append({"name": name, "distance_km": round(d, 2),
-                                      "latitude": rlat, "longitude": rlon,
-                                      "source": source_for.get(key,
-                                                              service_categories.get(key, ("", "Tourism database"))[1])})
-                        found[-1].update(extra or {})
+                        is_approx = bool(extra.get("is_approximate") or (round(rlat, 4) == round(lat, 4) and round(rlon, 4) == round(lon, 4)))
+                        dist_label = f"≈ {round(d, 2)} km (area point)" if is_approx else f"{round(d, 2)} km"
+                        row_item = {
+                            "name": name,
+                            "distance_km": round(d, 2),
+                            "distance_label": dist_label,
+                            "is_approximate": is_approx,
+                            "latitude": rlat,
+                            "longitude": rlon,
+                            "source": source_for.get(key, service_categories.get(key, ("", "Tourism database"))[1]),
+                        }
+                        if extra:
+                            row_item.update(extra)
+                        row_item["is_approximate"] = is_approx
+                        row_item["distance_label"] = dist_label
+                        found.append(row_item)
                 if found:
-                    found.sort(key=lambda row: row["distance_km"])
+                    found.sort(key=lambda row: (row.get("is_approximate", False), row["distance_km"]))
                     # Collapse same-site duplicates: the same facility is
                     # often recorded twice under slightly different names at
                     # identical coordinates (88 hospital / 222 police pairs
@@ -2960,6 +2927,7 @@ class MoodRecommendationsView(generics.ListAPIView):
             month_basis = "current month"
         travel_style = (request.query_params.get("travel_style") or "any").lower()
         province = (request.query_params.get("province") or "").strip().lower()
+        persona_param = (request.query_params.get("persona") or request.query_params.get("nationality") or "all").lower()
 
         # Optional traveller location (master spec §21/§119): when supplied,
         # straight-line proximity joins the ranking and every result carries
@@ -2990,9 +2958,7 @@ class MoodRecommendationsView(generics.ListAPIView):
 
         # The live database is the source of truth: newly approved admin/user
         # destinations automatically participate without retraining a CSV model.
-        qs = Destination.objects.filter(
-            is_active=True, status=Destination.SubmissionStatus.APPROVED
-        ).select_related("category", "risk_analysis").prefetch_related("transit_routes").annotate(
+        qs = Destination.sightseeing().select_related("category", "risk_analysis").prefetch_related("transit_routes").annotate(
             hospital_total=Count("hospitals", distinct=True),
             police_total=Count("police_stations", distinct=True),
             hotel_total=Count("hotels", distinct=True),
@@ -3130,6 +3096,18 @@ class MoodRecommendationsView(generics.ListAPIView):
             elif travel_style == "couple" and cat in {"lakes", "viewpoints", "hills"}:
                 score += 0.12
                 reasons.append("Strong couple-trip fit")
+
+            if persona_param in {"nepali", "domestic"}:
+                if cat in {"pilgrimage", "spiritual-wellness", "temples", "hill-stations", "villages"}:
+                    score += 0.12
+                    reasons.append("Top-rated domestic pilgrimage & cultural escape")
+                elif cost.get("class") in {"none_on_record", "park_fee"}:
+                    score += 0.06
+                    reasons.append("Highly accessible domestic destination with nominal entry fees")
+            elif persona_param in {"foreign", "international"}:
+                if cat in {"mountains", "trekking", "wildlife", "heritage"}:
+                    score += 0.10
+                    reasons.append("Signature Nepal highlight for international explorers")
 
             popularity = float(destination.average_rating or 0) * 0.025 + min(math.log10((destination.views_count or 0) + 1) * 0.015, 0.05)
             behavior = min(affinity.get(cat, 0) * 0.025, 0.10)
@@ -3373,12 +3351,6 @@ class RobotsTxtView(View):
         base = request.build_absolute_uri("/").rstrip("/")
         body = "User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /staff\n\n" + f"Sitemap: {base}/api/v1/seo/sitemap.xml\n"
         return HttpResponse(body, content_type="text/plain")
-
-
-# =============================================================================
-# Advanced Features: Weather, Export, Moderation, Health, Location, Search
-# =============================================================================
-
 
 class WeatherForecastView(APIView):
     """GET /api/v1/weather/forecast/?lat=27.7172&lon=85.3240&days=5

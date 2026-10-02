@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { FiCalendar } from "react-icons/fi"
+import { FiCalendar, FiMapPin, FiPlus, FiCheck } from "react-icons/fi"
 
 export default function TripPlanner() {
   const [trips, setTrips] = useState([
@@ -18,7 +18,7 @@ export default function TripPlanner() {
   return (
     <div className="card-base p-6 shadow-xl border border-[#E5E0D5] rounded-3xl space-y-4">
       <div className="flex items-center justify-between border-b pb-3">
-        <h3 className="font-bold text-base text-gray-900 dark:text-gray-100 flex items-center gap-2">
+        <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
           <FiCalendar className="text-emerald-700" /> Nepal Custom Trip Planner
         </h3>
         <span className="text-xs font-semibold text-[#102A2E]">{trips.length} Trips</span>
@@ -41,9 +41,9 @@ export default function TripPlanner() {
           <div key={i} className="p-3.5 rounded-2xl bg-[#F7F8F5]/70 border border-[#E5E0D5] flex items-center justify-between text-xs">
             <div>
               <p className="font-bold text-gray-900">{t.title}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">📅 {t.start} · {t.days} Days</p>
+              <p className="text-[11px] text-gray-500">📅 {t.start} · {t.days} Days</p>
             </div>
-            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-200/80 text-[#102A2E]">
+            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-200/80 text-[#102A2E]">
               {t.status}
             </span>
           </div>

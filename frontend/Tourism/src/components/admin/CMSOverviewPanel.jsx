@@ -28,7 +28,7 @@ export default function CMSOverviewPanel() {
   const [counts, setCounts] = useState(null)
   const [recent, setRecent] = useState([])
   const [health, setHealth] = useState(null)
-  const [operational, _setOperational] = useState({ hotels: null, hospitals: null, police_stations: null })
+  const [operational, setOperational] = useState({ hotels: null, hospitals: null, police_stations: null })
 
   useEffect(() => {
     let cancelled = false
@@ -49,7 +49,7 @@ export default function CMSOverviewPanel() {
         .catch(() => mark("notices", false))
 
       try {
-        const [pagesRes, sectionsRes, navRes, healthRes, _hotelsRes, _hospitalsRes, _policeRes] = await Promise.all([
+        const [pagesRes, sectionsRes, navRes, healthRes, hotelsRes, hospitalsRes, policeRes] = await Promise.all([
           adminApi.getCMS("pages"),
           adminApi.getCMS("sections"),
           adminApi.getCMS("navigation"),

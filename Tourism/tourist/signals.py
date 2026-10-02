@@ -1,112 +1,93 @@
-"""
-Django signals for automated actions on model events.
-"""
-import logging
-
-from django.db import models
-from django.db.models.signals import post_save, pre_delete
+from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from .models import User, Destination, Rating, Review, Alert, FamilyLink
-from booking.models import Booking
-
-logger = logging.getLogger(__name__)
-
-
-@receiver(post_save, sender=User)
-def create_user_profile(sender, instance, created, **kwargs):
-    """Create a user profile when a new user is created."""
-    if created:
-        logger.info("New user created: %s", instance.email)
-        # Create user profile, settings, etc.
-
-
-@receiver(post_save, sender=Destination)
-def notify_new_destination(sender, instance, created, **kwargs):
-    """Notify admins when a new destination is created."""
-    if created:
-        logger.info("New destination created: %s", instance.name)
-        # Send notification to admins
+from .models import Review, Alert
+from .utils import notify_user
 
 
 @receiver(post_save, sender=Review)
-def update_destination_rating(sender, instance, created, **kwargs):
-    """Refresh the destination's cached score counters after a new review.
-
-    Review rows are text-only (comment + moderation_status -- no numeric
-    rating and no is_approved), so the 1-5 average is read from Rating and
-    written onto Destination's real fields. The previous version aggregated
-    `rating`/`is_approved`, which Review does not have, and saved a
-    `review_count` field Destination does not have, so creating a review
-    raised FieldError and the POST 500'd.
-    """
-    if created and instance.destination:
-        destination = instance.destination
-        ratings = Rating.objects.filter(destination=destination)
-        avg_rating = ratings.aggregate(models.Avg("value"))["value__avg"] or 0
-        destination.average_rating = round(avg_rating, 2)
-        destination.ratings_count = ratings.count()
-        destination.save(update_fields=["average_rating", "ratings_count", "updated_at"])
+def notify_owner_of_new_review(sender, instance, created, **kwargs):
+    """Notify the destination's creator in-app when a new review comes in."""
+    if not created:
+        return
+    owner = instance.destination.created_by
+    if owner and owner != instance.user:
+        notify_user(
+            owner,
+            title="New review on your destination",
+            message=f'{instance.user.full_name} reviewed "{instance.destination.name}".',
+            channel="in_app",
+        )
 
 
 @receiver(post_save, sender=Alert)
-def notify_geofenced_alert(sender, instance, created, **kwargs):
-    """Push a new verified alert to everyone inside its geofence.
-
-    Users with a recorded position within ``radius_km`` of the alert get a
-    "Nearby alert" notification; contacts linked through an accepted
-    FamilyLink get the same notice with ``related_alert`` set so the safety
-    feed can attribute it (test_geofenced_alert_notifies_nearby_user_and_family).
-    Unverified/inactive alerts and alerts without coordinates are skipped,
-    and fixture loads (loaddata) never fire this - they save raw.
-    """
-    if not created or not instance.is_active or not instance.is_verified:
-        return
-    if instance.latitude is None or instance.longitude is None:
+def notify_nearby_users_of_new_alert(sender, instance, created, **kwargs):
+    """Notify users within 2–4 km and their accepted family links."""
+    if not created or not instance.is_active:
         return
 
-    from .notification_delivery import queue_notification
+    from django.db.models import Q
+    from .models import FamilyLink, User
     from .utils import haversine_distance
 
-    lat, lon = float(instance.latitude), float(instance.longitude)
-    radius_km = float(instance.radius_km or 0)
-    nearby = []
-    for user in User.objects.filter(
-        is_active=True, latitude__isnull=False, longitude__isnull=False
-    ).exclude(latitude=0, longitude=0):
-        distance = haversine_distance(lat, lon, float(user.latitude), float(user.longitude))
-        if distance is not None and distance <= radius_km:
-            nearby.append(user)
-    if not nearby:
-        return
+    default_radius = 4.0 if instance.severity in {Alert.Severity.HIGH, Alert.Severity.CRITICAL} else 2.0
+    radius_km = max(2.0, min(float(instance.radius_km or default_radius), 4.0))
+    users = User.objects.filter(is_active=True, is_verified=True)
+    affected = []
+    for user in users.iterator():
+        in_city = bool(instance.city and (user.city or "").lower() == instance.city.lower())
+        in_radius = False
+        if None not in (instance.latitude, instance.longitude, user.latitude, user.longitude):
+            in_radius = haversine_distance(
+                instance.latitude, instance.longitude, user.latitude, user.longitude
+            ) <= radius_km
+        if in_radius or (instance.latitude is None and in_city):
+            affected.append(user)
 
-    title = f"Nearby alert: {instance.title}"
-    message = (instance.description or "").strip() or instance.title
-    notified = set()
-    for user in nearby:
-        queue_notification(user, title, message, category="safety", related_alert=instance)
-        notified.add(user.id)
-
-    nearby_ids = {user.id for user in nearby}
-    links = FamilyLink.objects.filter(status=FamilyLink.Status.ACCEPTED).filter(
-        models.Q(requester_id__in=nearby_ids) | models.Q(member_id__in=nearby_ids)
-    ).select_related("requester", "member")
-    for link in links:
-        other = link.member if link.requester_id in nearby_ids else link.requester
-        if other.id in notified:
-            continue
-        queue_notification(
-            other,
-            f"Safety alert near your contact: {instance.title}",
-            message,
-            category="safety",
-            related_alert=instance,
+    notified_ids = set()
+    for user in affected:
+        notify_user(
+            user,
+            title=f"Nearby {instance.get_severity_display()} {instance.get_alert_type_display()} Alert",
+            message=f"Within the {radius_km:g} km alert area: {instance.description[:220]}",
+            channel="in_app", related_alert=instance,
         )
-        notified.add(other.id)
-    logger.info("Alert %s geofence notified %d user(s)", instance.pk, len(notified))
+        notified_ids.add(user.id)
+
+        links = FamilyLink.objects.filter(
+            Q(requester=user) | Q(member=user), status=FamilyLink.Status.ACCEPTED
+        ).select_related("requester", "member")
+        for link in links:
+            relative = link.member if link.requester_id == user.id else link.requester
+            if relative.id in notified_ids:
+                continue
+            notify_user(
+                relative,
+                title=f"Safety alert near {user.full_name}",
+                message=f"{instance.get_alert_type_display()} alert within {radius_km:g} km of your family member: {instance.description[:190]}",
+                channel="in_app", related_alert=instance,
+            )
+            notified_ids.add(relative.id)
 
 
-@receiver(pre_delete, sender=Destination)
-def log_destination_deletion(sender, instance, **kwargs):
-    """Log when a destination is deleted."""
-    logger.warning("Destination deleted: %s (ID: %s)", instance.name, instance.id)
+def _enable_sqlite_wal(sender, connection, **kwargs):
+    """WAL lets readers proceed while an audit-log write holds the lock.
+
+    Root-cause fix for `sqlite3.OperationalError: database is locked` 500s
+    (config/public, discover-nepal) under the threaded dev server. No-op for
+    other backends; harmless for test databases.
+    """
+    if connection.vendor != "sqlite":
+        return
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("PRAGMA journal_mode=WAL;")
+            cursor.execute("PRAGMA synchronous=NORMAL;")
+            cursor.execute("PRAGMA busy_timeout=20000;")
+    except Exception:  # pragma: no cover - never block startup on pragmas
+        pass
+
+
+from django.db.backends.signals import connection_created  # noqa: E402
+
+connection_created.connect(_enable_sqlite_wal)

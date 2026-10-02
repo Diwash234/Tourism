@@ -88,7 +88,7 @@ export default function TourismJobs() {
       <div className="container-app max-w-6xl space-y-5 pb-10">
         <div className="bg-white rounded-3xl border shadow-sm p-4 flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search jobs by title, description or city…" aria-label="Search jobs"
               className="input-field pl-10" />
           </div>
@@ -101,7 +101,7 @@ export default function TourismJobs() {
 
         {loadError && <p className="rounded-[var(--ny-radius-md)] border border-[#E9B9B9] bg-[var(--ny-soft-red)] p-4 text-sm text-[var(--ny-danger)]" role="alert">{loadError} <button type="button" onClick={load} className="ml-2 font-semibold underline">Try again</button></p>}
          <div className="flex items-center justify-between mt-6 mb-3">
-          <p className="text-sm text-slate-600 dark:text-slate-400"><b>{data.count}</b> open position{data.count === 1 ? "" : "s"}</p>
+          <p className="text-sm text-slate-600"><b>{data.count}</b> open position{data.count === 1 ? "" : "s"}</p>
           <Link to="/guide-portal" className="text-sm font-bold text-[#1D5146] hover:underline">Apply as a guide →</Link>
         </div>
 
@@ -113,11 +113,11 @@ export default function TourismJobs() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-black text-slate-900">{job.title}</h3>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-[#1D5146] text-white font-bold uppercase">{job.role_type_label}</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold uppercase">{job.employment_type_label}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#1D5146] text-white font-bold uppercase">{job.role_type_label}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold uppercase">{job.employment_type_label}</span>
                   </div>
                   <p className="text-xs text-slate-600 mt-1.5 line-clamp-2">{job.description}</p>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 mt-2">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500 mt-2">
                     {job.city && <span className="flex items-center gap-1"><FiMapPin /> {job.city}</span>}
                     {job.compensation && <span className="flex items-center gap-1"><FiDollarSign /> {job.compensation}</span>}
                     {job.application_deadline && <span className="flex items-center gap-1"><FiClock /> Apply by {job.application_deadline}</span>}
@@ -126,14 +126,14 @@ export default function TourismJobs() {
                   {job.skills?.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
                       {job.skills.slice(0, 6).map((s) => (
-                        <span key={s} className="text-xs px-2 py-0.5 rounded-full bg-slate-50 border text-slate-500 font-bold">{s}</span>
+                        <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-slate-50 border text-slate-500 font-bold">{s}</span>
                       ))}
                     </div>
                   )}
                 </div>
                 <div className="shrink-0">
                   {appliedJobIds.has(job.id) ? (
-                    <span className={`inline-flex items-center gap-1 text-xs px-3 py-2 rounded-full font-black uppercase ${badge[statusOf(job.id)] || "bg-slate-100"}`}>
+                    <span className={`inline-flex items-center gap-1 text-[10px] px-3 py-2 rounded-full font-black uppercase ${badge[statusOf(job.id)] || "bg-slate-100"}`}>
                       <FiCheckCircle /> {statusOf(job.id) || "Application recorded"}
                     </span>
                   ) : isAuthenticated ? (
@@ -168,7 +168,7 @@ export default function TourismJobs() {
                     <p className="text-xs text-slate-500">Applied {new Date(a.created_at).toLocaleDateString()}{a.reviewed_at ? ` · reviewed ${new Date(a.reviewed_at).toLocaleDateString()}` : ""}</p>
                     {a.admin_note && <p className="text-xs text-slate-600 mt-1 italic">“{a.admin_note}”</p>}
                   </div>
-                  <span className={`text-xs px-3 py-1.5 rounded-full font-black uppercase w-fit ${badge[a.status] || "bg-slate-100"}`}>{a.status}</span>
+                  <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase w-fit ${badge[a.status] || "bg-slate-100"}`}>{a.status}</span>
                 </div>
               ))}
             </div>

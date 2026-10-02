@@ -1,8 +1,5 @@
 import logging
 
-import requests
-from django.conf import settings
-
 from rest_framework import permissions, status
 
 logger = logging.getLogger(__name__)
@@ -21,26 +18,123 @@ from .services import get_chatbot_reply
 
 from rest_framework.permissions import AllowAny
 
+import math
+import csv
 
-def nearest_facilities(latitude, longitude, category=None, limit=5):
-    """Call the ML service to find nearby emergency facilities."""
-    try:
-        ml_url = getattr(settings, "ML_SERVICE_URL", "http://localhost:8001")
-        resp = requests.get(
-            f"{ml_url}/emergency/nearest",
-            params={
-                "latitude": latitude,
-                "longitude": longitude,
-                "category": category,
-                "limit": limit,
-            },
-            timeout=getattr(settings, "ML_SERVICE_TIMEOUT", 5),
-        )
-        resp.raise_for_status()
-        return resp.json().get("facilities", [])
-    except Exception as e:
-        logger.warning("ML service call failed: %s", e)
-        return []
+def _haversine_km(lat1, lon1, lat2, lon2):
+    R = 6371.0
+    phi1, phi2 = math.radians(float(lat1)), math.radians(float(lat2))
+    dphi = math.radians(float(lat2) - float(lat1))
+    dlambda = math.radians(float(lon2) - float(lon1))
+    a = math.sin(dphi / 2.0) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2.0) ** 2
+    return R * 2.0 * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
+
+def get_nearest_facilities(latitude, longitude, category=None, limit=5):
+    from tourist.models import Hospital, PoliceStation
+    results = []
+
+    want_hospitals = not category or category in ("hospital", "hospitals")
+    want_police = not category or category in ("police", "police_station", "police_stations")
+
+    if want_hospitals:
+        for h in Hospital.objects.all()[:300]:
+            try:
+                dist = _haversine_km(latitude, longitude, h.latitude, h.longitude)
+                results.append({
+                    "type": "hospital",
+                    "name": h.name,
+                    "phone": h.phone or "",
+                    "address": h.address or "",
+                    "district": h.district or "",
+                    "province": getattr(h.destination, "province", "") if h.destination else "",
+                    "latitude": float(h.latitude),
+                    "longitude": float(h.longitude),
+                    "distance_km": round(dist, 2),
+                })
+            except Exception:
+                continue
+
+    if want_police:
+        for p in PoliceStation.objects.all()[:300]:
+            try:
+                dist = _haversine_km(latitude, longitude, p.latitude, p.longitude)
+                results.append({
+                    "type": "police_station",
+                    "name": p.name,
+                    "phone": p.phone or "",
+                    "address": p.address or "",
+                    "district": getattr(p, "district", "") or (p.destination.district if p.destination else ""),
+                    "province": getattr(p.destination, "province", "") if p.destination else "",
+                    "latitude": float(p.latitude),
+                    "longitude": float(p.longitude),
+                    "distance_km": round(dist, 2),
+                })
+            except Exception:
+                continue
+
+    # Fallback to CSV datasets if database has no records
+    if not results:
+        dataset_dir = os.path.join(BASE_DIR, "dataset")
+        if want_hospitals:
+            csv_path = os.path.join(dataset_dir, "hospital_cleaned.csv")
+            if os.path.exists(csv_path):
+                try:
+                    with open(csv_path, mode="r", encoding="utf-8") as f:
+                        reader = csv.DictReader(f)
+                        for row in reader:
+                            try:
+                                lat = float(row.get("latitude") or 0)
+                                lon = float(row.get("longitude") or 0)
+                                if lat and lon:
+                                    dist = _haversine_km(latitude, longitude, lat, lon)
+                                    results.append({
+                                        "type": "hospital",
+                                        "name": row.get("hospital_name") or row.get("name") or "Unknown Hospital",
+                                        "phone": row.get("phone", ""),
+                                        "address": row.get("address", ""),
+                                        "district": row.get("district", ""),
+                                        "province": row.get("province", ""),
+                                        "latitude": lat,
+                                        "longitude": lon,
+                                        "distance_km": round(dist, 2),
+                                    })
+                            except (ValueError, TypeError):
+                                continue
+                except Exception:
+                    pass
+
+        if want_police:
+            csv_path = os.path.join(dataset_dir, "police_station_cleaned.csv")
+            if not os.path.exists(csv_path):
+                csv_path = os.path.join(dataset_dir, "nearbypolice.csv")
+            if os.path.exists(csv_path):
+                try:
+                    with open(csv_path, mode="r", encoding="utf-8") as f:
+                        reader = csv.DictReader(f)
+                        for row in reader:
+                            try:
+                                lat = float(row.get("latitude") or 0)
+                                lon = float(row.get("longitude") or 0)
+                                if lat and lon:
+                                    dist = _haversine_km(latitude, longitude, lat, lon)
+                                    results.append({
+                                        "type": "police_station",
+                                        "name": row.get("police_station") or row.get("name") or "Unknown Police Station",
+                                        "phone": row.get("phone", ""),
+                                        "address": row.get("address", ""),
+                                        "district": row.get("district", ""),
+                                        "province": row.get("province", ""),
+                                        "latitude": lat,
+                                        "longitude": lon,
+                                        "distance_km": round(dist, 2),
+                                    })
+                            except (ValueError, TypeError):
+                                continue
+                except Exception:
+                    pass
+
+    results.sort(key=lambda x: x["distance_km"])
+    return results[:limit]
 
 
 class NearbyEmergencyView(APIView):
@@ -72,7 +166,7 @@ class NearbyEmergencyView(APIView):
             limit = 5
 
 
-        results = nearest_facilities(
+        results = get_nearest_facilities(
             latitude=lat,
             longitude=lon,
             category=category,

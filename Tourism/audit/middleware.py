@@ -94,36 +94,13 @@ class AuditMiddleware:
                 status_code=response.status_code,
             )
 
-    # Keys that must never appear in audit logs (passwords, tokens, secrets)
-    SENSITIVE_KEYS = frozenset({
-        "password", "password_confirm", "new_password", "old_password",
-        "access", "refresh", "token", "access_token", "refresh_token",
-        "client_secret", "api_key", "secret", "authorization",
-        "otp", "code", "twilio_auth_token", "ml_webhook_secret",
-    })
-
-    def _sanitize_body(self, body_str):
-        """Redact sensitive fields from a JSON body string."""
-        import json
-        try:
-            data = json.loads(body_str)
-            if isinstance(data, dict):
-                for key in list(data.keys()):
-                    if key.lower() in self.SENSITIVE_KEYS:
-                        data[key] = "[REDACTED]"
-                return json.dumps(data)
-        except (json.JSONDecodeError, TypeError):
-            pass
-        return body_str
-
     def _record_exception(self, request, exc):
         try:
             # Build a safe, short body preview for context
             body = ""
             try:
                 if request.content_type and "application/json" in request.content_type:
-                    raw = (request.body or b"")[:1024].decode("utf-8", "ignore")
-                    body = self._sanitize_body(raw)
+                    body = (request.body or b"")[:1024].decode("utf-8", "ignore")
                 elif request.content_type and "multipart" not in (request.content_type or ""):
                     body = (request.body or b"")[:512].decode("utf-8", "ignore")
             except Exception:

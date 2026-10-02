@@ -25,7 +25,7 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Destination, Hotel, Hospital, MLInsight, OSMEssentialService, PoliceStation, BudgetEstimation
+from .models import Destination, Hotel, Hospital, MLInsight, OSMEssentialService, PoliceStation
 from .serializers import (
     DestinationListSerializer,
     MLInsightSerializer,
@@ -509,13 +509,19 @@ def _official_budget_context(result, data, destination):
             "source_key": "doi_visa", "estimate": False,
         })
     totals = tr.fee_totals(fee_lines, travelers, snap)
-    known_npr = to_npr(known_usd)
+    calibrated_npr = result.get("total_budget_npr") or result.get("known_cost_total_npr")
+    known_npr = calibrated_npr if calibrated_npr is not None else to_npr(known_usd)
     grand_npr = round(known_npr + totals["group_npr"], 2) if known_npr is not None else None
+
+    res_breakdown_npr = {k: v for k, v in (result.get("breakdown_npr") or {}).items() if isinstance(v, (int, float))}
+    clean_breakdown_npr = {k: res_breakdown_npr.get(k) if res_breakdown_npr.get(k) is not None else to_npr(v) for k, v in breakdown_usd.items()}
+    if "emergency_reserve" in res_breakdown_npr:
+        clean_breakdown_npr["emergency_reserve"] = res_breakdown_npr["emergency_reserve"]
 
     return {
         "exchange_rate": fx.snapshot_meta(snap) | ({"usd_to_npr": float(rate)} if rate is not None else {}),
         "known_cost_total_npr": known_npr,
-        "breakdown_npr": {k: to_npr(v) for k, v in breakdown_usd.items()},
+        "breakdown_npr": clean_breakdown_npr,
         "official_fees": {
             "lines": totals["lines"],
             "per_person_npr": totals["per_person_npr"],
@@ -531,119 +537,6 @@ def _official_budget_context(result, data, destination):
         "per_day_npr": round(grand_npr / days, 2) if grand_npr is not None else None,
         "contingency_suggested_npr": round(grand_npr * 0.10, 2) if grand_npr is not None else None,
         "contingency_note": "Suggested 10% buffer for delays, weather days and rescue excess — a planning suggestion, not a quoted cost.",
-    }
-
-
-def _csv_budget_fallback(destination=None, city=None, district=None, province=None, days=3, travelers=1, budget_level="mid"):
-    """Read the tracked budget dataset directly when the ML sidecar or DB
-    importer is unavailable.
-
-    Production must not turn a valid CSV baseline into "Unavailable" merely
-    because the optional ML process is offline or a Render startup skipped an
-    importer. This fallback is deterministic and uses only recorded dataset
-    values; it never invents a price.
-    """
-    import csv
-    import os
-    import re
-
-    path = os.path.join(settings.BASE_DIR, "dataset", "budget_features.csv")
-    if not os.path.exists(path):
-        return None
-
-    def norm(value):
-        return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
-
-    def number(value):
-        text = str(value or "").strip().replace("$", "").replace(",", "")
-        if not text or text.lower() in {"nan", "none", "null", "n/a", "na"}:
-            return None
-        nums = re.findall(r"\d+(?:\.\d+)?", text)
-        if not nums:
-            return None
-        values = [float(x) for x in nums]
-        return sum(values) / len(values)
-
-    wanted = [
-        norm(getattr(destination, "name", None) if destination else None),
-        norm(city),
-        norm(getattr(destination, "district", None) if destination else district),
-        norm(getattr(destination, "province", None) if destination else province),
-    ]
-    exact = wanted[:]
-    rows = []
-    with open(path, newline="", encoding="utf-8-sig") as fh:
-        reader = csv.DictReader(fh)
-        for row in reader:
-            name = norm(row.get("Destination") or row.get("destination"))
-            row_district = norm(row.get("District") or row.get("district"))
-            row_province = norm(row.get("Province") or row.get("province"))
-            score = 0
-            for value in exact:
-                if not value:
-                    continue
-                if value == name:
-                    score = max(score, 100)
-                elif name and (value in name or name in value):
-                    score = max(score, 80)
-                elif value == row_district:
-                    score = max(score, 70)
-                elif value == row_province:
-                    score = max(score, 50)
-            if score:
-                row["_score"] = score
-                rows.append(row)
-
-    if not rows:
-        return None
-    rows.sort(key=lambda row: row["_score"], reverse=True)
-    row = rows[0]
-
-    transport = number(row.get("Transport Cost (USD)"))
-    food = number(row.get("Food Cost/Day (USD)"))
-    accommodation = number(row.get("Accommodation/Night (USD)"))
-    taxi = number(row.get("Local Taxi/Rick"))
-    if any(value is None for value in (transport, food, accommodation, taxi)):
-        return None
-
-    multiplier = {"budget": 0.75, "mid": 1.0, "standard": 1.0, "luxury": 1.8}.get(
-        str(budget_level or "mid").lower(), 1.0
-    )
-    days = max(1, int(days or 1))
-    travelers = max(1, int(travelers or 1))
-    accommodation_total = accommodation * multiplier * max(1, round(travelers / 2)) * days
-    food_total = food * multiplier * travelers * days
-    transport_total = transport * travelers
-    local_total = taxi * multiplier * travelers * days
-    total = round(accommodation_total + food_total + transport_total + local_total, 2)
-
-    return {
-        "source": "dataset_csv",
-        "baseline_source": "dataset_csv",
-        "dataset": {"destinations": len(rows)},
-        "estimated_total": total,
-        "total": total,
-        "total_budget_usd": total,
-        "known_cost_total_usd": total,
-        "total_is_partial": False,
-        "breakdown": {
-            "accommodation": round(accommodation_total, 2),
-            "food": round(food_total, 2),
-            "transport": round(transport_total, 2),
-            "local_transport": round(local_total, 2),
-            "activities": 0,
-            "shopping": 0,
-        },
-        "breakdown_npr": {
-            "accommodation": None, "food": None, "transport": None,
-            "local_transport": None, "activities": None, "shopping": None,
-            "emergency_reserve": None,
-            "note": "USD is the recorded dataset currency; no exchange rate was inferred.",
-        },
-        "living_costs_available": True,
-        "matched_baseline_city": row.get("Destination") or city,
-        "days": days,
-        "travelers": travelers,
     }
 
 
@@ -752,68 +645,9 @@ class BudgetPredictionView(APIView):
 
 
         if result is None:
-            # Production fallback: use the verified per-destination budget rows
-            # imported from budget_features.csv. This keeps the public estimator
-            # useful even when the optional ML process is warming/restarting.
-            if destination is not None:
-                recorded = BudgetEstimation.objects.filter(destination=destination).first()
-                if recorded:
-                    multiplier = {"budget": 0.75, "mid": 1.0, "standard": 1.0, "luxury": 1.8}.get(
-                        data.get("budget_level"), 1.0
-                    )
-                    days = max(1, int(data.get("days") or 1))
-                    travelers = max(1, int(data.get("travelers") or 1))
-                    daily = (
-                        float(recorded.food_cost_per_day or 0)
-                        + float(recorded.accommodation_per_night or 0)
-                        + float(recorded.local_transport or 0)
-                    ) * multiplier
-                    trip = (daily * days + float(recorded.transport_cost or 0) + float(recorded.entry_fee or 0)) * travelers
-                    body = {
-                        "source": "dataset_db",
-                        "dataset": {"destinations": BudgetEstimation.objects.count()},
-                        "estimated_daily_budget": round(daily * travelers, 2),
-                        "estimated_trip_budget": round(trip, 2),
-                        "estimated_total": round(trip, 2),
-                        "total": round(trip, 2),
-                        "total_budget_usd": round(trip, 2),
-                        "breakdown": {
-                            "accommodation": round(float(recorded.accommodation_per_night or 0) * days * travelers * multiplier, 2),
-                            "food": round(float(recorded.food_cost_per_day or 0) * days * travelers * multiplier, 2),
-                            "transport": round(float(recorded.transport_cost or 0) * travelers, 2),
-                            "activities": round(float(recorded.entry_fee or 0) * travelers, 2),
-                            "shopping": 0,
-                        },
-                        "living_costs_available": True,
-                        "matched_destination": {"id": destination.id, "name": destination.name, "district": destination.district or ""},
-                        "days": days,
-                        "travelers": travelers,
-                    }
-                    body.update(_official_budget_context(body, data, destination))
-                    return Response(body, status=status.HTTP_200_OK)
-            # Last-resort source: read the tracked CSV directly. This
-            # protects the public estimator from a missing DB row, a skipped
-            # Render importer, or an ML-sidecar restart.
-            csv_result = _csv_budget_fallback(
-                destination=destination,
-                city=city,
-                district=data.get("district"),
-                province=data.get("province"),
-                days=data.get("days"),
-                travelers=data.get("travelers"),
-                budget_level=data.get("budget_level"),
-            )
-            if csv_result:
-                csv_result.update(_official_budget_context(csv_result, data, destination))
-                csv_result["matched_destination"] = (
-                    {"id": destination.id, "name": destination.name, "district": destination.district or ""}
-                    if destination else None
-                )
-                return Response(csv_result, status=status.HTTP_200_OK)
-
             if destination is None:
                 return Response(
-                    {"detail": "No complete recorded budget baseline is available for this destination."},
+                    {"detail": "Budget prediction service unavailable."},
                     status=status.HTTP_503_SERVICE_UNAVAILABLE,
                 )
             # Living-cost model is down, but the official visa / park /
@@ -838,9 +672,15 @@ class BudgetPredictionView(APIView):
             {"id": destination.id, "name": destination.name, "district": destination.district or ""}
             if destination else None)
 
-        flattened["total"] = result.get(
-            "estimated_total"
-        )
+        total_usd = result.get("total_budget_usd") or result.get("estimated_total")
+        flattened["total"] = total_usd
+        flattened["total_budget_usd"] = total_usd
+        flattened["daily_cost_usd"] = result.get("daily_cost_usd") or (round(total_usd / max(1, data["days"]), 2) if total_usd else None)
+
+        total_npr = result.get("total_budget_npr") or flattened.get("known_cost_total_npr") or flattened.get("trip_total_npr")
+        if total_npr is not None:
+            flattened["total_budget_npr"] = total_npr
+            flattened["daily_budget_npr"] = round(total_npr / max(1, data["days"]), 2)
 
         flattened.update(
             result.get(
@@ -968,7 +808,7 @@ def _nearest_for_itinerary(rows, lat, lon, mapper, limit=2):
             continue
         distance = haversine_distance(lat, lon, row.latitude, row.longitude)
         ranked.append((distance, row))
-    ranked.sort(key=lambda pair: pair[0])
+    ranked.sort(key=lambda pair: (getattr(pair[1], "is_approximate_coordinate", False), pair[0]))
     return [mapper(row, round(distance, 2)) for distance, row in dedupe_service_rows(ranked)[:limit]]
 
 
@@ -1013,6 +853,8 @@ def enrich_itinerary_with_services(payload):
                 Hotel.objects.filter(is_active=True), lat, lon,
                 lambda row, distance: {
                     "id": row.id, "name": row.name, "distance_km": distance,
+                    "is_approximate": getattr(row, "is_approximate_coordinate", False),
+                    "distance_label": f"≈ {distance} km (area point)" if getattr(row, "is_approximate_coordinate", False) else f"{distance} km",
                     "is_verified": bool(row.is_verified), "source_name": row.get_source_display() if row.source else "",
                     "price_npr": float(row.price_per_night) if row.price_per_night is not None and row.currency == "NPR" else None,
                     "image_url": _safe_file_url(row.cover_image) or row.external_image_url or None,
@@ -1020,13 +862,21 @@ def enrich_itinerary_with_services(payload):
             ),
             "hospitals": _nearest_for_itinerary(
                 Hospital.objects.filter(is_archived=False), lat, lon,
-                lambda row, distance: {"id": row.id, "name": row.name, "phone": clean_phone(row.phone, "")[0], "distance_km": distance,
-                                       "is_verified": bool(row.is_verified), "source_name": row.source_name or ""},
+                lambda row, distance: {
+                    "id": row.id, "name": row.name, "phone": clean_phone(row.phone, "")[0], "distance_km": distance,
+                    "is_approximate": getattr(row, "is_approximate_coordinate", False),
+                    "distance_label": f"≈ {distance} km (area point)" if getattr(row, "is_approximate_coordinate", False) else f"{distance} km",
+                    "is_verified": bool(row.is_verified), "source_name": row.source_name or "",
+                },
             ),
             "police": _nearest_for_itinerary(
                 PoliceStation.objects.filter(is_archived=False), lat, lon,
-                lambda row, distance: {"id": row.id, "name": row.name, "phone": clean_phone(row.phone, "")[0], "distance_km": distance,
-                                       "is_verified": bool(row.is_verified), "source_name": row.source_name or ""},
+                lambda row, distance: {
+                    "id": row.id, "name": row.name, "phone": clean_phone(row.phone, "")[0], "distance_km": distance,
+                    "is_approximate": getattr(row, "is_approximate_coordinate", False),
+                    "distance_label": f"≈ {distance} km (area point)" if getattr(row, "is_approximate_coordinate", False) else f"{distance} km",
+                    "is_verified": bool(row.is_verified), "source_name": row.source_name or "",
+                },
             ),
             "essentials": _nearest_for_itinerary(
                 OSMEssentialService.objects.filter(category__in=["bank", "pharmacy", "fire_station", "ambulance"], is_archived=False), lat, lon,
@@ -1116,7 +966,7 @@ class ItineraryView(APIView):
         start_city = (data.get("start_city") or "Kathmandu").strip()
         district = (data.get("district") or "").strip()
 
-        qs = Destination.publicly_visible()
+        qs = Destination.sightseeing()
 
         # Day stops are places to visit, never lodging/food/services. The
         # public listing applies these exclusions (Destination rows include

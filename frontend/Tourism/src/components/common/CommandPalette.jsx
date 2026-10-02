@@ -1,6 +1,22 @@
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { Compass, MapPin, Navigation as NavIcon, Shield, PhoneCall, Heart, Package, Calendar, MessageSquare, Search, X, Sparkles, Command, LayoutDashboard } from "lucide-react"
+import {
+  Compass,
+  MapPin,
+  Navigation as NavIcon,
+  Shield,
+  PhoneCall,
+  Heart,
+  Package,
+  Calendar,
+  MessageSquare,
+  Search,
+  SlidersHorizontal,
+  X,
+  Sparkles,
+  Command,
+  LayoutDashboard
+} from "lucide-react"
 
 const COMMAND_ITEMS = [
   {
@@ -69,11 +85,11 @@ const COMMAND_ITEMS = [
   },
   {
     id: "chatbot",
-    title: "Himal AI Assistant",
-    category: "AI",
+    title: "Himal Travel Guide",
+    category: "Guide",
     path: "/chatbot",
     icon: MessageSquare,
-    description: "Ask natural language questions about Nepal travel, weather, and permits."
+    description: "Ask questions about Nepal trekking routes, local etiquette, weather, and permits."
   },
   {
     id: "admin",

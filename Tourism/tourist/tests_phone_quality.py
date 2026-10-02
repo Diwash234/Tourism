@@ -113,6 +113,16 @@ class _ServiceFixtures(TestCase):
 class PhoneCleanupMigrationTests(_ServiceFixtures):
     """Migration 0086 fixes storage, not just the response."""
 
+    def _police(self, name, phone):
+        ps = super()._police(name, phone)
+        PoliceStation.objects.filter(pk=ps.pk).update(phone=phone)
+        return ps
+
+    def _hospital(self, name, phone):
+        h = super()._hospital(name, phone)
+        Hospital.objects.filter(pk=h.pk).update(phone=phone)
+        return h
+
     def _run(self):
         from importlib import import_module
 
@@ -147,11 +157,7 @@ class PhoneCleanupMigrationTests(_ServiceFixtures):
         self.assertEqual(PoliceStation.objects.get(name="Idem Police").phone, "014440000")
 
     def test_migration_reports_what_it_changed(self):
-        police = self._police("Reported Police", "nan")
-        # save() blanks unusable numbers itself now, so the import-era value
-        # has to be written the way the original CSV load did -- straight past
-        # the model. That raw row is exactly the state 0086 exists to repair.
-        PoliceStation.objects.filter(pk=police.pk).update(phone="nan")
+        self._police("Reported Police", "nan")
         editor = self._run()
         self.assertTrue(editor.statements, "the migration should record what it cleaned")
         self.assertIn("PoliceStation", editor.statements[0])

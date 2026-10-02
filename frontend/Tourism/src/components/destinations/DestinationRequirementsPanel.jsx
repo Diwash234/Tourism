@@ -10,7 +10,7 @@ import { NATIONALITY_OPTIONS } from "../../utils/currency"
 // the traveller is always pointed to the official source.
 
 const Src = ({ source }) => source?.url ? (
-  <a href={source.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs underline text-slate-600 dark:text-slate-400">
+  <a href={source.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] underline text-slate-500">
     {source.publisher} <FiExternalLink size={10} />
   </a>
 ) : null
@@ -18,9 +18,9 @@ const Src = ({ source }) => source?.url ? (
 const Item = ({ title, status, basis, children, source }) => (
   <li className="rounded-xl border border-slate-200 bg-white p-3">
     <p className="text-sm font-semibold text-slate-900">{title}</p>
-    {status ? <p className="text-xs font-medium text-amber-800 dark:text-amber-300">{status}</p> : null}
-    <div className="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-400">{children}</div>
-    {basis ? <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Why: {basis}</p> : null}
+    {status ? <p className="text-[11px] font-medium text-amber-800">{status}</p> : null}
+    <div className="mt-1 text-xs leading-5 text-slate-600">{children}</div>
+    {basis ? <p className="mt-1 text-[11px] text-slate-500">Why: {basis}</p> : null}
     <Src source={source} />
   </li>
 )

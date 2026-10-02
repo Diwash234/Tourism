@@ -60,7 +60,6 @@ export const ToastProvider = ({ children }) => {
     <ToastContext.Provider
       value={{
         showToast,
-        addToast: showToast,
       }}
     >
 

@@ -8,13 +8,6 @@ working untouched.
 """
 
 
-
-def invalidate_public_config_cache():
-    """Bump the public-config cache version after a CMS publish."""
-    from django.core.cache import cache
-    from django.utils import timezone
-    cache.set("public_config_version", str(timezone.now().timestamp()), 3600)
-
 def section_snapshot(section):
     """Frozen, public-safe representation of a section + its visible blocks."""
     return {
@@ -42,7 +35,6 @@ def sync_published_snapshot(section):
     """Copy the current live fields into the public snapshot."""
     section.published_snapshot = section_snapshot(section)
     section.save(update_fields=["published_snapshot", "updated_at"])
-    invalidate_public_config_cache()
     return section.published_snapshot
 
 
@@ -63,7 +55,6 @@ def page_snapshot(page):
 def sync_published_page(page):
     page.published_snapshot = page_snapshot(page)
     page.save(update_fields=["published_snapshot", "updated_at"])
-    invalidate_public_config_cache()
     return page.published_snapshot
 
 
@@ -78,8 +69,6 @@ def publish_due_pages(now):
         page.save(update_fields=["status", "is_enabled", "published_at", "scheduled_publish_at", "updated_at"])
         sync_published_page(page)
         count += 1
-    if count:
-        invalidate_public_config_cache()
     return count
 
 
@@ -94,6 +83,4 @@ def publish_due_sections(now):
         section.save(update_fields=["status", "published_at", "scheduled_publish_at", "updated_at"])
         sync_published_snapshot(section)
         count += 1
-    if count:
-        invalidate_public_config_cache()
     return count

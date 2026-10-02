@@ -142,7 +142,7 @@ export default function OwnerDeskPanel() {
       <div className="rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
-            <p className="text-[11px] font-black uppercase tracking-wider text-emerald-700">Owner desk</p>
+            <p className="text-xs font-black uppercase tracking-wider text-emerald-700">Owner desk</p>
             <h2 className="text-2xl font-black text-slate-900">Visitor notices & featured places</h2>
             <p className="text-sm text-slate-300 mt-1 max-w-3xl">
               Publish what a traveller actually needs before they go — festivals, trail closures, permits, seasonal
@@ -219,7 +219,7 @@ export default function OwnerDeskPanel() {
                     <h4 className="font-bold text-slate-900">{notice.title}</h4>
                   </div>
                   <p className="text-xs text-slate-300 mt-1 line-clamp-2">{notice.body}</p>
-                  <p className="text-[11px] text-slate-500 mt-1">
+                  <p className="text-xs text-slate-500 mt-1">
                     {[notice.destination_name, notice.city, notice.district].filter(Boolean).join(" · ") || "All Nepal"}
                   </p>
                 </div>

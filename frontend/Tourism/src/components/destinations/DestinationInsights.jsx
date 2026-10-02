@@ -37,7 +37,7 @@ const WhenToGo = ({ destinationKey }) => {
         {data.months.map((m) => (
           <button key={m.month} type="button" onClick={() => setSelected(m.month)} aria-pressed={selected === m.month}
             title={`${m.month_name}: ${m.label}`}
-            className={`rounded-md px-1 py-2 text-xs font-bold ${LEVEL_BG[m.level] || LEVEL_BG.fair} ${selected === m.month ? "ring-2 ring-offset-1 ring-[var(--ny-text)]" : ""}`}>
+            className={`rounded-md px-1 py-2 text-[11px] font-bold ${LEVEL_BG[m.level] || LEVEL_BG.fair} ${selected === m.month ? "ring-2 ring-offset-1 ring-[var(--ny-text)]" : ""}`}>
             {m.month_name.slice(0, 3)}
           </button>
         ))}

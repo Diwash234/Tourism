@@ -23,15 +23,11 @@ const TILE_PROVIDERS = {
     name: "Detailed Road Map",
     url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     attr: "&copy; OpenStreetMap contributors",
-    language: "English (map labels follow the selected tile provider)",
-
   },
   standard: {
     name: "Standard Light",
     url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     attr: "&copy; OpenStreetMap contributors",
-    language: "English (map labels follow the selected tile provider)",
-
   },
   satellite: {
     name: "Satellite",
@@ -40,7 +36,14 @@ const TILE_PROVIDERS = {
   },
 }
 
-import { userIcon, destinationIcon, hospitalIcon, policeIcon, placeTypeIcon } from "./icons"
+import {
+  userIcon,
+  destinationIcon,
+  hospitalIcon,
+  policeIcon,
+  attractionIcon,
+  placeTypeIcon,
+} from "./icons"
 
 
 const normalizeLocation = (place) => {
@@ -236,7 +239,7 @@ const MapView = ({
       className="rounded-xl overflow-hidden shadow-card relative"
     >
       {/* Map Style Selector & Ruler Tool */}
-      <div className="absolute left-3 right-3 top-3 z-[1000] flex max-h-24 flex-wrap items-center gap-1.5 overflow-y-auto rounded-[var(--ny-radius-md)] border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 p-1.5 text-xs font-bold shadow-md backdrop-blur">
+      <div className="absolute left-3 right-3 top-3 z-[1000] flex max-h-24 flex-wrap items-center gap-1.5 overflow-y-auto rounded-[var(--ny-radius-md)] border border-slate-200 bg-white/95 p-1.5 text-[11px] font-bold shadow-md backdrop-blur">
         {Object.entries(TILE_PROVIDERS).map(([key, provider]) => (
           <button
             key={key}
@@ -267,14 +270,14 @@ const MapView = ({
       {measureMode && (
         <div className="absolute bottom-3 left-3 z-[1000] max-w-[calc(100%-5rem)] bg-slate-950/90 text-white border border-amber-400/50 rounded-xl p-2.5 text-xs shadow-xl space-y-1">
           <p className="font-bold text-amber-300">Click points on the map to measure geodesic distance</p>
-          <p className="text-xs text-slate-200">
+          <p className="text-[11px] text-slate-200">
             Measured: <b className="text-white text-sm">{totalMeasuredKm.toFixed(2)} km</b> ({ (totalMeasuredKm * 0.621371).toFixed(2) } mi)
           </p>
           {measurePoints.length > 0 && (
             <button
               type="button"
               onClick={() => setMeasurePoints([])}
-              className="text-xs text-amber-300 underline font-bold"
+              className="text-[10px] text-amber-300 underline font-bold"
             >
               Clear points ({measurePoints.length})
             </button>
@@ -284,7 +287,7 @@ const MapView = ({
 
       {/* Mapillary Badge */}
       {mapillaryToken && layers.mapillary && (
-        <div className="absolute right-3 top-20 z-[1000] sm:top-3 rounded-lg bg-white/90 px-3 py-1 text-xs font-semibold text-gray-700 shadow-sm">
+        <div className="absolute right-3 top-20 z-[1000] sm:top-3 rounded-lg bg-white/90 px-3 py-1 text-[10px] font-semibold text-gray-700 shadow-sm">
           Mapillary enabled
         </div>
       )}

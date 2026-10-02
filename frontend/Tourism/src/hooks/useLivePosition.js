@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { validateGpsPosition } from "../utils/placeUtils"
 
 /**
  * Continuous GPS tracking for live navigation (master spec Phase 2).
@@ -40,13 +41,9 @@ const useLivePosition = (active) => {
           speed: pos.coords.speed ?? null,
           heading: pos.coords.heading ?? null,
         }
-        // Same policy as useGeolocation: only a fix with unusable (NaN)
-        // coordinates is dropped. Coarse accuracy or a position beyond the
-        // Nepal bbox must not stop live sharing — the first indoor fix is
-        // routinely ±300 m, and family safety/SOS has to keep updating
-        // when a tourist crosses the border.
-        if (!Number.isFinite(candidate.lat) || !Number.isFinite(candidate.lng)) {
-          setError("GPS coordinates are invalid. Please try again.")
+        const validation = validateGpsPosition(candidate)
+        if (!validation.valid) {
+          setError(validation.reason)
           setCode(3)
           return
         }

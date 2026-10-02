@@ -5,6 +5,7 @@ import { Link } from "react-router-dom"
 import axiosClient from "../../api/axiosClient"
 import SafeHtml from "./SafeHtml"
 import VerificationBadge from "../common/VerificationBadge"
+import FAQAccordion from "../common/FAQAccordion"
 
 const safeHttpUrl = (value) => {
   const raw = String(value || "").trim()
@@ -359,6 +360,35 @@ export function ContentBlockItem({ block, showEmpty = false }) {
 
     case "packages":
       return <PackagesGridBlock data={data} />
+
+    case "faq":
+    case "accordion": {
+      const items = Array.isArray(data.items) ? data.items : []
+      if (!items.length) return null
+      return (
+        <div className="mt-4">
+          <FAQAccordion items={items} />
+        </div>
+      )
+    }
+
+    case "testimonials": {
+      const items = Array.isArray(data.items) ? data.items : []
+      if (!items.length) return null
+      return (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-4">
+          {items.map((t, idx) => (
+            <div key={idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+              <p className="text-xs text-slate-700 italic">"{t.content || t.quote || t.comment}"</p>
+              <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-[11px] font-bold text-slate-900">
+                <span>{t.name || t.author || "Traveler"}</span>
+                {t.location && <span className="text-slate-500 font-normal">{t.location}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )
+    }
 
     case "destination_grid":
     case "hotel_grid":

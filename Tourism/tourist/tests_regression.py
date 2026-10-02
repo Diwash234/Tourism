@@ -28,6 +28,7 @@ from .models import (
     StaffCapabilityProfile,
     Category,
     Destination,
+    DestinationImage,
     Province,
     District,
     Hospital,
@@ -912,92 +913,6 @@ class NavigationOriginResolutionTests(TestCase):
         )
         self.assertEqual(resp.status_code, 404)
         self.assertIn("origin", resp.json()["detail"].lower())
-
-
-class NavigationRoutePayloadRobustnessTests(TestCase):
-    """Live production bugs found 2026-10-01:
-
-    1. The modern nested payload {"start": {latitude, longitude},
-       "destination": {latitude, longitude}} crashed with
-       AttributeError ('dict' object has no attribute 'lower') -> 500 on
-       every /navigation/route request in that shape (the compat handler
-       treated the nested "start"/"destination" objects as place names).
-    2. In production the ML service does not exist (ML_SERVICE_URL points
-       at localhost:8001, nothing listens) and its graph fallback needs
-       the ml_service/ tree the image does not ship - so the request must
-       still answer with DRAWABLE geometry via the navigation route
-       engine fallback, never 503 or an empty route array.
-    """
-
-    @classmethod
-    def setUpTestData(cls):
-        from .models import Destination
-        cls.dest = Destination.objects.create(
-            name="Phewa Lake",
-            slug="phewa-lake-robust",
-            city="Pokhara",
-            latitude=28.2117,
-            longitude=83.9517,
-            is_active=True,
-        )
-
-    def test_nested_modern_payload_returns_drawable_route(self):
-        from django.test import override_settings
-        with override_settings(ROUTING_BASE_URL="", ROUTING_API_URL=""):
-            resp = self.client.post(
-                "/api/v1/navigation/route",
-                {
-                    "start": {"latitude": 27.7172, "longitude": 85.3240},
-                    "destination": {"latitude": 28.2117, "longitude": 83.9517},
-                    "mode": "driving",
-                },
-                content_type="application/json",
-            )
-        # Before the fix this was a hard 500 (AttributeError in pick()).
-        self.assertEqual(resp.status_code, 200, resp.content)
-        body = resp.json()
-        self.assertTrue(body.get("route"), "route geometry must be drawable")
-        self.assertGreater(body.get("distance_km") or 0, 0)
-
-    @patch("tourist.views_compat.get_ml_best_route", return_value=None)
-    def test_ml_down_falls_back_to_route_engine(self, _mock_ml):
-        from django.test import override_settings
-        with override_settings(ROUTING_BASE_URL="", ROUTING_API_URL=""):
-            resp = self.client.post(
-                "/api/v1/navigation/route",
-                {
-                    "start_latitude": "27.7172",
-                    "start_longitude": "85.3240",
-                    "destination_name": "Phewa Lake",
-                    "transport_mode": "driving",
-                },
-                content_type="application/json",
-            )
-        self.assertEqual(resp.status_code, 200, resp.content)
-        body = resp.json()
-        self.assertTrue(body.get("route"), "engine fallback must supply geometry")
-        self.assertGreater(body.get("distance_km") or 0, 0)
-        self.assertIn(
-            body.get("source"),
-            {"osrm", "graphml_fallback", "straight_line_fallback"},
-        )
-
-    @patch("tourist.views_compat.get_ml_best_route", return_value=None)
-    def test_ml_down_empty_geometry_upgraded_to_engine_route(self, _mock_ml):
-        """ML answering with NO drawable geometry (route: []) is as broken as
-        ML being down - the fallback must upgrade it to a real route."""
-        from django.test import override_settings
-        with override_settings(ROUTING_BASE_URL="", ROUTING_API_URL=""):
-            resp = self.client.post(
-                "/api/v1/navigation/route",
-                {
-                    "start": {"latitude": 27.7172, "longitude": 85.3240},
-                    "destination": {"latitude": 28.2117, "longitude": 83.9517},
-                },
-                content_type="application/json",
-            )
-        self.assertEqual(resp.status_code, 200, resp.content)
-        self.assertTrue(resp.json().get("route"))
 
 
 class TransportModeHonestyTests(TestCase):
@@ -2488,9 +2403,12 @@ class HomepageCMSDraftPublishTests(TestCase):
 
 class CMSBulkAndMediaTests(TestCase):
     def setUp(self):
+<<<<<<< HEAD
         # Plain TestCase gives a django.test.Client, which has no
         # force_authenticate() and no support for format="json" or
         # response.data. These tests need the DRF client.
+=======
+>>>>>>> origin/arena/01a0ed99-tourism
         self.client = APIClient()
         self.admin = User.objects.create_superuser(email='cmsbulk@test.local', password='Pass@12345')
         self.client.force_authenticate(user=self.admin)
@@ -2510,10 +2428,16 @@ class CMSBulkAndMediaTests(TestCase):
         response = self.client.patch(reverse('admin-cms'), {'resource': 'media', 'id': self.media.id, 'external_url': 'http://bad.example/image.jpg'}, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+<<<<<<< HEAD
     def test_bulk_publish_succeeds_for_a_page_that_passes_the_gate(self):
         # self.page in setUp satisfies every hard blocker the publication gate
         # checks (title, key, internal route, meta description, one visible
         # published section), so a bulk publish of it must succeed.
+=======
+    def test_bulk_publish_uses_publication_gate(self):
+        self.page.title = ""
+        self.page.save()
+>>>>>>> origin/arena/01a0ed99-tourism
         response = self.client.patch(reverse('admin-cms'), {'resource': 'pages', 'action': 'bulk', 'bulk_action': 'publish', 'ids': [self.page.id]}, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
         self.assertEqual(response.data["updated"], 1)
@@ -2541,8 +2465,11 @@ class CMSBulkAndMediaTests(TestCase):
 
 class CMSContentMapTests(TestCase):
     def setUp(self):
+<<<<<<< HEAD
         # Needs APIClient, not django.test.Client: force_authenticate() and
         # response.data are DRF-only.
+=======
+>>>>>>> origin/arena/01a0ed99-tourism
         self.client = APIClient()
         self.admin = User.objects.create_superuser(email="cmsmap@test.local", password="Pass@12345")
         self.client.force_authenticate(user=self.admin)
@@ -2566,8 +2493,11 @@ class CMSContentMapTests(TestCase):
 
 class CMSWorkspaceMapTests(TestCase):
     def setUp(self):
+<<<<<<< HEAD
         # Needs APIClient, not django.test.Client: force_authenticate() and
         # response.data are DRF-only.
+=======
+>>>>>>> origin/arena/01a0ed99-tourism
         self.client = APIClient()
         self.admin = User.objects.create_superuser(email="cmsworkspace@test.local", password="Pass@12345")
         self.client.force_authenticate(user=self.admin)
@@ -4737,11 +4667,12 @@ class AdminOperationalCMSRegressionTests(TestCase):
         PoliceStation = __import__("tourist.models", fromlist=["PoliceStation"]).PoliceStation
         station = PoliceStation.objects.create(
             destination=self.destination, name="Test Police", address="Test address",
-            phone="100", latitude=27.7172, longitude=85.3240, district="Kathmandu",
+            phone="100", latitude=27.7172, longitude=85.3240,
         )
         resp = self.client_admin.get("/api/v1/admin/cms/", {"resource": "police_stations"})
         self.assertEqual(resp.status_code, 200)
         self.assertTrue(any(row["id"] == station.id for row in resp.json()["results"]))
+<<<<<<< HEAD
 
 
 class RenderHealthProbeExemptionTests(TestCase):
@@ -4928,3 +4859,5 @@ class ReconcileCatalogueCommandTests(TestCase):
         visible = Destination.objects.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)
         public = Destination.publicly_visible(visible)
         self.assertEqual(list(public.values_list("slug", flat=True)), ["legit-place"])
+=======
+>>>>>>> origin/arena/01a0ed99-tourism

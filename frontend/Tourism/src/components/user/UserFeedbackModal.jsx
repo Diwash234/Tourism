@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react"
-import { FiStar, FiSend, FiX, FiUser, FiShield, FiRefreshCw } from "react-icons/fi"
+import { FiStar, FiMessageSquare, FiSend, FiX, FiCheckCircle, FiUser, FiShield, FiRefreshCw } from "react-icons/fi"
 import axiosClient from "../../api/axiosClient"
 import useToast from "../../hooks/useToast"
 import useAuth from "../../hooks/useAuth"
@@ -11,10 +11,10 @@ export default function UserFeedbackModal({ isOpen, onClose, destination = null 
   const [message, setMessage] = useState("")
   const [category, setCategory] = useState("recommendation_quality")
   const [rating, setRating] = useState(5)
-  const [recRating, _setRecRating] = useState(5)
-  const [itinRating, _setItinRating] = useState(5)
-  const [budgetRating, _setBudgetRating] = useState(5)
-  const [routeRating, _setRouteRating] = useState(5)
+  const [recRating, setRecRating] = useState(5)
+  const [itinRating, setItinRating] = useState(5)
+  const [budgetRating, setBudgetRating] = useState(5)
+  const [routeRating, setRouteRating] = useState(5)
 
   const [submitting, setSubmitting] = useState(false)
   const [history, setHistory] = useState([])
@@ -119,7 +119,7 @@ export default function UserFeedbackModal({ isOpen, onClose, destination = null 
               <button
                 type="button"
                 onClick={() => { setActiveTab("submit"); setSelectedThread(null) }}
-                className={`px-3 py-1 rounded-full text-xs font-bold ${activeTab === "submit" ? "bg-amber-400 text-slate-950" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}
+                className={`px-3 py-1 rounded-full text-xs font-bold ${activeTab === "submit" ? "bg-amber-400 text-slate-950" : "bg-slate-800 text-slate-300"}`}
               >
                 + New Support Ticket
               </button>

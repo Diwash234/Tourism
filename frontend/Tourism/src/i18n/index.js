@@ -9,14 +9,15 @@
  * its block to LANGS and register it in ALL_LANGS.
  */
 import { useEffect, useState } from "react"
-import { SUPPORTED_LANGUAGES } from "./languages"
-import translationApi from "../api/translationApi"
 
 const STORAGE_KEY = "tourism_lang"
 const COOKIE_KEY = "django_language"
 
-// ALL_LANGS is declared right after DICTS (further down) so the selectable
-// language set can never drift from the dictionaries we actually ship.
+export const ALL_LANGS = [
+  { code: "en", label: "English", native: "English", flag: "🇬🇧", dir: "ltr" },
+  { code: "ne", label: "Nepali", native: "नेपाली", flag: "🇳🇵", dir: "ltr" },
+  { code: "hi", label: "Hindi", native: "हिन्दी", flag: "🇮🇳", dir: "ltr" },
+]
 
 const en = {
   // nav / layout
@@ -38,7 +39,7 @@ const en = {
   "sidebar.packages": "Travel Packages",
   "sidebar.submit": "Submit Place",
   "sidebar.explore_map": "Explore by Province",
-  "sidebar.recommendations": "AI Recommendations",
+  "sidebar.recommendations": "Curated Recommendations",
   "sidebar.navigation": "Location",
   "sidebar.hotels": "Hotels & Lodges",
   "sidebar.budget": "Budget Estimator",
@@ -50,7 +51,7 @@ const en = {
   "sidebar.emergency": "Emergency Hub",
   "sidebar.phrasebook": "Nepal Phrasebook",
   "sidebar.translation": "Live Translation",
-  "sidebar.chatbot": "Himal AI Assistant",
+  "sidebar.chatbot": "Himal Travel Guide",
   "sidebar.dashboard": "My Dashboard",
   "sidebar.favorites": "Saved Favorites",
   "sidebar.bookings": "My Bookings",
@@ -389,7 +390,7 @@ const ne = {
   "sidebar.packages": "यात्रा प्याकेजहरू",
   "sidebar.submit": "स्थान पेश गर्नुहोस्",
   "sidebar.explore_map": "प्रदेश अनुसार अन्वेषण",
-  "sidebar.recommendations": "एआई सिफारिसहरू",
+  "sidebar.recommendations": "विशेष यात्रा सिफारिसहरू",
   "sidebar.navigation": "लोकेशन",
   "sidebar.hotels": "होटल र लज",
   "sidebar.budget": "बजट अनुमान",
@@ -401,7 +402,7 @@ const ne = {
   "sidebar.emergency": "आपतकालीन केन्द्र",
   "sidebar.phrasebook": "नेपाली वाक्यांशपुस्तक",
   "sidebar.translation": "प्रत्यक्ष अनुवाद",
-  "sidebar.chatbot": "हिमाल एआई सहायक",
+  "sidebar.chatbot": "हिमाल यात्रा सहयोगी",
   "sidebar.dashboard": "मेरो ड्यासबोर्ड",
   "sidebar.favorites": "रुचाइएका",
   "sidebar.bookings": "मेरा बुकिङहरू",
@@ -732,7 +733,7 @@ const hi = {
   "sidebar.packages": "यात्रा पैकेज",
   "sidebar.submit": "स्थान जोड़ें",
   "sidebar.explore_map": "प्रांत के अनुसार खोजें",
-  "sidebar.recommendations": "एआई सिफारिशें",
+  "sidebar.recommendations": "विशेष यात्रा सिफारिशें",
   "sidebar.navigation": "लोकेशन",
   "sidebar.hotels": "होटल और लॉज",
   "sidebar.budget": "बजट अनुमान",
@@ -744,7 +745,7 @@ const hi = {
   "sidebar.emergency": "आपातकालीन केंद्र",
   "sidebar.phrasebook": "नेपाली वाक्यांश पुस्तक",
   "sidebar.translation": "लाइव अनुवाद",
-  "sidebar.chatbot": "हिमाल एआई सहायक",
+  "sidebar.chatbot": "हिमाल यात्रा साथी",
   "sidebar.dashboard": "मेरा डैशबोर्ड",
   "sidebar.favorites": "सहेजे गए",
   "sidebar.bookings": "मेरी बुकिंग",
@@ -1059,14 +1060,6 @@ const hi = {
 
 const DICTS = { en, ne, hi }
 
-// A language is only selectable/storable if we can actually serve it. This
-// used to be built from the 28-entry SUPPORTED_LANGUAGES list, so one click
-// on 한국어 persisted `tourism_lang=ko`; every later visit then booted Korean
-// and the machine-translation bridge rewrote up to 100 visible strings via
-// POST /translate/batch/ -- intermittently, which is why pages came back in
-// Korean or some other language and varied per browser.
-export const ALL_LANGS = SUPPORTED_LANGUAGES.filter((language) => DICTS[language.code]).map((language) => ({ ...language, flag: language.code === "ne" ? "🇳🇵" : language.code === "hi" ? "🇮🇳" : language.code === "en" ? "🇬🇧" : "🌐" }))
-
 // --- reactive store -------------------------------------------------------
 let currentLang = detectLang()
 const listeners = new Set()
@@ -1074,9 +1067,6 @@ const listeners = new Set()
 function detectLang() {
   if (typeof window === "undefined") return "en"
   const saved = window.localStorage?.getItem(STORAGE_KEY)
-  // Dictionary allowlist, not the display list: a stale `ko`/`es`/... left
-  // behind by an older build silently falls back to English (persistLang()
-  // rewrites it on boot) instead of booting a language we cannot serve.
   if (saved && DICTS[saved]) return saved
   // The Settings page persists its choice under a different key
   // (tourism_preferred_language) — honour it so a language picked in
@@ -1087,9 +1077,8 @@ function detectLang() {
     english: "en",
   }
   if (prefMap[String(pref).toLowerCase()]) return prefMap[String(pref).toLowerCase()]
-  // English is the product default. Never infer a different UI language
-  // from the browser/OS locale; users can explicitly select Nepali or Hindi.
-  return "en"
+  const nav = (window.navigator?.language || "en").slice(0, 2)
+  return DICTS[nav] ? nav : "en"
 }
 
 function persistLang(code) {
@@ -1123,10 +1112,7 @@ function translateLegacyDom(root = document.body) {
     const key = reverse.get(trimmed)
     if (!key) continue
     const translated = target[key] || trimmed
-    const next = original.replace(trimmed, translated)
-    // Only write on a real change: the observer also watches characterData
-    // now, and an unconditional set would re-trigger itself forever.
-    if (node.nodeValue !== next) node.nodeValue = next
+    node.nodeValue = original.replace(trimmed, translated)
   }
   root.querySelectorAll?.("[placeholder],[title]").forEach((element) => {
     for (const attribute of ["placeholder", "title"]) {
@@ -1140,147 +1126,19 @@ function translateLegacyDom(root = document.body) {
   })
 }
 
-const translationCache = new Map()
-// Node -> { text, lang } for strings this module machine-translated, so a
-// language switch can tell "already translated" apart from native content,
-// re-translate a previous target language from the original text, and —
-// when switching back to English — restore exactly what we rewrote.
-const machineTranslated = new WeakMap()
-// Nepali and Hindi both use Devanagari: once an untouched node contains it
-// (place names, native data) it must never be pushed through the batch
-// translator with source=en again.
-const DEVANAGARI = /[\u0900-\u097F]/
-// Smaller slices keep every POST comfortably inside the axios timeout; the
-// backend translates each slice in parallel.
-const BATCH_SIZE = 40
-
-// The mutation observer fires for every DOM change (a React mount fires
-// dozens). Without this guard each firing starts its own batch POST for the
-// same still-uncached strings — the cache only fills after the response
-// lands — and the pile-up outlives the axios timeout, leaving the page half
-// in English.
-let uiTranslateBusy = false
-let uiTranslateQueued = false
-
-function applyMachineTranslation(node, expected, value) {
-  const current = node.nodeValue
-  if (current.trim() !== expected) return // React re-rendered while the batch was in flight
-  const next = current.replace(current.trim(), () => value)
-  if (next === current) return // an identical write would re-trigger the observer
-  node.nodeValue = next
-  machineTranslated.set(node, { text: next, lang: currentLang })
-}
-
-function revertMachineTranslations(root) {
-  if (!root) return
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
-  let node
-  while ((node = walker.nextNode())) {
-    const stored = machineTranslated.get(node)
-    if (!stored || node.nodeValue !== stored.text) continue // already reverted or re-rendered
-    const original = originalText.get(node)
-    if (original == null || original === node.nodeValue) continue
-    node.nodeValue = original
-    machineTranslated.delete(node)
-  }
-}
-
-async function translatePageUi(root = document.body) {
-  if (typeof document === "undefined" || !DICTS[currentLang] || !root) return
-  if (uiTranslateBusy) {
-    uiTranslateQueued = true
-    return
-  }
-  uiTranslateBusy = true
-  try {
-    if (currentLang === "en") {
-      revertMachineTranslations(root)
-      return
-    }
-    const nodes = []
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
-    let node
-    while ((node = walker.nextNode())) {
-      const parent = node.parentElement
-      if (!parent || ["SCRIPT", "STYLE", "CODE", "PRE", "NOSCRIPT"].includes(parent.tagName)) continue
-      if (parent.closest?.("[data-no-translate], input, textarea, select, option, svg")) continue
-      const current = node.nodeValue
-      const trimmed = current.trim()
-      if (!trimmed || trimmed.length < 2) continue
-      const stored = machineTranslated.get(node)
-      if (stored && stored.text === current && stored.lang === currentLang) continue // already done
-      let source
-      if (stored && stored.text === current) {
-        // Machine-translated into a different target language before: the
-        // only stable source is the original text recorded at first sight.
-        if (stored.lang !== currentLang) {
-          source = (originalText.get(node) || current).trim()
-        } else {
-          continue
-        }
-      } else {
-        if (stored) machineTranslated.delete(node) // stale — React re-rendered this node
-        originalText.set(node, current)
-        source = trimmed
-        if (DEVANAGARI.test(source)) continue // native Devanagari content
-      }
-      if (/^[\d\W_]+$/.test(source)) continue // numbers and punctuation only
-      const cacheKey = `${currentLang}:${source}`
-      if (translationCache.has(cacheKey)) {
-        applyMachineTranslation(node, trimmed, translationCache.get(cacheKey))
-        continue
-      }
-      nodes.push([node, trimmed, source])
-    }
-    for (let start = 0; start < nodes.length; start += BATCH_SIZE) {
-      const slice = nodes.slice(start, start + BATCH_SIZE)
-      try {
-        const { data } = await translationApi.translateBatch({
-          items: slice.map(([, , source]) => source),
-          target_language: currentLang,
-          source_language: "en",
-        })
-        const translated = Array.isArray(data?.translations) ? data.translations : []
-        // Apply as each slice lands instead of after the whole queue, so
-        // the page keeps converting progressively even if a later slice
-        // fails or the component unmounts mid-flight.
-        slice.forEach(([target, expected, source], index) => {
-          const value = translated[index] || source
-          translationCache.set(`${currentLang}:${source}`, value)
-          applyMachineTranslation(target, expected, value)
-        })
-      } catch {
-        /* Keep the original text when the translation service is unavailable. */
-      }
-    }
-  } finally {
-    uiTranslateBusy = false
-    if (uiTranslateQueued) {
-      uiTranslateQueued = false
-      queueMicrotask(() => translatePageUi())
-    }
-  }
-}
 function enableLegacyTranslationBridge() {
   if (typeof document === "undefined") return
-  queueMicrotask(() => { translateLegacyDom(); translatePageUi() })
+  queueMicrotask(() => translateLegacyDom())
   if (!translationObserver) {
     translationObserver = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         mutation.addedNodes.forEach((node) => {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            translateLegacyDom(node); translatePageUi(node)
-          } else if (node.nodeType === Node.TEXT_NODE && node.parentElement) {
-            translateLegacyDom(node.parentElement); translatePageUi(node.parentElement)
-          }
+          if (node.nodeType === Node.ELEMENT_NODE) translateLegacyDom(node)
+          else if (node.nodeType === Node.TEXT_NODE && node.parentElement) translateLegacyDom(node.parentElement)
         })
       }
     })
-    // characterData too: React updates some text nodes in place (counters,
-    // search results), and without watching those the re-rendered English
-    // would never be re-translated. Every write in this module is guarded
-    // to only fire on real changes, so this cannot loop.
-    translationObserver.observe(document.documentElement, { childList: true, subtree: true, characterData: true })
+    translationObserver.observe(document.documentElement, { childList: true, subtree: true })
   }
 }
 
@@ -1288,12 +1146,6 @@ export function setLang(code) {
   if (!DICTS[code]) return
   currentLang = code
   persistLang(code)
-  try {
-    window.localStorage.setItem("tourism_preferred_language", code)
-    window.dispatchEvent(new CustomEvent("tourism-language-change", { detail: { code } }))
-  } catch {
-    /* preference persistence is best effort */
-  }
   listeners.forEach((fn) => fn(code))
   enableLegacyTranslationBridge()
 }

@@ -1,0 +1,492 @@
+﻿python : Creating test database for alias 'default'...
+At line:1 char:46
++ ... t\Tourism"; python manage.py test --noinput --parallel 1 2>&1 | Out-F ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Creating test d...as 'default'...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+Found 1017 test(s).
+System check identified no issues (0 silenced).
+[2026-10-02 12:47:59,558] INFO tourist.signals: New user created: super@example.com
+[2026-10-02 12:47:59,816] INFO tourist.signals: New user created: staff@example.com
+[2026-10-02 12:48:00,147] INFO tourist.signals: New user created: other@example.com
+[2026-10-02 12:48:00,177] INFO tourist.signals: New destination created: Begnas Lake
+.[2026-10-02 12:48:02,297] INFO tourist.signals: New user created: super@example.com
+[2026-10-02 12:48:02,611] INFO tourist.signals: New user created: staff@example.com
+[2026-10-02 12:48:02,820] INFO tourist.signals: New user created: other@example.com
+[2026-10-02 12:48:02,826] INFO tourist.signals: New destination created: Begnas Lake
+.[2026-10-02 12:48:03,234] INFO tourist.signals: New user created: super@example.com
+[2026-10-02 12:48:03,546] INFO tourist.signals: New user created: staff@example.com
+[2026-10-02 12:48:03,919] INFO tourist.signals: New user created: other@example.com
+[2026-10-02 12:48:03,925] INFO tourist.signals: New destination created: Begnas Lake
+[2026-10-02 12:48:04,044] ERROR tourist.exceptions: API error at POST /api/v2/admin-panel/hotel-assignments/ 
+[user=staff@example.com]: PermissionDenied: You do not have permission to perform this action.
+Traceback (most recent call last):
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 503, 
+in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 421, 
+in initial
+    self.check_permissions(request)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 339, 
+in check_permissions
+    self.permission_denied(
+    ~~~~~~~~~~~~~~~~~~~~~~^
+        request,
+        ^^^^^^^^
+        message=getattr(permission, 'message', None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        code=getattr(permission, 'code', None)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 181, 
+in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You do not have permission to perform this action.
+.[2026-10-02 12:48:04,580] INFO tourist.signals: New user created: super@example.com
+[2026-10-02 12:48:04,966] INFO tourist.signals: New user created: staff@example.com
+[2026-10-02 12:48:05,259] INFO tourist.signals: New user created: other@example.com
+[2026-10-02 12:48:05,265] INFO tourist.signals: New destination created: Begnas Lake
+.[2026-10-02 12:48:05,845] INFO tourist.signals: New user created: super@example.com
+[2026-10-02 12:48:06,264] INFO tourist.signals: New user created: staff@example.com
+[2026-10-02 12:48:06,566] INFO tourist.signals: New user created: other@example.com
+[2026-10-02 12:48:06,575] INFO tourist.signals: New destination created: Begnas Lake
+[2026-10-02 12:48:06,739] ERROR tourist.exceptions: API error at POST /api/v2/admin-panel/tasks/ 
+[user=staff@example.com]: PermissionDenied: You do not have permission to perform this action.
+Traceback (most recent call last):
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 503, 
+in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 421, 
+in initial
+    self.check_permissions(request)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 339, 
+in check_permissions
+    self.permission_denied(
+    ~~~~~~~~~~~~~~~~~~~~~~^
+        request,
+        ^^^^^^^^
+        message=getattr(permission, 'message', None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        code=getattr(permission, 'code', None)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 181, 
+in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You do not have permission to perform this action.
+.[2026-10-02 12:48:07,046] INFO tourist.signals: New user created: super@example.com
+[2026-10-02 12:48:07,320] INFO tourist.signals: New user created: staff@example.com
+[2026-10-02 12:48:07,585] INFO tourist.signals: New user created: other@example.com
+[2026-10-02 12:48:07,590] INFO tourist.signals: New destination created: Begnas Lake
+.[2026-10-02 12:48:08,019] INFO tourist.signals: New user created: super@example.com
+[2026-10-02 12:48:08,279] INFO tourist.signals: New user created: staff@example.com
+[2026-10-02 12:48:08,555] INFO tourist.signals: New user created: other@example.com
+[2026-10-02 12:48:08,559] INFO tourist.signals: New destination created: Begnas Lake
+.[2026-10-02 12:48:09,157] INFO tourist.signals: New user created: admin@example.com
+[2026-10-02 12:48:09,394] INFO tourist.signals: New user created: tourist@example.com
+[2026-10-02 12:48:09,566] INFO tourist.signals: New user created: manager@example.com
+[2026-10-02 12:48:09,571] INFO tourist.signals: New destination created: Phewa Lake
+[2026-10-02 12:48:09,650] ERROR tourist.exceptions: API error at POST /api/v2/bookings/ [user=tourist@example.com]: 
+ValidationError: {'non_field_errors': [ErrorDetail(string='check_out must be after check_in.', code='invalid')]}
+Traceback (most recent call last):
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 512, 
+in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\mixins.py", line 18, 
+in create
+    serializer.is_valid(raise_exception=True)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\serializers.py", line 
+233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'non_field_errors': [ErrorDetail(string='check_out must be after 
+check_in.', code='invalid')]}
+.[2026-10-02 12:48:09,849] INFO tourist.signals: New user created: admin@example.com
+[2026-10-02 12:48:10,017] INFO tourist.signals: New user created: tourist@example.com
+[2026-10-02 12:48:10,189] INFO tourist.signals: New user created: manager@example.com
+[2026-10-02 12:48:10,194] INFO tourist.signals: New destination created: Phewa Lake
+.[2026-10-02 12:48:10,485] INFO tourist.signals: New user created: admin@example.com
+[2026-10-02 12:48:10,655] INFO tourist.signals: New user created: tourist@example.com
+[2026-10-02 12:48:10,873] INFO tourist.signals: New user created: manager@example.com
+[2026-10-02 12:48:10,877] INFO tourist.signals: New destination created: Phewa Lake
+[2026-10-02 12:48:10,990] ERROR tourist.exceptions: API error at POST /api/v2/hotel-reviews/ 
+[user=tourist@example.com]: ValidationError: {'hotel': [ErrorDetail(string='You have already reviewed this hotel.', 
+code='invalid')]}
+Traceback (most recent call last):
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 512, 
+in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\mixins.py", line 18, 
+in create
+    serializer.is_valid(raise_exception=True)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\serializers.py", line 
+233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'hotel': [ErrorDetail(string='You have already reviewed this hotel.', 
+code='invalid')]}
+.[2026-10-02 12:48:11,253] INFO tourist.signals: New user created: admin@example.com
+[2026-10-02 12:48:11,586] INFO tourist.signals: New user created: tourist@example.com
+[2026-10-02 12:48:11,782] INFO tourist.signals: New user created: manager@example.com
+[2026-10-02 12:48:11,789] INFO tourist.signals: New destination created: Phewa Lake
+.[2026-10-02 12:48:12,079] INFO tourist.signals: New user created: admin@example.com
+[2026-10-02 12:48:12,314] INFO tourist.signals: New user created: tourist@example.com
+[2026-10-02 12:48:12,608] INFO tourist.signals: New user created: manager@example.com
+[2026-10-02 12:48:12,617] INFO tourist.signals: New destination created: Phewa Lake
+.[2026-10-02 12:48:13,089] INFO tourist.signals: New user created: admin@example.com
+[2026-10-02 12:48:13,401] INFO tourist.signals: New user created: tourist@example.com
+[2026-10-02 12:48:13,623] INFO tourist.signals: New user created: manager@example.com
+[2026-10-02 12:48:13,629] INFO tourist.signals: New destination created: Phewa Lake
+[2026-10-02 12:48:13,934] INFO tourist.signals: New user created: other@example.com
+.[2026-10-02 12:48:14,328] INFO tourist.signals: New user created: admin@example.com
+[2026-10-02 12:48:15,713] INFO tourist.signals: New user created: tourist@example.com
+[2026-10-02 12:48:16,283] INFO tourist.signals: New user created: manager@example.com
+[2026-10-02 12:48:16,298] INFO tourist.signals: New destination created: Phewa Lake
+[2026-10-02 12:48:17,154] INFO tourist.signals: New user created: unrelated@example.com
+[2026-10-02 12:48:17,456] ERROR tourist.exceptions: API error at POST /api/v2/bookings/1/confirm/ 
+[user=unrelated@example.com]: Http404: No Booking matches the given query.
+Traceback (most recent call last):
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\django\shortcuts.py", line 86, in 
+get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\django\db\models\query.py", line 651, 
+in get
+    raise self.model.DoesNotExist(
+        "%s matching query does not exist." % self.model._meta.object_name
+    )
+booking.models.Booking.DoesNotExist: Booking matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 512, 
+in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\ADMIN\Desktop\Chatbot\Tourism\booking\views.py", line 47, in confirm
+    booking = self.get_object()
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\generics.py", line 
+100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\generics.py", line 19, 
+in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\django\shortcuts.py", line 88, in 
+get_object_or_404
+    raise Http404(
+        "No %s matches the given query." % queryset.model._meta.object_name
+    )
+django.http.response.Http404: No Booking matches the given query.
+..[2026-10-02 12:48:35,989] WARNING tourist.performance: Slow request: POST /api/v2/chatbot/message/ took 17.57s with 
+0 queries
+.[2026-10-02 12:48:59,094] WARNING tourist.performance: Slow request: POST /api/v2/chatbot/message/ took 22.65s with 0 
+queries
+F[2026-10-02 12:48:59,344] INFO tourist.signals: New user created: chatter@example.com
+[2026-10-02 12:49:15,911] WARNING tourist.performance: Slow request: POST /api/v2/chatbot/message/ took 16.45s with 0 
+queries
+..[2026-10-02 12:49:34,912] WARNING tourist.performance: Slow request: POST /api/v2/chatbot/message/ took 18.69s with 
+0 queries
+[2026-10-02 12:49:52,639] WARNING tourist.performance: Slow request: POST /api/v2/chatbot/message/ took 17.68s with 0 
+queries
+.[2026-10-02 12:50:17,347] WARNING tourist.performance: Slow request: POST /api/v2/chatbot/message/ took 24.57s with 0 
+queries
+.[2026-10-02 12:50:17,367] INFO tourist.signals: New destination created: Chat Valley
+[2026-10-02 12:50:35,650] WARNING tourist.performance: Slow request: POST /api/v2/chatbot/message/ took 17.89s with 0 
+queries
+.[2026-10-02 12:50:35,800] ERROR tourist.exceptions: API error at GET /api/v2/chatbot/history/ [anonymous]: 
+NotAuthenticated: Authentication credentials were not provided.
+Traceback (most recent call last):
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 503, 
+in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 421, 
+in initial
+    self.check_permissions(request)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 339, 
+in check_permissions
+    self.permission_denied(
+    ~~~~~~~~~~~~~~~~~~~~~~^
+        request,
+        ^^^^^^^^
+        message=getattr(permission, 'message', None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        code=getattr(permission, 'code', None)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 180, 
+in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+....[2026-10-02 12:51:03,760] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/calculate/ by 127.0.0.1
+[2026-10-02 12:51:03,760] WARNING tourist.performance: Slow request: POST /api/v1/navigation/calculate/ took 25.35s 
+with 0 queries
+.[2026-10-02 12:51:03,889] WARNING navigation.route_engine: navigation fallback used: source=graphml_fallback 
+mode=driving ù real road routing unavailable (check ROUTING_BASE_URL)
+[2026-10-02 12:51:03,896] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/road-route/ by 127.0.0.1
+[2026-10-02 12:51:03,902] ERROR tourist.exceptions: API error at GET /api/v1/navigation/diagnostics/ [anonymous]: 
+NotAuthenticated: Authentication credentials were not provided.
+Traceback (most recent call last):
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 503, 
+in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 421, 
+in initial
+    self.check_permissions(request)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 339, 
+in check_permissions
+    self.permission_denied(
+    ~~~~~~~~~~~~~~~~~~~~~~^
+        request,
+        ^^^^^^^^
+        message=getattr(permission, 'message', None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        code=getattr(permission, 'code', None)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 180, 
+in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+[2026-10-02 12:51:03,912] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/diagnostics/ by 127.0.0.1
+[2026-10-02 12:51:04,116] INFO tourist.signals: New user created: nav-admin@example.com
+[2026-10-02 12:51:04,120] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/diagnostics/ by 127.0.0.1
+.[2026-10-02 12:51:04,212] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/debug/replay/ by 127.0.0.1
+[2026-10-02 12:51:04,222] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/debug/replay/ by 127.0.0.1
+[2026-10-02 12:51:04,230] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/debug/replay/ by 127.0.0.1
+[2026-10-02 12:51:04,237] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/debug/replay/ by 127.0.0.1
+[2026-10-02 12:51:04,245] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/debug/replay/ by 127.0.0.1
+[2026-10-02 12:51:04,253] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/debug/replay/ by 127.0.0.1
+.[2026-10-02 12:51:04,340] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/debug/replay/ by 127.0.0.1
+.[2026-10-02 12:51:04,468] WARNING navigation.route_engine: navigation fallback used: source=graphml_fallback 
+mode=driving ù real road routing unavailable (check ROUTING_BASE_URL)
+[2026-10-02 12:51:04,476] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/road-route/ by 127.0.0.1
+.[2026-10-02 12:51:04,677] INFO tourist.signals: New user created: nav-health@example.com
+[2026-10-02 12:51:04,755] INFO tourist.api_versioning: Deprecated API version v1 accessed: /api/v1/navigation/health/ 
+by 127.0.0.1
+.[2026-10-02 12:51:06,881] WARNING tourist.utils: ML routing service unreachable; trying bundled GraphML: 
+HTTPConnectionPool(host='127.0.0.1', port=8001): Max retries exceeded with url: /routes/best-route (Caused by 
+NewConnectionError("HTTPConnection(host='127.0.0.1', port=8001): Failed to establish a new connection: [WinError 
+10061] No connection could be made because the target machine actively refused it"))
+[2026-10-02 12:51:14,990] INFO tourist.api_versioning: Deprecated API version v1 accessed: /api/v1/navigation/route by 
+127.0.0.1
+[2026-10-02 12:51:14,990] WARNING tourist.performance: Slow request: POST /api/v1/navigation/route took 10.16s with 0 
+queries
+.[2026-10-02 12:51:17,136] WARNING tourist.utils: ML routing service unreachable; trying bundled GraphML: 
+HTTPConnectionPool(host='127.0.0.1', port=8001): Max retries exceeded with url: /routes/best-route (Caused by 
+NewConnectionError("HTTPConnection(host='127.0.0.1', port=8001): Failed to establish a new connection: [WinError 
+10061] No connection could be made because the target machine actively refused it"))
+[2026-10-02 12:51:33,586] INFO tourist.api_versioning: Deprecated API version v1 accessed: /api/v1/navigation/route by 
+127.0.0.1
+[2026-10-02 12:51:33,586] WARNING tourist.performance: Slow request: POST /api/v1/navigation/route took 18.48s with 0 
+queries
+.....[2026-10-02 12:51:33,633] INFO tourist.signals: New destination created: Context Falls
+[2026-10-02 12:51:34,211] WARNING navigation.route_engine: navigation fallback used: source=graphml_fallback 
+mode=driving ù real road routing unavailable (check ROUTING_BASE_URL)
+[2026-10-02 12:51:34,228] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/road-route/ by 127.0.0.1
+[2026-10-02 12:51:34,240] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/along-route/ by 127.0.0.1
+.[2026-10-02 12:51:34,249] INFO tourist.signals: New destination created: Context Falls
+[2026-10-02 12:51:34,809] WARNING navigation.route_engine: navigation fallback used: source=graphml_fallback 
+mode=driving ù real road routing unavailable (check ROUTING_BASE_URL)
+[2026-10-02 12:51:34,824] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/itinerary-route/ by 127.0.0.1
+.[2026-10-02 12:51:34,858] INFO tourist.signals: New destination created: Context Falls
+[2026-10-02 12:51:36,818] WARNING navigation.route_engine: navigation fallback used: source=graphml_fallback 
+mode=driving ù real road routing unavailable (check ROUTING_BASE_URL)
+[2026-10-02 12:51:36,887] WARNING navigation.route_engine: navigation fallback used: source=graphml_fallback 
+mode=driving ù real road routing unavailable (check ROUTING_BASE_URL)
+[2026-10-02 12:51:36,900] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/itinerary-route/ by 127.0.0.1
+[2026-10-02 12:51:36,911] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/progress/ by 127.0.0.1
+.[2026-10-02 12:51:36,921] INFO tourist.signals: New destination created: Context Falls
+[2026-10-02 12:51:37,012] ERROR tourist.exceptions: API error at POST /api/v1/navigation/itinerary-route/ [anonymous]: 
+ValidationError: {'stops': [ErrorDetail(string='Provide between 1 and 12 stops.', code='invalid')]}
+Traceback (most recent call last):
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 512, 
+in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\ADMIN\Desktop\Chatbot\Tourism\navigation\views.py", line 175, in post
+    ser.is_valid(raise_exception=True)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\serializers.py", line 
+233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'stops': [ErrorDetail(string='Provide between 1 and 12 stops.', 
+code='invalid')]}
+[2026-10-02 12:51:37,084] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/itinerary-route/ by 127.0.0.1
+.[2026-10-02 12:51:37,091] INFO tourist.signals: New destination created: Context Falls
+[2026-10-02 12:51:39,296] WARNING navigation.route_engine: navigation fallback used: source=graphml_fallback 
+mode=driving ù real road routing unavailable (check ROUTING_BASE_URL)
+[2026-10-02 12:51:39,417] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/road-route/ by 127.0.0.1
+[2026-10-02 12:51:51,417] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/route-context/ by 127.0.0.1
+[2026-10-02 12:51:51,418] WARNING tourist.performance: Slow request: GET /api/v1/navigation/route-context/ took 11.98s 
+with 0 queries
+[2026-10-02 12:51:51,425] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/along-route/ by 127.0.0.1
+.[2026-10-02 12:51:51,431] INFO tourist.signals: New destination created: Context Falls
+[2026-10-02 12:51:51,632] WARNING navigation.route_engine: navigation fallback used: source=graphml_fallback 
+mode=driving ù real road routing unavailable (check ROUTING_BASE_URL)
+[2026-10-02 12:51:51,637] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/road-route/ by 127.0.0.1
+[2026-10-02 12:51:51,739] WARNING navigation.route_engine: navigation fallback used: source=graphml_fallback 
+mode=driving ù real road routing unavailable (check ROUTING_BASE_URL)
+[2026-10-02 12:51:51,750] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/select-alternative/ by 127.0.0.1
+.[2026-10-02 12:51:52,068] WARNING navigation.route_engine: navigation fallback used: source=graphml_fallback 
+mode=driving ù real road routing unavailable (check ROUTING_BASE_URL)
+[2026-10-02 12:51:52,087] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/road-route/ by 127.0.0.1
+[2026-10-02 12:51:52,119] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/progress/ by 127.0.0.1
+.[2026-10-02 12:51:52,376] ERROR tourist.exceptions: API error at POST /api/v1/navigation/road-route/ [anonymous]: 
+ValidationError: {'mode': [ErrorDetail(string='"helicopter" is not a valid choice.', code='invalid_choice')]}
+Traceback (most recent call last):
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 512, 
+in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\ADMIN\Desktop\Chatbot\Tourism\navigation\views.py", line 30, in post
+    ser.is_valid(raise_exception=True)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\serializers.py", line 
+233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'mode': [ErrorDetail(string='"helicopter" is not a valid choice.', 
+code='invalid_choice')]}
+[2026-10-02 12:51:52,408] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/road-route/ by 127.0.0.1
+.[2026-10-02 12:51:52,776] INFO tourist.api_versioning: Deprecated API version v1 accessed: /api/v1/navigation/modes/ 
+by 127.0.0.1
+.[2026-10-02 12:51:52,993] WARNING navigation.route_engine: navigation fallback used: source=graphml_fallback 
+mode=driving ù real road routing unavailable (check ROUTING_BASE_URL)
+[2026-10-02 12:51:53,006] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/road-route/ by 127.0.0.1
+[2026-10-02 12:51:53,089] WARNING navigation.route_engine: navigation fallback used: source=graphml_fallback 
+mode=driving ù real road routing unavailable (check ROUTING_BASE_URL)
+[2026-10-02 12:51:53,098] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/road-route/ by 127.0.0.1
+[2026-10-02 12:51:53,182] WARNING navigation.route_engine: navigation fallback used: source=graphml_fallback 
+mode=driving ù real road routing unavailable (check ROUTING_BASE_URL)
+[2026-10-02 12:51:53,191] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/road-route/ by 127.0.0.1
+[2026-10-02 12:51:53,218] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/road-route/ by 127.0.0.1
+[2026-10-02 12:51:53,233] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/road-route/ by 127.0.0.1
+.[2026-10-02 12:51:54,041] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/progress/ by 127.0.0.1
+.......[2026-10-02 12:51:54,912] WARNING navigation.route_engine: navigation fallback used: source=graphml_fallback 
+mode=driving ù real road routing unavailable (check ROUTING_BASE_URL)
+[2026-10-02 12:51:54,926] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/road-route/ by 127.0.0.1
+[2026-10-02 12:51:54,954] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/progress/ by 127.0.0.1
+[2026-10-02 12:51:54,990] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/sessions/active/ by 127.0.0.1
+[2026-10-02 12:51:55,020] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/progress/ by 127.0.0.1
+[2026-10-02 12:51:55,059] INFO tourist.api_versioning: Deprecated API version v1 accessed: /api/v1/navigation/end/ by 
+127.0.0.1
+[2026-10-02 12:51:55,069] INFO tourist.api_versioning: Deprecated API version v1 accessed: 
+/api/v1/navigation/sessions/active/ by 127.0.0.1
+....[2026-10-02 12:51:55,102] WARNING navigation.route_engine: navigation fallback used: source=graphml_fallback 
+mode=driving ù real road routing unavailable (check ROUTING_BASE_URL)
+.[2026-10-02 12:51:55,769] INFO tourist.signals: New user created: test_test_login_failure@example.com
+[2026-10-02 12:51:55,797] INFO tourist.signals: New destination created: Destination test_login_failure
+[2026-10-02 12:51:57,266] WARNING tourist.auth: Login denied (wrong_password) email=test_test_login_failure@example.com
+[2026-10-02 12:51:57,287] INFO tourist.api_versioning: Deprecated API version v1 accessed: /api/v1/auth/login/ by 
+127.0.0.1
+.[2026-10-02 12:51:58,268] INFO tourist.signals: New user created: test_test_login_success@example.com
+[2026-10-02 12:51:58,301] INFO tourist.signals: New destination created: Destination test_login_success
+[2026-10-02 12:52:03,059] INFO tourist.api_versioning: Deprecated API version v1 accessed: /api/v1/auth/login/ by 
+127.0.0.1
+[2026-10-02 12:52:03,060] WARNING tourist.performance: Slow request: POST /api/v1/auth/login/ took 3.31s with 0 queries
+.[2026-10-02 12:52:03,357] INFO tourist.signals: New user created: test_test_admin_can_access_admin@example.com
+[2026-10-02 12:52:03,363] INFO tourist.signals: New destination created: Destination test_admin_can_access_admin
+[2026-10-02 12:52:04,245] INFO tourist.signals: New user created: admin_test_admin_can_access_admin@example.com
+[2026-10-02 12:52:05,396] INFO tourist.api_versioning: Deprecated API version v1 accessed: /api/v1/admin/stats/ by 
+127.0.0.1
+.[2026-10-02 12:52:06,658] INFO tourist.signals: New user created: test_test_tourist_cannot_access_admin@example.com
+[2026-10-02 12:52:06,686] INFO tourist.signals: New destination created: Destination test_tourist_cannot_access_admin
+[2026-10-02 12:52:07,207] ERROR tourist.exceptions: API error at GET /api/v1/admin/stats/ 
+[user=test_test_tourist_cannot_access_admin@example.com]: PermissionDenied: You do not have permission to perform this 
+action.
+Traceback (most recent call last):
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 503, 
+in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 421, 
+in initial
+    self.check_permissions(request)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 339, 
+in check_permissions
+    self.permission_denied(
+    ~~~~~~~~~~~~~~~~~~~~~~^
+        request,
+        ^^^^^^^^
+        message=getattr(permission, 'message', None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        code=getattr(permission, 'code', None)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\rest_framework\views.py", line 181, 
+in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You do not have permission to perform this action.
+[2026-10-02 12:52:07,305] INFO tourist.api_versioning: Deprecated API version v1 accessed: /api/v1/admin/stats/ by 
+127.0.0.1
+.[2026-10-02 12:52:08,110] INFO tourist.signals: New user created: trip-admin@example.com
+[2026-10-02 12:52:08,128] INFO tourist.signals: New destination created: Upper Mustang Trek
+[2026-10-02 12:52:08,327] INFO tourist.api_versioning: Deprecated API version v1 accessed: /api/v1/ml/budget/ by 
+127.0.0.1
+.[2026-10-02 12:52:09,968] INFO tourist.signals: New user created: trip-admin@example.com
+[2026-10-02 12:52:10,200] INFO tourist.signals: New destination created: Upper Mustang Trek
+[2026-10-02 12:52:11,100] INFO tourist.api_versioning: Deprecated API version v1 accessed: /api/v1/ml/budget/ by 
+127.0.0.1
+F[2026-10-02 12:52:11,305] INFO tourist.signals: New user created: trip-admin@example.com
+[2026-10-02 12:52:11,313] INFO tourist.signals: New destination created: Upper Mustang Trek
+[2026-10-02 12:52:12,198] INFO tourist.api_versioning: Deprecated API version v1 accessed: /api/v1/ml/budget/ by 
+127.0.0.1
+.[2026-10-02 12:52:12,625] INFO tourist.signals: New user created: trip-admin@example.com
+[2026-10-02 12:52:12,640] INFO tourist.signals: New destination created: Upper Mustang Trek
+[2026-10-02 12:52:12,650] INFO tourist.signals: New destination created: Jomsom Airport Walk
+[2026-10-02 12:52:12,811] WARNING tourist.views_ml: ML itinerary service unreachable: down
+[2026-10-02 12:52:12,975] INFO tourist.api_versioning: Deprecated API version v1 accessed: /api/v1/ml/itinerary/ by 
+127.0.0.1
+F[2026-10-02 12:52:13,339] INFO tourist.signals: New user created: elev-admin@example.com
+[2026-10-02 12:52:13,383] INFO tourist.signals: New destination created: Namche Test
+[2026-10-02 12:52:13,412] INFO tourist.signals: New destination created: Moved Test
+[2026-10-02 12:52:13,458] INFO tourist.signals: New destination created: Coarse Test

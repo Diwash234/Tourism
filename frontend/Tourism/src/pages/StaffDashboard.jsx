@@ -23,12 +23,12 @@ const paths = Object.fromEntries(Object.keys(names).map(key => [key, `/staff/${k
 const permits = (caps, module, action) => caps?.[module]?.includes(action) || caps?.[module]?.includes("*")
 
 const STATUS_STYLE = {
-  pending: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
-  in_progress: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
-  blocked: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
-  in_review: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
-  completed: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-  cancelled: "bg-slate-100 text-slate-400 line-through dark:bg-slate-800 dark:text-slate-500",
+  pending: "bg-slate-100 text-slate-600",
+  in_progress: "bg-sky-100 text-sky-700",
+  blocked: "bg-rose-100 text-rose-700",
+  in_review: "bg-amber-100 text-amber-800",
+  completed: "bg-emerald-100 text-emerald-700",
+  cancelled: "bg-slate-100 text-slate-400 line-through",
 }
 const NOTE_ACTIONS = {
   complete: { label: "Complete task", placeholder: "What did you accomplish? (required)", cta: "Mark Completed" },
@@ -138,7 +138,7 @@ export default function StaffDashboard({ module = "dashboard" }) {
           <div className="space-y-2">
             {todaysWork.map((t) => (
               <div key={t.id} className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-xl bg-white border border-amber-100 px-3 py-2">
-                <span className={`text-xs px-2 py-0.5 rounded-full font-bold uppercase w-fit ${t.priority === "urgent" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-800"}`}>{t.priority}</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase w-fit ${t.priority === "urgent" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-800"}`}>{t.priority}</span>
                 <div className="min-w-0 flex-1">
                   <b className="text-sm text-slate-900 block truncate">{t.title}</b>
                   <span className="text-xs text-slate-500">Due {t.due_date && t.due_date < todayStr ? <span className="text-rose-600 font-bold">overdue ({t.due_date})</span> : (t.due_date || "not set")}{t.hotel ? ` · ${t.hotel}` : ""}</span>
@@ -164,7 +164,7 @@ export default function StaffDashboard({ module = "dashboard" }) {
           ].map(([label, value, cls]) => (
             <div key={label} className="bg-white border rounded-2xl p-3 text-center">
               <b className={`text-2xl ${cls}`}>{value ?? 0}</b>
-              <p className="text-xs text-slate-500 uppercase font-bold">{label}</p>
+              <p className="text-[10px] text-slate-500 uppercase font-bold">{label}</p>
             </div>
           ))}
         </section>
@@ -181,7 +181,7 @@ export default function StaffDashboard({ module = "dashboard" }) {
       {module === "destinations" && <ContentOpsPanel canReview={canReview} />}
       {module === "images" && <MediaPanel canReview={canReview} />}
       {module === "safety" && <SafetyOpsPanel />}
-      {!["feedback", "hotels", "bookings", "destinations", "images", "safety"].includes(module) && <section className="bg-white border rounded-2xl overflow-hidden"><div className="p-4 border-b flex justify-between"><b>{names[module]}</b><span className="text-xs text-slate-500">{data.results?.length || 0} records loaded</span></div><div className="divide-y">{data.results?.map(row => <article key={`${row.type || module}-${row.id}`} className="p-4 flex flex-col md:flex-row gap-3"><div className="min-w-0 flex-1">{row.image_url && <img loading="lazy" decoding="async" src={row.image_url} alt="Review candidate" className="w-28 h-20 object-cover rounded-lg float-left mr-3"/>}{row.video_url && <video src={row.video_url} controls className="mb-2 w-40 max-h-24 rounded-lg" />}{row.type === "video" && <span className="mr-2 text-xs uppercase tracking-widest text-sky-700">Video</span>}<div className="flex gap-2 items-center"><h3 className="font-black text-slate-900">{row.title}</h3><span className="text-xs px-2 py-0.5 bg-slate-100 rounded-full">{row.status}</span></div><p className="text-xs text-[#102A2E]">{row.subtitle}</p><p className="text-sm text-slate-600 mt-1 line-clamp-3">{row.description}</p>{row.amount != null && <p className="text-sm font-bold text-emerald-700 mt-1">NPR {Number(row.amount).toLocaleString()}</p>}</div>{["destinations", "images", "reviews"].includes(module) && permits(data.capabilities, module, "approve") && <div className="flex gap-2 self-start"><button onClick={() => queueAction(row, "approve")} className="p-2.5 bg-emerald-700 text-white rounded-xl" title="Approve"><FiCheck/></button><button onClick={() => queueAction(row, "reject")} className="p-2.5 bg-rose-700 text-white rounded-xl" title={module === "reviews" ? "Flag" : "Reject"}><FiX/></button></div>}{module==="restaurants"&&<div className="flex gap-1">{permits(data.capabilities,module,"approve")&&<><button onClick={()=>queueAction(row,"publish")} className="p-2 bg-emerald-700 text-white rounded-lg">Publish</button><button onClick={()=>queueAction(row,"verify")} className="p-2 bg-sky-700 text-white rounded-lg">Verify</button></>}{permits(data.capabilities,module,"delete")&&<button onClick={()=>queueAction(row,"archive")} className="p-2 bg-rose-700 text-white rounded-lg">Archive</button>}</div>}{module==="transportation"&&<div className="flex gap-1">{permits(data.capabilities,module,"approve")&&<button onClick={()=>queueAction(row,"verify")} className="p-2 bg-sky-700 text-white rounded-lg">Verify</button>}{permits(data.capabilities,module,"delete")&&<button onClick={()=>queueAction(row,"archive")} className="p-2 bg-rose-700 text-white rounded-lg">Archive</button>}</div>}{module==="travel_plans"&&permits(data.capabilities,module,"change")&&<div className="flex gap-1"><button onClick={()=>queueAction(row,"activate")} className="p-2 bg-emerald-700 text-white rounded-lg">Activate</button><button onClick={()=>queueAction(row,"complete")} className="p-2 bg-sky-700 text-white rounded-lg">Complete</button></div>}{module==="content"&&permits(data.capabilities,module,"approve")&&<div className="flex gap-1"><button onClick={()=>queueAction(row,"publish")} className="p-2 bg-emerald-700 text-white rounded-lg">Publish</button><button onClick={()=>queueAction(row,"unpublish")} className="p-2 bg-amber-700 text-white rounded-lg">Draft</button></div>}</article>)}{!loading && !data.results?.length && <p className="p-12 text-center text-slate-500">Your assigned queue is empty.</p>}</div></section>}
+      {!["feedback", "hotels", "bookings", "destinations", "images", "safety"].includes(module) && <section className="bg-white border rounded-2xl overflow-hidden"><div className="p-4 border-b flex justify-between"><b>{names[module]}</b><span className="text-xs text-slate-500">{data.results?.length || 0} records loaded</span></div><div className="divide-y">{data.results?.map(row => <article key={`${row.type || module}-${row.id}`} className="p-4 flex flex-col md:flex-row gap-3"><div className="min-w-0 flex-1">{row.image_url && <img loading="lazy" decoding="async" src={row.image_url} alt="Review candidate" className="w-28 h-20 object-cover rounded-lg float-left mr-3"/>}{row.video_url && <video src={row.video_url} controls className="mb-2 w-40 max-h-24 rounded-lg" />}{row.type === "video" && <span className="mr-2 text-[10px] uppercase tracking-widest text-sky-700">Video</span>}<div className="flex gap-2 items-center"><h3 className="font-black text-slate-900">{row.title}</h3><span className="text-[10px] px-2 py-0.5 bg-slate-100 rounded-full">{row.status}</span></div><p className="text-xs text-[#102A2E]">{row.subtitle}</p><p className="text-sm text-slate-600 mt-1 line-clamp-3">{row.description}</p>{row.amount != null && <p className="text-sm font-bold text-emerald-700 mt-1">NPR {Number(row.amount).toLocaleString()}</p>}</div>{["destinations", "images", "reviews"].includes(module) && permits(data.capabilities, module, "approve") && <div className="flex gap-2 self-start"><button onClick={() => queueAction(row, "approve")} className="p-2.5 bg-emerald-700 text-white rounded-xl" title="Approve"><FiCheck/></button><button onClick={() => queueAction(row, "reject")} className="p-2.5 bg-rose-700 text-white rounded-xl" title={module === "reviews" ? "Flag" : "Reject"}><FiX/></button></div>}{module==="restaurants"&&<div className="flex gap-1">{permits(data.capabilities,module,"approve")&&<><button onClick={()=>queueAction(row,"publish")} className="p-2 bg-emerald-700 text-white rounded-lg">Publish</button><button onClick={()=>queueAction(row,"verify")} className="p-2 bg-sky-700 text-white rounded-lg">Verify</button></>}{permits(data.capabilities,module,"delete")&&<button onClick={()=>queueAction(row,"archive")} className="p-2 bg-rose-700 text-white rounded-lg">Archive</button>}</div>}{module==="transportation"&&<div className="flex gap-1">{permits(data.capabilities,module,"approve")&&<button onClick={()=>queueAction(row,"verify")} className="p-2 bg-sky-700 text-white rounded-lg">Verify</button>}{permits(data.capabilities,module,"delete")&&<button onClick={()=>queueAction(row,"archive")} className="p-2 bg-rose-700 text-white rounded-lg">Archive</button>}</div>}{module==="travel_plans"&&permits(data.capabilities,module,"change")&&<div className="flex gap-1"><button onClick={()=>queueAction(row,"activate")} className="p-2 bg-emerald-700 text-white rounded-lg">Activate</button><button onClick={()=>queueAction(row,"complete")} className="p-2 bg-sky-700 text-white rounded-lg">Complete</button></div>}{module==="content"&&permits(data.capabilities,module,"approve")&&<div className="flex gap-1"><button onClick={()=>queueAction(row,"publish")} className="p-2 bg-emerald-700 text-white rounded-lg">Publish</button><button onClick={()=>queueAction(row,"unpublish")} className="p-2 bg-amber-700 text-white rounded-lg">Draft</button></div>}</article>)}{!loading && !data.results?.length && <p className="p-12 text-center text-slate-500">Your assigned queue is empty.</p>}</div></section>}
     </>}
 
     <section className="bg-white border rounded-2xl overflow-hidden">
@@ -193,7 +193,7 @@ export default function StaffDashboard({ module = "dashboard" }) {
         <div className="flex flex-wrap gap-1.5">
           {TASK_FILTERS.map((f) => (
             <button key={f.id} onClick={() => setTaskFilter(f.id)} aria-pressed={taskFilter === f.id}
-              className={`px-2.5 py-1 rounded-full text-xs font-bold transition ${taskFilter === f.id ? "bg-[#102A2E] text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+              className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition ${taskFilter === f.id ? "bg-[#102A2E] text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
               {f.label}
             </button>
           ))}
@@ -206,9 +206,9 @@ export default function StaffDashboard({ module = "dashboard" }) {
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap gap-2 items-center">
                   <b className="text-slate-900">{task.title}</b>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-bold uppercase ${STATUS_STYLE[task.status] || STATUS_STYLE.pending}`}>{task.status.replaceAll("_", " ")}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${task.priority === "urgent" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"}`}>{task.priority}</span>
-                  {task.is_escalated && <span className="text-xs px-2 py-0.5 rounded-full bg-rose-600 text-white font-bold">ESCALATED</span>}
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${STATUS_STYLE[task.status] || STATUS_STYLE.pending}`}>{task.status.replaceAll("_", " ")}</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${task.priority === "urgent" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"}`}>{task.priority}</span>
+                  {task.is_escalated && <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-600 text-white font-bold">ESCALATED</span>}
                 </div>
                 <p className="text-sm text-slate-600 mt-1">{task.description}</p>
                 <p className="text-xs text-slate-400 mt-1"><FiClock className="inline"/> Due {task.due_date && task.due_date < todayStr && !["completed", "cancelled"].includes(task.status) ? <span className="text-rose-600 font-bold">{task.due_date} (overdue)</span> : (task.due_date || "not set")}{task.hotel ? ` · ${task.hotel}` : ""}</p>
@@ -253,7 +253,7 @@ export default function StaffDashboard({ module = "dashboard" }) {
       <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={NOTE_ACTIONS[taskModal.action].label}>
         <div className="bg-white rounded-3xl p-6 max-w-lg w-full space-y-4 shadow-2xl">
           <div>
-            <span className="text-xs font-black uppercase tracking-widest text-[#102A2E]">{NOTE_ACTIONS[taskModal.action].label}</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-[#102A2E]">{NOTE_ACTIONS[taskModal.action].label}</span>
             <h3 className="text-lg font-black text-slate-900">{taskModal.task.title}</h3>
           </div>
           <textarea

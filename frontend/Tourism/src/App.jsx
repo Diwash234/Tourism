@@ -77,7 +77,7 @@ const HotelSearch = lazy(() => import("./pages/HotelSearch"))
 const Navigation = lazy(() => import("./pages/Navigation"))
 const DistancesExplorer = lazy(() => import("./pages/DistancesExplorer"))
 const TravelPlanner = lazy(() => import("./pages/TravelPlanner"))
-import Language from "./pages/Language.jsx"
+const Language = lazy(() => import("./pages/Language"))
 const Emergency = lazy(() => import("./pages/Emergency"))
 const NearbyPlaces = lazy(() => import("./pages/NearbyPlaces"))
 const Translation = lazy(() => import("./pages/Translation"))

@@ -16,13 +16,6 @@ import axiosClient from "./axiosClient"
 //      4th arg to translate_text() in TranslateTextView.post()
 const translationApi = {
 
-  translateBatch: (payload) =>
-    // Page-level batches translate up to 40 strings per POST through a
-    // tiered provider fallback; give the backend more headroom than the
-    // 20s default so a slow batch still lands instead of silently leaving
-    // the page in its previous language.
-    axiosClient.post("/translate/batch/", payload, { timeout: 30000 }),
-
   translateText: (payload) => {
     return axiosClient.post(
       "/translate/",

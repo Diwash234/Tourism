@@ -140,64 +140,6 @@ def has_valid_coordinates(lat, lon):
         return False
     return 26 <= lat <= 31 and 80 <= lon <= 89
 
-
-def get_nepal_bounding_box():
-    """Return Nepal's geographic bounding box.
-
-    Returns a dict with min/max latitude and longitude that define the
-    rectangular boundary of Nepal. Used for geofencing and coordinate
-    validation.
-    """
-    return {
-        "min_lat": 26.0,
-        "max_lat": 31.0,
-        "min_lon": 80.0,
-        "max_lon": 89.0,
-    }
-
-
-def validate_nepal_coordinates(lat, lon):
-    """Validate GPS coordinates are within Nepal's bounding box.
-
-    Rejects null island (0, 0) and coordinates outside Nepal's geographic
-    boundaries. Returns a dict with 'valid' (bool) and 'reason' (str).
-
-    Args:
-        lat: Latitude value (float/int/Decimal/str)
-        lon: Longitude value (float/int/Decimal/str)
-
-    Returns:
-        dict: {"valid": bool, "reason": str}
-    """
-    # Check for None values
-    if lat is None or lon is None:
-        return {"valid": False, "reason": "Coordinates cannot be None"}
-
-    # Check for null island (0, 0) - a common GPS error
-    try:
-        lat_f = float(lat)
-        lon_f = float(lon)
-    except (TypeError, ValueError):
-        return {"valid": False, "reason": "Coordinates must be numeric values"}
-
-    if lat_f == 0.0 and lon_f == 0.0:
-        return {"valid": False, "reason": "Null island (0, 0) is not a valid location"}
-
-    # Check against Nepal's bounding box
-    bbox = get_nepal_bounding_box()
-    if not (bbox["min_lat"] <= lat_f <= bbox["max_lat"]):
-        return {
-            "valid": False,
-            "reason": f"Latitude {lat_f} is outside Nepal's range ({bbox['min_lat']}-{bbox['max_lat']})",
-        }
-    if not (bbox["min_lon"] <= lon_f <= bbox["max_lon"]):
-        return {
-            "valid": False,
-            "reason": f"Longitude {lon_f} is outside Nepal's range ({bbox['min_lon']}-{bbox['max_lon']})",
-        }
-
-    return {"valid": True, "reason": "Coordinates are within Nepal"}
-
 def haversine_distance(lat1, lon1, lat2, lon2):
     """
     Great-circle distance between two points in kilometers.

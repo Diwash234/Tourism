@@ -274,7 +274,7 @@ export default function HomepageManagerPanel() {
                   type="button"
                   onClick={deletePage}
                   disabled={busy !== ""}
-                  className="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-black text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+                  className="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-black text-rose-700 hover:bg-rose-100 disabled:opacity-50"
                 >
                   Delete page
                 </button>
@@ -342,21 +342,21 @@ export default function HomepageManagerPanel() {
                     <span className="w-6 text-center text-xs font-black text-slate-400">{String(index + 1).padStart(2, "0")}</span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-bold text-white">{section.title || section.key}</span>
-                      <span className="text-[11px] text-slate-400">{section.key} · {section.section_type || "section"}</span>
+                      <span className="text-xs text-slate-400">{section.key} · {section.section_type || "section"}</span>
                     </span>
                     {statusChip(section)}
                   </div>
                   <div className="flex items-center gap-1.5 mt-2">
                     <button type="button" onClick={() => move(index, -1)} disabled={index === 0 || busy === "reorder"} aria-label={`Move ${section.title || section.key} up`} className="rounded-lg bg-slate-700/60 p-2 text-slate-200 hover:bg-slate-600 disabled:opacity-30"><FiArrowUp size={13} /></button>
                     <button type="button" onClick={() => move(index, 1)} disabled={index === sections.length - 1 || busy === "reorder"} aria-label={`Move ${section.title || section.key} down`} className="rounded-lg bg-slate-700/60 p-2 text-slate-200 hover:bg-slate-600 disabled:opacity-30"><FiArrowDown size={13} /></button>
-                    <button type="button" onClick={() => toggleSection(section)} disabled={busy === `vis-${section.id}`} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-700/60 px-2.5 py-2 text-[11px] font-bold text-slate-100 hover:bg-slate-600 disabled:opacity-50">
+                    <button type="button" onClick={() => toggleSection(section)} disabled={busy === `vis-${section.id}`} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-700/60 px-2.5 py-2 text-xs font-bold text-slate-100 hover:bg-slate-600 disabled:opacity-50">
                       {section.is_visible ? <FiEyeOff size={13} /> : <FiEye size={13} />}
                       {section.is_visible ? "Hide" : "Show"}
                     </button>
-                    <button type="button" onClick={() => { if (dirty && !window.confirm("You have unsaved changes in the editor. Discard them?")) return; setSelectedId(section.id) }} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600/80 px-2.5 py-2 text-[11px] font-bold text-white hover:bg-emerald-500">
+                    <button type="button" onClick={() => { if (dirty && !window.confirm("You have unsaved changes in the editor. Discard them?")) return; setSelectedId(section.id) }} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600/80 px-2.5 py-2 text-xs font-bold text-white hover:bg-emerald-500">
                       <FiEdit3 size={13} /> Edit
                     </button>
-                    <button type="button" onClick={() => openHistory(section)} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-700/60 px-2.5 py-2 text-[11px] font-bold text-slate-200 hover:bg-slate-600"><FiRotateCcw size={13} /> History</button>
+                    <button type="button" onClick={() => openHistory(section)} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-700/60 px-2.5 py-2 text-xs font-bold text-slate-200 hover:bg-slate-600"><FiRotateCcw size={13} /> History</button>
                   </div>
                 </li>
               ))}
@@ -399,7 +399,7 @@ export default function HomepageManagerPanel() {
                   </label>
                 </div>
                 <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3 space-y-2">
-                  <p className="text-[11px] font-black uppercase tracking-wide text-amber-400">Design & styles</p>
+                  <p className="text-xs font-black uppercase tracking-wide text-amber-400">Design & styles</p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     <label className="block text-xs font-bold text-slate-300">Background
                       <select className={`${field} mt-1`} value={draft.config?.background_style || "clean-white"} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), background_style: e.target.value } })}>
@@ -466,14 +466,14 @@ export default function HomepageManagerPanel() {
                 <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-700/50">
                   <input type="datetime-local" value={scheduleAt} onChange={(e) => setScheduleAt(e.target.value)}
                     className="rounded-xl border border-slate-600/50 bg-slate-800/60 px-3 py-2 text-xs text-white focus:border-emerald-500 focus:outline-none" aria-label="Schedule publish time" />
-                  <button type="button" onClick={schedulePublish} disabled={busy !== "" || !scheduleAt} className="inline-flex items-center gap-2 rounded-xl bg-slate-700 px-3 py-2 text-[11px] font-black text-slate-100 hover:bg-slate-600 disabled:opacity-40">
+                  <button type="button" onClick={schedulePublish} disabled={busy !== "" || !scheduleAt} className="inline-flex items-center gap-2 rounded-xl bg-slate-700 px-3 py-2 text-xs font-black text-slate-100 hover:bg-slate-600 disabled:opacity-40">
                     <FiClock size={13} /> Schedule publish
                   </button>
-                  <button type="button" onClick={unpublish} disabled={busy !== "" || draft.status !== "published"} className="inline-flex items-center gap-2 rounded-xl bg-rose-700/70 px-3 py-2 text-[11px] font-black text-rose-100 hover:bg-rose-600 disabled:opacity-40">
+                  <button type="button" onClick={unpublish} disabled={busy !== "" || draft.status !== "published"} className="inline-flex items-center gap-2 rounded-xl bg-rose-700/70 px-3 py-2 text-xs font-black text-rose-100 hover:bg-rose-600 disabled:opacity-40">
                     <FiEyeOff size={13} /> Unpublish
                   </button>
                 </div>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-xs text-slate-500">
                   Hero visuals are driven by the hero slides system; the hero section&apos;s text fields still feed CMS-rendered hero blocks.
                 </p>
               </div>
@@ -484,7 +484,7 @@ export default function HomepageManagerPanel() {
             {selected && (
               <div className="bg-slate-900/70 border border-slate-600/40 rounded-2xl p-5">
                 <h3 className="text-sm font-black uppercase tracking-wider text-slate-300 mb-1">Cards / blocks inside “{selected.title || selected.key}”</h3>
-                <p className="text-[11px] text-slate-500 mb-3">Blocks are part of the draft: after editing them, press Publish in the editor above to push them live.</p>
+                <p className="text-xs text-slate-500 mb-3">Blocks are part of the draft: after editing them, press Publish in the editor above to push them live.</p>
                 <ContentBlocksBuilder key={selected.id} sectionId={selected.id} section={selected} onToast={(msg, kind) => showToast(msg, kind)} />
               </div>
             )}
@@ -501,7 +501,7 @@ export default function HomepageManagerPanel() {
               <div className="flex items-center gap-2">
                 {Object.keys(PREVIEW_WIDTHS).map((w) => (
                   <button key={w} type="button" onClick={() => setPreviewWidth(w)}
-                    className={`rounded-lg px-3 py-1.5 text-[11px] font-black ${previewWidth === w ? "bg-emerald-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}>{w}</button>
+                    className={`rounded-lg px-3 py-1.5 text-xs font-black ${previewWidth === w ? "bg-emerald-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}>{w}</button>
                 ))}
                 <button type="button" onClick={() => setPreviewOpen(false)} aria-label="Close preview" className="rounded-lg bg-slate-800 p-2 text-slate-300 hover:bg-slate-700"><FiX size={16} /></button>
               </div>
@@ -529,15 +529,15 @@ export default function HomepageManagerPanel() {
                 <li key={rev.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-700/60 bg-slate-800/50 px-4 py-3">
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-white">#{rev.revision_number} · {rev.action}</p>
-                    <p className="text-[11px] text-slate-400">{new Date(rev.created_at).toLocaleString()}{rev.created_by ? ` · ${rev.created_by}` : ""}</p>
+                    <p className="text-xs text-slate-400">{new Date(rev.created_at).toLocaleString()}{rev.created_by ? ` · ${rev.created_by}` : ""}</p>
                   </div>
-                  <button type="button" onClick={() => rollback(rev)} disabled={busy === "rollback"} className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600/90 px-3 py-2 text-[11px] font-black text-white hover:bg-amber-500 disabled:opacity-50">
+                  <button type="button" onClick={() => rollback(rev)} disabled={busy === "rollback"} className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600/90 px-3 py-2 text-xs font-black text-white hover:bg-amber-500 disabled:opacity-50">
                     <FiRotateCcw size={13} /> Roll back to this
                   </button>
                 </li>
               ))}
             </ul>
-            <p className="text-[11px] text-slate-500 mt-3">Rollback restores the revision as a DRAFT — press Publish afterwards to make it public.</p>
+            <p className="text-xs text-slate-500 mt-3">Rollback restores the revision as a DRAFT — press Publish afterwards to make it public.</p>
           </div>
         </div>
       )}
@@ -551,7 +551,7 @@ export default function HomepageManagerPanel() {
               <div className="flex items-center gap-2">
                 {Object.keys(PREVIEW_WIDTHS).map((w) => (
                   <button key={w} type="button" onClick={() => setPreviewWidth(w)}
-                    className={`rounded-lg px-3 py-1.5 text-[11px] font-black ${previewWidth === w ? "bg-emerald-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}>{w}</button>
+                    className={`rounded-lg px-3 py-1.5 text-xs font-black ${previewWidth === w ? "bg-emerald-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}>{w}</button>
                 ))}
                 <button type="button" onClick={() => setFullPreview(false)} aria-label="Close full preview" className="rounded-lg bg-slate-800 p-2 text-slate-300 hover:bg-slate-700"><FiX size={16} /></button>
               </div>

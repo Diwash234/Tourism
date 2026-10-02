@@ -185,18 +185,15 @@ class HealthView(View):
         media_status = "ok"
         try:
             media_root = str(getattr(settings, "MEDIA_ROOT", ""))
+            if media_root:
+                os.makedirs(media_root, exist_ok=True)
             if not (media_root and os.path.isdir(media_root) and os.access(media_root, os.W_OK)):
                 media_status = "unwritable"
         except Exception:  # pragma: no cover
             media_status = "error"
         checks["media_storage"] = {"status": media_status}
 
-        # Liveness gate: only the database can take the service down. A
-        # degraded media directory is reported honestly in `checks` but must
-        # not fail the render.yaml healthCheckPath (503) and block deploys --
-        # Render containers are ephemeral and media may legitimately live on
-        # external storage (S3/Cloudinary) instead of local disk.
-        overall = "ok" if db_status == "ok" else "degraded"
+        overall = "ok" if db_status == "ok" and media_status == "ok" else "degraded"
         return JsonResponse(
             {"status": overall, "checks": checks},
             status=200 if db_status == "ok" else 503,

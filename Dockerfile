@@ -1,28 +1,16 @@
 # Render production image: React build + Django API in one service.
-#
-# THIS IS THE CANONICAL IMAGE (render.yaml: dockerfilePath ./Dockerfile,
-# dockerContext .). docker-compose.yml also builds it (build: .).
-# Dockerfile.ml is only the local compose ML container; there is no second
-# backend image.
 
 # ============================================================
 # Stage 1: Build React frontend
 # ============================================================
-FROM node:22-alpine AS frontend
+FROM node:20-alpine AS frontend
 
 WORKDIR /app/frontend
 
-COPY frontend/Tourism/package.json ./package.json
-COPY frontend/Tourism/package-lock.json ./package-lock.json
-# Keep the production build reproducible. The frontend lockfile is lockfileVersion 3
-# and is compatible with the Node 22/npm toolchain used by this image.
-RUN npm --version && node --version
-
-# Ensure package-lock.json is valid and install dependencies
-RUN npm ci --no-audit --no-fund --prefer-offline || npm install --no-audit --no-fund --prefer-offline
+COPY frontend/Tourism/package*.json ./
+RUN npm ci
 
 COPY frontend/Tourism/ ./
-RUN npm run build
 
 ARG VITE_SITE_URL=""
 ENV VITE_SITE_URL=$VITE_SITE_URL
@@ -36,8 +24,7 @@ RUN npm run build
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PORT=8000
+    PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
@@ -54,9 +41,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY Tourism/requirements.txt /app/Tourism/
 RUN pip install --no-cache-dir -r /app/Tourism/requirements.txt
 
-# Copy Django project
+# Copy Django project and ML service
 COPY Tourism/ /app/Tourism/
+COPY ml_service/ /app/ml_service/
 
+# Copy compiled React frontend into Django static directory
 # The built SPA is served from the site root by WhiteNoise (WHITENOISE_ROOT):
 # /, /assets/*, /sw.js, /manifest.webmanifest; deep links fall back to
 # index.html via Tourism/spa.py.
@@ -65,45 +54,26 @@ COPY --from=frontend /app/frontend/dist /app/Tourism/frontend_dist/
 # Published seed database (installed on first start by the entrypoint when the
 # SQLite volume is empty) and the start-up script.
 COPY downloads/nepal-tourism-seed.sqlite3.gz downloads/nepal-tourism-seed.sqlite3.gz.sha256 /app/downloads/
-COPY downloads/nepal-tourism-database.sqlite3.gz downloads/nepal-tourism-database.sqlite3.gz.sha256 /app/downloads/
 COPY docker/entrypoint.sh /usr/local/bin/ny-entrypoint
 RUN chmod +x /usr/local/bin/ny-entrypoint
 
 # Move into Django project
 WORKDIR /app/Tourism
 
-# Create directories required by the application.
-# MEDIA_ROOT defaults to <BASE_DIR>/media = /app/Tourism/media (settings.py);
-# the health check reports it unwritable and 503s every Render deploy if this
-# directory is missing. /var/lib/tourism/* is kept for configs that point
-# MEDIA_ROOT/MEDIA at those paths via env.
-RUN mkdir -p /app/Tourism/media \
-    /var/lib/tourism/media \
-    /var/lib/tourism/data
-
-# ML microservice source, models and data: budget estimator (budget_model.joblib),
-# itinerary/recommendation/safety engines, and the OSM amenity CSV that
-# import_emergency_services reads (hospitals, clinics, pharmacies, police).
-# None of ml_service/ was in the image before -- so budget/itinerary said
-# "not available" in production and the emergency import crashed the boot.
-# Its Python deps (fastapi/uvicorn/sklearn/pandas/networkx) are already in
-# Tourism/requirements.txt; the entrypoint starts uvicorn on :8001 in the
-# background after migrations and the data phase finish (so its ~300MB
-# import spike never overlaps another Python process and OOMs Render's
-# 512 MiB free instance). render.yaml sets START_ML_SERVICE=1; set it to 0
-# to run without the sidecar. ML_SERVICE_URL is where Django finds it.
-COPY ml_service/ /app/ml_service/
+# Create directories required by the application
+RUN mkdir -p /var/lib/tourism/media \
+    /var/lib/tourism/data \
+    /app/Tourism/media \
+    /app/Tourism/staticfiles
 
 # Collect Django static files
 RUN python manage.py collectstatic --noinput
 
-# Render exposes the PORT environment variable (default 8000 here; the
-# entrypoint re-pins Daphne to $PORT so the scan and the socket agree)
-EXPOSE 8000
+# Render exposes the PORT environment variable (default 10000 on Render, 8000 local)
+EXPOSE 8000 10000
 
-# Health check (follows $PORT)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f "http://localhost:${PORT}/health/" || exit 1
-
+# ASGI (daphne) so the live-chat WebSocket at /ws/chat/<id>/ works; HTTP is
+# the same Django app. CHANNEL_LAYERS is in-memory, so run ONE process per
+# container (scale with more containers + a Redis channel layer).
 ENTRYPOINT ["ny-entrypoint"]
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "Tourism.asgi:application"]
+CMD ["sh", "-c", "exec daphne -b 0.0.0.0 -p ${PORT:-8000} Tourism.asgi:application"]

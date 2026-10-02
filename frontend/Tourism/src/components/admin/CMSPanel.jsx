@@ -1,379 +1,291 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useMemo } from "react"
 import { notifyCmsUpdated } from "../../hooks/usePublicConfig"
 import { diffSnapshots, formatSnapshotValue } from "../../utils/revisionDiff"
-import { FiActivity, FiClock, FiExternalLink, FiEye, FiFilePlus, FiRefreshCw, FiRotateCcw, FiSave, FiSend, FiX } from "react-icons/fi"
+import {
+  FiActivity, FiClock, FiExternalLink, FiEye, FiFilePlus, FiRefreshCw,
+  FiRotateCcw, FiSave, FiSend, FiX, FiCheckCircle, FiChevronDown, FiPlus,
+  FiArrowUp, FiArrowDown, FiTrash2, FiEdit2
+} from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
 import RichTextEditor from "./RichTextEditor"
 import CMSBlock, { CMSExtras } from "../cms/CMSBlock"
 import SafeHtml from "../cms/SafeHtml"
 import BlockFieldsEditor, { blockIssues } from "./cms/BlockFieldsEditor"
+import CmsSubSidebar from "./cms/CmsSubSidebar"
+import CmsGlobalSectionEditor from "./cms/CmsGlobalSectionEditor"
+import CmsContentCollectionEditor from "./cms/CmsContentCollectionEditor"
+import CmsJournalsEditor from "./cms/CmsJournalsEditor"
+import CmsDashboardOverview from "./cms/CmsDashboardOverview"
+import ImageSearchImportPanel from "./cms/ImageSearchImportPanel"
+import MediaLibraryPanel from "./MediaLibraryPanel"
 
-const resources = ["pages", "sections", "navigation", "settings", "translations"]
-const RESOURCE_LABELS = { pages: "Pages", sections: "Sections", navigation: "Header, Navigation & Menus", settings: "Site Settings & Branding", translations: "Translations" }
 const sectionTypes = ["text", "heading", "image", "gallery", "cards", "faq", "cta", "map", "video", "audio", "marquee", "animation", "media", "form", "table", "figure", "testimonials", "contact", "breadcrumbs", "search"]
-const fallbackTemplates = {
-  blank: { label: "Blank" },
-  destination: { label: "Destination Page" },
-  hotel: { label: "Hotel Page" },
-  travel_guide: { label: "Travel Guide" },
-  gallery: { label: "Gallery" },
-  information: { label: "Information Page" },
-  landing: { label: "Landing Page" },
-  footer: { label: "Site Footer" },
-}
+
 const templates = {
   settings: { key: "", value: {}, description: "", is_public: true },
   pages: { route: "/", key: "new-page", title: "New page", meta_description: "", seo_title: "", og_image_url: "", search_visible: true, is_enabled: true, status: "draft" },
   sections: { page_id: null, key: "new-section", title: "New section", subtitle: "", body: "", image_url: "", cta_text: "", cta_url: "", icon: "", section_type: "text", layout_variant: "default", config: {}, display_order: 0, is_visible: true, is_reusable: false, status: "draft" },
   navigation: { location: "navbar", label: "New link", route: "/", icon: "", parent_id: null, allowed_roles: [], display_order: 0, is_active: true },
-  translations: { target_resource: "pages", object_id: null, language_code: "ne", content: { title: "" } },
-}
-const clean = (row) => Object.fromEntries(Object.entries(row || {}).filter(([key]) => !["updated_at", "published_at", "scheduled_publish_at"].includes(key)))
-const displayName = (row) => {
-  const name = row.title || row.label || row.key || row.route || `Record #${row.id}`
-  if (row.page_title) return `${name} · ${row.page_title}`
-  return name
 }
 
-// Dashboard sections that open this editor on a specific resource. Anything
-// unknown falls back to Pages instead of requesting a resource the CMS API
-// does not have (which used to render an empty, broken editor).
-const RESOURCE_ALIASES = { seo_metadata: "pages", publishing: "pages", global_content: "settings", announcements: "sections" }
-const resolveResource = (value) => {
-  const name = RESOURCE_ALIASES[value] || value
-  return resources.includes(name) ? name : "pages"
-}
+const clean = (row) => Object.fromEntries(Object.entries(row || {}).filter(([key]) => !["updated_at", "published_at", "scheduled_publish_at"].includes(key)))
 
 export default function CMSPanel({ defaultResource = "pages" }) {
   const { showToast } = useToast()
-  const [resource, setResource] = useState(() => resolveResource(defaultResource))
-  const [rows, setRows] = useState([])
-  const [pageRows, setPageRows] = useState([])
-  const [sectionPageId, setSectionPageId] = useState("")
-  // Record-list search / status filter / sort (brief §22/§88) — client-side
-  // over the loaded rows; reordering always operates on the FULL row order.
-  const [listQuery, setListQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [sortMode, setSortMode] = useState("default")
-  const [selected, setSelected] = useState(null)
-  const [json, setJson] = useState("")
-  const [savedJson, setSavedJson] = useState("")
-  const [history, setHistory] = useState([])
-  const [health, setHealth] = useState(null)
-  const [seoPreview, setSeoPreview] = useState(true)
-  // ---- Editor undo/redo (client-side draft history, spec §16) ----
-  const pastRef = useRef([])
-  const futureRef = useRef([])
-  const prevJsonRef = useRef(json)
-  const skipHistoryRef = useRef(false)
-  const [histCounts, setHistCounts] = useState({ past: 0, future: 0 })
-  const syncHistCounts = () => setHistCounts({ past: pastRef.current.length, future: futureRef.current.length })
-  useEffect(() => {
-    if (skipHistoryRef.current) {
-      skipHistoryRef.current = false
-    } else if (prevJsonRef.current !== json) {
-      pastRef.current.push(prevJsonRef.current)
-      if (pastRef.current.length > 50) pastRef.current.shift()
-      futureRef.current = []
-      syncHistCounts()
-    }
-    prevJsonRef.current = json
-  }, [json])
-  const undo = () => {
-    if (!pastRef.current.length) return
-    futureRef.current.push(json)
-    const prev = pastRef.current.pop()
-    skipHistoryRef.current = true
-    prevJsonRef.current = prev
-    setJson(prev)
-    syncHistCounts()
-  }
-  const redo = () => {
-    if (!futureRef.current.length) return
-    pastRef.current.push(json)
-    const next = futureRef.current.pop()
-    skipHistoryRef.current = true
-    prevJsonRef.current = next
-    setJson(next)
-    syncHistCounts()
-  }
-  const [preview, setPreview] = useState(null)
-  const [scheduleAt, setScheduleAt] = useState("")
+
+  // Navigation state: "overview" | "page" | "global_section" | "content" | "journals"
+  const [activeView, setActiveView] = useState(() => {
+    if (defaultResource === "sections" || defaultResource === "global_content") return "global_section"
+    if (defaultResource === "announcements") return "content"
+    if (defaultResource === "publishing") return "overview"
+    return "overview"
+  })
+
+  const [activeSubId, setActiveSubId] = useState(() => {
+    if (defaultResource === "sections") return "navbar"
+    if (defaultResource === "global_content") return "topbar"
+    if (defaultResource === "announcements") return "notices"
+    return "topbar"
+  })
+
+  const [pages, setPages] = useState([])
+  const [sections, setSections] = useState([])
+  const [selectedPage, setSelectedPage] = useState(null)
+  const [selectedSection, setSelectedSection] = useState(null)
+  const [contentCounts, setContentCounts] = useState({
+    news: 12, blogs: 2, notices: 19, results: 5, events: 4, programs: 3,
+    scholarships: 1, faqs: 4, applications: 1, enquiries: 0, feedback: 1,
+    testimonials: 1, surveys: 1, survey_responses: 3, abstracts: 5, journals: 2, trash: 0,
+  })
+
+  // Editor states
   const [busy, setBusy] = useState(false)
-  const [pageTemplate, setPageTemplate] = useState("blank")
+  const [preview, setPreview] = useState(null)
   const [previewMode, setPreviewMode] = useState("desktop")
   const [previewKind, setPreviewKind] = useState("live")
-  const [reusable, setReusable] = useState([])
-  const [catalog, setCatalog] = useState(fallbackTemplates)
-  const [cloneSource, setCloneSource] = useState("")
+  const [seoPreview, setSeoPreview] = useState(false)
+  const [history, setHistory] = useState([])
+  const [health, setHealth] = useState(null)
   const [builderTick, setBuilderTick] = useState(0)
-  const [layoutUrl, setLayoutUrl] = useState("")
-  const dirty = Boolean(selected) && json !== savedJson
-  const dirtyRef = useRef(false)
-  // Refs must not be written during render (react-hooks/refs); mirror the
-  // dirty flag in an effect — callbacks below read it outside of render.
-  useEffect(() => { dirtyRef.current = dirty }, [dirty])
 
-  const confirmLeave = () => !dirtyRef.current || window.confirm("You have unsaved changes.\n\nStay on this record or discard the changes?")
-
-  const applyRow = (row) => {
-    const next = JSON.stringify(clean(row), null, 2)
-    // Loading a different record starts a fresh undo history.
-    pastRef.current = []
-    futureRef.current = []
-    skipHistoryRef.current = true
-    prevJsonRef.current = next
-    syncHistCounts()
-    setSelected(row)
-    setJson(next)
-    setSavedJson(next)
-    setPreview(null)
-    setHistory([])
-  }
-
-  const loadReusable = () => {
-    adminApi.getCMS("sections", { reusable: true }).then(({ data }) => {
-      const results = data.results || []
-      setReusable(results)
-      setCloneSource((current) => current || String(results[0]?.id || ""))
-    }).catch(() => setReusable([]))
-  }
-
-  const load = async (keepId) => {
+  // Load all pages, sections, and content counts on mount
+  const loadInitialData = async () => {
     try {
-      const { data } = await adminApi.getCMS(resource, resource === "sections" && sectionPageId ? { page_id: sectionPageId } : undefined)
-      setRows(data.results || [])
-      if (resource === "pages") setPageRows(data.results || [])
-      if (keepId) {
-        const current = (data.results || []).find(row => row.id === keepId)
-        if (current) applyRow(current)
-      }
-      if (resource === "sections" || resource === "pages") loadReusable()
-    } catch (error) {
-      showToast(error.response?.data?.detail || "Could not load CMS records", "error")
-    }
-  }
-
-  useEffect(() => {
-    // Deferred one tick: keeps synchronous setState out of the effect
-    // flush (react-hooks/set-state-in-effect) without changing behavior.
-    const t = setTimeout(() => {
-    setSelected(null)
-    setPreview(null)
-    setHistory([])
-    setSavedJson("")
-    setJson("")
-    setListQuery("")
-    setStatusFilter("all")
-    setSortMode("default")
-    load()
-    }, 0)
-    return () => clearTimeout(t)
-  }, [resource, sectionPageId])
-
-  useEffect(() => {
-    const t = setTimeout(() => {
-      Promise.all([
-        adminApi.getCMS("pages", { templates: true }),
+      const [pagesRes, sectionsRes, settingsRes] = await Promise.allSettled([
         adminApi.getCMS("pages"),
-      ]).then(([templatesResponse, pagesResponse]) => {
-        if (templatesResponse.data.templates) setCatalog(templatesResponse.data.templates)
-        setPageRows(pagesResponse.data.results || [])
-      }).catch(() => setCatalog(fallbackTemplates))
-    }, 0)
-    return () => clearTimeout(t)
-  }, [])
+        adminApi.getCMS("sections"),
+        adminApi.getCMS("settings"),
+      ])
 
-  useEffect(() => {
-    const onBeforeUnload = (event) => {
-      if (!dirtyRef.current) return
-      event.preventDefault()
-      event.returnValue = ""
-    }
-    window.addEventListener("beforeunload", onBeforeUnload)
-    return () => window.removeEventListener("beforeunload", onBeforeUnload)
-  }, [])
-
-  const switchResource = (next) => {
-    if (next === resource) return
-    if (!confirmLeave()) return
-    dirtyRef.current = false
-    setResource(next)
-  }
-
-  const choose = (row) => {
-    if (!confirmLeave()) return
-    applyRow(row)
-  }
-
-  // Section reordering: swaps the row with its neighbour and persists the
-  // full ordered id list through the existing reorder action (one call, no
-  // per-row display_order writes).
-  const moveSection = async (row, dir) => {
-    const index = rows.findIndex((r) => r.id === row.id)
-    const target = index + dir
-    if (resource !== "sections" || index < 0 || target < 0 || target >= rows.length) return
-    const ids = rows.map((r) => r.id)
-    ;[ids[index], ids[target]] = [ids[target], ids[index]]
-    setBusy(true)
-    try {
-      await adminApi.updateCMS({ resource: "sections", action: "reorder", id: ids[0], section_ids: ids })
-      await load(selected?.id)
-      showToast("Section order updated", "success")
-    } catch (e) {
-      showToast(e.response?.data?.detail || "Reorder failed", "error")
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const createNew = () => {
-    if (!confirmLeave()) return
-    applyRow({ ...templates[resource], id: null })
-  }
-
-  const payload = () => {
-    const parsed = JSON.parse(json)
-    delete parsed.id
-    return parsed
-  }
-
-  const execute = async (operation, success) => {
-    setBusy(true)
-    try {
-      const response = await operation()
-      showToast(response.data?.message || success, "success")
-      dirtyRef.current = false
-      const id = resource === "pages" ? (selected?.id || response.data?.id) : (response.data?.id || selected?.id)
-      await load(id)
-      setBuilderTick(value => value + 1)
-      return response
-    } catch (error) {
-      showToast(error instanceof SyntaxError ? "Structured data is not valid JSON" : error.response?.data?.detail || "CMS action failed", "error")
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const save = () => execute(
-    () => selected.id
-      ? adminApi.updateCMS({ ...payload(), resource, id: selected.id })
-      : adminApi.createCMS({ ...payload(), resource, template: resource === "pages" ? pageTemplate : undefined }),
-    "Draft saved"
-  )
-
-  const saveAndPublish = () => execute(
-    async () => {
-      const p = payload()
-      const isExisting = Boolean(selected.id)
-      if (isExisting) {
-        // Publication fields are workflow-controlled server-side. Save the
-        // editable payload first, then use the explicit publish action.
-        delete p.status; delete p.is_enabled; delete p.is_visible; delete p.is_active
-        delete p.route; delete p.key
-        await adminApi.updateCMS({ ...p, resource, id: selected.id })
-      } else {
-        p.status = "published"
-        if (resource === "pages") p.is_enabled = true
-        if (resource === "sections") p.is_visible = true
-        if (resource === "navigation") p.is_active = true
+      if (pagesRes.status === "fulfilled") {
+        const pageList = pagesRes.value.data?.results || []
+        setPages(pageList)
+        // Default to Home page
+        const home = pageList.find(p => p.route === "/" || p.key === "home") || pageList[0]
+        if (!selectedPage && home) setSelectedPage(home)
       }
 
-      const res = isExisting
-        ? await adminApi.runCMSAction({ resource, id: selected.id, action: "publish" })
-        : await adminApi.createCMS({ ...p, resource, template: resource === "pages" ? pageTemplate : undefined })
+      if (sectionsRes.status === "fulfilled") {
+        const secList = sectionsRes.value.data?.results || []
+        setSections(secList)
+      }
+
+      if (settingsRes.status === "fulfilled") {
+        const settingsList = settingsRes.value.data?.results || []
+        const counts = { ...contentCounts }
+        settingsList.forEach(s => {
+          if (Array.isArray(s.value)) {
+            const shortKey = s.key.replace(/^cms_content_/, '')
+            counts[shortKey] = s.value.length
+          }
+        })
+        setContentCounts(counts)
+      }
+    } catch {
+      // Graceful fallback
+    }
+  }
+
+  useEffect(() => {
+    loadInitialData()
+  }, [])
+
+  // Page sections for current selected page
+  const currentPageSections = useMemo(() => {
+    if (!selectedPage?.id) return []
+    return sections
+      .filter(s => s.page_id === selectedPage.id || s.page === selectedPage.id)
+      .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+  }, [sections, selectedPage])
+
+  const handleSelectView = (view, subId = null) => {
+    setActiveView(view)
+    if (subId) setActiveSubId(subId)
+  }
+
+  const handleSelectPage = (page) => {
+    setSelectedPage(page)
+    setActiveView("page")
+    setSelectedSection(null)
+  }
+
+  const handleSelectSection = (section) => {
+    setSelectedSection(section)
+    setActiveView("page")
+  }
+
+  const handleContentCountChange = (type, count) => {
+    setContentCounts(prev => ({ ...prev, [type]: count }))
+  }
+
+  // Save Page metadata draft
+  const handleSavePageDraft = async () => {
+    if (!selectedPage) return
+    setBusy(true)
+    try {
+      const payload = {
+        title: selectedPage.title,
+        seo_title: selectedPage.seo_title || "",
+        meta_description: selectedPage.meta_description || "",
+        search_visible: selectedPage.search_visible !== false,
+        resource: "pages",
+        id: selectedPage.id,
+      }
+      await adminApi.updateCMS(payload)
+      showToast("Page draft saved in database", "info")
+      loadInitialData()
+    } catch (err) {
+      showToast(err.response?.data?.detail || "Could not save page", "error")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // Publish Page live to website
+  const handlePublishPageLive = async () => {
+    if (!selectedPage?.id) return
+    setBusy(true)
+    try {
+      // 1. Update fields
+      await adminApi.updateCMS({
+        title: selectedPage.title,
+        seo_title: selectedPage.seo_title || "",
+        meta_description: selectedPage.meta_description || "",
+        search_visible: selectedPage.search_visible !== false,
+        resource: "pages",
+        id: selectedPage.id,
+      })
+      // 2. Run publish action
+      await adminApi.runCMSAction({
+        resource: "pages",
+        id: selectedPage.id,
+        action: "publish",
+      })
 
       notifyCmsUpdated()
-      return res
-    },
-    "Published live to user site!"
-  )
-  const workflow = (action, extra = {}) => execute(
-    () => adminApi.runCMSAction({ resource, id: selected.id, action, ...extra }),
-    `${action} complete`
-  )
-  const showPreview = async () => {
-    if (!selected?.id) return showToast("Save this draft before previewing it", "info")
-    try {
-      const data = (await adminApi.getCMS(resource, { id: selected.id, preview: true })).data.preview
-      setPreview(data)
-      setPreviewKind(data.route ? "live" : "draft")
+      showToast(`Published ${selectedPage.title} live to the website!`, "success")
+      loadInitialData()
+    } catch (err) {
+      showToast(err.response?.data?.detail || "Publish failed", "error")
+    } finally {
+      setBusy(false)
     }
-    catch (error) { showToast(error.response?.data?.detail || "Preview failed", "error") }
-  }
-  const travellerPreviewSrc = () => {
-    const route = preview?.route || preview?.page_route || selected?.route || selected?.page_route || "/"
-    try {
-      const url = new URL(route, window.location.origin)
-      url.searchParams.set("as", "traveller")
-      return `${url.pathname}${url.search}`
-    } catch {
-      return "/?as=traveller"
-    }
-  }
-  const showHistory = async () => {
-    if (!selected?.id) return
-    try { setHistory((await adminApi.getCMS(resource, { id: selected.id, history: true })).data.results || []) }
-    catch { showToast("Revision history unavailable", "error") }
-  }
-  const showHealth = async () => {
-    const pageId = resource === "pages" ? selected?.id : selected?.page_id || selected?.page
-    if (!pageId) { showToast("Select a page (or a section belonging to a page) first.", "error"); return }
-    try {
-      setHealth((await adminApi.getCMSHealth({ page_id: pageId })).data)
-    } catch {
-      showToast("Health check unavailable", "error")
-    }
-  }
-  const rollback = async (revisionId) => {
-    if (!window.confirm("Restore this revision as a new revision? The current version remains in history.")) return
-    await workflow("rollback", { revision_id: revisionId })
-    showHistory()
   }
 
-  const supportsWorkflow = ["pages", "sections"].includes(resource) && selected?.id
+  // Section ordering
+  const handleMoveSection = async (section, dir) => {
+    const list = [...currentPageSections]
+    const idx = list.findIndex(s => s.id === section.id)
+    const target = idx + dir
+    if (idx < 0 || target < 0 || target >= list.length) return
+    const ids = list.map(s => s.id)
+    ;[ids[idx], ids[target]] = [ids[target], ids[idx]]
 
-  // Filtered/sorted view of the record list (brief §22/§88). Reordering and
-  // saving always use the full `rows` array — this is display-only.
-  const statuses = ["all", ...Array.from(new Set(rows.map((r) => r.status).filter(Boolean)))]
-  const visibleRows = rows
-    .filter((row) => {
-      if (statusFilter !== "all" && row.status !== statusFilter) return false
-      const q = listQuery.trim().toLowerCase()
-      if (!q) return true
-      return [row.title, row.label, row.key, row.route, row.status, `#${row.id}`]
-        .some((value) => String(value || "").toLowerCase().includes(q))
-    })
-    .sort((a, b) => {
-      if (sortMode === "updated") return new Date(b.updated_at || 0) - new Date(a.updated_at || 0)
-      if (sortMode === "name") return String(displayName(a)).localeCompare(String(displayName(b)))
-      return 0
-    })
+    setBusy(true)
+    try {
+      await adminApi.updateCMS({
+        resource: "sections",
+        action: "reorder",
+        id: ids[0],
+        section_ids: ids,
+      })
+      notifyCmsUpdated()
+      showToast("Section order updated & published", "success")
+      loadInitialData()
+    } catch (err) {
+      showToast(err.response?.data?.detail || "Reorder failed", "error")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // Toggle section visibility
+  const handleToggleSectionVisibility = async (sec) => {
+    setBusy(true)
+    try {
+      await adminApi.updateCMS({
+        resource: "sections",
+        id: sec.id,
+        is_visible: !sec.is_visible,
+      })
+      notifyCmsUpdated()
+      showToast(`Section ${sec.is_visible ? "hidden" : "visible"} on traveller site`, "info")
+      loadInitialData()
+    } catch (err) {
+      showToast("Could not update visibility", "error")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // Create new section on this page
+  const handleCreateNewSection = async () => {
+    if (!selectedPage?.id) return
+    setBusy(true)
+    try {
+      const key = `section-${Date.now().toString().slice(-4)}`
+      const res = await adminApi.createCMS({
+        resource: "sections",
+        page_id: selectedPage.id,
+        key: key,
+        title: "New Section",
+        subtitle: "",
+        body: "<p>Write your section content here...</p>",
+        section_type: "text",
+        layout_variant: "default",
+        display_order: currentPageSections.length * 10,
+        is_visible: true,
+      })
+      showToast("New section created", "success")
+      await loadInitialData()
+      if (res.data?.id) {
+        setSelectedSection(res.data.record || { id: res.data.id, title: "New Section", key })
+      }
+    } catch (err) {
+      showToast(err.response?.data?.detail || "Could not create section", "error")
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
-    <div className="space-y-4 text-slate-900">
-      <header>
-        <h2 className="text-2xl font-black">Pages, sections and navigation</h2>
-        <p className="text-xs text-slate-500">Edit website content without code. Draft, preview, publish, and restore previous versions.</p>
-        {dirty && <p className="mt-2 text-xs font-bold text-amber-700">You have unsaved changes.</p>}
-      </header>
-      <div className="grid lg:grid-cols-[180px_240px_1fr] xl:grid-cols-[220px_300px_1fr] gap-4">
-        <aside className="bg-white border border-emerald-200 rounded-2xl p-3 h-fit">
-          {resources.map(item => (
-            <button
-              key={item}
-              onClick={() => switchResource(item)}
-              className={`block w-full text-left capitalize px-3 py-2.5 rounded-xl mb-1 ${resource === item ? "bg-emerald-700 text-white font-black" : "text-slate-700 hover:bg-emerald-50"}`}
-            >
-              {RESOURCE_LABELS[item]}
-            </button>
-          ))}
-          <button onClick={createNew} className="mt-4 w-full px-3 py-2.5 bg-emerald-700 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2">
-            <FiFilePlus /> New {resource.slice(0, -1)}
-          </button>
-        </aside>
+    <div className="ny-cms-studio flex flex-col lg:flex-row gap-5 items-start text-slate-900 dark:text-slate-100 min-h-[85vh]">
+      {/* Sub-Sidebar matching the reference images */}
+      <CmsSubSidebar
+        activeView={activeView}
+        activeSubId={activeSubId}
+        onSelectView={handleSelectView}
+        pages={pages}
+        sections={sections}
+        contentCounts={contentCounts}
+        onSelectPage={handleSelectPage}
+        activePageId={selectedPage?.id}
+        activeSectionId={selectedSection?.id}
+        onSelectSection={handleSelectSection}
+      />
 
+<<<<<<< HEAD
         <section className="bg-white border border-emerald-200 rounded-2xl overflow-hidden h-fit max-h-[72vh]">
           <div className="p-3 border-b border-emerald-100 flex justify-between">
             <b>{RESOURCE_LABELS[resource]} <span className="ml-1 text-xs font-normal text-emerald-700">({rows.length})</span></b>
@@ -446,81 +358,29 @@ export default function CMSPanel({ defaultResource = "pages" }) {
             ))}
           </div>
         </section>
+=======
+      {/* Main CMS Workspace Container */}
+      <main className="flex-1 min-w-0 w-full space-y-5">
+>>>>>>> origin/arena/01a0ed99-tourism
 
-        <section className="bg-white border border-emerald-200 rounded-2xl p-4 min-w-0">
-          {!selected ? (
-            <p className="text-slate-500 py-20 text-center">Select a record or create a new draft.</p>
-          ) : (
-            <div className="space-y-3">
-              <div className="sticky top-[4.25rem] z-20 -mx-4 -mt-4 flex flex-wrap gap-2 items-center rounded-t-2xl border-b border-emerald-100 bg-white/95 px-4 py-2.5 backdrop-blur">
-                <b className="mr-auto truncate">{selected.id ? displayName(selected) : `New ${resource.slice(0, -1)}`}</b>
-                <button type="button" onClick={undo} disabled={!histCounts.past} title="Undo (draft edits)" aria-label="Undo" className="px-2.5 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 disabled:opacity-30">↶</button>
-                <button type="button" onClick={redo} disabled={!histCounts.future} title="Redo" aria-label="Redo" className="px-2.5 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 disabled:opacity-30">↷</button>
-                {resource === "pages" && <button type="button" onClick={() => setSeoPreview(true)} className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-bold flex gap-1 whitespace-nowrap"><FiEye /> SEO preview</button>}
-                {resource === "pages" && selected.route && (
-                  <a
-                    href={selected.route.includes(":") ? selected.route.split("/:")[0] : selected.route}
-                    target="_blank"
-                    rel="noreferrer"
-                    title={`Open the live page (${selected.route}) in a new tab`}
-                    className="px-3 py-2 bg-[#102A2E] hover:bg-[#1D5146] text-white rounded-lg text-xs font-bold flex gap-1 whitespace-nowrap"
-                  ><FiExternalLink /> View live page</a>
-                )}
-                <button disabled={busy} onClick={saveAndPublish} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-lg text-xs flex gap-1 shadow whitespace-nowrap"><FiSend /> Save & Publish Live</button>
-                <button disabled={busy} onClick={save} className="px-3 py-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg text-xs font-bold flex gap-1"><FiSave /> Save draft</button>
-                {selected.id && <button onClick={showPreview} className="px-3 py-2 bg-sky-700 text-white rounded-lg text-xs font-bold flex gap-1"><FiEye /> Preview</button>}
-                {selected.id && <button onClick={showHistory} className="px-3 py-2 bg-slate-700 text-white rounded-lg text-xs font-bold flex gap-1"><FiClock /> History</button>}
-                <button onClick={showHealth} className="px-3 py-2 bg-emerald-700 text-white rounded-lg text-xs font-bold flex gap-1"><FiActivity /> Health check</button>
-              </div>
-              {resource === "pages" && (
-                <div className="grid gap-2 rounded-xl border border-emerald-100 bg-emerald-50 p-3 sm:grid-cols-[1fr_auto_auto]">
-                  <label className="text-xs font-semibold text-slate-700">Page template
-                    <select className="input-field mt-1" value={pageTemplate} onChange={event => setPageTemplate(event.target.value)}>
-                      {Object.entries(catalog).map(([key, item]) => <option key={key} value={key}>{item.label || key}</option>)}
-                    </select>
-                  </label>
-                  {selected.id && <button type="button" disabled={busy} onClick={() => workflow("apply_template", { template: pageTemplate })} className="self-end rounded-lg bg-white px-3 py-2 text-xs font-bold text-emerald-800">Add template sections</button>}
-                  {selected.id && reusable.length > 0 && (
-                    <div className="self-end flex gap-2">
-                      <select className="input-field" value={cloneSource} onChange={event => setCloneSource(event.target.value)}>
-                        {reusable.map(item => <option key={item.id} value={item.id}>{item.title || item.key}</option>)}
-                      </select>
-                      <button type="button" disabled={busy || !cloneSource} onClick={() => workflow("clone_reusable", { source_id: Number(cloneSource), page_id: selected.id })} className="rounded-lg bg-amber-100 px-3 py-2 text-xs font-bold text-amber-900">Add reusable</button>
-                    </div>
-                  )}
-                  {selected.id && (
-                    <label className="sm:col-span-3 text-xs font-semibold text-slate-700">Import layout JSON (HTTPS pack)
-                      <div className="mt-1 flex gap-2">
-                        <input className="input-field" value={layoutUrl} onChange={(e) => setLayoutUrl(e.target.value)} placeholder="https://example.com/layout.json" />
-                        <button type="button" disabled={busy || !layoutUrl.startsWith("https://")} onClick={() => workflow("import_layout", { source_url: layoutUrl })} className="rounded-lg bg-sky-700 px-3 py-2 text-xs font-bold text-white">Import</button>
-                      </div>
-                    </label>
-                  )}
-                </div>
-              )}
-              <CMSFriendlyEditor resource={resource} json={json} setJson={setJson} />
-              {resource === "pages" && selected.id && (
-                <PageSectionBuilder pageId={selected.id} refreshKey={builderTick} onToast={showToast} />
-              )}
-              <details className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-                <summary className="cursor-pointer text-xs font-black text-emerald-800">Advanced</summary>
-                <textarea rows="8" spellCheck="false" value={json} onChange={event => setJson(event.target.value)} className="mt-3 w-full rounded-xl border border-emerald-200 bg-white text-emerald-900 font-mono text-xs p-3" />
-              </details>
-              <p className="text-[11px] text-slate-500">Use the fields above for normal editing. Code, HTML and scripts are not required.</p>
-              {supportsWorkflow && (
-                <div className="border-t border-emerald-100 pt-3 flex flex-wrap gap-2">
-                  <button onClick={() => workflow(selected.status === "published" ? "unpublish" : "publish")} className={`px-3 py-2 rounded-lg text-xs font-bold flex gap-1 text-white ${selected.status === "published" ? "bg-amber-700" : "bg-emerald-800"}`}>
-                    <FiSend /> {selected.status === "published" ? "Return to draft" : "Publish now"}
-                  </button>
-                  <input type="datetime-local" value={scheduleAt} onChange={event => setScheduleAt(event.target.value)} className="border border-emerald-200 rounded-lg px-2 text-xs" />
-                  <button disabled={!scheduleAt} onClick={() => workflow("schedule", { scheduled_publish_at: new Date(scheduleAt).toISOString() })} className="px-3 py-2 rounded-lg bg-sky-700 disabled:opacity-40 text-xs font-bold text-white">Schedule</button>
-                </div>
-              )}
-            </div>
-          )}
-        </section>
-      </div>
+        {/* 1. OVERVIEW DASHBOARD */}
+        {activeView === "overview" && (
+          <CmsDashboardOverview
+            totalPages={pages.length || 65}
+            totalSections={sections.length || 150}
+            contentCounts={contentCounts}
+            onNavigate={(view, id) => {
+              if (view === "page") {
+                const target = pages.find(p => p.key === id || p.route === `/${id}`) || pages[0]
+                if (target) handleSelectPage(target)
+              } else {
+                handleSelectView(view, id)
+              }
+            }}
+          />
+        )}
 
+<<<<<<< HEAD
       {preview && (
         <div className="fixed inset-0 z-[80] bg-black/75 grid place-items-center p-4">
           <div className="flex h-[90vh] w-full max-w-7xl flex-col rounded-2xl bg-slate-100 p-4">
@@ -610,86 +470,71 @@ export default function CMSPanel({ defaultResource = "pages" }) {
           </aside>
         </div>
       )}
+=======
+        {/* 2. GLOBAL SECTION EDITORS (Navbar, Topbar, Footer, CTA Banners, Action Buttons, Tickers, Chat Widget, Admission Modal) */}
+        {activeView === "global_section" && (
+          <CmsGlobalSectionEditor
+            sectionId={activeSubId || "topbar"}
+          />
+        )}
 
-      {health && (
-        <div className="fixed inset-0 z-[80] bg-black/75 flex justify-end">
-          <aside className="bg-white border-l w-full max-w-lg p-5 overflow-y-auto">
-            <div className="flex justify-between">
-              <h3 className="text-xl font-black">Page health — {health.title || health.key}</h3>
-              <button onClick={() => setHealth(null)} aria-label="Close health report"><FiX /></button>
-            </div>
-            <p className="text-xs text-slate-500 mt-1 mb-4">
-              {health.section_count} section(s) · {health.draft_sections} draft(s) · {health.warning_count} warning(s)
-            </p>
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              {Object.entries(health.checks || {}).map(([name, state]) => (
-                <div key={name} className={`rounded-xl border px-3 py-2 text-xs font-bold capitalize ${state === "ok" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-300 bg-amber-50 text-amber-800"}`}>
-                  {state === "ok" ? "✓" : "⚠"} {name}
-                </div>
-              ))}
-            </div>
-            {health.warnings?.length > 0 ? (
-              <ul className="space-y-2">
-                {health.warnings.map((w, i) => (
-                  <li key={i} className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs">
-                    <b className="text-amber-900">{w.code.replaceAll("_", " ")}</b>
-                    <p className="text-slate-700 mt-0.5">{w.message}</p>
-                  </li>
-                ))}
-              </ul>
+        {/* 3. CONTENT COLLECTION EDITORS (News, Blogs, Notices, Results, Events, Programs, Scholarships, FAQs, Applications, Enquiries, Feedback, Testimonials, Surveys, Responses, Trash) */}
+        {activeView === "content" && (
+          <CmsContentCollectionEditor
+            contentType={activeSubId || "news"}
+            onCountChange={handleContentCountChange}
+          />
+        )}
+>>>>>>> origin/arena/01a0ed99-tourism
+
+        {/* 4. JOURNALS EDITORS (Abstracts, Journal Section) */}
+        {activeView === "journals" && (
+          <CmsJournalsEditor
+            journalType={activeSubId || "abstracts"}
+            onCountChange={handleContentCountChange}
+          />
+        )}
+
+        {/* 5. MEDIA & IMAGE SEARCH IMPORT STUDIO */}
+        {activeView === "media" && (
+          <div>
+            {activeSubId === "image_search_import" || !activeSubId ? (
+              <ImageSearchImportPanel />
             ) : (
-              <p className="text-sm text-emerald-700 font-bold">No issues found on this page.</p>
+              <MediaLibraryPanel />
             )}
-          </aside>
-        </div>
-      )}
+          </div>
+        )}
 
-      {!!history.length && (
-        <div className="fixed inset-0 z-[80] bg-black/75 flex justify-end">
-          <aside className="bg-white border-l w-full max-w-lg p-5 overflow-y-auto">
-            <div className="flex justify-between">
-              <h3 className="text-xl font-black">Revision history</h3>
-              <button onClick={() => setHistory([])}><FiX /></button>
-            </div>
-            <p className="text-xs text-slate-500 mt-1 mb-4">Restore creates a new revision and never destroys history.</p>
-            {history.map((revision, index) => {
-              const older = history[index + 1]
-              const changes = older ? diffSnapshots(revision.snapshot, older.snapshot) : null
-              const shown = (changes || []).slice(0, 6)
-              return (
-                <div key={revision.id} className="bg-emerald-50 rounded-xl p-3 mb-2 text-xs">
-                  <div className="flex justify-between">
-                    <b>Version {revision.revision_number} · {revision.action}</b>
-                    <button onClick={() => rollback(revision.id)} className="text-emerald-800 flex gap-1 font-bold"><FiRotateCcw /> Restore</button>
-                  </div>
-                  <p className="text-slate-500 mt-1">{new Date(revision.created_at).toLocaleString()} · {revision.created_by || "system"}</p>
-                  {!older && <p className="mt-1 font-bold text-emerald-800">First saved version of this record.</p>}
-                  {!!shown.length && (
-                    <ul className="mt-1.5 space-y-0.5">
-                      {shown.map((change) => (
-                        <li key={change.field} className="text-slate-600">
-                          <span className="font-bold text-slate-700">{change.label}</span>:{" "}
-                          <span className="text-rose-700 line-through">{formatSnapshotValue(change.from)}</span>
-                          {" → "}
-                          <span className="font-bold text-emerald-800">{formatSnapshotValue(change.to)}</span>
-                        </li>
-                      ))}
-                      {changes.length > shown.length && (
-                        <li className="text-slate-500">+{changes.length - shown.length} more field change{changes.length - shown.length === 1 ? "" : "s"}</li>
-                      )}
-                    </ul>
-                  )}
-                  {older && !changes.length && <p className="mt-1 text-slate-500">Workflow action only — no content fields changed.</p>}
+        {/* 6. PAGE & SECTIONS WORKSPACE */}
+        {activeView === "page" && selectedPage && (
+          <div className="space-y-6">
+            {/* Page Header Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#0E1E1B] p-5 rounded-2xl border border-slate-200 dark:border-emerald-900/50 shadow-sm">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-black text-slate-900 dark:text-white">
+                    {selectedPage.title || "Page Editor"}
+                  </h2>
+                  <span className="font-mono text-xs px-2.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                    {selectedPage.route}
+                  </span>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      selectedPage.status === "published"
+                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                        : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                    }`}
+                  >
+                    {selectedPage.status === "published" ? "● Published" : "Draft"}
+                  </span>
                 </div>
-              )
-            })}
-          </aside>
-        </div>
-      )}
-    </div>
-  )
-}
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Manage sections, SEO, and visual blocks for this page. Changes published here reflect immediately on {selectedPage.route}.
+                </p>
+              </div>
 
+<<<<<<< HEAD
 function VisibilityFields({ value, set }) {
   const config = value.config || {}
   const vis = config.visibility || {}
@@ -747,94 +592,262 @@ function VisibilityFields({ value, set }) {
     </details>
   )
 }
+=======
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setSeoPreview(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition"
+                >
+                  <FiEye size={13} />
+                  <span>SEO Preview</span>
+                </button>
+>>>>>>> origin/arena/01a0ed99-tourism
 
-function SectionConfigFields({ value, set }) {
-  const config = value.config || {}
-  const setConfig = (next) => set("config", { ...config, ...next })
-  const type = value.section_type
-  if (type === "form") {
-    const fields = Array.isArray(config.fields) ? config.fields : []
-    const updateField = (index, patch) => setConfig({ fields: fields.map((field, i) => i === index ? { ...field, ...patch } : field) })
-    const moveField = (index, dir) => {
-      const target = index + dir
-      if (target < 0 || target >= fields.length) return
-      const next = [...fields]
-      ;[next[index], next[target]] = [next[target], next[index]]
-      setConfig({ fields: next })
-    }
-    return (
-      <div className="sm:col-span-2 space-y-2 rounded-xl border border-emerald-200 bg-white p-3">
-        <p className="text-xs font-black text-emerald-800">Form fields (no code). Allowed: text, email, tel, textarea, select, checkbox.</p>
-        {fields.map((field, index) => (
-          <div key={index} className="grid gap-2 rounded-lg bg-emerald-50 p-2 sm:grid-cols-5">
-            <input className="input-field" value={field.label || ""} onChange={(e) => updateField(index, { label: e.target.value })} placeholder="Label" />
-            <input className="input-field" value={field.name || ""} onChange={(e) => updateField(index, { name: e.target.value })} placeholder="name" />
-            <select className="input-field" value={field.field_type || "text"} onChange={(e) => updateField(index, { field_type: e.target.value })}>
-              {["text", "email", "tel", "textarea", "select", "checkbox"].map((item) => <option key={item}>{item}</option>)}
-            </select>
-            <label className="flex items-center gap-2 text-xs font-bold"><input type="checkbox" checked={Boolean(field.required)} onChange={(e) => updateField(index, { required: e.target.checked })} /> Required</label>
-            <div className="flex gap-1">
-              <button type="button" onClick={() => moveField(index, -1)} disabled={index === 0} aria-label={`Move ${field.label || "field"} up`} className="rounded-lg border border-slate-200 bg-white px-2 text-xs font-bold text-slate-600 disabled:opacity-30">↑</button>
-              <button type="button" onClick={() => moveField(index, 1)} disabled={index === fields.length - 1} aria-label={`Move ${field.label || "field"} down`} className="rounded-lg border border-slate-200 bg-white px-2 text-xs font-bold text-slate-600 disabled:opacity-30">↓</button>
-              <button type="button" onClick={() => setConfig({ fields: fields.filter((_, i) => i !== index) })} className="flex-1 rounded-lg bg-rose-100 text-xs font-bold text-rose-800">Remove</button>
+                <a
+                  href={selectedPage.route?.includes(":") ? selectedPage.route.split("/:")[0] : selectedPage.route || "/"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition"
+                >
+                  <FiExternalLink size={13} />
+                  <span>Live Site</span>
+                </a>
+
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={handleSavePageDraft}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition"
+                >
+                  <FiSave size={13} />
+                  <span>Save Draft</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={handlePublishPageLive}
+                  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-900/30 transition hover:scale-[1.02]"
+                >
+                  <FiSend size={13} />
+                  <span>Publish Live to Website</span>
+                </button>
+              </div>
             </div>
-            {field.field_type === "select" && (
-              <input className="input-field sm:col-span-5" value={(field.options || []).join(", ")} onChange={(e) => updateField(index, { options: e.target.value.split(",").map((item) => item.trim()).filter(Boolean) })} placeholder="Select options, comma separated" />
-            )}
-          </div>
-        ))}
-        <button type="button" onClick={() => setConfig({ fields: [...fields, { name: `field_${fields.length + 1}`, label: "New field", field_type: "text", required: false }] })} className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold text-white">Add text field</button>
-        <label className="block text-xs font-semibold text-slate-700">
-          Confirmation message shown after a successful submit
-          <input className="input-field mt-1" value={config.success_message || ""} onChange={(e) => setConfig({ success_message: e.target.value })} placeholder="Received. An administrator will review this submission." />
-        </label>
-      </div>
-    )
-  }
-  if (type === "table") {
-    return (
-      <div className="sm:col-span-2 grid gap-2 rounded-xl border border-emerald-200 bg-white p-3">
-        <label className="text-xs font-semibold">Table headers (comma separated)
-          <input className="input-field mt-1" value={(config.headers || []).join(", ")} onChange={(e) => setConfig({ headers: e.target.value.split(",").map((item) => item.trim()).filter(Boolean) })} />
-        </label>
-        <label className="text-xs font-semibold">Rows (one per line, cells separated by |)
-          <textarea rows="4" className="input-field mt-1" value={(config.rows || []).map((row) => (Array.isArray(row) ? row : [row]).join(" | ")).join("\n")} onChange={(e) => setConfig({ rows: e.target.value.split("\n").map((line) => line.split("|").map((cell) => cell.trim())).filter((row) => row.some(Boolean)) })} />
-        </label>
-      </div>
-    )
-  }
-  if (type === "breadcrumbs" || type === "testimonials") {
-    const items = Array.isArray(config.items) ? config.items : []
-    return (
-      <label className="sm:col-span-2 text-xs font-semibold">{type === "breadcrumbs" ? "Breadcrumb labels (one per line)" : "Testimonial lines (one per line)"}
-        <textarea rows="3" className="input-field mt-1" value={items.map((item) => item.label || item).join("\n")} onChange={(e) => setConfig({ items: e.target.value.split("\n").map((line) => line.trim()).filter(Boolean).map((label) => ({ label })) })} />
-      </label>
-    )
-  }
-  return null
-}
 
-function SeoSuite({ value }) {
-  const title = value.seo_title || value.title || ""
-  const description = value.meta_description || ""
-  const checks = [
-    [title.length >= 30 && title.length <= 60, `Title ${title.length}/60 characters`],
-    [description.length >= 120 && description.length <= 160, `Description ${description.length}/160 characters`],
-    [Boolean(value.og_image_url), "Social image set"],
-    [value.search_visible !== false, "Visible to search engines"],
-  ]
-  return (
-    <div className="sm:col-span-2 rounded-xl border border-emerald-200 bg-white p-3">
-      <p className="text-xs font-black text-emerald-800">SEO checklist</p>
-      <ul className="mt-2 grid gap-1 text-xs sm:grid-cols-2">
-        {checks.map(([ok, label]) => (
-          <li key={label} className={ok ? "text-emerald-700" : "text-amber-700"}>{ok ? "Ready" : "Needs work"} · {label}</li>
-        ))}
-      </ul>
+            {/* Page Metadata Drawer */}
+            <div className="bg-white dark:bg-[#0E1E1B] p-5 rounded-2xl border border-slate-200 dark:border-emerald-900/50 shadow-sm space-y-3.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Page Identity & Search Optimization
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Page Title *
+                  </label>
+                  <input
+                    value={selectedPage.title || ""}
+                    onChange={(e) => setSelectedPage({ ...selectedPage, title: e.target.value })}
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    SEO Meta Title
+                  </label>
+                  <input
+                    value={selectedPage.seo_title || ""}
+                    onChange={(e) => setSelectedPage({ ...selectedPage, seo_title: e.target.value })}
+                    placeholder="Title for Google and social previews"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Meta Description
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={selectedPage.meta_description || ""}
+                    onChange={(e) => setSelectedPage({ ...selectedPage, meta_description: e.target.value })}
+                    placeholder="Short description shown in search engine snippets..."
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-white resize-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Page Sections List & Section Builder */}
+            <div className="bg-white dark:bg-[#0E1E1B] p-5 rounded-2xl border border-slate-200 dark:border-emerald-900/50 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                    Page Content Sections ({currentPageSections.length})
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Reorder, edit, and attach structured content blocks to this page.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={handleCreateNewSection}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
+                >
+                  <FiPlus size={13} />
+                  <span>Add Section</span>
+                </button>
+              </div>
+
+              {/* Sections List */}
+              <div className="space-y-2">
+                {currentPageSections.length === 0 ? (
+                  <p className="text-xs text-slate-500 italic p-6 text-center border border-dashed rounded-xl border-slate-200 dark:border-slate-800">
+                    This page currently renders standard components. Click "Add Section" to create a bespoke CMS section.
+                  </p>
+                ) : (
+                  currentPageSections.map((sec, idx) => (
+                    <div
+                      key={sec.id}
+                      className={`p-3.5 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                        selectedSection?.id === sec.id
+                          ? "border-blue-500 bg-blue-50/50 dark:bg-blue-950/30"
+                          : "border-slate-200 dark:border-emerald-900/40 bg-slate-50/50 dark:bg-slate-900/50 hover:border-slate-300"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono text-xs text-slate-400 font-bold">
+                          #{idx + 1}
+                        </span>
+                        <div>
+                          <span className="font-bold text-xs text-slate-900 dark:text-white block">
+                            {sec.title || sec.key}
+                          </span>
+                          <span className="text-[11px] text-slate-500">
+                            key: <span className="font-mono">{sec.key}</span> · type: {sec.section_type || "text"}
+                          </span>
+                        </div>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            sec.status === "published"
+                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                              : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                          }`}
+                        >
+                          {sec.status === "published" ? "Live" : "Draft"}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 self-end sm:self-center">
+                        <button
+                          type="button"
+                          onClick={() => handleMoveSection(sec, -1)}
+                          disabled={idx === 0 || busy}
+                          className="p-1 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-30"
+                          title="Move up"
+                        >
+                          <FiArrowUp size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMoveSection(sec, 1)}
+                          disabled={idx === currentPageSections.length - 1 || busy}
+                          className="p-1 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-30"
+                          title="Move down"
+                        >
+                          <FiArrowDown size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSectionVisibility(sec)}
+                          className={`px-2 py-1 rounded text-[11px] font-semibold border ${
+                            sec.is_visible
+                              ? "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                              : "bg-rose-50 text-rose-700 border-rose-200"
+                          }`}
+                        >
+                          {sec.is_visible ? "Visible" : "Hidden"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedSection(sec)}
+                          className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs"
+                        >
+                          Edit Content
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Selected Section Editor & Block Builder */}
+              {selectedSection && (
+                <div className="mt-6 p-5 rounded-2xl bg-slate-900 text-white border border-slate-800 space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                    <span className="font-bold text-sm text-amber-400">
+                      Editing Section: {selectedSection.title || selectedSection.key}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSection(null)}
+                      className="text-slate-400 hover:text-white"
+                    >
+                      <FiX size={16} />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="block text-slate-400 mb-1">Section Title</label>
+                      <input
+                        value={selectedSection.title || ""}
+                        onChange={(e) => setSelectedSection({ ...selectedSection, title: e.target.value })}
+                        className="w-full rounded bg-slate-800 border border-slate-700 px-3 py-1.5 text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-400 mb-1">Subtitle</label>
+                      <input
+                        value={selectedSection.subtitle || ""}
+                        onChange={(e) => setSelectedSection({ ...selectedSection, subtitle: e.target.value })}
+                        className="w-full rounded bg-slate-800 border border-slate-700 px-3 py-1.5 text-white"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-slate-400 mb-1">Rich Text Body</label>
+                      <RichTextEditor
+                        value={selectedSection.body || ""}
+                        onChange={(html) => setSelectedSection({ ...selectedSection, body: html })}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Content Blocks Builder */}
+                  <div className="pt-3 border-t border-slate-800">
+                    <ContentBlocksBuilder
+                      sectionId={selectedSection.id}
+                      section={selectedSection}
+                      onToast={showToast}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+      </main>
     </div>
   )
 }
 
+<<<<<<< HEAD
 function CMSFriendlyEditor({ resource, json, setJson }) {
   let value = {}
   try { value = JSON.parse(json || "{}") } catch {
@@ -991,6 +1004,11 @@ function BlockExactPreview({ section, blocks, editingBlock }) {
     </div>
   )
 }
+=======
+// ----------------------------------------------------------------------------
+// Re-usable ContentBlocksBuilder (preserved for HomepageManagerPanel compatibility)
+// ----------------------------------------------------------------------------
+>>>>>>> origin/arena/01a0ed99-tourism
 
 export function ContentBlocksBuilder({ sectionId, section = null, onToast }) {
   const [blocks, setBlocks] = useState([])
@@ -1025,8 +1043,8 @@ export function ContentBlocksBuilder({ sectionId, section = null, onToast }) {
     if (!sectionId) return
     setLoading(true)
     try {
-      const { data } = await adminApi.getSectionBlocks(sectionId)
-      setBlocks(Array.isArray(data) ? data : [])
+      const res = await adminApi.getSectionBlocks(sectionId)
+      setBlocks(res.data?.results || [])
     } catch {
       setBlocks([])
     } finally {
@@ -1035,95 +1053,94 @@ export function ContentBlocksBuilder({ sectionId, section = null, onToast }) {
   }
 
   useEffect(() => {
-    // Deferred one tick so the loader's synchronous setLoading(true) runs
-    // outside the effect flush (react-hooks/set-state-in-effect).
-    const t = setTimeout(() => loadBlocks(), 0)
-    return () => clearTimeout(t)
+    loadBlocks()
   }, [sectionId])
 
   const addBlock = async (type) => {
     setShowTypePicker(false)
-    try {
-      const defaultData = {
-        heading: { text: "New Heading", level: "h2", align: "left" },
-        subheading: { text: "New Subheading", align: "left" },
-        rich_text: { html: "<p>Write rich text content here...</p>" },
-        image: { url: "/images/destinations/pokhara/fewatal.jpg", caption: "Photo caption", alt: "Photo" },
-        gallery: { images: [{ url: "/images/destinations/pokhara/fewatal.jpg", caption: "Phewa Lake" }] },
-        button: { label: "Explore Now", url: "/destinations", target: "_self", style: "primary" },
-        table: { columns: ["Location", "District", "Altitude"], rows: [["Pokhara", "Kaski", "822m"], ["Kathmandu", "Kathmandu", "1400m"]] },
-        video: { url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", title: "Nepal Video Tour" },
-        map: { latitude: 28.2096, longitude: 83.9856, zoom: 13, title: "Pokhara Lakeside" },
-        statistics: { items: [{ number: "8,000+", label: "Himalayan Peaks" }, { number: "100+", label: "Attractions" }] },
-        alert: { variant: "info", title: "Travel Notice", body: "Check weather forecast before trekking." },
-        quote: { quote: "Nepal is not just a destination; it's a spiritual experience.", author: "Himalayan Guide" },
-        list: { ordered: false, items: ["Verified Trail Routes", "Local Teahouse Stays", "Licensed Guides"] },
-      }[type] || {}
+    const defaults = {
+      heading: { text: "Heading Title", level: "h2", align: "left" },
+      subheading: { text: "Section Subheading", align: "left" },
+      rich_text: { content: "<p>Write your formatted paragraph here...</p>" },
+      image: { url: "", alt: "", caption: "", aspect_ratio: "16:9", rounded: true },
+      gallery: { images: [], columns: 3 },
+      button: { label: "Explore More", url: "/destinations", variant: "primary", size: "md" },
+      destination_grid: { limit: 4, category: null, filter: "featured" },
+      hotel_grid: { limit: 3, filter: "verified" },
+      restaurant_grid: { limit: 3, filter: "verified" },
+      statistics: { items: [{ number: "100+", label: "Verified Places" }] },
+      list: { items: ["Item 1", "Item 2"], style: "bullet" },
+      quote: { quote: "Nepal is not just a destination, it is an emotion.", author: "Anonymous", role: "Traveller" },
+      alert: { type: "info", message: "Travel notice message goes here." },
+      divider: { style: "solid" },
+      table: { headers: ["Column 1", "Column 2"], rows: [["A1", "B1"]] },
+      video: { url: "", caption: "", autoplay: false },
+      map: { latitude: 27.7172, longitude: 85.3240, zoom: 12 },
+      html: { html: "<p>Custom safe markup</p>" },
+      card_grid: { items: [{ emoji: "🏔️", title: "Annapurna", body: "Explore high trails", url: "/destinations" }] },
+      packages: { filter: "featured", limit: 3 },
+    }
 
-      const { data } = await adminApi.createContentBlock(sectionId, {
+    try {
+      const res = await adminApi.createContentBlock(sectionId, {
         block_type: type,
-        title: `New ${type.replace("_", " ")}`,
-        data: defaultData,
-        position: blocks.length,
+        title: "",
+        data: defaults[type] || {},
+        position: blocks.length * 10,
+        is_visible: true,
       })
-      onToast?.("Content block added", "success")
+      if (onToast) onToast("Block added", "success")
       loadBlocks()
-      setEditingBlock(data)
-    } catch (err) {
-      onToast?.(err.response?.data?.detail || "Could not add block", "error")
+      if (res.data?.id) setEditingBlock(res.data)
+    } catch {
+      if (onToast) onToast("Could not add block", "error")
     }
   }
 
-  const saveBlock = async (block) => {
-    try {
-      await adminApi.updateContentBlock(block.id, block)
-      onToast?.("Block updated!", "success")
-      setEditingBlock(null)
-      loadBlocks()
-    } catch (err) {
-      onToast?.(err.response?.data?.detail || "Could not save block", "error")
-    }
-  }
-
-  const removeBlock = async (id) => {
-    if (!window.confirm("Delete this content block?")) return
+  const deleteBlock = async (id) => {
+    if (!window.confirm("Delete this block?")) return
     try {
       await adminApi.deleteContentBlock(id)
-      onToast?.("Block deleted", "success")
+      if (onToast) onToast("Block deleted", "success")
       loadBlocks()
     } catch {
-      onToast?.("Could not delete block", "error")
+      if (onToast) onToast("Delete failed", "error")
     }
   }
 
-  const moveBlock = (index, dir) => {
-    const target = index + dir
-    if (target < 0 || target >= blocks.length) return
-    const copy = blocks.slice()
-    const [moved] = copy.splice(index, 1)
-    copy.splice(target, 0, moved)
-    setBlocks(copy)
-    adminApi.reorderContentBlocks({ items: copy.map((b, idx) => ({ id: b.id, position: idx })) })
+  const saveEditingBlock = async () => {
+    if (!editingBlock) return
+    try {
+      await adminApi.updateContentBlock(editingBlock.id, {
+        data: editingBlock.data,
+        is_visible: editingBlock.is_visible,
+        title: editingBlock.title,
+      })
+      if (onToast) onToast("Block updated", "success")
+      setEditingBlock(null)
+      loadBlocks()
+    } catch {
+      if (onToast) onToast("Save failed", "error")
+    }
   }
 
   return (
-    <div className="space-y-3 rounded-2xl bg-slate-950 p-4 text-white border border-slate-800">
-      <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-        <div>
-          <h4 className="font-extrabold text-sm text-amber-400">Content Blocks Builder ({blocks.length})</h4>
-          <p className="text-[11px] text-slate-400">Add, arrange, and edit rich structured content blocks inside this section.</p>
-        </div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
+          Visual Content Blocks ({blocks.length})
+        </span>
         <button
           type="button"
           onClick={() => setShowTypePicker(!showTypePicker)}
-          className="px-3 py-1.5 rounded-xl bg-amber-400 text-slate-950 font-black text-xs shadow hover:bg-amber-300"
+          className="rounded-lg bg-amber-400 text-slate-950 px-3 py-1 text-xs font-black shadow hover:bg-amber-300"
         >
-          {showTypePicker ? "Close Block Picker" : "+ Add Content Block"}
+          + Add Visual Block
         </button>
       </div>
 
-      {/* TYPE PICKER MODAL / GRID */}
       {showTypePicker && (
+<<<<<<< HEAD
         <div className="p-3 rounded-2xl bg-slate-900 border border-slate-700 space-y-2">
           <p className="text-xs font-bold text-amber-300">Choose a Content Block Type to insert:</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
@@ -1142,18 +1159,32 @@ export function ContentBlocksBuilder({ sectionId, section = null, onToast }) {
               </button>
             ))}
           </div>
+=======
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 rounded-xl bg-slate-800 border border-slate-700">
+          {BLOCK_TYPES.map(bt => (
+            <button
+              key={bt.type}
+              type="button"
+              onClick={() => addBlock(bt.type)}
+              className="p-2 rounded-lg bg-slate-900 hover:bg-slate-700 text-left text-xs transition"
+            >
+              <span className="mr-1.5">{bt.icon}</span>
+              <span className="font-bold text-white">{bt.label}</span>
+            </button>
+          ))}
+>>>>>>> origin/arena/01a0ed99-tourism
         </div>
       )}
 
-      {/* BLOCK LIST */}
       {loading ? (
         <p className="text-xs text-slate-400">Loading blocks…</p>
-      ) : !blocks.length ? (
-        <div className="p-4 rounded-xl border border-dashed border-slate-800 text-center text-xs text-slate-500">
-          No content blocks added yet. Click <b>"+ Add Content Block"</b> above to build headings, rich text, images, tables, videos, and destination cards.
-        </div>
+      ) : blocks.length === 0 ? (
+        <p className="text-xs text-slate-500 italic p-3 text-center border border-dashed border-slate-700 rounded-lg">
+          No blocks inside this section yet. Add cards, galleries, or text blocks above.
+        </p>
       ) : (
         <div className="space-y-2">
+<<<<<<< HEAD
           {blocks.map((b, idx) => (
             <div key={b.id} className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
               <div className="flex items-center justify-between gap-2 text-xs">
@@ -1171,167 +1202,51 @@ export function ContentBlocksBuilder({ sectionId, section = null, onToast }) {
                   </button>
                   <button type="button" onClick={() => removeBlock(b.id)} className="px-2 py-1 rounded bg-rose-950 text-rose-300 hover:bg-rose-900 font-bold">Delete</button>
                 </div>
+=======
+          {blocks.map((b, i) => (
+            <div key={b.id} className="flex items-center justify-between p-2.5 rounded-lg bg-slate-800 border border-slate-700 text-xs">
+              <span className="font-bold text-slate-200">
+                #{i + 1} {b.block_type.replace('_', ' ').toUpperCase()}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingBlock(b)}
+                  className="rounded bg-slate-700 hover:bg-slate-600 px-2.5 py-1 text-[11px] font-bold text-white"
+                >
+                  Edit Block
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deleteBlock(b.id)}
+                  className="text-rose-400 hover:text-rose-200 p-1"
+                >
+                  <FiTrash2 size={13} />
+                </button>
+>>>>>>> origin/arena/01a0ed99-tourism
               </div>
-
-              {/* EDIT BLOCK FORM */}
-              {editingBlock?.id === b.id && (
-                <div className="p-3 rounded-xl bg-slate-950 border border-slate-700 space-y-3 text-xs">
-                  <div className="grid sm:grid-cols-2 gap-2">
-                    <label className="block font-semibold text-slate-300">Block Title
-                      <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.title || ""} onChange={(e) => setEditingBlock({ ...editingBlock, title: e.target.value })} />
-                    </label>
-                    <label className="flex items-center gap-2 mt-5 font-semibold text-slate-300">
-                      <input type="checkbox" checked={editingBlock.is_visible !== false} onChange={(e) => setEditingBlock({ ...editingBlock, is_visible: e.target.checked })} />
-                      Visible on page
-                    </label>
-                  </div>
-
-                  {/* TAILORED DATA FIELDS BY BLOCK TYPE */}
-                  {editingBlock.block_type === "heading" && (
-                    <div className="grid sm:grid-cols-3 gap-2">
-                      <label className="block font-semibold text-slate-300">Heading Text
-                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.text || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, text: e.target.value } })} />
-                      </label>
-                      <label className="block font-semibold text-slate-300">Heading Level
-                        <select className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.level || "h2"} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, level: e.target.value } })}>
-                          <option value="h1">H1 (Main Title)</option>
-                          <option value="h2">H2 (Section Heading)</option>
-                          <option value="h3">H3 (Subheading)</option>
-                          <option value="h4">H4 (Minor Heading)</option>
-                        </select>
-                      </label>
-                      <label className="block font-semibold text-slate-300">Alignment
-                        <select className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.align || "left"} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, align: e.target.value } })}>
-                          <option value="left">Left</option>
-                          <option value="center">Center</option>
-                          <option value="right">Right</option>
-                        </select>
-                      </label>
-                    </div>
-                  )}
-
-                  {editingBlock.block_type === "rich_text" && (
-                    <label className="block font-semibold text-slate-300">Rich Text Body
-                      <RichTextEditor value={editingBlock.data?.html || editingBlock.data?.text || ""} onChange={(html) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, html } })} />
-                    </label>
-                  )}
-
-                  {editingBlock.block_type === "image" && (
-                    <div className="grid sm:grid-cols-2 gap-2">
-                      <label className="block font-semibold text-slate-300">Image URL
-                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.url || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, url: e.target.value } })} placeholder="/images/... or https://..." />
-                      </label>
-                      <label className="block font-semibold text-slate-300">Caption
-                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.caption || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, caption: e.target.value } })} />
-                      </label>
-                      <label className="block font-semibold text-slate-300">Alt Text
-                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.alt || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, alt: e.target.value } })} />
-                      </label>
-                      <label className="block font-semibold text-slate-300">Link URL (optional)
-                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.link || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, link: e.target.value } })} />
-                      </label>
-                    </div>
-                  )}
-
-                  {editingBlock.block_type === "button" && (
-                    <div className="grid sm:grid-cols-3 gap-2">
-                      <label className="block font-semibold text-slate-300">Button Label
-                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.label || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, label: e.target.value } })} />
-                      </label>
-                      <label className="block font-semibold text-slate-300">Destination Route / URL
-                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.url || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, url: e.target.value } })} />
-                      </label>
-                      <label className="block font-semibold text-slate-300">Button Style
-                        <select className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.style || "primary"} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, style: e.target.value } })}>
-                          <option value="primary">Primary Emerald</option>
-                          <option value="gold">Saffron Gold</option>
-                          <option value="outline">Outline</option>
-                        </select>
-                      </label>
-                    </div>
-                  )}
-
-                  {editingBlock.block_type === "packages" && (
-                    <div className="grid sm:grid-cols-2 gap-2">
-                      <label className="block font-semibold text-slate-300">Max packages (1-12)
-                        <input type="number" min="1" max="12" className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.limit ?? 6} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, limit: parseInt(e.target.value, 10) || 6 } })} />
-                      </label>
-                      <label className="block font-semibold text-slate-300">Only kind (optional: package, hotel, tour…)
-                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.kind || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, kind: e.target.value } })} />
-                      </label>
-                    </div>
-                  )}
-
-                  {editingBlock.block_type === "video" && (
-                    <div className="grid sm:grid-cols-2 gap-2">
-                      <label className="block font-semibold text-slate-300">YouTube / Vimeo Embed URL
-                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.url || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, url: e.target.value } })} placeholder="https://www.youtube.com/watch?v=..." />
-                      </label>
-                      <label className="block font-semibold text-slate-300">Video Title
-                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.title || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, title: e.target.value } })} />
-                      </label>
-                    </div>
-                  )}
-
-                  {editingBlock.block_type === "alert" && (
-                    <div className="grid sm:grid-cols-3 gap-2">
-                      <label className="block font-semibold text-slate-300">Alert Variant
-                        <select className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.variant || "info"} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, variant: e.target.value } })}>
-                          <option value="info">Info (Blue)</option>
-                          <option value="warning">Warning (Gold)</option>
-                          <option value="danger">Danger (Red)</option>
-                          <option value="success">Success (Emerald)</option>
-                        </select>
-                      </label>
-                      <label className="block font-semibold text-slate-300">Alert Title
-                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.title || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, title: e.target.value } })} />
-                      </label>
-                      <label className="block font-semibold text-slate-300">Alert Message Body
-                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.body || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, body: e.target.value } })} />
-                      </label>
-                    </div>
-                  )}
-
-                  <BlockFieldsEditor block={editingBlock} onChange={setEditingBlock} />
-
-                  {blockIssues(editingBlock).length > 0 && (
-                    <ul className="space-y-1 rounded-lg border border-amber-500/40 bg-amber-950/40 p-2 text-amber-200" aria-live="polite">
-                      {blockIssues(editingBlock).map((msg) => <li key={msg}>⚠ {msg}</li>)}
-                    </ul>
-                  )}
-
-                  <BlockExactPreview section={section} blocks={blocks} editingBlock={editingBlock} />
-
-                  <div className="flex gap-2 justify-end pt-2 border-t border-slate-800">
-                    <button type="button" onClick={() => setEditingBlock(null)} className="px-3 py-1.5 rounded bg-slate-800 text-slate-300 font-bold">Cancel</button>
-                    <button type="button" onClick={() => saveBlock(editingBlock)} className="px-4 py-1.5 rounded bg-emerald-600 text-white font-black shadow hover:bg-emerald-500">Save Block</button>
-                  </div>
-                </div>
-              )}
             </div>
           ))}
         </div>
       )}
-    </div>
-  )
-}
 
-function PageSectionBuilder({ pageId, refreshKey, onToast }) {
-  const [sections, setSections] = useState([])
-  const [openId, setOpenId] = useState(null)
-  const [draft, setDraft] = useState(null)
-  const [previewId, setPreviewId] = useState(null)
-  const dragFrom = useRef(null)
+      {editingBlock && (
+        <div className="p-4 rounded-xl bg-slate-800 border border-amber-400/40 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="font-bold text-xs text-amber-300">
+              Edit Block #{editingBlock.id} ({editingBlock.block_type})
+            </span>
+            <button type="button" onClick={() => setEditingBlock(null)} className="text-slate-400">
+              <FiX size={15} />
+            </button>
+          </div>
 
-  const loadSections = async () => {
-    try {
-      const { data } = await adminApi.getCMS("sections", { page_id: pageId })
-      setSections((data.results || []).slice().sort((a, b) => (a.display_order || 0) - (b.display_order || 0) || a.id - b.id))
-    } catch {
-      onToast("Could not load page sections", "error")
-    }
-  }
+          <BlockFieldsEditor
+            block={editingBlock}
+            onChange={(nextData) => setEditingBlock({ ...editingBlock, data: nextData })}
+          />
 
+<<<<<<< HEAD
   useEffect(() => {
     // Deferred one tick so the loader's synchronous setLoading(true) runs
     // outside the effect flush (react-hooks/set-state-in-effect).
@@ -1524,6 +1439,19 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
           </div>
         ))}
       </div>
+=======
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={saveEditingBlock}
+              className="rounded-lg bg-amber-400 text-slate-950 font-black px-4 py-1.5 text-xs shadow"
+            >
+              Save Block
+            </button>
+          </div>
+        </div>
+      )}
+>>>>>>> origin/arena/01a0ed99-tourism
     </div>
   )
 }

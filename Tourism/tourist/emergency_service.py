@@ -162,7 +162,7 @@ def _ranked_nearby(rows, latitude, longitude, radius_km, minimum=1):
         for row in candidates
         if row.latitude is not None and row.longitude is not None
     ]
-    ranked.sort(key=lambda pair: pair[0])
+    ranked.sort(key=lambda pair: (getattr(pair[1], "is_approximate_coordinate", False), pair[0]))
     return ranked
 
 
@@ -190,12 +190,16 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
 
     def hospital_item(row, distance, outside_radius):
         phone, _ = clean_phone(row.phone, "")
+        is_approx = getattr(row, "is_approximate_coordinate", False)
+        dist_label = f"≈ {distance} km (area point)" if is_approx else f"{distance} km"
         return {
             "id": f"hospital-{row.id}", "type": "hospital", "name": row.name,
             "address": row.address, "district": row.district,
             "phone_number": phone, "phone_is_national_fallback": False,
             "latitude": float(row.latitude), "longitude": float(row.longitude),
-            "distance_km": distance, "outside_requested_radius": outside_radius,
+            "distance_km": distance, "distance_label": dist_label,
+            "is_approximate": is_approx,
+            "outside_requested_radius": outside_radius,
             "image_url": _image_url(row),
             "opening_hours": row.opening_hours, "hours": _hours(row.opening_hours), "emergency_available": row.emergency_available,
             "verified": row.is_verified, "verified_at": row.verified_at, "updated_at": row.updated_at,
@@ -205,12 +209,16 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
 
     def police_item(row, distance, outside_radius):
         phone, _ = clean_phone(row.phone, "")
+        is_approx = getattr(row, "is_approximate_coordinate", False)
+        dist_label = f"≈ {distance} km (area point)" if is_approx else f"{distance} km"
         return {
             "id": f"police-{row.id}", "type": "police", "name": row.name,
             "address": row.address, "district": destination.district if destination else "",
             "phone_number": phone, "phone_is_national_fallback": False,
             "latitude": float(row.latitude), "longitude": float(row.longitude),
-            "distance_km": distance, "outside_requested_radius": outside_radius,
+            "distance_km": distance, "distance_label": dist_label,
+            "is_approximate": is_approx,
+            "outside_requested_radius": outside_radius,
             "image_url": _image_url(row),
             "opening_hours": row.opening_hours, "hours": _hours(row.opening_hours), "emergency_available": row.emergency_available,
             "verified": row.is_verified, "verified_at": row.verified_at, "updated_at": row.updated_at,

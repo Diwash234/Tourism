@@ -1,11 +1,13 @@
+/**
+ * Global React ErrorBoundary. Any rendering error in its subtree is
+ * reported to the backend audit endpoint and shown as a friendly
+ * "Something broke on this screen" card instead of a white page.
+ */
 import { Component } from "react"
 import { FiAlertTriangle, FiRefreshCw } from "react-icons/fi"
+import { reportError } from "../../utils/errorLogger"
 
-/**
- * Error boundary that catches rendering errors and displays
- * a user-friendly fallback instead of crashing the whole app.
- */
-class ErrorBoundary extends Component {
+export default class ErrorBoundary extends Component {
   constructor(props) {
     super(props)
     this.state = { hasError: false, error: null }
@@ -15,41 +17,41 @@ class ErrorBoundary extends Component {
     return { hasError: true, error }
   }
 
-  componentDidCatch(error, errorInfo) {
-    console.error("ErrorBoundary caught:", error, errorInfo)
+  componentDidCatch(error, info) {
+    reportError(error, {
+      component: this.props.name || "ErrorBoundary",
+      extra: { componentStack: info?.componentStack || "" },
+    })
   }
 
   handleReset = () => {
     this.setState({ hasError: false, error: null })
+    if (this.props.onReset) this.props.onReset()
+    else window.location.reload()
   }
 
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex min-h-[320px] flex-col items-center justify-center gap-4 p-8 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 text-red-500">
-            <FiAlertTriangle size={32} />
+        <div className="ny-panel mx-auto my-10 max-w-xl p-8 text-center">
+          <div className="w-14 h-14 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4">
+            <FiAlertTriangle size={28} />
           </div>
-          <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Something went wrong</h2>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              An unexpected error occurred. Please try refreshing the page.
-            </p>
-          </div>
+          <h2 className="text-xl font-bold text-stone-900 mb-2">
+            Something went wrong on this screen
+          </h2>
+          <p className="text-sm text-stone-600 mb-5">
+            The page could not be displayed. Your account and saved data were not changed. Try reloading this section.
+          </p>
           <button
-            type="button"
             onClick={this.handleReset}
-            className="inline-flex items-center gap-2 rounded-lg bg-[var(--ny-green)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--ny-emerald)] transition-colors"
+            className="ny-btn ny-btn-primary inline-flex items-center gap-2"
           >
-            <FiRefreshCw size={16} />
-            Try Again
+            <FiRefreshCw /> Reload this section
           </button>
         </div>
       )
     }
-
     return this.props.children
   }
 }
-
-export default ErrorBoundary

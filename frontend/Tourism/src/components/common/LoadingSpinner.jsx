@@ -1,20 +1,20 @@
-/**
- * Reusable loading spinner with accessible label.
- */
-export default function LoadingSpinner({ size = "md", label = "Loading..." }) {
+import { motion } from "framer-motion"
+
+export default function LoadingSpinner({ size = "md", text = "Loading..." }) {
   const sizeClasses = {
-    sm: "h-4 w-4 border-2",
-    md: "h-8 w-8 border-2",
-    lg: "h-12 w-12 border-3",
+    sm: "w-5 h-5 border-2",
+    md: "w-8 h-8 border-3",
+    lg: "w-12 h-12 border-4",
   }
 
   return (
-    <div className="flex items-center justify-center" role="status" aria-live="polite">
-      <span
-        className={`${sizeClasses[size] || sizeClasses.md} animate-spin rounded-full border-[var(--ny-border)] border-t-[var(--ny-green)]`}
-        aria-hidden="true"
+    <div className="flex flex-col items-center justify-center p-6 space-y-3">
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+        className={`${sizeClasses[size] || sizeClasses.md} border-[#E5E0D5] border-t-purple-700 rounded-full`}
       />
-      <span className="sr-only">{label}</span>
+      {text && <p className="text-xs font-semibold text-[#1D5146]">{text}</p>}
     </div>
   )
 }

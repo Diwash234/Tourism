@@ -57,7 +57,7 @@ const PlaceApprovals = () => {
   return (
     <div className="container-app py-10 fade-in">
       <h1 className="section-title">Place Approvals</h1>
-      <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
+      <p className="text-gray-500 text-sm mb-6">
         Review tourist-submitted places before they go live. Approving or rejecting notifies the submitter automatically.
       </p>
 

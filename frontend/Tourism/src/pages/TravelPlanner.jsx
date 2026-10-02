@@ -29,20 +29,20 @@ const MODES = [
 function gradeBadge(grade, t) {
   if (grade === "real-road") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 text-xs font-bold">
-        <BsCheckCircleFill className="text-xs" /> {t("tp.grade.real_road")}
+      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 text-[11px] font-bold">
+        <BsCheckCircleFill className="text-[11px]" /> {t("tp.grade.real_road")}
       </span>
     )
   }
   if (grade === "corridor-estimate") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 border border-amber-300 px-2.5 py-0.5 text-xs font-bold">
-        <BsExclamationTriangle className="text-xs" /> {t("tp.grade.corridor")}
+      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 border border-amber-300 px-2.5 py-0.5 text-[11px] font-bold">
+        <BsExclamationTriangle className="text-[11px]" /> {t("tp.grade.corridor")}
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 text-slate-600 border border-slate-300 px-2.5 py-0.5 text-xs font-bold">
+    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 text-slate-600 border border-slate-300 px-2.5 py-0.5 text-[11px] font-bold">
       {t("tp.grade.estimate")}
     </span>
   )
@@ -76,10 +76,10 @@ function EndpointField({ id, label, icon, value, onChange, onPickLocation, pickL
             onClick={onPickLocation}
             className="ny-btn ny-btn-ghost min-h-11 px-0 text-xs font-semibold"
           >
-            <BsGeoAltFill className="text-xs" /> {pickLabel}
+            <BsGeoAltFill className="text-[11px]" /> {pickLabel}
           </button>
         )}
-        {loading && <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">…</span>}
+        {loading && <span className="text-[11px] font-semibold text-slate-400">…</span>}
       </div>
     </div>
   )
@@ -143,7 +143,7 @@ export default function TravelPlanner() {
                 <PlaceTypeIconImg destination={row} className="w-4 h-4 shrink-0" />
                 <span className="flex-1 truncate font-semibold text-slate-800 dark:text-slate-100">{row.name}</span>
                 {(row.district || row.province) && (
-                  <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0">{row.district || row.province}</span>
+                  <span className="text-[10px] text-slate-400 shrink-0">{row.district || row.province}</span>
                 )}
               </button>
             </li>
@@ -370,12 +370,12 @@ export default function TravelPlanner() {
           </div>
 
           {geoError && (
-            <p role="status" className="mt-3 text-xs font-semibold text-amber-700 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
+            <p role="status" className="mt-3 text-[12px] font-semibold text-amber-700 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
               {t("tp.gps_unavailable")}
             </p>
           )}
           {error && (
-            <p role="alert" className="mt-3 text-sm font-bold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
+            <p role="alert" className="mt-3 text-[13px] font-bold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
               {error}
             </p>
           )}
@@ -392,7 +392,7 @@ export default function TravelPlanner() {
                 <h2 className="text-lg font-black text-slate-900 dark:text-white">{t("tp.best_route")}</h2>
                 {gradeBadge(displayed.grade || results.primary.grade, t)}
                 {displayed.isAlt && (
-                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">({t("tp.alternative_selected")})</span>
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">({t("tp.alternative_selected")})</span>
                 )}
               </div>
               <div className="mt-3 flex flex-wrap items-end gap-x-8 gap-y-3">
@@ -456,9 +456,9 @@ export default function TravelPlanner() {
                             {i + 1}
                           </span>
                           <div className="min-w-0">
-                            <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">{s.instruction}</div>
+                            <div className="text-[13px] font-semibold text-slate-800 dark:text-slate-200">{s.instruction}</div>
                             {s.distance_m > 1 && (
-                              <div className="text-xs text-slate-500 dark:text-slate-400">{formatDistance(s.distance_m / 1000)}</div>
+                              <div className="text-[11px] text-slate-400">{formatDistance(s.distance_m / 1000)}</div>
                             )}
                           </div>
                         </li>
@@ -490,16 +490,16 @@ export default function TravelPlanner() {
                           >
                             <span className="text-lg">{<FiCompass size={18} className="text-[var(--ny-green)]" aria-hidden="true" />}</span>
                             <span className="flex-1">
-                              <span className="block text-sm font-bold text-slate-800 dark:text-slate-200">
+                              <span className="block text-[13px] font-bold text-slate-800 dark:text-slate-200">
                                 {t("tp.route_option", { n: i + 2 })}
                               </span>
-                              <span className="block text-xs text-slate-500 dark:text-slate-400">
+                              <span className="block text-[11px] text-slate-400">
                                 +{Math.max(0, Math.round(((a.distance_m - results.primary.distance_m) / Math.max(1, results.primary.distance_m)) * 100))}% {t("tp.longer")}
                               </span>
                             </span>
                             <span className="text-right">
-                              <span className="block text-sm font-black text-slate-800 dark:text-slate-200">{formatDistance(a.distance_km)}</span>
-                              <span className="block text-xs text-slate-500 dark:text-slate-400">{formatDuration(a.duration_min)}</span>
+                              <span className="block text-[13px] font-black text-slate-800 dark:text-slate-200">{formatDistance(a.distance_km)}</span>
+                              <span className="block text-[11px] text-slate-400">{formatDuration(a.duration_min)}</span>
                             </span>
                           </button>
                         </li>
@@ -517,7 +517,7 @@ export default function TravelPlanner() {
               </div>
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <tr className="text-left text-[11px] uppercase tracking-wider text-slate-400">
                     <th className="px-4 py-2 font-black">{t("tp.mode_col")}</th>
                     <th className="px-4 py-2 font-black">{t("tp.distance")}</th>
                     <th className="px-4 py-2 font-black">{t("tp.travel_time")}</th>
@@ -539,7 +539,7 @@ export default function TravelPlanner() {
                           <button
                             type="button"
                             onClick={() => { setMode(m.mode); planRoute(m.mode) }}
-                            className="text-xs font-black text-emerald-700 dark:text-emerald-300 hover:underline"
+                            className="text-[11px] font-black text-emerald-700 dark:text-emerald-300 hover:underline"
                           >
                             {t("tp.get_real")}
                           </button>
@@ -550,7 +550,7 @@ export default function TravelPlanner() {
                 </tbody>
               </table>
               {results.modes?.some((m) => m.estimate_note) && (
-                <p className="px-4 py-3 text-xs text-slate-400 border-t border-slate-100 dark:border-slate-800">
+                <p className="px-4 py-3 text-[11px] text-slate-400 border-t border-slate-100 dark:border-slate-800">
                   {results.modes.find((m) => m.estimate_note).estimate_note}
                 </p>
               )}
@@ -575,12 +575,12 @@ export default function TravelPlanner() {
                   <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t("tp.provinces")}</div>
                   <div className="flex flex-wrap gap-1.5">
                     {Object.entries(between.provinces || {}).map(([p, v]) => (
-                      <span key={p} className="rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2.5 py-1 text-xs font-bold">
+                      <span key={p} className="rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2.5 py-1 text-[11px] font-bold">
                         {p} · {v.count}
                       </span>
                     ))}
                   </div>
-                  <div className="mt-4 text-xs text-slate-500 dark:text-slate-400">
+                  <div className="mt-4 text-[12px] text-slate-500 dark:text-slate-400">
                     {t("tp.destinations_with_coords", { n: between.count_with_coordinates })}
                   </div>
                 </div>
@@ -592,11 +592,11 @@ export default function TravelPlanner() {
                         <PlaceTypeIconImg destination={{ name: n.name, category: n.category }} className="w-4 h-4 shrink-0" />
                         <span className="flex-1 min-w-0">
                           <span className="block truncate text-[13px] font-bold text-slate-800 dark:text-slate-200">{n.name}</span>
-                          <span className="block text-xs text-slate-500 dark:text-slate-400">{n.province}{n.district ? ` · ${n.district}` : ""}</span>
+                          <span className="block text-[11px] text-slate-400">{n.province}{n.district ? ` · ${n.district}` : ""}</span>
                         </span>
                         <span className="text-right shrink-0">
-                          <span className="block text-sm font-black text-emerald-700 dark:text-emerald-400">{formatDistance(n.straight_line_km)}</span>
-                          <span className="block text-xs text-slate-500 dark:text-slate-400">~{formatDuration(n.drive_estimate_min)}</span>
+                          <span className="block text-[13px] font-black text-emerald-700 dark:text-emerald-400">{formatDistance(n.straight_line_km)}</span>
+                          <span className="block text-[11px] text-slate-400">~{formatDuration(n.drive_estimate_min)}</span>
                         </span>
                         <button
                           type="button"
@@ -609,7 +609,7 @@ export default function TravelPlanner() {
                             setDestinationText(n.name)
                             planRoute(mode, { origin: destPick, originText: destPick?.name || "", destination: { kind: "destination", slug: n.slug, name: n.name, latitude: n.latitude, longitude: n.longitude }, gpsUsed: false })
                           }}
-                          className="shrink-0 rounded-lg bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 px-2.5 py-1.5 text-xs font-black hover:bg-emerald-200 dark:hover:bg-emerald-800"
+                          className="shrink-0 rounded-lg bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 px-2.5 py-1.5 text-[11px] font-black hover:bg-emerald-200 dark:hover:bg-emerald-800"
                         >
                           {t("tp.plan")}
                         </button>

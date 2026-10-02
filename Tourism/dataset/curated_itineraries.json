@@ -1,0 +1,1073 @@
+[
+  {
+    "slug": "everest-base-camp-kala-patthar",
+    "title": "Everest Base Camp & Kala Patthar High Alpine Expedition",
+    "title_nepali": "सगरमाथा आधार शिविर र कालापत्थर पदयात्रा",
+    "persona": "foreign",
+    "category": "trekking",
+    "days": 14,
+    "difficulty": "strenuous",
+    "start_city": "Kathmandu",
+    "end_city": "Kathmandu",
+    "best_seasons": ["Autumn (Oct–Nov)", "Spring (Mar–May)"],
+    "max_elevation_m": 5545,
+    "estimated_budget_npr": 125000,
+    "estimated_budget_usd": 940,
+    "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/06/Pointers_to_the_Everest_base_camp.jpg/1280px-Pointers_to_the_Everest_base_camp.jpg",
+    "summary": "The definitive Himalayan trek standing in the shadow of Mount Everest (8,848.86m). Traverses ancient Sherpa villages, sacred monasteries, and dramatic suspension bridges to reach Everest Base Camp and the 5,545m panoramic crest of Kala Patthar.",
+    "summary_nepali": "संसारको सर्वोच्च शिखर सगरमाथाको काखमा पुग्ने प्रसिद्ध पदयात्रा। नाम्चे बजार, तेङबोचे गुम्बा र खुम्बु हिमनदी हुँदै आधार शिविर र कालापत्थर पुगिन्छ।",
+    "highlights": [
+      "Scenic mountain flight landing at the famous Hillary-Tenzing Lukla Airport",
+      "Acclimatization and vibrant Sherpa culture in Namche Bazaar (3,440m)",
+      "Spiritual blessings at historic Tengboche Buddhist Monastery",
+      "Standing on the Khumbu Glacier at Everest Base Camp (5,364m)",
+      "360-degree sunrise view of Everest, Lhotse, and Nuptse from Kala Patthar (5,545m)"
+    ],
+    "highlights_nepali": [
+      "लुक्ला विमानस्थलको रोमाञ्चक हवाई यात्रा",
+      "नाम्चे बजारको शेर्पा संस्कृति र बजार",
+      "ऐतिहासिक तेङबोचे गुम्बाको दर्शन",
+      "सगरमाथा आधार शिविर (५,३६४ मिटर) को प्रत्यक्ष अनुभव",
+      "कालापत्थर (५,५४५ मिटर) बाट सगरमाथाको ३६० डिग्री सूर्योदय दृश्य"
+    ],
+    "permits_info": {
+      "foreign": "Sagarmatha National Park Permit (NPR 3,000), Khumbu Pasang Lhamu Rural Municipality Entry Fee (NPR 3,000), Licensed Trekking Guide mandatory.",
+      "saarc": "Sagarmatha National Park Permit (NPR 1,500), Khumbu Entry Fee (NPR 3,000).",
+      "nepali": "Sagarmatha National Park Entry (NPR 100). No TIMS or foreign permit needed for Nepali citizens."
+    },
+    "transport_info": "Kathmandu to Lukla flight (or Ramechhap-Lukla during peak season) / Jeep to Tham Danda option for road travelers.",
+    "local_food_recommendations": "Sherpa Stew (Syamkpa), Riki Kur (Potato pancakes with yak butter), Tibetan bread with honey, Dal Bhat Power.",
+    "packing_checklist": ["Down jacket (-20C rated)", "Thermal base layers", "Sturdy broken-in trekking boots", "UV 400 glacier sunglasses", "Diamox (acetazolamide) for AMS", "Water purification tablets", "Trekking poles"],
+    "days_schedule": [
+      {
+        "day_number": 1,
+        "title": "Fly to Lukla (2,840m) & Trek to Phakding (2,610m)",
+        "destination_name": "Lukla Tenzing-Hillary Airport Valley",
+        "elevation_m": 2840,
+        "distance_km": 8.0,
+        "activity": "35-minute scenic mountain flight into Lukla, meet porter/guide team, and walk downhill alongside the roaring Dudh Koshi River to Phakding.",
+        "stay": "Tea house in Phakding"
+      },
+      {
+        "day_number": 2,
+        "title": "Phakding to Namche Bazaar (3,440m) Gateway to Everest",
+        "destination_name": "Namche Bazaar Sherpa Cultural Capital",
+        "elevation_m": 3440,
+        "distance_km": 11.0,
+        "activity": "Cross the high Hillary Suspension Bridge draped in prayer flags and ascend through pine forests into the bustling mountain amphitheater of Namche.",
+        "stay": "Sherpa lodge in Namche Bazaar"
+      },
+      {
+        "day_number": 3,
+        "title": "Acclimatization Day in Namche Bazaar & Hotel Everest View Hike",
+        "destination_name": "Namche Bazaar Sherpa Cultural Capital",
+        "elevation_m": 3880,
+        "distance_km": 5.0,
+        "activity": "Climb high and sleep low: morning acclimatization hike to Hotel Everest View for your first majestic glimpse of Ama Dablam and Everest.",
+        "stay": "Sherpa lodge in Namche Bazaar"
+      },
+      {
+        "day_number": 4,
+        "title": "Namche Bazaar to Tengboche Monastery (3,860m)",
+        "destination_name": "Tengboche Buddhist Monastery",
+        "elevation_m": 3860,
+        "distance_km": 9.5,
+        "activity": "Trek with unobstructed panoramas of Ama Dablam down to Phunki Thenga river, then climb through rhododendrons to the sacred Tengboche Monastery.",
+        "stay": "Monastery lodge in Tengboche"
+      },
+      {
+        "day_number": 5,
+        "title": "Tengboche to Dingboche (4,410m) Alpine Valley",
+        "destination_name": "Dingboche Himalayan Highland Settlement",
+        "elevation_m": 4410,
+        "distance_km": 10.5,
+        "activity": "Enter the tree-less alpine tundra through Pangboche and past Mani walls into the sheltered stone-walled fields of Dingboche.",
+        "stay": "Tea house in Dingboche"
+      },
+      {
+        "day_number": 6,
+        "title": "Dingboche Acclimatization Hike to Nagarjun Hill (5,050m)",
+        "destination_name": "Dingboche Himalayan Highland Settlement",
+        "elevation_m": 5050,
+        "distance_km": 4.5,
+        "activity": "Crucial altitude conditioning climb up the Nagarjun ridge overlooking Makalu, Lhotse, and the Imja Valley before descending to rest.",
+        "stay": "Tea house in Dingboche"
+      },
+      {
+        "day_number": 7,
+        "title": "Dingboche to Lobuche (4,940m) & Memorial Pass",
+        "destination_name": "Lobuche",
+        "elevation_m": 4940,
+        "distance_km": 8.0,
+        "activity": "Gentle ascent to Thukla, followed by a steep climb up the Thukla Pass climber memorials commemorating fallen mountaineers.",
+        "stay": "High altitude lodge in Lobuche"
+      },
+      {
+        "day_number": 8,
+        "title": "Lobuche to Gorakshep (5,164m) & Everest Base Camp (5,364m)",
+        "destination_name": "Everest Base Camp Winter",
+        "elevation_m": 5364,
+        "distance_km": 12.0,
+        "activity": "Walk over rocky moraine beside Khumbu Glacier to Gorakshep, check in, and press on to celebrate standing at the foot of the world's highest peak at EBC.",
+        "stay": "Gorakshep teahouse"
+      },
+      {
+        "day_number": 9,
+        "title": "Kala Patthar Sunrise (5,545m) & Descend to Pheriche (4,240m)",
+        "destination_name": "Kala Patthar Everest View",
+        "elevation_m": 5545,
+        "distance_km": 13.0,
+        "activity": "Pre-dawn headlamp climb up Kala Patthar for the unforgettable golden sunrise lighting Mount Everest, then descend down to the valley at Pheriche.",
+        "stay": "Pheriche lodge"
+      },
+      {
+        "day_number": 10,
+        "title": "Pheriche to Namche Bazaar (3,440m)",
+        "destination_name": "Namche Bazaar Sherpa Cultural Capital",
+        "elevation_m": 3440,
+        "distance_km": 14.0,
+        "activity": "Rapid descent with richer oxygen levels back through Tengboche forest and hillsides to the warm cafes and bakeries of Namche.",
+        "stay": "Namche lodge"
+      },
+      {
+        "day_number": 11,
+        "title": "Namche Bazaar to Lukla (2,840m)",
+        "destination_name": "Lukla Tenzing-Hillary Airport Valley",
+        "elevation_m": 2840,
+        "distance_km": 19.0,
+        "activity": "Final trekking leg retracing the Dudh Koshi gorge back to Lukla; celebrate completion with your Nepali mountain crew.",
+        "stay": "Lukla lodge"
+      },
+      {
+        "day_number": 12,
+        "title": "Fly Lukla to Kathmandu & Free Leisure Afternoon",
+        "destination_name": "Kathmandu",
+        "elevation_m": 1400,
+        "distance_km": 135.0,
+        "activity": "Early morning flight back across the green middle hills to Kathmandu; rest, spa recovery, and explore Thamel.",
+        "stay": "Hotel in Kathmandu"
+      },
+      {
+        "day_number": 13,
+        "title": "Kathmandu Valley Cultural Heritage Exploration",
+        "destination_name": "Pashupatinath Sacred Hindu Sanctuary",
+        "elevation_m": 1400,
+        "distance_km": 15.0,
+        "activity": "Visit sacred Pashupatinath Temple and the massive Boudhanath Buddhist Stupa; evening debriefing dinner.",
+        "stay": "Hotel in Kathmandu"
+      },
+      {
+        "day_number": 14,
+        "title": "Departure & Farewell from Nepal",
+        "destination_name": "Kathmandu",
+        "elevation_m": 1400,
+        "distance_km": 5.0,
+        "activity": "Airport transfer and departure with lifelong memories of the Everest Himalaya.",
+        "stay": "Departure"
+      }
+    ]
+  },
+  {
+    "slug": "muktinath-lower-mustang-yatra",
+    "title": "Muktinath & Lower Mustang Spiritual Yatra",
+    "title_nepali": "मुक्तिनाथ र तल्लो मुस्ताङ धार्मिक यात्रा",
+    "persona": "nepali",
+    "category": "pilgrimage",
+    "days": 5,
+    "difficulty": "moderate",
+    "start_city": "Pokhara",
+    "end_city": "Pokhara",
+    "best_seasons": ["Year-round", "Autumn (Sep–Nov)", "Spring (Mar–May)"],
+    "max_elevation_m": 3710,
+    "estimated_budget_npr": 24000,
+    "estimated_budget_usd": 180,
+    "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Muktinath_Temple_%281%29.jpg/1280px-Muktinath_Temple_%281%29.jpg",
+    "summary": "A sacred and scenic pilgrimage into the trans-Himalayan rain-shadow of Lower Mustang. Worship at holy Muktinath temple with its 108 sacred water spouts and eternal natural flame, soak in Tatopani hot springs, and stroll through the cobblestone alleys and apple orchards of Marpha.",
+    "summary_nepali": "कालीगण्डकीको मनोरम किनार हुँदै मुक्तिनाथ मन्दिरको पावन १०८ धारा र ज्वालामाईको दर्शन। मार्फाको स्याउ बगैँचा, तातोपानी कुण्ड र जोमसोमको अनुपम यात्रा।",
+    "highlights": [
+      "Sacred bath under the 108 stone water spouts at holy Muktinath Temple (3,710m)",
+      "Darshan of Jwala Mai eternal natural flame fed by subterranean gas",
+      "Organic apple orchards, homemade apple pie, and Mustang cider in Marpha",
+      "World's deepest river gorge carved by the Kali Gandaki between Annapurna and Dhaulagiri",
+      "Natural mineral relaxation at Tatopani geothermal hot springs"
+    ],
+    "highlights_nepali": [
+      "पवित्र मुक्तिनाथ मन्दिर (३,७१० मिटर) मा १०८ धारा स्नान र पूजा",
+      "प्राकृतिक ग्यासबाट बल्ने ज्वालामाईको दर्शन",
+      "मार्फाको ऐतिहासिक ढुङ्गे गल्ली र स्याउका परिकार",
+      "अन्नपूर्ण र धौलागिरी बीचको संसारकै गहिरो कालीगण्डकी गल्छी",
+      "तातोपानीको प्राकृतिक तातो पानी कुण्डमा थकान मेटाउने स्नान"
+    ],
+    "permits_info": {
+      "nepali": "नेपाली नागरिकका लागि कुनै TIMS वा विशेष अनुमति पत्र चाहिँदैन। मुक्तिनाथ मन्दिर प्रवेश निःशुल्क छ।",
+      "foreign": "ACAP Permit (NPR 3,000) and TIMS card (NPR 2,000) required.",
+      "saarc": "ACAP Permit (NPR 1,000) and SAARC TIMS card (NPR 1,000)."
+    },
+    "transport_info": "Pokhara to Jomsom flight (20 mins) OR 4WD Scorpio Jeep / Deluxe local bus via Beni-Jomsom highway.",
+    "local_food_recommendations": "Authentic Thakali Thali with local black lentils (Kalo Daal), Jimbu seasoning, Gundruk, fresh Marpha apple crumble, and local dried apple chips.",
+    "packing_checklist": ["Warm windproof jacket", "Sun hat and UV glasses", "Dry towel and change of clothes for 108 spouts bath", "Sturdy walking shoes", "Moisturizing lip balm (Mustang wind is dry)"],
+    "days_schedule": [
+      {
+        "day_number": 1,
+        "title": "Pokhara to Tatopani Hot Springs via Beni",
+        "destination_name": "Pokhara Lakeside & Tal Barahi Island Temple",
+        "elevation_m": 1190,
+        "distance_km": 105.0,
+        "activity": "Drive from Pokhara past Kusma suspension bridges and Beni town along the Kali Gandaki River to Tatopani; evening soak in natural geothermal mineral pools.",
+        "stay": "Riverside lodge in Tatopani"
+      },
+      {
+        "day_number": 2,
+        "title": "Tatopani through Rupse Waterfall to Marpha Apple Village",
+        "destination_name": "Bandipur Newari Hilltop Heritage",
+        "elevation_m": 2670,
+        "distance_km": 68.0,
+        "activity": "Ascend past the thundering Rupse Falls and deep gorge into the trans-Himalayan Tibetan plateau; explore traditional flat-roofed stone houses and apple distilleries in Marpha.",
+        "stay": "Traditional Thakali guesthouse in Marpha"
+      },
+      {
+        "day_number": 3,
+        "title": "Marpha to Kagbeni & Sacred Muktinath Darshan",
+        "destination_name": "Muktinath Temple & Eternal Flame",
+        "elevation_m": 3710,
+        "distance_km": 28.0,
+        "activity": "Drive to ancient Kagbeni village (gateway to Upper Mustang), then climb to sacred Muktinath Temple. Undertake holy bath under 108 spouts and visit Jwala Mai monastery.",
+        "stay": "Hotel in Muktinath / Ranipauwa"
+      },
+      {
+        "day_number": 4,
+        "title": "Muktinath to Jomsom & Dhumba Lake Exploration",
+        "destination_name": "Jomsom",
+        "elevation_m": 2720,
+        "distance_km": 22.0,
+        "activity": "Morning prayers with panoramic Dhaulagiri views, descent to Jomsom bazaar, and afternoon walk to the pristine emerald waters of sacred Dhumba Lake.",
+        "stay": "Resort in Jomsom"
+      },
+      {
+        "day_number": 5,
+        "title": "Jomsom Return to Pokhara & Lakeside Relaxation",
+        "destination_name": "Pokhara Lakeside & Tal Barahi Island Temple",
+        "elevation_m": 820,
+        "distance_km": 155.0,
+        "activity": "Scenic downhill drive (or 20-min flight) back to Pokhara valley; evening boat ride on Phewa Lake to Tal Barahi Temple.",
+        "stay": "Lakeside hotel in Pokhara"
+      }
+    ]
+  },
+  {
+    "slug": "annapurna-circuit-tilicho-lake",
+    "title": "Annapurna Circuit & High Alpine Tilicho Lake Trek",
+    "title_nepali": "अन्नपूर्ण फेरो र तिलिचो ताल पदयात्रा",
+    "persona": "all",
+    "category": "trekking",
+    "days": 12,
+    "difficulty": "strenuous",
+    "start_city": "Kathmandu",
+    "end_city": "Pokhara",
+    "best_seasons": ["Autumn (Oct–Nov)", "Spring (Mar–May)"],
+    "max_elevation_m": 5416,
+    "estimated_budget_npr": 88000,
+    "estimated_budget_usd": 660,
+    "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Tilicho_Lake_Manang.jpg/1280px-Tilicho_Lake_Manang.jpg",
+    "summary": "One of the greatest trekking journeys on earth. Climbs through diverse ecosystems from subtropical paddy terraces to alpine pine forests, reaches one of the world's highest glacial lakes (Tilicho Lake, 4,919m), and conquers the thrilling 5,416m Thorong La mountain pass.",
+    "summary_nepali": "हरियाली बेंसीसहरदेखि हिउँले ढाकिएको थोराङ ला भञ्ज्याङ (५,४१६ मिटर) र संसारकै उच्च स्थानमा रहेको तिलिचो ताल (४,९१९ मिटर) को रोमाञ्चक पदयात्रा।",
+    "highlights": [
+      "Glacial turquoise spectacle of Tilicho Lake (4,919m) beneath Tilicho Peak",
+      "Crossing the iconic Thorong La Pass at 5,416 meters above sea level",
+      "Ancient Buddhist chortens, mani walls, and monasteries in historic Manang village",
+      "Dramatic shift from green Marshyangdi gorge to arid trans-Himalayan Tibetan plateau",
+      "Descent into sacred Muktinath and windy Kali Gandaki valley"
+    ],
+    "highlights_nepali": [
+      "४,९१९ मिटरको उचाइमा अवस्थित नीलो तिलिचो तालको दृश्य",
+      "५,४१६ मिटर अग्लो थोराङ ला भञ्ज्याङ पार गर्ने अनुभव",
+      "मनाङ गाउँको प्राचीन बौद्ध परम्परा र संस्कृति",
+      "अन्नपूर्ण, गङ्गापूर्ण र धौलागिरी हिमशृङ्खलाको प्रत्यक्ष अवलोकन",
+      "मुक्तिनाथ मन्दिर हुँदै जोमसोमसम्मको पदयात्रा"
+    ],
+    "permits_info": {
+      "foreign": "ACAP Entry Permit (NPR 3,000) + TIMS Card (NPR 2,000). Guide mandatory.",
+      "saarc": "ACAP Permit (NPR 1,000) + SAARC TIMS (NPR 1,000).",
+      "nepali": "ACAP Entry (NPR 100 for Nepali citizens). No TIMS required."
+    },
+    "transport_info": "Kathmandu to Besisahar bus/micro, shared 4WD jeep Besisahar to Chame/Manang; Jomsom to Pokhara bus or domestic flight.",
+    "local_food_recommendations": "Manangi Buckwheat bread (Phapeko Roti), Yak steak, Sea buckthorn juice, Himalayan herbal tea, Dal Bhat.",
+    "packing_checklist": ["Crampons / micro-spikes for Thorong La pass", "High-altitude sleeping bag (-15C)", "Windproof hard shell jacket", "Trekking poles", "Water purification filter"],
+    "days_schedule": [
+      {
+        "day_number": 1,
+        "title": "Drive Kathmandu to Besisahar & Jeep to Chame (2,670m)",
+        "destination_name": "Besisahar Marshyangdi Gateway",
+        "elevation_m": 2670,
+        "distance_km": 175.0,
+        "activity": "Drive along Prithvi Highway, follow the roaring Marshyangdi River north into lush pine gorges to Chame, the district center of Manang.",
+        "stay": "Tea house in Chame"
+      },
+      {
+        "day_number": 2,
+        "title": "Chame to Pisang (3,200m) with Paungda Danda Rock Face",
+        "destination_name": "Manang Rain-Shadow Valley & Braga Monastery",
+        "elevation_m": 3200,
+        "distance_km": 14.0,
+        "activity": "Trek through fragrant apple orchards beneath the curved rock amphitheater of Paungda Danda to Upper Pisang with magnificent Annapurna II views.",
+        "stay": "Lodge in Upper Pisang"
+      },
+      {
+        "day_number": 3,
+        "title": "Upper Pisang to Manang (3,540m) via Ghyaru Ridge",
+        "destination_name": "Manang Rain-Shadow Valley & Braga Monastery",
+        "elevation_m": 3540,
+        "distance_km": 17.0,
+        "activity": "Stunning high-route walk through Ghyaru and Ngawal offering panoramic Annapurna views, ending at the ancient stone village of Manang.",
+        "stay": "Lodge in Manang"
+      },
+      {
+        "day_number": 4,
+        "title": "Manang Acclimatization & Chongkor Viewpoint Hike",
+        "destination_name": "Manang Rain-Shadow Valley & Braga Monastery",
+        "elevation_m": 3900,
+        "distance_km": 6.0,
+        "activity": "Active acclimatization hike to Gangapurna Lake viewpoint and Milarepa Cave; afternoon briefing on altitude sickness at the Himalayan Rescue Association.",
+        "stay": "Lodge in Manang"
+      },
+      {
+        "day_number": 5,
+        "title": "Manang to Siri Kharka (4,060m) Tilicho Trail",
+        "destination_name": "Tilicho Glacier Lake Sanctuary",
+        "elevation_m": 4060,
+        "distance_km": 10.0,
+        "activity": "Branch off the main Annapurna circuit onto the rugged Tilicho trail via Khangsar village to overnight at Siri Kharka.",
+        "stay": "Tea house in Siri Kharka"
+      },
+      {
+        "day_number": 6,
+        "title": "Siri Kharka to Tilicho Base Camp (4,150m)",
+        "destination_name": "Tilicho Glacier Lake Sanctuary",
+        "elevation_m": 4150,
+        "distance_km": 7.0,
+        "activity": "Traverse the dramatic scree slopes and landslip landscape with spectacular eroded rock towers to Tilicho Base Camp.",
+        "stay": "Tilicho Base Camp lodge"
+      },
+      {
+        "day_number": 7,
+        "title": "Ascent to Sacred Tilicho Lake (4,919m) & Return to Siri Kharka",
+        "destination_name": "Tilicho Glacier Lake Sanctuary",
+        "elevation_m": 4919,
+        "distance_km": 15.0,
+        "activity": "Early morning 3-hour switchback climb to behold the deep turquoise expanse of Tilicho Lake mirroring the glaciers of Tilicho Peak.",
+        "stay": "Tea house in Siri Kharka"
+      },
+      {
+        "day_number": 8,
+        "title": "Siri Kharka to Yak Kharka (4,050m)",
+        "destination_name": "Thorong La",
+        "elevation_m": 4050,
+        "distance_km": 11.0,
+        "activity": "Rejoin the main Thorong La circuit route at Gunsang, crossing meadows grazed by yaks and blue sheep to Yak Kharka.",
+        "stay": "Lodge in Yak Kharka"
+      },
+      {
+        "day_number": 9,
+        "title": "Yak Kharka to Thorong Phedi / High Camp (4,850m)",
+        "destination_name": "Thorong La",
+        "elevation_m": 4850,
+        "distance_km": 7.5,
+        "activity": "Short steady climb across the suspension footbridge to Thorong Phedi base camp; rest early in preparation for the high pass.",
+        "stay": "High altitude lodge at Thorong Phedi"
+      },
+      {
+        "day_number": 10,
+        "title": "Cross Thorong La Pass (5,416m) & Descend to Muktinath (3,710m)",
+        "destination_name": "Thorong La",
+        "elevation_m": 5416,
+        "distance_km": 16.0,
+        "activity": "Pre-dawn push up to Thorong La summit marked by hundreds of flapping prayer flags; capture celebratory photos and descend 1,700m to holy Muktinath.",
+        "stay": "Hotel in Muktinath"
+      },
+      {
+        "day_number": 11,
+        "title": "Muktinath Temple Prayers to Jomsom (2,720m)",
+        "destination_name": "Muktinath Temple & Eternal Flame",
+        "elevation_m": 2720,
+        "distance_km": 20.0,
+        "activity": "Morning visit to holy 108 spouts; trek or drive down the windy Kali Gandaki valley through Kagbeni to Jomsom.",
+        "stay": "Hotel in Jomsom"
+      },
+      {
+        "day_number": 12,
+        "title": "Fly or Drive Jomsom to Pokhara & Completion Celebration",
+        "destination_name": "Pokhara Lakeside & Tal Barahi Island Temple",
+        "elevation_m": 820,
+        "distance_km": 155.0,
+        "activity": "Morning flight between Dhaulagiri and Annapurna back to tropical Pokhara; lakeside massage and celebration feast.",
+        "stay": "Resort in Pokhara"
+      }
+    ]
+  },
+  {
+    "slug": "kathmandu-valley-unesco-living-heritage",
+    "title": "Kathmandu Valley 7 UNESCO Living Heritage Trail",
+    "title_nepali": "काठमाडौं उपत्यका युनेस्को सम्पदा र नेवारी संस्कृति",
+    "persona": "all",
+    "category": "heritage",
+    "days": 3,
+    "difficulty": "easy",
+    "start_city": "Kathmandu",
+    "end_city": "Kathmandu",
+    "best_seasons": ["Year-round", "Autumn (Sep–Nov)", "Winter (Dec–Feb)", "Spring (Mar–May)"],
+    "max_elevation_m": 1400,
+    "estimated_budget_npr": 14000,
+    "estimated_budget_usd": 105,
+    "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Pashupatinath_Temple-2020.jpg/1280px-Pashupatinath_Temple-2020.jpg",
+    "summary": "Immerse yourself in three ancient royal kingdoms and two millenniums of sacred Buddhist and Hindu craftsmanship. Experience the living spirituality of Pashupatinath evening Aarati, circle the world's largest stupa at Boudhanath, and marvel at the master woodcarvers of Bhaktapur and Patan.",
+    "summary_nepali": "काठमाडौं, भक्तपुर र पाटनका ऐतिहासिक दरबार क्षेत्र तथा पशुपतिनाथ, बौद्धनाथ र स्वयम्भूनाथको धार्मिक एवं सांस्कृतिक अन्वेषण।",
+    "highlights": [
+      "Evening Ganga Aarti on the sacred banks of the Bagmati River at Pashupatinath Temple",
+      "Spinning prayer wheels in the kora around Boudhanath Tibetan Stupa",
+      "Climbing to the hilltop perch of Swayambhunath (Monkey Temple) for city vistas",
+      "55-Window Palace and 5-tier pagoda Nyatapola Temple in Bhaktapur Durbar Square",
+      "Living metal casting and Krishna Mandir stone architecture in Patan Durbar Square"
+    ],
+    "highlights_nepali": [
+      "पशुपतिनाथ बागमती किनारको भव्य साँझको गङ्गा आरती",
+      "बौद्धनाथ महाचैत्यको परिक्रमा र शान्त वातावरण",
+      "स्वयम्भूनाथ स्तुपबाट काठमाडौं उपत्यकाको विहङ्गम दृश्य",
+      "भक्तपुर दरबार क्षेत्रको ५५ झ्याले दरबार र न्यातपोल मन्दिर",
+      "पाटन दरबार क्षेत्रको कृष्ण मन्दिर र नेवारी काष्ठकला"
+    ],
+    "permits_info": {
+      "nepali": "नेपाली नागरिकका लागि पशुपति, बौद्ध, स्वयम्भू र पाटन दरबार प्रवेश निःशुल्क छ; भक्तपुरमा सामान्य स्थानीय शुल्क मात्र।",
+      "foreign": "Pashupatinath (NPR 1,000), Boudhanath (NPR 400), Swayambhunath (NPR 200), Bhaktapur (NPR 1,800), Patan (NPR 1,000).",
+      "saarc": "SAARC passport holders receive 50-80% discounts (Bhaktapur NPR 500, Patan NPR 250)."
+    },
+    "transport_info": "Private tourist cab, electric Sajha Yatayat bus, or Pathao/InDrive ride-hailing.",
+    "local_food_recommendations": "Traditional Newari Khaja Set (Baji, Chhwela, Bara, Aalu Tama, Duck Choila) and authentic Bhaktapur Juju Dhau (King Curd).",
+    "packing_checklist": ["Slip-on shoes easy to take off outside temples", "Modest clothing covering shoulders and knees", "Camera with good low-light sensitivity for evening Aarati"],
+    "days_schedule": [
+      {
+        "day_number": 1,
+        "title": "Swayambhunath Monkey Temple & Patan Royal Artisan Square",
+        "destination_name": "Swayambhunath Stupa (Monkey Temple)",
+        "elevation_m": 1400,
+        "distance_km": 12.0,
+        "activity": "Morning climb up Swayambhunath hill to view the eye of the Buddha; afternoon exploration of Patan Durbar Square, the Golden Temple, and ancient metal casting workshops.",
+        "stay": "Heritage hotel in Patan or Kathmandu"
+      },
+      {
+        "day_number": 2,
+        "title": "Boudhanath Tibetan Stupa & Pashupatinath Evening Aarti",
+        "destination_name": "Boudhanath Stupa & Tibetan Monasteries",
+        "elevation_m": 1350,
+        "distance_km": 8.0,
+        "activity": "Circumambulate majestic Boudhanath Stupa surrounded by butter lamps and Tibetan chanting; evening transfer to Pashupatinath for the profound Bagmati Aarti ceremony.",
+        "stay": "Hotel in Kathmandu"
+      },
+      {
+        "day_number": 3,
+        "title": "Bhaktapur Ancient City of Devotees & Pottery Square",
+        "destination_name": "Bhaktapur Durbar Square & Nyatapola Temple",
+        "elevation_m": 1330,
+        "distance_km": 15.0,
+        "activity": "Full day in car-free Bhaktapur: admire Nyatapola Temple, the Golden Gate, 55-Window Palace, try hand-turned clay pottery in Pottery Square, and savor Juju Dhau.",
+        "stay": "Traditional homestay or hotel in Kathmandu"
+      }
+    ]
+  },
+  {
+    "slug": "pokhara-adventure-sarangkot-sunrise",
+    "title": "Pokhara Lakes, Adventure & Annapurna Foothills Escape",
+    "title_nepali": "पोखरा ताल, साहसिक खेल र अन्नपूर्ण दृश्यावलोकन",
+    "persona": "all",
+    "category": "adventure",
+    "days": 4,
+    "difficulty": "easy",
+    "start_city": "Pokhara",
+    "end_city": "Pokhara",
+    "best_seasons": ["Year-round", "Autumn (Sep–Nov)", "Spring (Mar–May)"],
+    "max_elevation_m": 1600,
+    "estimated_budget_npr": 26000,
+    "estimated_budget_usd": 195,
+    "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Phewa_Lake_Pokhara_Nepal.jpg/1280px-Phewa_Lake_Pokhara_Nepal.jpg",
+    "summary": "The ultimate adventure playground and relaxation capital of Nepal. Soar on tandem paragliders overlooking Machhapuchhre (Fishtail Peak), watch the golden sunrise light the Annapurna range from Sarangkot, boat across peaceful Phewa Lake, and explore limestone caves.",
+    "summary_nepali": "फेवातालको डुङ्गा सयर, सराङकोटको सूर्योदय, प्याराग्लाइडिङको रोमाञ्च र अन्नपूर्ण हिमशृङ्खलाको काखमा पोखराको रमणीय छुट्टी।",
+    "highlights": [
+      "Panoramic sunrise over Annapurna, Dhaulagiri, and Fishtail from Sarangkot (1,600m)",
+      "Tandem paragliding or ultralight flight over green ridges and turquoise lakes",
+      "Wooden rowboat ride to the island sanctuary of Tal Barahi Temple on Phewa Lake",
+      "Stunning white World Peace Pagoda and towering Pumdikot Shiva statue viewpoints",
+      "Underground limestone caverns at Gupteshwor Mahadev and thundering Davis Falls"
+    ],
+    "highlights_nepali": [
+      "सराङकोटबाट अन्नपूर्ण र माछापुच्छ्रे हिमालमा ठोकिने पहिलो किरण",
+      "फेवाताल माथि प्याराग्लाइडिङको अद्वितीय अनुभव",
+      "फेवातालको बीचमा रहेको ताल बाराही मन्दिर दर्शन",
+      "विश्व शान्ति स्तुप र पुम्दीकोट महादेवको दर्शन",
+      "डेभिस फल्स (पातले छाँगो) र गुप्तेश्वर महादेव गुफा भ्रमण"
+    ],
+    "permits_info": {
+      "nepali": "पोखरा भ्रमणका लागि कुनै विशेष अनुमति चाहिँदैन। ताल बाराही डुङ्गा र गुफाका लागि सामान्य स्थानीय शुल्क।",
+      "foreign": "Standard city attractions; paragliding permit managed by flight operator.",
+      "saarc": "Same as international."
+    },
+    "transport_info": "Kathmandu to Pokhara via tourist deluxe bus (6-7 hrs) or flight (25 mins). Local rental scooters / taxi within Pokhara.",
+    "local_food_recommendations": "Fresh Phewa Lake fried fish, lakeside artisanal coffee, Thakali Thali dinner at Lakeside, fresh bakery pastries.",
+    "packing_checklist": ["Sunglasses and sunscreen", "Comfortable walking shoes", "Light jacket for early morning Sarangkot breeze", "GoPro or phone with tether for paragliding"],
+    "days_schedule": [
+      {
+        "day_number": 1,
+        "title": "Arrive in Pokhara, Lakeside Stroll & Tal Barahi Island Boating",
+        "destination_name": "Pokhara Lakeside & Tal Barahi Island Temple",
+        "elevation_m": 820,
+        "distance_km": 5.0,
+        "activity": "Check into lakeside hotel, hire a colorful wooden boat to cross Phewa Lake to Tal Barahi Island Temple, and enjoy lakeside sunset cafes.",
+        "stay": "Hotel in Lakeside Pokhara"
+      },
+      {
+        "day_number": 2,
+        "title": "Sarangkot Sunrise & Thrilling Tandem Paragliding",
+        "destination_name": "Sarangkot Paragliding & Sunrise Hillstation",
+        "elevation_m": 1600,
+        "distance_km": 15.0,
+        "activity": "Pre-dawn drive up Sarangkot ridge for 360-degree Himalayan sunrise; launch into the skies on a tandem paragliding flight landing lakeside.",
+        "stay": "Hotel in Lakeside Pokhara"
+      },
+      {
+        "day_number": 3,
+        "title": "World Peace Pagoda, Pumdikot Shiva & Davis Falls",
+        "destination_name": "World Peace Pagoda (Pokhara)",
+        "elevation_m": 1100,
+        "distance_km": 18.0,
+        "activity": "Morning boat ride and hike up through Rani Ban forest to the gleaming white Peace Pagoda; visit 108ft Pumdikot Shiva statue and Davis Falls.",
+        "stay": "Hotel in Lakeside Pokhara"
+      },
+      {
+        "day_number": 4,
+        "title": "Begnas Lake Quiet Escape & Departure",
+        "destination_name": "Pokhara Lakeside & Tal Barahi Island Temple",
+        "elevation_m": 850,
+        "distance_km": 25.0,
+        "activity": "Morning drive to tranquil Begnas Lake away from the crowds; fish lunch by the shoreline before airport transfer or onward bus.",
+        "stay": "Departure"
+      }
+    ]
+  },
+  {
+    "slug": "chitwan-wildlife-safari-tharu-culture",
+    "title": "Chitwan National Park Wildlife Safari & Tharu Culture",
+    "title_nepali": "चितवन राष्ट्रिय निकुञ्ज जङ्गल सफारी र थारु संस्कृति",
+    "persona": "all",
+    "category": "wildlife",
+    "days": 3,
+    "difficulty": "easy",
+    "start_city": "Sauraha",
+    "end_city": "Sauraha",
+    "best_seasons": ["Autumn (Oct–Nov)", "Winter (Dec–Feb)", "Spring (Mar–Apr)"],
+    "max_elevation_m": 180,
+    "estimated_budget_npr": 19000,
+    "estimated_budget_usd": 145,
+    "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Chitwan_National_Park_Rhino.jpg/1280px-Chitwan_National_Park_Rhino.jpg",
+    "summary": "Venture into Nepal's first UNESCO World Heritage National Park. Encounter wild Greater One-horned Rhinoceroses, Royal Bengal Tigers, Asian Elephants, and fish-eating Gharial Crocodiles while immersing in indigenous Tharu village traditions.",
+    "summary_nepali": "विश्वप्रसिद्ध एकसिङ्गे गैँडा, पाटे बाघ र घडियाल गोहीको दर्शन। राप्ती नदीमा काठको डुङ्गा सयर, जङ्गल जीप सफारी र रैथाने थारु नाचको आनन्द।",
+    "highlights": [
+      "Open-top 4WD Jeep Safari deep into core sal forests tracking wild rhinos and tigers",
+      "Traditional dugout canoe float down Rapti River watching sunbathing marsh muggers and gharials",
+      "Bird watching with 540+ resident and migratory species recorded",
+      "Vibrant Tharu stick dance performance and mud-art village homestay tour",
+      "Spectacular riverside sunset with rhinos grazing along the opposite bank"
+    ],
+    "highlights_nepali": [
+      "चितवनको घना साल जङ्गलमा खुला जीप सफारी र गैँडा दर्शन",
+      "राप्ती नदीमा काठको डुङ्गा सयर र गोही अवलोकन",
+      "५४० भन्दा बढी प्रजातिका चराचुरुङ्गी अवलोकन",
+      "परम्परागत थारु लठ्ठी नाच र थारु गाउँको सांस्कृतिक भ्रमण",
+      "राप्ती नदी किनारबाट सूर्यास्त र चर्न आएका वन्यजन्तुको दृश्य"
+    ],
+    "permits_info": {
+      "nepali": "चितवन राष्ट्रिय निकुञ्ज प्रवेश शुल्क: रु. १५० (नेपाली नागरिक)।",
+      "saarc": "Chitwan National Park Entry: NPR 1,000 (SAARC citizens).",
+      "foreign": "Chitwan National Park Entry: NPR 2,000 (Foreign nationals)."
+    },
+    "transport_info": "Tourist deluxe coach from Kathmandu (5-6 hrs) or flight to Bharatpur Airport (20 mins), then 25-min transfer to Sauraha.",
+    "local_food_recommendations": "Traditional Tharu cuisine: Ghonghi (freshwater snails with spices), Anadi rice, Duck curry, crispy spicy fried Taas with puffed rice.",
+    "packing_checklist": ["Earth-toned clothing (khaki, olive, brown - no bright reds/whites for safari)", "Insect repellent and mosquito lotion", "Binoculars for wildlife viewing", "Sunhat and light long-sleeve shirts"],
+    "days_schedule": [
+      {
+        "day_number": 1,
+        "title": "Arrive in Sauraha, Tharu Village Walk & Sunset Beach",
+        "destination_name": "Chitwan Sauraha Jungle Safari & Elephant Reserve",
+        "elevation_m": 160,
+        "distance_km": 5.0,
+        "activity": "Check into jungle resort, walk through traditional mud-built Tharu village, and enjoy sunset drinks along Rapti beach followed by evening Tharu cultural dance.",
+        "stay": "Jungle resort in Sauraha"
+      },
+      {
+        "day_number": 2,
+        "title": "Rapti River Canoe Safari & Deep Jungle 4WD Jeep Safari",
+        "destination_name": "Chitwan Sauraha Jungle Safari & Elephant Reserve",
+        "elevation_m": 160,
+        "distance_km": 40.0,
+        "activity": "Morning dugout canoe float down Rapti river spotting endangered gharial crocodiles; afternoon 4-hour open jeep safari deep into national park core.",
+        "stay": "Jungle resort in Sauraha"
+      },
+      {
+        "day_number": 3,
+        "title": "Morning Birdwatching Walk & Departure",
+        "destination_name": "Chitwan Sauraha Jungle Safari & Elephant Reserve",
+        "elevation_m": 160,
+        "distance_km": 5.0,
+        "activity": "Early morning guided birdwatching stroll along the river bank; hearty breakfast and departure to Kathmandu or Pokhara.",
+        "stay": "Departure"
+      }
+    ]
+  },
+  {
+    "slug": "kalinchowk-dolakha-snow-weekend",
+    "title": "Kalinchowk & Dolakha Winter Snow & Temple Escape",
+    "title_nepali": "कालिञ्चोक र दोलखा हिउँ खेल्ने सप्ताहन्त यात्रा",
+    "persona": "nepali",
+    "category": "weekend",
+    "days": 2,
+    "difficulty": "easy",
+    "start_city": "Kathmandu",
+    "end_city": "Kathmandu",
+    "best_seasons": ["Winter (Dec–Feb for snow)", "Autumn (Oct–Nov)", "Spring (Mar–Apr)"],
+    "max_elevation_m": 3842,
+    "estimated_budget_npr": 11000,
+    "estimated_budget_usd": 85,
+    "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Kalinchowk_Bhagwati_Temple_or_Kalinchok_Mai_Suippa_Village_Kuri_Village_Kalinchowk_Dolakha_Nepal_Rajesh_Dhungana_%2895%29.jpg/1280px-Kalinchowk_Bhagwati_Temple_or_Kalinchok_Mai_Suippa_Village_Kuri_Village_Kalinchowk_Dolakha_Nepal_Rajesh_Dhungana_%2895%29.jpg",
+    "summary": "Nepal's most popular winter wonderland and hilltop pilgrimage weekend. Drive from Kathmandu through Charikot to fairytale Kuri Village, ride the cable car over snowy slopes, worship at Kalinchowk Bhagwati shrine at 3,842m, and soak in 360-degree panoramas of Gaurishankar Himal.",
+    "summary_nepali": "काठमाडौंबाट छोटो दूरीमा हिउँको मज्जा लिने र ३,८४२ मिटर अग्लो कालिञ्चोक भगवती मन्दिरको दर्शन गर्ने उत्कृष्ट सप्ताहन्त यात्रा।",
+    "highlights": [
+      "Darshan of wish-fulfilling Kalinchowk Bhagwati temple atop the 3,842m cliff",
+      "Thrilling 5-minute modern cable car flight connecting Kuri Village to the shrine",
+      "Winter snowfall fun, snowball fights, and campfire nights in cozy Kuri wooden lodges",
+      "Unobstructed panoramic vistas of Gaurishankar, Jugal, and Langtang Himalayan peaks",
+      "Historical Dolakha Bhimeshwor Temple visit on the return journey"
+    ],
+    "highlights_nepali": [
+      "३,८४२ मिटर उचाइमा अवस्थित कालिञ्चोक भगवती मन्दिर दर्शन",
+      "कुरी गाउँबाट मन्दिरसम्मको रोमाञ्चक केबलकार यात्रा",
+      "हिउँदमा हिउँ खेल्ने र कुरी गाउँका काठे कटेजमा क्याम्पफायरको मज्जा",
+      "गौरीशङ्कर र जुगल हिमालको प्रत्यक्ष नजिकको दृश्य",
+      "ऐतिहासिक दोलखा भीमसेन मन्दिरको दर्शन"
+    ],
+    "permits_info": {
+      "nepali": "कुनै परमिट चाहिँदैन। कालिञ्चोक केबलकार टिकट: दुईतर्फी रु. ६०० (नेपाली)।",
+      "foreign": "Cable car two-way ticket approx USD 10; no restricted permit required.",
+      "saarc": "SAARC cable car rate: approx NPR 800."
+    },
+    "transport_info": "4WD Scorpio Jeep or local bus from Kathmandu (Koteshwor / Jadibuti) to Charikot and up to Kuri Village (approx 5-6 hrs).",
+    "local_food_recommendations": "Steaming hot local mutton soup, Sukuti, Gundruk-Dhido, Sel roti with tea, and Tongba in the cold evening.",
+    "packing_checklist": ["Heavy winter down jacket", "Woolen beanie cap and snow gloves", "Waterproof snow boots with good tread", "Lip balm and cold cream", "Thermos flask for hot water"],
+    "days_schedule": [
+      {
+        "day_number": 1,
+        "title": "Kathmandu to Charikot & Kuri Village Snowy Evening",
+        "destination_name": "Kuri Village & Kalinchowk Bhagwati Altitude Shrine",
+        "elevation_m": 3200,
+        "distance_km": 145.0,
+        "activity": "Scenic morning drive along the Araniko and BP highways to Charikot, then rough 4WD jeep ascent to snowy Kuri Village; evening campfire and local hot dinner.",
+        "stay": "Wooden hotel lodge in Kuri Village"
+      },
+      {
+        "day_number": 2,
+        "title": "Cable Car to Kalinchowk Bhagwati (3,842m) & Return to Kathmandu",
+        "destination_name": "Kalinchowk Bhagwati Temple",
+        "elevation_m": 3842,
+        "distance_km": 150.0,
+        "activity": "Early morning cable car ride to Kalinchowk Bhagwati shrine for sunrise prayers and Gaurishankar panoramas; descend to Charikot, visit Dolakha Bhimeshwor, and drive back to Kathmandu.",
+        "stay": "Return home"
+      }
+    ]
+  },
+  {
+    "slug": "rara-lake-queen-of-himalayan-waters",
+    "title": "Rara Lake: The Queen of Himalayan Waters Wilderness",
+    "title_nepali": "रारा ताल: कर्णालीको स्वर्गीय प्राकृतिक सौन्दर्य",
+    "persona": "all",
+    "category": "adventure",
+    "days": 6,
+    "difficulty": "moderate",
+    "start_city": "Nepalgunj",
+    "end_city": "Nepalgunj",
+    "best_seasons": ["Autumn (Sep–Nov)", "Spring (Apr–Jun)"],
+    "max_elevation_m": 3700,
+    "estimated_budget_npr": 52000,
+    "estimated_budget_usd": 390,
+    "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/Rara_lake_from_afar.jpg/1280px-Rara_lake_from_afar.jpg",
+    "summary": "Journey into the unspoiled remote wilderness of Karnali to witness Nepal's largest and deepest freshwater lake (2,990m). Its crystal-clear turquoise waters change colors with the sun, bordered by pristine blue pine and juniper forests.",
+    "summary_nepali": "नेपालकै सबैभन्दा ठूलो र गहिरो कञ्चन रारा तालको यात्रा। सल्ला र धुपीका वनजङ्गल, मुर्मा टपको विहङ्गम दृश्य र कर्णालीको मौलिक जीवनशैली।",
+    "highlights": [
+      "Mesmerizing color changes of Rara Lake from turquoise to deep ultramarine blue",
+      "Hike to Murma Top (3,700m) for an all-encompassing aerial vista of the entire lake basin",
+      "Lakeside horseback riding and tranquil wooden boating in pristine waters",
+      "Stargazing under completely unpolluted zero-light-pollution Himalayan night skies",
+      "Experiencing the untouched culture and organic lifestyle of Mugu district"
+    ],
+    "highlights_nepali": [
+      "रारा तालको कञ्चन नीलो पानी र वरिपरिका हरिया डाँडाकाँडा",
+      "मुर्मा टप (३,७०० मिटर) बाट सम्पूर्ण रारा तालको दृश्यावलोकन",
+      "तालको किनारमा घोडा चढ्ने र काठको डुङ्गा सयर",
+      "ताराहरूले भरिएको शान्त र स्वच्छ आकाश",
+      "कर्णालीको मौलिक जनजीवन र स्थानीय परिकार"
+    ],
+    "permits_info": {
+      "nepali": "रारा राष्ट्रिय निकुञ्ज प्रवेश शुल्क: रु. १०० (नेपाली नागरिक)।",
+      "saarc": "Rara National Park Entry: NPR 1,500 (SAARC).",
+      "foreign": "Rara National Park Entry: NPR 3,000 (Foreign nationals)."
+    },
+    "transport_info": "Kathmandu to Nepalgunj flight (50 mins), connect to Talcha Airport flight (35 mins) + 2.5 hr scenic walk to lake; OR overland Karnali Highway 4WD jeep.",
+    "local_food_recommendations": "Karnali red rice (Marshe Chamal), local buckwheat pancake, organic walnut oil, fresh rainbow trout, and local mountain honey.",
+    "packing_checklist": ["Warm layers (lake cools dramatically at night)", "Power bank (limited electricity in remote lodges)", "Comfortable waterproof hiking boots", "Personal medical kit and water purifier"],
+    "days_schedule": [
+      {
+        "day_number": 1,
+        "title": "Flight Kathmandu to Nepalgunj & Onward to Talcha Airport (Mugu)",
+        "destination_name": "Rara Lake National Park Sanctuary",
+        "elevation_m": 2735,
+        "distance_km": 150.0,
+        "activity": "Twin-engine flight landing at Talcha mountain airstrip; pleasant 2.5-hour forest walk through pine and juniper woodlands to the shores of Rara Lake.",
+        "stay": "Lakeside guesthouse or camp at Rara"
+      },
+      {
+        "day_number": 2,
+        "title": "Rara Lake Shoreline Boating & Horseback Exploration",
+        "destination_name": "Rara Lake National Park Sanctuary",
+        "elevation_m": 2990,
+        "distance_km": 12.0,
+        "activity": "Morning boat row across the glassy waters; afternoon horseback ride along the northern lakeshore trail observing native birds and wildlife.",
+        "stay": "Lakeside guesthouse at Rara"
+      },
+      {
+        "day_number": 3,
+        "title": "Hike to Murma Top (3,700m) Panoramic Viewpoint",
+        "destination_name": "Rara Lake National Park Sanctuary",
+        "elevation_m": 3700,
+        "distance_km": 10.0,
+        "activity": "Ascend through Murma village to the watchtower atop Murma Top; marvel at the jaw-dropping vista of the entire 10-sq-km lake surrounded by Himalayan crests.",
+        "stay": "Murma village homestay or lakeside lodge"
+      },
+      {
+        "day_number": 4,
+        "title": "Quiet Photography & Forest Walks around the Park",
+        "destination_name": "Rara Lake National Park Sanctuary",
+        "elevation_m": 2990,
+        "distance_km": 8.0,
+        "activity": "Serene day for writing, landscape photography, and exploring the pine forests of Rara National Park; enjoy local red rice dinner by wood fire.",
+        "stay": "Lakeside lodge"
+      },
+      {
+        "day_number": 5,
+        "title": "Walk Back to Talcha & Fly to Nepalgunj",
+        "destination_name": "Rara Lake National Park Sanctuary",
+        "elevation_m": 150,
+        "distance_km": 12.0,
+        "activity": "Morning walk back to Talcha airstrip, fly to Nepalgunj in the Terai plains, and rest at city hotel.",
+        "stay": "Hotel in Nepalgunj"
+      },
+      {
+        "day_number": 6,
+        "title": "Nepalgunj Return to Kathmandu",
+        "destination_name": "Kathmandu",
+        "elevation_m": 1400,
+        "distance_km": 360.0,
+        "activity": "Return flight to Kathmandu; trip conclusion.",
+        "stay": "Home"
+      }
+    ]
+  },
+  {
+    "slug": "ghandruk-australian-camp-village-homestay",
+    "title": "Ghandruk & Australian Camp Gurung Village Homestay",
+    "title_nepali": "घान्द्रुक र अस्ट्रेलियन क्याम्प गुरुङ गाउँ पदयात्रा",
+    "persona": "all",
+    "category": "weekend",
+    "days": 3,
+    "difficulty": "easy",
+    "start_city": "Pokhara",
+    "end_city": "Pokhara",
+    "best_seasons": ["Year-round", "Autumn (Sep–Nov)", "Spring (Mar–May)"],
+    "max_elevation_m": 2060,
+    "estimated_budget_npr": 13500,
+    "estimated_budget_usd": 100,
+    "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Ghandruk_village_overlooking_Annapurna.jpg/1280px-Ghandruk_village_overlooking_Annapurna.jpg",
+    "summary": "A delightful short trek connecting picturesque stone-paved Gurung heritage villages with breathtaking front-row panoramas of Annapurna South, Hiunchuli, and Fishtail Peak. Perfect for families, beginners, and cultural enthusiasts.",
+    "summary_nepali": "परम्परागत गुरुङ संस्कृति, ढुङ्गे गल्लीहरू र माछापुच्छ्रे तथा अन्नपूर्ण हिमालको काखमा अवस्थित घान्द्रुक गाउँको पारिवारिक पदयात्रा।",
+    "highlights": [
+      "Direct front-row sunrise view of Annapurna South (7,219m) and Machhapuchhre (6,993m)",
+      "Warm hospitality at a traditional Gurung community homestay",
+      "Trying on colorful traditional Gurung costumes and visiting the local cultural museum",
+      "Stunning forest trail through rhododendron and oak woodlands via Australian Camp",
+      "Gentle stone staircases suitable for all fitness levels and families"
+    ],
+    "highlights_nepali": [
+      "अन्नपूर्ण साउथ र माछापुच्छ्रे हिमालको नजिकबाट सूर्योदय दृश्य",
+      "परम्परागत गुरुङ घरमा स्थानीय आतिथ्य र अर्गानिक खानपान",
+      "गुरुङ भेषभुषा लगाएर फोटो खिच्ने र स्थानीय सङ्ग्रहालय भ्रमण",
+      "लालीगुराँस र सल्लाको वन हुँदै अस्ट्रेलियन क्याम्पको पैदल यात्रा",
+      "परिवार र बालबालिकाका लागि समेत उपयुक्त सहज यात्रा"
+    ],
+    "permits_info": {
+      "nepali": "नेपाली नागरिकका लागि कुनै TIMS कार्ड चाहिँदैन; ACAP प्रवेश शुल्क रु. १००।",
+      "foreign": "ACAP Permit (NPR 3,000) and TIMS card (NPR 2,000).",
+      "saarc": "ACAP Permit (NPR 1,000) and SAARC TIMS."
+    },
+    "transport_info": "Pokhara to Kande or Nayapul via private car, taxi, or local bus (1.5 hrs).",
+    "local_food_recommendations": "Local organic free-range chicken curry, Gundruk ko Jhol, Kodo ko Dhido (millet paste), homemade ghee, and fresh Sukuti.",
+    "packing_checklist": ["Light hiking shoes with good grip", "Refillable water bottle", "Camera / smartphone", "Light jacket for cool morning air"],
+    "days_schedule": [
+      {
+        "day_number": 1,
+        "title": "Drive Pokhara to Kande & Hike to Australian Camp (2,060m)",
+        "destination_name": "Pokhara Lakeside & Tal Barahi Island Temple",
+        "elevation_m": 2060,
+        "distance_km": 5.0,
+        "activity": "Drive 45 mins to Kande ridge, hike 1.5 hours through stone stairs and forests to Australian Camp for sunset over Machhapuchhre.",
+        "stay": "Mountain lodge at Australian Camp"
+      },
+      {
+        "day_number": 2,
+        "title": "Australian Camp through Landruk to Historic Ghandruk (1,940m)",
+        "destination_name": "Ghandruk Gurung Stone Heritage Village",
+        "elevation_m": 1940,
+        "distance_km": 11.0,
+        "activity": "Hike through Pothana and cross the Modi River suspension bridge to climb into stone-paved Ghandruk; explore Gurung museum and dress in ethnic attire.",
+        "stay": "Traditional homestay in Ghandruk"
+      },
+      {
+        "day_number": 3,
+        "title": "Ghandruk Morning Sunrise & Drive Return to Pokhara",
+        "destination_name": "Pokhara Lakeside & Tal Barahi Island Temple",
+        "elevation_m": 820,
+        "distance_km": 55.0,
+        "activity": "Witness golden morning sunrise right outside your bedroom window, enjoy local breakfast, descend to Nayapul and drive back to Pokhara.",
+        "stay": "Pokhara"
+      }
+    ]
+  },
+  {
+    "slug": "lumbini-buddhist-circuit-peace-garden",
+    "title": "Lumbini Sacred Buddhist Circuit & Peace Garden",
+    "title_nepali": "लुम्बिनी बौद्ध परिपथ र शान्ति बगैँचा",
+    "persona": "all",
+    "category": "pilgrimage",
+    "days": 2,
+    "difficulty": "easy",
+    "start_city": "Bhairahawa",
+    "end_city": "Bhairahawa",
+    "best_seasons": ["Year-round", "Autumn (Oct–Nov)", "Winter (Dec–Feb)", "Spring (Mar–Apr)"],
+    "max_elevation_m": 150,
+    "estimated_budget_npr": 11000,
+    "estimated_budget_usd": 85,
+    "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Maya_Devi_Temple_Lumbini_Nepal.jpg/1280px-Maya_Devi_Temple_Lumbini_Nepal.jpg",
+    "summary": "Walk the holy ground where Siddhartha Gautama, the historic Buddha, was born in 623 BC. Meditate beside the ancient Ashoka Pillar and sacred Pushkarini pond at the Maya Devi Temple, and cycle through the serene international monastic zones.",
+    "summary_nepali": "भगवान् गौतम बुद्धको पावन जन्मस्थल लुम्बिनीको मायादेवी मन्दिर, अशोक स्तम्भ र अन्तर्राष्ट्रिय शान्ति विहारहरूको आध्यात्मिक भ्रमण।",
+    "highlights": [
+      "Standing at the exact marker stone of Lord Buddha's nativity inside Maya Devi Temple",
+      "Emperor Ashoka's sandstone pillar with 3rd-century BC Brahmi inscription",
+      "Meditating beneath the ancient Bodhi tree beside the sacred Pushkarini bathing pool",
+      "Peaceful cycling through the East (Theravada) and West (Mahayana) monastic zones",
+      "Visiting Tilaurakot, the ancient fortified capital of the Shakya kingdom"
+    ],
+    "highlights_nepali": [
+      "मायादेवी मन्दिरभित्र रहेको भगवान् बुद्धको जन्मस्थानको मूल शिला दर्शन",
+      "इसापूर्व २४९ मा सम्राट अशोकद्वारा स्थापित ऐतिहासिक अशोक स्तम्भ",
+      "पवित्र पुष्करिणी पोखरी र बोधिवृक्षको शान्त वातावरण",
+      "विश्वका विभिन्न देशहरूले बनाएका भव्य बौद्ध विहारहरूको अवलोकन",
+      "प्राचीन शाक्य गणराज्यको राजधानी तौलिहवा तिलौराकोटको ऐतिहासिक भ्रमण"
+    ],
+    "permits_info": {
+      "nepali": "नेपाली नागरिकका लागि मायादेवी मन्दिर प्रवेश शुल्क: रु. २५।",
+      "saarc": "SAARC Entry Fee: NPR 200.",
+      "foreign": "Foreign Nationals Entry Fee: NPR 500."
+    },
+    "transport_info": "Gautam Buddha International Airport (Bhairahawa) flights from Kathmandu (30 mins), then 25 mins by taxi to Lumbini. Electric rickshaws and bicycles inside the master plan.",
+    "local_food_recommendations": "Authentic Terai Thali, sweet Gulab Jamun, Samosa Chaat, and freshly squeezed sugarcane juice.",
+    "packing_checklist": ["Light cotton clothing", "Slip-on shoes for temple entry", "Sun hat and umbrella", "Insect repellent for evening"],
+    "days_schedule": [
+      {
+        "day_number": 1,
+        "title": "Maya Devi Temple Nativity Site & Sacred Garden Meditation",
+        "destination_name": "Lumbini Crane Sanctuary & Wetland Reserve",
+        "elevation_m": 150,
+        "distance_km": 5.0,
+        "activity": "Arrive in Lumbini, enter the Sacred Garden, visit the nativity marker inside Maya Devi Temple, the Ashoka Pillar, and meditate under the Bodhi tree beside Pushkarini pond.",
+        "stay": "Hotel in Lumbini Bazaar"
+      },
+      {
+        "day_number": 2,
+        "title": "World Monastic Zones Cycling & Tilaurakot Ancient Palace",
+        "destination_name": "Lumbini Crane Sanctuary & Wetland Reserve",
+        "elevation_m": 150,
+        "distance_km": 30.0,
+        "activity": "Rent a bicycle to explore stunning Thai, German, Chinese, and Cambodian monasteries; afternoon drive to the archaeological ruins of Tilaurakot palace.",
+        "stay": "Departure from Bhairahawa"
+      }
+    ]
+  },
+  {
+    "slug": "janakpur-dham-mithila-heritage",
+    "title": "Janakpur Dham Mithila Cultural & Ram Janaki Trail",
+    "title_nepali": "जनकपुरधाम मिथिला संस्कृति र रामजानकी मन्दिर दर्शन",
+    "persona": "nepali",
+    "category": "heritage",
+    "days": 2,
+    "difficulty": "easy",
+    "start_city": "Janakpur",
+    "end_city": "Janakpur",
+    "best_seasons": ["Year-round", "Autumn (Oct–Nov for Vivah Panchami)", "Winter (Dec–Feb)"],
+    "max_elevation_m": 70,
+    "estimated_budget_npr": 8500,
+    "estimated_budget_usd": 65,
+    "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/Janaki_Temple_Janakpur-Janakpur030315_MG_36680059.jpg/1280px-Janaki_Temple_Janakpur-Janakpur030315_MG_36680059.jpg",
+    "summary": "Discover the vibrant epicenter of Mithila culture and Hindu mythology. Marvel at the stunning Rajput-Mughal marble architecture of Janaki Mandir, witness the evening Ganga Aarti at Dhanush Sagar, and explore vibrant centuries-old Mithila folk art.",
+    "summary_nepali": "माता जानकी (सीता) को जन्मस्थल जनकपुरधामको भव्य नौलखा मन्दिर, धनुष सागरको साँझको आरती र प्रसिद्ध मिथिला चित्रकलाको अवलोकन।",
+    "highlights": [
+      "Marveling at the intricate Rajput-Mughal white marble architecture of Janaki Mandir (Nau Lakha Mandir)",
+      "Visiting Ram Sita Vivah Mandap where the legendary cosmic wedding took place",
+      "Evening Ganga Aarti ceremony illuminated by lamps at sacred Ganga Sagar pond",
+      "Meeting local women artists creating colorful Mithila folk paintings (Madhubani art)",
+      "Indulging in authentic Mithila sweets like Malpua, Laru, and fresh Rabdi"
+    ],
+    "highlights_nepali": [
+      "भव्य नौलखा जानकी मन्दिरको कलात्मक सङ्गममरमर वास्तुकला",
+      "भगवान् राम र माता जानकीको विवाह भएको रामजानकी विवाह मण्डप",
+      "गङ्गा सागर र धनुष सागरमा हरेक साँझ हुने भव्य महाआरती",
+      "विश्वप्रसिद्ध मिथिला चित्रकलाका कार्यशाला र कला केन्द्रहरू",
+      "जनकपुरका प्रख्यात मिथिला परिकार र मिठाइहरूको स्वाद"
+    ],
+    "permits_info": {
+      "nepali": "मन्दिर प्रवेश पूर्णतया निःशुल्क छ।",
+      "foreign": "Temple entry is free; camera fee may apply in specific areas.",
+      "saarc": "Free entry for all visitors."
+    },
+    "transport_info": "Janakpur Airport flights from Kathmandu (25 mins) or road travel via BP Highway / East-West Highway.",
+    "local_food_recommendations": "Warm Malpua, Khaja sweet, freshly curdled Chhena, Makhana (lotus seed) kheer, and traditional Maithil Thali.",
+    "packing_checklist": ["Light comfortable modest clothing", "Slip-off footwear for temple courtyards", "Camera for colorful Mithila art murals"],
+    "days_schedule": [
+      {
+        "day_number": 1,
+        "title": "Janaki Mandir Exploration & Ganga Sagar Evening Aarti",
+        "destination_name": "Janaki Mandir Palace Temple Complex",
+        "elevation_m": 70,
+        "distance_km": 5.0,
+        "activity": "Arrive in Janakpur, marvel at the 3-tiered white palace facade of Janaki Mandir, visit the adjacent Vivah Mandap, and witness the captivating Ganga Sagar Aarti at sunset.",
+        "stay": "Hotel in Janakpur"
+      },
+      {
+        "day_number": 2,
+        "title": "Mithila Art Center, Dhanush Dham & Departure",
+        "destination_name": "Janaki Mandir Palace Temple Complex",
+        "elevation_m": 70,
+        "distance_km": 20.0,
+        "activity": "Morning visit to Mithila art workshops to buy authentic handmade paintings; visit historic Dhanush Dham where Shiva's bow fell, then depart.",
+        "stay": "Departure"
+      }
+    ]
+  },
+  {
+    "slug": "langtang-valley-tamang-heritage",
+    "title": "Langtang Valley & Sacred Kyanjin Gompa Trail",
+    "title_nepali": "लाङटाङ उपत्यका र क्यान्जिङ गुम्बा पदयात्रा",
+    "persona": "all",
+    "category": "trekking",
+    "days": 7,
+    "difficulty": "moderate",
+    "start_city": "Syabrubesi",
+    "end_city": "Syabrubesi",
+    "best_seasons": ["Autumn (Oct–Nov)", "Spring (Mar–May)"],
+    "max_elevation_m": 4773,
+    "estimated_budget_npr": 44000,
+    "estimated_budget_usd": 330,
+    "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/Kyanjin_Gompa_Langtang.jpg/1280px-Kyanjin_Gompa_Langtang.jpg",
+    "summary": "Closest Himalayan valley to Kathmandu, renowned for its resilient Tamang mountain culture, ancient Kyanjin Gompa, artisan yak cheese factory, and jaw-dropping amphitheater of Langtang Lirung peaks.",
+    "summary_nepali": "काठमाडौंबाट नजिकैको मनोरम लाङटाङ उपत्यका। तामाङ संस्कृति, लाङटाङ गाउँको पुनर्जीवन, क्यान्जिङ गुम्बा र लाङटाङ लिरुङ हिमालको काख।",
+    "highlights": [
+      "Walking beneath the towering glaciated face of Langtang Lirung (7,227m)",
+      "Reaching Kyanjin Gompa (3,830m) surrounded by towering Himalayan peaks",
+      "Climbing Kyanjin Ri (4,773m) or Tserko Ri (4,984m) for 360-degree glaciated summits",
+      "Tasting fresh organic Himalayan yak cheese at the historic Swiss-established cheese factory",
+      "Observing unique Tamang Tibetan-influenced culture, prayer wheels, and mani stones"
+    ],
+    "highlights_nepali": [
+      "७,२२७ मिटर अग्लो लाङटाङ लिरुङ हिमालको विशाल पर्खालको दर्शन",
+      "क्यान्जिङ गुम्बा (३,८३० मिटर) को शान्त हिमाली वातावरण",
+      "क्यान्जिङ री (४,७७३ मिटर) को चुचुरोबाट हिमनदीको ३६० डिग्री दृश्य",
+      "प्रसिद्ध स्थानीय याक चिज कारखानामा ताजा चिजको स्वाद",
+      "पुनर्निर्मित लाङटाङ गाउँ र तामाङ जातिको अदम्य साहसको अनुभव"
+    ],
+    "permits_info": {
+      "nepali": "लाङटाङ राष्ट्रिय निकुञ्ज प्रवेश शुल्क: रु. १०० (नेपाली नागरिक)।",
+      "saarc": "Langtang National Park Permit: NPR 1,500 (SAARC).",
+      "foreign": "Langtang National Park Permit: NPR 3,000 + TIMS Card (NPR 2,000)."
+    },
+    "transport_info": "Kathmandu (Machhapokhari) to Syabrubesi via shared Scorpio Jeep or local bus (6-7 hrs).",
+    "local_food_recommendations": "Freshly made artisanal Yak cheese, Tibetan Tsampa porridge, warm Gurung/Tamang bread with yak butter, spicy Aalu Dum, Dal Bhat.",
+    "packing_checklist": ["Warm down jacket", "Thermal innerwear", "Trekking poles", "Water purification tablets", "Sturdy broken-in hiking boots"],
+    "days_schedule": [
+      {
+        "day_number": 1,
+        "title": "Drive Kathmandu to Syabrubesi (1,460m)",
+        "destination_name": "Langtang Subalpine Forest",
+        "elevation_m": 1460,
+        "distance_km": 125.0,
+        "activity": "Scenic mountain drive along the Trisuli River past Dhunche to Syabrubesi, the bustling trailhead on the Bhote Koshi.",
+        "stay": "Lodge in Syabrubesi"
+      },
+      {
+        "day_number": 2,
+        "title": "Syabrubesi to Lama Hotel (2,470m)",
+        "destination_name": "Langtang Subalpine Forest",
+        "elevation_m": 2470,
+        "distance_km": 11.0,
+        "activity": "Cross the suspension bridge and climb steadily through dense subtropical and oak forests alongside the roaring Langtang Khola to Lama Hotel.",
+        "stay": "Tea house in Lama Hotel"
+      },
+      {
+        "day_number": 3,
+        "title": "Lama Hotel to Langtang Village (3,430m)",
+        "destination_name": "Langtang Subalpine Forest",
+        "elevation_m": 3430,
+        "distance_km": 12.0,
+        "activity": "Ascend out of the tree line at Ghodatabela; pass traditional water-driven prayer wheels into the beautifully rebuilt Langtang Village.",
+        "stay": "Lodge in Langtang Village"
+      },
+      {
+        "day_number": 4,
+        "title": "Langtang Village to Kyanjin Gompa (3,830m)",
+        "destination_name": "Kyanjin Ri Panorama",
+        "elevation_m": 3830,
+        "distance_km": 7.0,
+        "activity": "Gradual high alpine stroll past long Mani walls into the dramatic glacial amphitheater of Kyanjin Gompa; visit the historic monastery and yak cheese factory.",
+        "stay": "Lodge in Kyanjin Gompa"
+      },
+      {
+        "day_number": 5,
+        "title": "Acclimatization Ascent of Kyanjin Ri (4,773m) & Valley Exploration",
+        "destination_name": "Kyanjin Ri Panorama",
+        "elevation_m": 4773,
+        "distance_km": 8.0,
+        "activity": "Morning climb to Kyanjin Ri peak for awe-inspiring views of icefalls, glaciers, and peaks; afternoon relaxation with fresh apple crumble and tea.",
+        "stay": "Lodge in Kyanjin Gompa"
+      },
+      {
+        "day_number": 6,
+        "title": "Kyanjin Gompa Descent to Lama Hotel (2,470m)",
+        "destination_name": "Langtang Subalpine Forest",
+        "elevation_m": 2470,
+        "distance_km": 19.0,
+        "activity": "Long rewarding downhill trek retracing your steps back through Langtang Village and bamboo forests to Lama Hotel.",
+        "stay": "Tea house in Lama Hotel"
+      },
+      {
+        "day_number": 7,
+        "title": "Lama Hotel to Syabrubesi & Return Drive to Kathmandu",
+        "destination_name": "Kathmandu",
+        "elevation_m": 1400,
+        "distance_km": 136.0,
+        "activity": "Finish the final 3-hour trek down to Syabrubesi, board waiting jeep/bus back to Kathmandu.",
+        "stay": "Kathmandu"
+      }
+    ]
+  }
+]

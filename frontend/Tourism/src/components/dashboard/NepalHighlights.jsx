@@ -87,7 +87,7 @@ const NepalHighlights = ({ bare = false }) => {
                       <Link
                         key={dest.id || dest.name}
                         to={dest.to}
-                        className="text-xs font-bold bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200 px-2.5 py-1 rounded-full hover:bg-amber-400 hover:text-slate-950 transition-all border border-slate-200 dark:border-slate-700"
+                        className="text-[11px] font-bold bg-slate-100 text-slate-800 px-2.5 py-1 rounded-full hover:bg-amber-400 hover:text-slate-950 transition-all border border-slate-200"
                       >
                         {dest.name}
                       </Link>

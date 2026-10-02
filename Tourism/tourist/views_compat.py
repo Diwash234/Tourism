@@ -217,11 +217,6 @@ class NearbyHospitalsView(APIView):
                 "image_url": None,
             })
 
-        # Listing is gated on is_archived, not is_verified — the same rule
-        # build_emergency_directory() uses: a recorded facility that has not
-        # been re-verified yet must still appear in emergency results (the
-        # model default is_verified=False would hide every freshly imported
-        # row). Each payload row still carries is_verified for the UI badge.
         for h in Hospital.objects.filter(is_archived=False):
             d = haversine_distance(lat, lon, float(h.latitude), float(h.longitude))
             if d is None:
@@ -286,9 +281,6 @@ class NearbyPoliceView(APIView):
                 "image_url": None,
             })
 
-        # Same rule as hospitals: archived is the exclusion, verification is
-        # exposed per row (is_verified below) rather than used to hide the
-        # nearest recorded station.
         for p in PoliceStation.objects.filter(is_archived=False):
             d = haversine_distance(lat, lon, float(p.latitude), float(p.longitude))
             if d is None:
@@ -427,47 +419,6 @@ def _nearest_contacts_response(request, contact_type):
     return Response(_attach_emergency_routes(request, all_contacts, lat, lon))
 
 
-def _engine_route_fallback(start_lat, start_lon, end_lat, end_lon, transport_mode):
-    """Last-resort routing via navigation.route_engine when the ML chain is down.
-
-    The ML service is not part of the production container (ML_SERVICE_URL
-    points at localhost:8001 where nothing listens), and its graph fallback
-    needs the ml_service/ tree that the production image does not ship. When
-    that chain returns None - or answers with no drawable geometry - the
-    navigation route engine still always answers (OSRM -> bundled graph ->
-    straight line), with the source honestly labelled. Returns the legacy
-    response shape, or None when even the engine has nothing to offer.
-    """
-    from navigation.route_engine import cached_route
-
-    mode = "walking" if transport_mode == "walking / trek" else "driving"
-    # request=None: the legacy compat surface never had its own rate limit;
-    # responses still go through the engine's cache.
-    engine_route, _cached = cached_route(
-        (start_lat, start_lon), (end_lat, end_lon), mode, request=None)
-    route_dict = engine_route.get("route") or {}
-    coords = [
-        {"lat": float(point[0]), "lng": float(point[1])}
-        for point in (route_dict.get("geometry") or [])
-        if isinstance(point, (list, tuple)) and len(point) >= 2
-    ]
-    if not coords:
-        return None
-    distance_km = round(float(route_dict.get("distance_m") or 0) / 1000.0, 2)
-    duration_s = route_dict.get("duration_s")
-    return {
-        "distance_km": distance_km,
-        "duration_min": round(duration_s / 60) if duration_s else None,
-        "route": coords,
-        "steps": route_dict.get("steps") or [],
-        "routing_engine": str(route_dict.get("source") or ""),
-        "straight_line_km": round(
-            haversine_distance(start_lat, start_lon, end_lat, end_lon), 2),
-        "road_distance_km": distance_km if route_dict.get("source") == "osrm" else None,
-        "note": route_dict.get("note"),
-    }
-
-
 class NavigationRouteView(APIView):
     """
     POST /api/v1/navigation/route
@@ -488,37 +439,6 @@ class NavigationRouteView(APIView):
         return self._handle_route(request, request.data)
 
     def _handle_route(self, request, data):
-
-        # The modern payload nests coordinates:
-        #   {"start": {"latitude": .., "longitude": ..},
-        #    "destination": {"latitude": .., "longitude": ..}}
-        # Flatten them into the legacy coordinate keys BEFORE pick() runs.
-        # Otherwise pick("start")/pick("destination") return the nested DICT
-        # and the place-name resolution below (.lower(), Q(name__iexact=...))
-        # raises on it -> AttributeError -> 500 for the whole request
-        # (found live 2026-10-01: navigation 500 in production).
-        if hasattr(data, "keys"):
-            data = {key: data[key] for key in data.keys()}
-        for nested_key, lat_key, lon_key in (
-            ("start", "start_latitude", "start_longitude"),
-            ("destination", "end_latitude", "end_longitude"),
-        ):
-            nested = data.get(nested_key)
-            if not isinstance(nested, dict):
-                continue  # a plain string is a legacy place name - keep it
-            flat_lat = next((nested[k] for k in ("latitude", "lat")
-                             if nested.get(k) not in (None, "")), None)
-            flat_lon = next((nested[k] for k in ("longitude", "lng", "lon")
-                             if nested.get(k) not in (None, "")), None)
-            if flat_lat is not None:
-                data.setdefault(lat_key, flat_lat)
-            if flat_lon is not None:
-                data.setdefault(lon_key, flat_lon)
-            if flat_lat is None and flat_lon is None and isinstance(nested.get("name"), str):
-                name_key = "origin_name" if nested_key == "start" else "destination_name"
-                data.setdefault(name_key, nested["name"])
-            # A coordinates object is never a place name.
-            data[nested_key] = None
 
         def pick(*keys):
             for key in keys:
@@ -733,14 +653,6 @@ class NavigationRouteView(APIView):
             total_km, total_min, all_durations, engines = 0.0, 0.0, True, set()
             for idx in range(len(leg_points) - 1):
                 leg = get_ml_best_route(leg_points[idx][0], leg_points[idx][1], leg_points[idx + 1][0], leg_points[idx + 1][1], route_type=mode_route_type or "fastest")
-                if leg is None or (not leg.get("error") and not leg.get("route")):
-                    leg = (
-                        _engine_route_fallback(
-                            leg_points[idx][0], leg_points[idx][1],
-                            leg_points[idx + 1][0], leg_points[idx + 1][1],
-                            transport_mode)
-                        or leg
-                    )
                 if leg is None:
                     return Response({"detail": "Routing service is currently unavailable."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
                 if leg.get("error"):
@@ -775,15 +687,6 @@ class NavigationRouteView(APIView):
             }
         else:
             result = get_ml_best_route(start_lat, start_lon, end_lat, end_lon, route_type=mode_route_type or "fastest")
-            # ML service down (not in the production image) or an answer with
-            # no drawable geometry: fall back to the navigation route engine,
-            # which always answers with an honestly labelled route.
-            if result is None or (not result.get("error") and not result.get("route")):
-                result = (
-                    _engine_route_fallback(
-                        start_lat, start_lon, end_lat, end_lon, transport_mode)
-                    or result
-                )
         if result is None:
             return Response(
                 {"detail": "Routing service is currently unavailable."},

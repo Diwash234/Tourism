@@ -2,19 +2,45 @@ import { useState, useEffect, useRef } from "react"
 import PageHeader from "../components/common/PageHeader"
 import {
   FiHeadphones, FiMessageSquare, FiSend, FiCheckCircle, FiPhoneCall,
-  FiShield, FiUser, FiPlus, FiRefreshCw, FiLifeBuoy,
+  FiShield, FiUser, FiPlus, FiRefreshCw, FiLifeBuoy, FiHelpCircle,
+  FiChevronDown, FiSearch,
 } from "react-icons/fi"
 import Breadcrumbs from "../components/common/Breadcrumbs"
 import { ResponsiveContainer } from "../components/common/ResponsiveSystem"
 import axiosClient from "../api/axiosClient"
 import useToast from "../hooks/useToast"
 import useAuth from "../hooks/useAuth"
+import usePublicConfig from "../hooks/usePublicConfig"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
+
+const DEFAULT_FAQS = [
+  { id: 1, question: "Do I need a TIMS card and National Park permit?", answer: "Yes. Trekkers in all protected conservation areas require a TIMS (Trekkers' Information Management System) card and the relevant national park entry permit (such as ACAP for Annapurna or SNP for Sagarmatha).", category: "Permits", status: "published" },
+  { id: 2, question: "What is the best season to trek in Nepal?", answer: "Autumn (September to November) offers the clearest mountain views and stable weather. Spring (March to May) features blooming rhododendrons and warmer conditions.", category: "Seasons", status: "published" },
+  { id: 3, question: "How does the emergency SOS dispatch work on Nepal Yatra?", answer: "Clicking SOS in the emergency hub triggers your real GPS coordinates to the Tourist Police central control room (Hotline 1144) and alerts your saved trusted contacts.", category: "Safety", status: "published" },
+  { id: 4, question: "Can I convert foreign currencies at regional hubs?", answer: "Major international currencies (USD, EUR, GBP) are accepted at banks and licensed exchange counters in Kathmandu and Pokhara. In mountain teahouses, only Nepali Rupees (NPR) in cash are accepted.", category: "Money", status: "published" },
+]
 
 export default function CustomerSupport() {
   const { showToast } = useToast()
   const { user } = useAuth()
-  const [activeTab, setActiveTab] = useState("chat") // 'chat', 'himal', 'emergency'
+  const { settings } = usePublicConfig()
+  const [activeTab, setActiveTab] = useState("chat") // 'chat', 'himal', 'emergency', 'faqs'
+
+  // FAQs state
+  const [faqSearch, setFaqSearch] = useState("")
+  const [faqCategory, setFaqCategory] = useState("all")
+  const [expandedFaqId, setExpandedFaqId] = useState(1)
+
+  const rawFaqs = Array.isArray(settings?.cms_content_faqs) && settings.cms_content_faqs.length > 0
+    ? settings.cms_content_faqs
+    : DEFAULT_FAQS
+
+  const filteredFaqs = rawFaqs.filter(f => {
+    if (f.status && f.status !== "published") return false
+    const matchCat = faqCategory === "all" || (f.category || "").toLowerCase() === faqCategory.toLowerCase()
+    const matchText = !faqSearch || (f.question || "").toLowerCase().includes(faqSearch.toLowerCase()) || (f.answer || "").toLowerCase().includes(faqSearch.toLowerCase())
+    return matchCat && matchText
+  })
 
   // Live Chat state
   const [threads, setThreads] = useState([])
@@ -162,7 +188,7 @@ export default function CustomerSupport() {
             activeTab === "himal" ? "border-[var(--ny-green)] text-[var(--ny-green)]" : "border-transparent text-slate-500 hover:text-slate-800"
           }`}
         >
-          <FiHeadphones size={18} /> Himal AI Assistant
+          <FiHeadphones size={18} /> Himal Travel Assistant
         </button>
 
         <button
@@ -173,6 +199,21 @@ export default function CustomerSupport() {
           }`}
         >
           <FiPhoneCall size={18} /> Emergency directory
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("faqs")}
+          className={`min-w-max pb-3 px-5 font-bold text-sm sm:text-base flex items-center gap-2 border-b-2 transition-all ${
+            activeTab === "faqs" ? "border-[var(--ny-green)] text-[var(--ny-green)]" : "border-transparent text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          <FiHelpCircle size={18} /> FAQs & Answers
+          {filteredFaqs.length > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 text-xs font-black">
+              {filteredFaqs.length}
+            </span>
+          )}
         </button>
       </div>
 
@@ -211,7 +252,7 @@ export default function CustomerSupport() {
                 <div className="p-6 text-center text-slate-500 text-xs space-y-2">
                   <FiMessageSquare size={24} className="mx-auto text-slate-600" />
                   <p>No support tickets created yet.</p>
-                  <p className="text-xs text-slate-400">Click "Open New Support Ticket" to start a conversation with the support team.</p>
+                  <p className="text-[11px] text-slate-400">Click "Open New Support Ticket" to start a conversation with the support team.</p>
                 </div>
               ) : (
                 threads.map((thread) => {
@@ -237,8 +278,8 @@ export default function CustomerSupport() {
                           {thread.status}
                         </span>
                       </div>
-                      <p className="text-slate-400 text-xs line-clamp-1">{thread.message}</p>
-                      <div className="flex justify-between text-xs text-slate-500 pt-1">
+                      <p className="text-slate-400 text-[11px] line-clamp-1">{thread.message}</p>
+                      <div className="flex justify-between text-[10px] text-slate-500 pt-1">
                         <span>{thread.category}</span>
                         <span>{thread.messages?.length || 1} msg(s)</span>
                       </div>
@@ -272,7 +313,7 @@ export default function CustomerSupport() {
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-purple-400"
                   >
                     <option value="general">💬 General Traveler Support & Inquiries</option>
-                    <option value="trip_planner">🗺️ AI Trip Planner & Itinerary Help</option>
+                    <option value="trip_planner">🗺️ Itinerary Planner & Route Guidance</option>
                     <option value="booking">Hotel & booking support</option>
                     <option value="budget">💵 Budget & Expenditure Questions</option>
                     <option value="risk">⚠️ Safety & Transport Alerts</option>
@@ -322,7 +363,7 @@ export default function CustomerSupport() {
                 {/* Thread Header */}
                 <div className="flex justify-between items-center border-b border-slate-800 pb-3">
                   <div>
-                    <span className="text-xs uppercase font-bold text-purple-400 tracking-wider">
+                    <span className="text-[10px] uppercase font-bold text-purple-400 tracking-wider">
                       Ticket #{selectedThread.id} · {selectedThread.category}
                     </span>
                     <h2 className="text-lg font-black text-white">{selectedThread.subject}</h2>
@@ -342,7 +383,7 @@ export default function CustomerSupport() {
                       <FiUser size={14} /> {selectedThread.name || selectedThread.email || "You"} (Ticket Opener)
                     </div>
                     <p className="leading-relaxed">{selectedThread.message}</p>
-                    <span className="text-xs text-amber-400/60 block text-right mt-1">
+                    <span className="text-[10px] text-amber-400/60 block text-right mt-1">
                       {new Date(selectedThread.created_at).toLocaleString()}
                     </span>
                   </div>
@@ -359,7 +400,7 @@ export default function CustomerSupport() {
                             : "bg-emerald-950/90 border border-emerald-700/60 text-emerald-100 self-end ml-auto"
                         }`}
                       >
-                        <div className="font-bold text-xs flex items-center gap-1.5">
+                        <div className="font-bold text-[11px] flex items-center gap-1.5">
                           {isAdmin ? <FiShield size={14} className="text-purple-300" /> : <FiUser size={14} className="text-emerald-300" />}
                           <span className={isAdmin ? "text-purple-300" : "text-emerald-300"}>
                             {msg.sender}
@@ -414,7 +455,7 @@ export default function CustomerSupport() {
         </div>
       )}
 
-      {/* Tab 2: Himal AI Assistant */}
+      {/* Tab 2: Himal Travel Assistant */}
       {activeTab === "himal" && (
         <div className="p-8 rounded-3xl bg-white border border-slate-200/80 shadow-sm space-y-6">
           <div className="flex items-center gap-3">
@@ -422,19 +463,19 @@ export default function CustomerSupport() {
               <FiHeadphones size={28} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900">Travel assistant</h2>
-              <p className="text-xs text-slate-600">Use the assistant to discover recorded places and plan a route. It is not an emergency dispatch service.</p>
+              <h2 className="text-xl font-bold text-slate-900">Himal Travel Assistant (हिमाल ट्राभल सहयोगी)</h2>
+              <p className="text-xs text-slate-600">Explore authentic destinations, plan your route, and learn mountain customs. Not an emergency dispatch service.</p>
             </div>
           </div>
           <div className="p-6 rounded-2xl bg-slate-950 text-white space-y-4">
             <p className="text-sm text-slate-300 leading-relaxed">
-              The assistant can help you discover destinations, compare recorded details and shape an itinerary. Check the linked records for current operational information.
+              Your digital local guide for Nepal. Ask about trekking permits, best seasonal travel windows, teahouse dining etiquette, and bus vs flight connections.
             </p>
             <a
               href="/chatbot"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm shadow"
             >
-              <FiSend size={16} /> Open Himal AI Chat Room ➔
+              <FiSend size={16} /> Open Himal Travel Guide ➔
             </a>
           </div>
         </div>
@@ -474,6 +515,118 @@ export default function CustomerSupport() {
             <a href="/emergency" className="block text-center py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow">
               View emergency directory
             </a>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 4: Frequently Asked Questions (Live CMS-managed) */}
+      {activeTab === "faqs" && (
+        <div className="space-y-6">
+          {/* Header & Controls */}
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-white dark:bg-[#0E1E1B] p-4 rounded-2xl border border-slate-200 dark:border-emerald-900/40 shadow-sm">
+            {/* Search Input */}
+            <div className="relative flex-1">
+              <FiSearch className="absolute left-3.5 top-3 text-slate-400" size={16} />
+              <input
+                type="text"
+                value={faqSearch}
+                onChange={(e) => setFaqSearch(e.target.value)}
+                placeholder="Search questions or answers (e.g., permits, seasons, currency)..."
+                className="w-full pl-10 pr-4 py-2 rounded-xl text-sm bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-[var(--ny-green)]"
+              />
+            </div>
+
+            {/* Category Filter Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+              {["all", "Permits", "Seasons", "Safety", "Money"].map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setFaqCategory(cat)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                    faqCategory.toLowerCase() === cat.toLowerCase()
+                      ? "bg-[var(--ny-green)] text-white shadow"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  {cat === "all" ? "All Questions" : cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Accordion FAQ List */}
+          {filteredFaqs.length > 0 ? (
+            <div className="space-y-3">
+              {filteredFaqs.map((faq) => {
+                const isExpanded = expandedFaqId === faq.id
+                return (
+                  <div
+                    key={faq.id}
+                    className="overflow-hidden rounded-2xl border border-slate-200 dark:border-emerald-900/40 bg-white dark:bg-[#0E1E1B] shadow-sm transition-all"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setExpandedFaqId(isExpanded ? null : faq.id)}
+                      className="w-full flex items-center justify-between p-5 text-left font-bold text-slate-900 dark:text-white text-base hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                      aria-expanded={isExpanded}
+                    >
+                      <div className="flex items-center gap-3 pr-4">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-black">
+                          Q
+                        </span>
+                        <span>{faq.question}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {faq.category && (
+                          <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] font-semibold">
+                            {faq.category}
+                          </span>
+                        )}
+                        <FiChevronDown
+                          size={18}
+                          className={`text-slate-400 transition-transform duration-200 ${
+                            isExpanded ? "rotate-180 text-[var(--ny-green)]" : ""
+                          }`}
+                        />
+                      </div>
+                    </button>
+
+                    {isExpanded && (
+                      <div className="px-5 pb-5 pt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-300 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/20">
+                        <p>{faq.answer}</p>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="p-8 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-900/30">
+              <FiHelpCircle size={32} className="mx-auto text-slate-400 mb-2" />
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">No matching questions found</p>
+              <p className="text-xs text-slate-500 mt-1">Try searching for other terms or choose "All Questions".</p>
+            </div>
+          )}
+
+          {/* Need More Help Prompt */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-emerald-900/30 via-teal-900/20 to-emerald-950/40 border border-emerald-800/30 text-slate-900 dark:text-white">
+            <div>
+              <h4 className="font-bold text-sm">Cannot find what you are looking for?</h4>
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                Our support coordinators and certified guides are ready to assist with your specific travel needs.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab("chat")
+                setShowNewTicketForm(true)
+              }}
+              className="px-4 py-2 rounded-xl bg-[var(--ny-green)] hover:bg-[var(--ny-green-dark)] text-white text-xs font-bold shrink-0 transition-colors shadow"
+            >
+              Open Support Ticket
+            </button>
           </div>
         </div>
       )}

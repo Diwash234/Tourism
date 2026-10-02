@@ -96,9 +96,9 @@ const MapillaryImages = ({ latitude, longitude, radiusM = 400, limit = 6 }) => {
 
   return (
     <div className="space-y-2">
-      <p className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
+      <p className="flex items-center justify-between text-xs font-bold text-slate-700">
         <span className="flex items-center gap-1.5"><FiCamera className="text-blue-600" /> Street-Level & Corridor Views</span>
-        <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">Nepal Transit Imagery</span>
+        <span className="text-[10px] text-slate-400 font-mono">Nepal Transit Imagery</span>
       </p>
       {!itemsToDisplay.length ? <EmptyState title="Street-level imagery unavailable" subtitle="No recorded imagery was returned for this location." /> : <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {itemsToDisplay.map((img, idx) => (

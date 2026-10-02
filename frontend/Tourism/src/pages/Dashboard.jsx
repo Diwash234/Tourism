@@ -1,6 +1,30 @@
 import { useEffect, useState } from "react"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
-import { FiMapPin, FiHeart, FiUpload, FiSearch, FiImage, FiTrendingUp, FiX, FiCalendar, FiDollarSign, FiCompass, FiStar, FiShield, FiPlus, FiSliders, FiTag, FiAlertTriangle, FiZap } from "react-icons/fi"
+import {
+  FiMapPin,
+  FiHeart,
+  FiUpload,
+  FiSearch,
+  FiImage,
+  FiTrendingUp,
+  FiX,
+  FiCalendar,
+  FiDollarSign,
+  FiCompass,
+  FiSettings,
+  FiStar,
+  FiShield,
+  FiPlus,
+  FiEdit3,
+  FiCheckCircle,
+  FiClock,
+  FiSliders,
+  FiTag,
+  FiAlertTriangle,
+  FiZap,
+  FiRefreshCw,
+  FiShare2,
+} from "react-icons/fi"
 
 import useAuth from "../hooks/useAuth"
 import useGeolocation from "../hooks/useGeolocation"
@@ -100,7 +124,7 @@ const Dashboard = () => {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false)
   const [showReportErrorModal, setShowReportErrorModal] = useState(false)
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false)
-  const [reportTargetDest, _setReportTargetDest] = useState(null)
+  const [reportTargetDest, setReportTargetDest] = useState(null)
 
   // Preferences Form State
   const [preferencesForm, setPreferencesForm] = useState({
@@ -121,7 +145,7 @@ const Dashboard = () => {
   const [file, setFile] = useState(null)
   const [caption, setCaption] = useState("")
   const [status, setStatus] = useState("")
-  const [_myPhotos, setMyPhotos] = useState([])
+  const [myPhotos, setMyPhotos] = useState([])
 
   const loadDashboardData = async () => {
     try {
@@ -217,7 +241,7 @@ const Dashboard = () => {
 
     setModifyingPlan(true)
     try {
-      const { data: _data } = await axiosClient.post("/ml/itinerary/modify/", {
+      const { data } = await axiosClient.post("/ml/itinerary/modify/", {
         plan_id: targetPlan.id,
         action: actionPrompt,
         itinerary: targetPlan.itinerary_data || targetPlan,
@@ -343,7 +367,7 @@ const Dashboard = () => {
                 />
               </div>
               <button type="submit" className="btn-gradient flex items-center justify-center gap-2 whitespace-nowrap text-xs font-bold py-3 px-5">
-                <FiSearch size={14} /> AI Search
+                <FiSearch size={14} /> Search Nepal
               </button>
             </form>
           </div>
@@ -352,7 +376,7 @@ const Dashboard = () => {
           <div className="shrink-0 bg-white/10 backdrop-blur border border-white/20 p-5 rounded-2xl space-y-3 min-w-[260px]">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black uppercase tracking-wider text-amber-300">Local weather</span>
-              <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/30 text-emerald-200 font-bold">Location active</span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/30 text-emerald-200 font-bold">Location active</span>
             </div>
             <div className="flex items-center gap-3">
               <span className="text-3xl font-black text-white">
@@ -360,10 +384,10 @@ const Dashboard = () => {
               </span>
               <div>
                 <p className="text-xs font-bold text-white capitalize">{weather?.description || weather?.condition || "Weather unavailable"}</p>
-                <p className="text-xs text-slate-300">{weather?.location || (locationError ? "Location unavailable" : "Enable location for local details")}</p>
+                <p className="text-[11px] text-slate-300">{weather?.location || (locationError ? "Location unavailable" : "Enable location for local details")}</p>
               </div>
             </div>
-            <div className="pt-2 border-t border-white/15 flex items-center justify-between text-xs text-slate-200">
+            <div className="pt-2 border-t border-white/15 flex items-center justify-between text-[11px] text-slate-200">
               <span>Alert activity: <b className="text-emerald-300">{scoreFromAlerts(alerts) != null ? `${scoreFromAlerts(alerts)}/100` : "unavailable"}</b></span>
               <Link to="/risk-alerts" className="text-amber-300 font-bold hover:underline">View Alerts</Link>
             </div>
@@ -378,7 +402,7 @@ const Dashboard = () => {
             <FiCalendar size={22} />
           </div>
           <div>
-            <p className="text-xs text-slate-500 font-bold uppercase">Planned Trips</p>
+            <p className="text-[11px] text-slate-500 font-bold uppercase">Planned Trips</p>
             <p className="text-2xl font-black text-slate-900">{travelPlans.length}</p>
           </div>
         </div>
@@ -388,7 +412,7 @@ const Dashboard = () => {
             <FiTag size={22} />
           </div>
           <div>
-            <p className="text-xs text-slate-500 font-bold uppercase">Active Bookings</p>
+            <p className="text-[11px] text-slate-500 font-bold uppercase">Active Bookings</p>
             <p className="text-2xl font-black text-slate-900">{activeBookingsCount}</p>
           </div>
         </div>
@@ -398,7 +422,7 @@ const Dashboard = () => {
             <FiHeart size={22} />
           </div>
           <div>
-            <p className="text-xs text-slate-500 font-bold uppercase">Saved Places</p>
+            <p className="text-[11px] text-slate-500 font-bold uppercase">Saved Places</p>
             <p className="text-2xl font-black text-slate-900">{favorites.length}</p>
           </div>
         </div>
@@ -408,7 +432,7 @@ const Dashboard = () => {
             <FiDollarSign size={22} />
           </div>
           <div>
-            <p className="text-xs text-slate-500 font-bold uppercase">Spent (NPR)</p>
+            <p className="text-[11px] text-slate-500 font-bold uppercase">Spent (NPR)</p>
             <p className="text-2xl font-black text-slate-900">{totalSpentNpr.toLocaleString()}</p>
           </div>
         </div>
@@ -418,7 +442,7 @@ const Dashboard = () => {
             <FiShield size={22} />
           </div>
           <div>
-            <p className="text-xs text-slate-500 font-bold uppercase">Sentinel Contrib</p>
+            <p className="text-[11px] text-slate-500 font-bold uppercase">Sentinel Contrib</p>
             <p className="text-2xl font-black text-slate-900">{userReports.length} <span className="text-xs font-normal text-slate-500">reports</span></p>
           </div>
         </div>
@@ -465,7 +489,7 @@ const Dashboard = () => {
                 <Icon size={14} />
                 <span>{tab.label}</span>
                 {tab.count != null && tab.count > 0 && (
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-black ${
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
                     active ? "bg-amber-400 text-slate-950" : "bg-slate-200 text-slate-800"
                   }`}>
                     {tab.count}
@@ -483,7 +507,7 @@ const Dashboard = () => {
           {/* Quick Action Bar */}
           <div className="bg-gradient-to-r from-emerald-900 via-slate-900 to-slate-950 text-white p-6 rounded-3xl border border-emerald-800/40 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <span className="px-3 py-1 rounded-full bg-emerald-600/20 text-emerald-300 text-xs font-black uppercase tracking-wider">
+              <span className="px-3 py-1 rounded-full bg-emerald-600/20 text-emerald-300 text-[10px] font-black uppercase tracking-wider">
                 Interactive Traveler Services
               </span>
               <h2 className="text-xl font-black mt-1">Ready to Explore or Personalize Your Next Trip?</h2>
@@ -522,7 +546,7 @@ const Dashboard = () => {
             <div className="bg-gradient-to-br from-emerald-900 via-slate-900 to-slate-950 text-white p-6 rounded-3xl border border-emerald-700/50 shadow-xl space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <span className="px-3 py-0.5 rounded-full bg-emerald-400 text-slate-950 text-xs font-black uppercase">
+                  <span className="px-3 py-0.5 rounded-full bg-emerald-400 text-slate-950 text-[10px] font-black uppercase">
                     Active Travel Plan
                   </span>
                   <h3 className="text-xl font-black text-white mt-1">
@@ -594,7 +618,7 @@ const Dashboard = () => {
                   ))}
                 </div>
               ) : (
-                <EmptyState title="No recommendations yet" subtitle="Explore destinations to receive personalized AI recommendations." />
+                <EmptyState title="No recommendations yet" subtitle="Explore destinations to receive personalized suggestions based on your travel interests." />
               )}
             </section>
           )}
@@ -673,17 +697,17 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* TAB 2: MY TRIPS & AI REPLANNER */}
+      {/* TAB 2: MY TRIPS & ROUTE ADAPTER */}
       {activeTab === "itineraries" && (
         <div className="space-y-6">
           <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h2 className="section-title flex items-center gap-2">
-                  <FiCalendar className="text-blue-700" /> My saved travel plans & replanner
+                  <FiCalendar className="text-blue-700" /> My saved travel plans & route adapter
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Read, review, and modify your custom Nepal itineraries with 1-click AI actions.
+                  Read, review, and adapt your custom Nepal itineraries with instant schedule adjustments.
                 </p>
               </div>
 
@@ -695,19 +719,19 @@ const Dashboard = () => {
               </Link>
             </div>
 
-            {/* AI Modification Toolbar */}
+            {/* Route Adaptation Toolbar */}
             <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-900 to-slate-900 text-white space-y-3">
               <p className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
-                <FiZap /> Quick itinerary actions (applied to the selected plan):
+                <FiZap /> Quick itinerary adaptations (applied to the selected plan):
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 {[
-                  { prompt: "Make it cheaper", label: "Make it more affordable" },
-                  { prompt: "Make it luxurious", label: "✨ Make It Luxurious" },
+                  { prompt: "Make it cheaper", label: "Budget-Friendly (कम खर्च)" },
+                  { prompt: "Make it luxurious", label: "✨ Extra Comfort & Boutique" },
                   { prompt: "Add culture", label: "🎨 Add Cultural Heritage" },
                   { prompt: "Add hidden nature", label: "🌿 Add Nature & Views" },
-                  { prompt: "Slow down pace", label: "🧘 Slow Down Pace" },
-                  { prompt: "🌦️ Weather / Impact Replan", label: "🌦️ Weather Impact Replan" },
+                  { prompt: "Slow down pace", label: "🧘 Gentle Rest & Acclimatization" },
+                  { prompt: "🌦️ Weather / Impact Replan", label: "🌦️ Trail & Weather Adapt" },
                 ].map((act, i) => (
                   <button
                     key={i}
@@ -725,7 +749,7 @@ const Dashboard = () => {
             {travelPlans.length === 0 ? (
               <EmptyState
                 title="No saved travel plans yet"
-                subtitle="Use our AI Trip Planner to build and save custom Nepal itineraries."
+                subtitle="Use our Itinerary Planner to build and save custom Nepal itineraries."
               />
             ) : (
               <div className="space-y-4">
@@ -742,7 +766,7 @@ const Dashboard = () => {
                       <div>
                         <div className="flex items-center gap-2">
                           {planStyle(plan) && (
-                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black uppercase">
+                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">
                               {planStyle(plan)}
                             </span>
                           )}
@@ -838,7 +862,7 @@ const Dashboard = () => {
                   <div key={b.id} className="p-5 rounded-2xl border border-slate-200 bg-white shadow-sm space-y-3">
                     <div className="flex items-start justify-between">
                       <div>
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase ${
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
                           b.status === "confirmed"
                             ? "bg-emerald-100 text-emerald-800"
                             : b.status === "pending"
@@ -1021,7 +1045,7 @@ const Dashboard = () => {
                   <div key={rep.id} className="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-between gap-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase ${
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
                           rep.status === "fixed"
                             ? "bg-emerald-100 text-emerald-800"
                             : rep.status === "new"
@@ -1037,7 +1061,7 @@ const Dashboard = () => {
                       <p className="text-xs text-slate-600">{rep.description || rep.suggested_value || "Reported venue discrepancy."}</p>
                     </div>
 
-                    <span className="text-xs text-slate-400 font-mono shrink-0">
+                    <span className="text-[10px] text-slate-400 font-mono shrink-0">
                       Report #{rep.id}
                     </span>
                   </div>

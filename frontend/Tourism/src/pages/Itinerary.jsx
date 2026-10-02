@@ -18,6 +18,8 @@ import {
   FiSliders,
   FiPlus,
   FiTrash2,
+  FiActivity,
+  FiCheckSquare,
 } from "react-icons/fi"
 
 import itineraryApi from "../api/itineraryApi"
@@ -26,18 +28,25 @@ import axiosClient from "../api/axiosClient"
 import { formatDistance, formatDuration } from "../utils/formatDistance"
 import useToast from "../hooks/useToast"
 import TripReadinessPanel from "../components/itinerary/TripReadinessPanel"
+import CuratedItineraryShowcase from "../components/itinerary/CuratedItineraryShowcase"
+import AltitudeSafetyModal from "../components/itinerary/AltitudeSafetyModal"
+import CostBreakdownModal from "../components/itinerary/CostBreakdownModal"
+import PackingChecklistModal from "../components/itinerary/PackingChecklistModal"
+import LocalTrailSecrets from "../components/itinerary/LocalTrailSecrets"
+import PrintableTravelBrief from "../components/itinerary/PrintableTravelBrief"
+import TippingAndCurrencyGuide from "../components/itinerary/TippingAndCurrencyGuide"
 import { NATIONALITY_OPTIONS } from "../utils/currency"
 
 
 const NOTE_CATEGORIES = ["Hotel", "Transport", "Food", "Activity", "Other"]
 
 const AI_MODIFICATIONS = [
-  ["cheaper", "Make it more affordable"],
-  ["luxurious", "Add more comfort"],
-  ["more_culture", "Add more culture"],
-  ["more_nature", "Add more nature"],
-  ["slower_pace", "Slow the pace"],
-  ["replan", "Replan around conditions"],
+  ["cheaper", "Budget-Friendly (कम खर्च)"],
+  ["luxurious", "Extra Comfort & Boutique (आरामदायी)"],
+  ["more_culture", "Deep Cultural Heritage (संस्कृति)"],
+  ["more_nature", "Scenic Viewpoints (प्रकृति दृश्य)"],
+  ["slower_pace", "Gentle Acclimatization (सुस्त गति)"],
+  ["replan", "Trail & Weather Adapt (मौसम अनुकूल)"],
 ]
 
 
@@ -169,6 +178,12 @@ const Itinerary = () => {
   const focusDestination = (searchParams.get("dest") || "").replace(/[-_]/g, " ").trim()
 
   const [modifying, setModifying] = useState(false)
+  const [showSafetyModal, setShowSafetyModal] = useState(false)
+  const [showCostModal, setShowCostModal] = useState(false)
+  const [showPackingModal, setShowPackingModal] = useState(false)
+  const [showSecretsModal, setShowSecretsModal] = useState(false)
+  const [showPrintModal, setShowPrintModal] = useState(false)
+  const [showTippingModal, setShowTippingModal] = useState(false)
   const [notes, setNotes] = useState([])
   const [noteForm, setNoteForm] = useState({ category: "Hotel", label: "", amount: "" })
 
@@ -181,7 +196,7 @@ const Itinerary = () => {
     try {
       const { data } = await axiosClient.post("/ml/itinerary/modify/", { action, itinerary_data: plan })
       setPlan((prev) => ({ ...prev, itinerary: data.itinerary || prev.itinerary, total_estimated_npr: null, total_estimated_usd: null, per_person_npr: null, per_person_usd: null, fits_budget: null, modificationNote: data.modification_note }))
-      showToast(data.modification_note || `AI modification applied: ${action}`, "success")
+      showToast(data.modification_note || "Route customized successfully", "success")
     } catch {
       showToast("Could not modify itinerary.", "error")
     } finally {
@@ -205,6 +220,21 @@ const Itinerary = () => {
       ...patch
     }))
 
+  }
+
+  const handleSelectCuratedPlan = (curatedPlan) => {
+    const updatedForm = {
+      ...form,
+      days: curatedPlan.days || form.days,
+      travelers: curatedPlan.travelers || form.travelers,
+      nationality: curatedPlan.nationality || form.nationality,
+      start_city: curatedPlan.itinerary?.[0]?.city || curatedPlan.itinerary?.[0]?.destinations?.[0]?.city || form.start_city,
+      budget_npr: curatedPlan.total_estimated_npr || form.budget_npr,
+    }
+    setForm(updatedForm)
+    setPlan(enrichPlanBudget(curatedPlan, updatedForm))
+    setGeneratedKey(planKey(updatedForm))
+    setError("")
   }
 
   const [savedPlan, setSavedPlan] = useState(null)
@@ -429,7 +459,8 @@ const Itinerary = () => {
       <PageHeader title="Itinerary Planner" subtitle={<>Tell us your days, budget and interests, then press Generate. Plans include
         altitude checks, official permits & fees and a trip-readiness checklist.</>} icon={ FiCalendar } />
 
-
+      {/* Curated Signature Master Itineraries Showcase */}
+      <CuratedItineraryShowcase onSelectPlan={handleSelectCuratedPlan} currentNationality={form.nationality} />
 
       {/* Controls */}
 
@@ -943,6 +974,48 @@ const Itinerary = () => {
         )}
       </div>
 
+      {/* Dual Persona Guidance Banner */}
+      <div className="mb-6 rounded-2xl border border-slate-200/80 bg-slate-50/50 p-4 shadow-2xs">
+        {form.nationality === "nepali" ? (
+          <div className="flex items-start gap-3">
+            <span className="text-2xl" aria-hidden="true">🇳🇵</span>
+            <div>
+              <p className="font-bold text-emerald-950 text-sm">
+                नेपाली आन्तरिक पर्यटक योजना (Nepalese Domestic Explorer Mode)
+              </p>
+              <p className="mt-1 text-xs text-slate-700 leading-relaxed">
+                नेपाली नागरिकका लागि कुनै TIMS कार्ड वा विदेशी निकुञ्ज परमिट चाहिँदैन। केवल सामान्य मन्दिर, पालिका तथा स्थानीय शुल्क (रु. २५ - रु. १५०) मात्र लाग्नेछ। स्थानीय डिलक्स बस, स्कोर्पियो जीप तथा रैथाने खानाका सिफारिसहरू उपलब्ध छन्।
+              </p>
+            </div>
+          </div>
+        ) : form.nationality === "saarc" ? (
+          <div className="flex items-start gap-3">
+            <span className="text-2xl" aria-hidden="true">🏛️</span>
+            <div>
+              <p className="font-bold text-blue-950 text-sm">
+                SAARC National Explorer (सार्क देशहरूका नागरिकहरू)
+              </p>
+              <p className="mt-1 text-xs text-slate-700 leading-relaxed">
+                Concessional entry rates (50% to 70% discount) apply across UNESCO World Heritage sites, National Parks, and Conservation Areas. Please ensure you carry your valid SAARC passport or government photo ID.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-start gap-3">
+            <span className="text-2xl" aria-hidden="true">🌍</span>
+            <div>
+              <p className="font-bold text-slate-900 text-sm">
+                International Visitor Planning Mode (विदेशी पर्यटक)
+              </p>
+              <p className="mt-1 text-xs text-slate-700 leading-relaxed">
+                Official TIMS Cards (NPR 2,000 / $20) and Conservation Area / National Park permits (Sagarmatha, ACAP, Langtang) are automatically calculated. Certified licensed trekking guides are required on declared mountain routes under NTB regulations.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div id="itinerary-plan-results" className="scroll-mt-6">
       {
         loading && (
 
@@ -972,32 +1045,99 @@ const Itinerary = () => {
       }
       {plan && !error && <TripReadinessPanel plan={plan} />}
 
-            {/* AI Itinerary Refinement + Trip Cost Notepad (merged from TripPlanner) */}
+      {plan && !error && (plan.cost_breakdown || plan.altitude_safety || plan.packing_checklist_detailed) && (
+        <div className="flex flex-wrap gap-2.5 my-4">
+          {plan.cost_breakdown && (
+            <button
+              type="button"
+              onClick={() => setShowCostModal(true)}
+              className="ny-btn ny-btn-secondary text-xs flex items-center gap-1.5 py-2 px-3.5 rounded-xl border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 font-bold shadow-2xs"
+            >
+              <FiDollarSign size={14} className="text-emerald-700" />
+              <span>Itemized Cost Schedule (NPR {plan.cost_breakdown.total_npr?.toLocaleString()})</span>
+            </button>
+          )}
+          {plan.altitude_safety && (
+            <button
+              type="button"
+              onClick={() => setShowSafetyModal(true)}
+              className="ny-btn ny-btn-secondary text-xs flex items-center gap-1.5 py-2 px-3.5 rounded-xl border-rose-300 bg-rose-50 text-rose-900 hover:bg-rose-100 font-bold shadow-2xs"
+            >
+              <FiActivity size={14} className="text-rose-700" />
+              <span>AMS & High-Altitude Safety Guide ({plan.altitude_safety.max_elevation_m}m)</span>
+            </button>
+          )}
+          {plan.packing_checklist_detailed && (
+            <button
+              type="button"
+              onClick={() => setShowPackingModal(true)}
+              className="ny-btn ny-btn-secondary text-xs flex items-center gap-1.5 py-2 px-3.5 rounded-xl border-blue-300 bg-blue-50 text-blue-900 hover:bg-blue-100 font-bold shadow-2xs"
+            >
+              <FiCheckSquare size={14} className="text-blue-700" />
+              <span>Gear Checklist ({plan.packing_checklist_detailed.total_items} items)</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setShowSecretsModal(true)}
+            className="ny-btn ny-btn-secondary text-xs flex items-center gap-1.5 py-2 px-3.5 rounded-xl border-amber-300 bg-amber-50 text-amber-950 hover:bg-amber-100 font-bold shadow-2xs"
+          >
+            <span>🏔️</span>
+            <span>Trail Secrets & Etiquette (स्थानीय संस्कार)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowTippingModal(true)}
+            className="ny-btn ny-btn-secondary text-xs flex items-center gap-1.5 py-2 px-3.5 rounded-xl border-teal-300 bg-teal-50 text-teal-950 hover:bg-teal-100 font-bold shadow-2xs"
+          >
+            <span>💵</span>
+            <span>Tipping & Mountain Cash (टिपिङ र नगद)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowPrintModal(true)}
+            className="ny-btn ny-btn-secondary text-xs flex items-center gap-1.5 py-2 px-3.5 rounded-xl border-slate-300 bg-slate-100 text-slate-900 hover:bg-slate-200 font-bold shadow-2xs"
+          >
+            <span>🖨️</span>
+            <span>Printable Field Dossier (अफलाइन गाइड)</span>
+          </button>
+        </div>
+      )}
+
+      {/* Route Adaptation & Journey Customizer + Trip Cost Notepad */}
       {
         plan && !error && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
             <div className="card-base p-5 space-y-3">
               <div className="flex justify-between items-center text-xs font-bold text-gray-800">
-                <span className="flex items-center gap-1.5"><FiSliders className="text-amber-500" /> AI Itinerary Refinement</span>
-                {modifying && <span className="text-emerald-600 animate-pulse">Modifying plan…</span>}
+                <span className="flex items-center gap-1.5">
+                  <FiSliders className="text-amber-500" /> Route Adaptation & Journey Customizer (यात्रा अनुकूलन)
+                </span>
+                {modifying && <span className="text-emerald-600 animate-pulse">Adapting journey schedule…</span>}
               </div>
+              <p className="text-[11px] text-slate-500">
+                Tailor this route dynamically according to your pace, preferences, and Himalayan trail conditions:
+              </p>
               <div className="flex flex-wrap gap-1.5 text-xs">
                 {AI_MODIFICATIONS.map(([act, label]) => (
                   <button
                     key={act}
                     disabled={modifying}
                     onClick={() => handleApplyAIModification(act)}
-                    className="min-h-11 rounded-xl border border-[var(--ny-border)] bg-white px-2.5 py-2 text-gray-800 font-bold transition hover:border-[var(--ny-green)] hover:bg-[var(--ny-soft-green)]"
+                    className="min-h-10 rounded-xl border border-[var(--ny-border)] bg-white px-3 py-1.5 text-gray-800 font-bold transition hover:border-[var(--ny-green)] hover:bg-[var(--ny-soft-green)]"
                   >
                     {label}
                   </button>
                 ))}
               </div>
               {plan.modificationNote && (
-                <p className="text-xs text-emerald-700 font-bold bg-emerald-50 p-2 rounded-xl border border-emerald-200">✓ {plan.modificationNote}</p>
+                <p className="text-[11px] text-emerald-700 font-bold bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">✓ {plan.modificationNote}</p>
               )}
               {focusDestination && (
-                <p className="text-xs text-himalaya-600 font-bold bg-himalaya-50 p-2 rounded-xl border border-himalaya-100">🎯 Planning focus: {focusDestination}</p>
+                <p className="text-[11px] text-himalaya-600 font-bold bg-himalaya-50 p-2.5 rounded-xl border border-himalaya-100">🎯 Planning focus: {focusDestination}</p>
               )}
             </div>
 
@@ -1021,7 +1161,7 @@ const Itinerary = () => {
                   {notes.map((n) => (
                     <div key={n.id} className="flex items-center justify-between border-b border-gray-100 pb-2">
                       <div className="min-w-0">
-                        <span className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase">{n.category}</span>
+                        <span className="text-[10px] text-gray-400 font-bold uppercase">{n.category}</span>
                         <p className="font-bold text-gray-800 truncate">{n.label}</p>
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
@@ -1416,7 +1556,7 @@ const Itinerary = () => {
                         >
 
 
-                          <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                          <span className="text-[10px] uppercase tracking-wide text-gray-400">
 
                             {dest.category}
 
@@ -1436,7 +1576,7 @@ const Itinerary = () => {
                           {
                             dest.latitude && dest.longitude && (
 
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              <p className="text-[11px] text-gray-400 mt-1">
 
                                 {dest.latitude.toFixed(4)},
                                 {" "}
@@ -1457,10 +1597,30 @@ const Itinerary = () => {
 
                   </div>
 
-                  {/* Hotels, hospitals, police, ATMs and pharmacies are planning
-                      resources, not itinerary stops. They remain available through
-                      the trip-readiness/emergency tools and are intentionally not
-                      rendered as Day 1/Day 2 visit cards. */}
+                  {day.nearby_services && (
+                    <div className="mt-5 pt-4 border-t">
+                      <h4 className="text-xs font-black uppercase tracking-wide text-gray-500 mb-3">Nearby planning & emergency services</h4>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        {[
+                          ["Stay", day.nearby_services.hotels],
+                          ["Hospital", day.nearby_services.hospitals],
+                          ["Police", day.nearby_services.police],
+                          ["🏦 Essentials", day.nearby_services.essentials],
+                        ].map(([label, services]) => (
+                          <div key={label} className="rounded-xl bg-gray-50 p-3">
+                            <b className="text-xs">{label}</b>
+                            {(services || []).length ? services.map((service) => (
+                              <div key={`${label}-${service.id}`} className="mt-2 text-[11px] text-gray-600">
+                                <span className="font-semibold block truncate">{service.name}</span>
+                                <span>{service.distance_km} km straight-line{service.phone ? ` · ${service.phone}` : ""}</span>
+                                <VerificationBadge record={service} compact className="mt-1" />
+                              </div>
+                            )) : <p className="text-[11px] text-gray-500 mt-2">No record nearby in our database</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                 </motion.div>
 
@@ -1495,9 +1655,58 @@ const Itinerary = () => {
         )
       }
 
+      </div>
 
+      {/* Altitude Safety & Lake Louise Modal */}
+      <AltitudeSafetyModal
+        isOpen={showSafetyModal}
+        onClose={() => setShowSafetyModal(false)}
+        safetyData={plan?.altitude_safety}
+        title={plan?.title}
+      />
 
+      {/* Itemized Cost Breakdown Modal */}
+      <CostBreakdownModal
+        isOpen={showCostModal}
+        onClose={() => setShowCostModal(false)}
+        costData={plan?.cost_breakdown}
+        title={plan?.title}
+        currentParams={{
+          nationality: plan?.nationality || form.nationality,
+          style: "standard",
+          travelers: plan?.travelers || form.travelers,
+        }}
+      />
 
+      {/* Gear & Packing Checklist Modal */}
+      <PackingChecklistModal
+        isOpen={showPackingModal}
+        onClose={() => setShowPackingModal(false)}
+        packingData={plan?.packing_checklist_detailed}
+        title={plan?.title}
+        slug={plan?.slug || plan?.title?.toLowerCase()?.replace(/\s+/g, "-")}
+      />
+
+      {/* Local Trail Secrets & Mountain Wisdom Modal */}
+      <LocalTrailSecrets
+        isOpen={showSecretsModal}
+        onClose={() => setShowSecretsModal(false)}
+      />
+
+      {/* Guide & Porter Tipping and Currency Guide Modal */}
+      <TippingAndCurrencyGuide
+        isOpen={showTippingModal}
+        onClose={() => setShowTippingModal(false)}
+        defaultDays={plan?.days || form.days}
+        defaultTravelers={plan?.travelers || form.travelers}
+      />
+
+      {/* Printable Travel Brief & SOS Medical Card */}
+      <PrintableTravelBrief
+        isOpen={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+        plan={plan}
+      />
     </div>
 
   )

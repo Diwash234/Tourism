@@ -12,6 +12,7 @@ import useAuth from "../hooks/useAuth"
 import safetyApi from "../api/safetyApi"
 import emergencyApi from "../api/emergencyApi"
 import destinationApi from "../api/destinationApi"
+import PrintableTravelBrief from "../components/itinerary/PrintableTravelBrief"
 
 const TYPE_META = {
   hospital: { label: "Hospital / clinic", icon: FiActivity, color: "bg-[var(--ny-soft-red)] text-[var(--ny-danger)]" },
@@ -76,6 +77,7 @@ export default function Emergency() {
   const [nationalLoading, setNationalLoading] = useState(true)
   const [nationalError, setNationalError] = useState("")
   const [loadedInitial, setLoadedInitial] = useState(false)
+  const [showPrintBrief, setShowPrintBrief] = useState(false)
   const lookupRequestRef = useRef(0)
   const sosRequestRef = useRef(0)
   const selectedReference = params.get("destination")
@@ -238,13 +240,24 @@ export default function Emergency() {
             <h1 className="mt-3 !text-3xl !text-[var(--ny-text)] sm:!text-4xl">Nearest Help for Every Destination</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--ny-text-secondary)]">Search an approved destination or share your location to see recorded hospitals, police and other emergency facilities nearby.</p>
           </div>
-          <div className="shrink-0">
-            {isAuthenticated ? (
-              <button type="button" onClick={handleSOS} disabled={sosStatus === "sending"} className="ny-btn ny-btn-danger min-h-12 px-5"><FiAlertTriangle size={17} aria-hidden="true" />{sosStatus === "sending" ? "Recording request…" : sosStatus === "sent" ? "Request recorded" : "Request emergency help"}</button>
-            ) : (
-              <Link to={`/login?next=${encodeURIComponent("/emergency")}`} className="ny-btn ny-btn-danger min-h-12 px-5"><FiAlertTriangle size={17} aria-hidden="true" />Sign in to request an SOS</Link>
-            )}
-            <p className="mt-2 max-w-xs text-xs leading-5 text-[var(--ny-text-secondary)]">The platform records a request; it does not replace emergency dispatch.</p>
+          <div className="shrink-0 flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {isAuthenticated ? (
+                <button type="button" onClick={handleSOS} disabled={sosStatus === "sending"} className="ny-btn ny-btn-danger min-h-12 px-5"><FiAlertTriangle size={17} aria-hidden="true" />{sosStatus === "sending" ? "Recording request…" : sosStatus === "sent" ? "Request recorded" : "Request emergency help"}</button>
+              ) : (
+                <Link to={`/login?next=${encodeURIComponent("/emergency")}`} className="ny-btn ny-btn-danger min-h-12 px-5"><FiAlertTriangle size={17} aria-hidden="true" />Sign in to request an SOS</Link>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowPrintBrief(true)}
+                className="ny-btn min-h-12 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs"
+                title="Open and print offline emergency medical SOS card and rescue directory"
+              >
+                <span>🖨️</span>
+                <span>Offline SOS Dossier</span>
+              </button>
+            </div>
+            <p className="max-w-xs text-xs leading-5 text-[var(--ny-text-secondary)]">The platform records a request; it does not replace emergency dispatch.</p>
           </div>
         </div>
       </header>
@@ -291,6 +304,12 @@ export default function Emergency() {
         <section className="ny-panel p-5 sm:p-6" aria-labelledby="facilities-title"><div className="flex flex-col gap-4 border-b border-[var(--ny-border)] pb-5 lg:flex-row lg:items-end lg:justify-between"><div><h2 id="facilities-title" className="text-xl">Nearest emergency facilities</h2><p className="mt-1 text-sm text-[var(--ny-text-secondary)]">Directory coverage: {counts.database_hospitals ?? "—"} hospitals · {counts.database_police_stations ?? "—"} police stations</p></div><div className="ny-horizontal-scroll flex gap-2" role="group" aria-label="Filter emergency facilities">{[["all", "All"], ["hospital", "Hospitals"], ["police", "Police"], ["pharmacy", "Pharmacy"], ["fire", "Fire"]].map(([key, label]) => <button key={key} data-testid={`emergency-tab-${key}`} type="button" onClick={() => setActiveTab(key)} className={`min-h-10 whitespace-nowrap rounded-full border px-3 text-xs font-semibold ${activeTab === key ? "border-[var(--ny-green)] bg-[var(--ny-green)] text-white" : "border-[var(--ny-border)] bg-white text-[var(--ny-text-secondary)] hover:bg-[var(--ny-soft-green)]"}`} aria-pressed={activeTab === key}>{label}</button>)}</div></div>{facilities.length ? <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">{facilities.map((facility) => <FacilityCard key={facility.id || `${facility.type}-${facility.name}`} facility={facility} />)}</div> : <div className="mt-5"><EmptyState title="No facilities match this filter" subtitle="No record is listed for this category and radius. The directory does not invent pharmacies or facilities." action={<Link to="/submit-service" className="ny-btn ny-btn-secondary">Submit a facility</Link>} /></div>}</section>
         {directory.notice && <p className="flex items-start gap-2 rounded-[var(--ny-radius-md)] border border-[var(--ny-border)] bg-white p-4 text-sm text-[var(--ny-text-secondary)]"><FiCheckCircle size={16} className="mt-0.5 shrink-0 text-[var(--ny-success)]" aria-hidden="true" />{directory.notice}</p>}
       </>}
+
+      {/* Printable Emergency SOS Dossier & Medical ID Card */}
+      <PrintableTravelBrief
+        isOpen={showPrintBrief}
+        onClose={() => setShowPrintBrief(false)}
+      />
     </div>
   )
 }

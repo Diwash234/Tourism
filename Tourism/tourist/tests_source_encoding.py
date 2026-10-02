@@ -73,7 +73,7 @@ def candidate_files() -> list[Path]:
                 continue
             if path.suffix not in {".py", ".js", ".jsx", ".ts", ".tsx", ".html", ".css"}:
                 continue
-            if "node_modules" in path.parts or "migrations" in path.parts:
+            if "node_modules" in path.parts or "migrations" in path.parts or "dist" in path.parts or "build" in path.parts or ".vite" in path.parts:
                 continue
             if "__pycache__" in path.parts:
                 continue

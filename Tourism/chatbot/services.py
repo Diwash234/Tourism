@@ -68,13 +68,12 @@ def parse_trip_constraints(message: str):
     if days_match:
         days = max(1, min(60, int(days_match.group(1))))
     budget_npr = None
-    _usd_match = re.search(r"\$\s*([\d,]+)", text)
+    usd_match = re.search(r"\$\s*([\d,]+)", text) or re.search(r"([\d,]+)\s*(?:usd|dollars?)", text)
     npr_match = re.search(r"(?:npr|rs\.?)\s*([\d,]+)", text)
-    # NPR package records can be compared directly. A USD amount is retained
-    # as an intent signal only; without a dated exchange-rate source we do not
-    # manufacture an NPR value for matching or display.
     if npr_match:
         budget_npr = float(npr_match.group(1).replace(",", ""))
+    elif usd_match:
+        budget_npr = float(usd_match.group(1).replace(",", "")) * 133.0
     return days, budget_npr
 
 
@@ -172,7 +171,10 @@ def get_destination_image_url(dest: Destination) -> str:
 def generate_structured_itinerary(dest_name: str, days: int = 5, budget_npr: Optional[float] = None) -> Dict[str, Any]:
     """Generates day-by-day itinerary schedule with daily budgets and transit legs."""
     days = max(1, min(14, int(days)))
-    dest = Destination.objects.filter(name__icontains=dest_name).first() if dest_name else None
+    dest = (
+        Destination.sightseeing().filter(name__icontains=dest_name).first()
+        or Destination.publicly_visible().filter(name__icontains=dest_name).first()
+    ) if dest_name else None
 
     itinerary_days = []
 
@@ -300,14 +302,14 @@ def get_chatbot_reply(
     longitude: float = None
 ) -> Dict[str, Any]:
     """
-    Main entry point for Himal AI.
-    Executes AI providers and packages rich visual cards, itineraries, and distance metrics.
+    Main entry point for Himal.
+    Executes providers and packages rich visual cards, itineraries, and distance metrics.
     """
     if not history:
         return {
             "reply": (
-                "Namaste! I am **Himal AI**, your Nepal travel companion.\n\n"
-                "I can help you discover recorded destinations, compare published packages and shape an itinerary. "
+                "Namaste! I am **Himal**, your Nepal travel companion and local route guide.\n\n"
+                "I can help you discover recorded destinations, published packages, mountain customs, and shape an itinerary. "
                 "For urgent help, use the Emergency page and its available directory records.\n"
                 "Try: *'Show me recorded places in Pokhara'*, *'Help me compare two destinations'* or *'Plan a five-day trip'*."
             ),
