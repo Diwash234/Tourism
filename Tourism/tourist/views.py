@@ -2,8 +2,9 @@ from decimal import Decimal
 from .phone_quality import usable_phone
 
 from django.conf import settings
+from django.core.cache import cache
 from django.db.models import Count, F, Prefetch, Q
-from django.http import HttpResponse
+from django.http import HttpResponse, StreamingHttpResponse, JsonResponse
 from django.views import View
 from django.shortcuts import get_object_or_404,render
 from django.utils import timezone
@@ -23,7 +24,7 @@ from .models import (
     CurrentHazard, RiskIncident, RiskObservation, RecommendationEvent, RiskNewsReport,
     SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, CMSContentTranslation, DestinationFeatureProfile, StaffCapabilityProfile,
     Restaurant, DestinationTransitRoute, TravelPlan, TravelPlanStop, HeroSlide,
-    TravelerDocument, RedirectRule, NewsletterSignup,
+    TravelerDocument, RedirectRule, NewsletterSignup, LocationHistory, SearchQuery, WebhookEndpoint, WebhookDelivery,
 )
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace, HasCapability, HasCapabilityOrReadOnly
 from .serializers import (
@@ -51,6 +52,58 @@ def _invalidate_public_content_caches():
     from django.core.cache import cache
     cache.delete("dest:map-points:v1")
     cache.delete("seo:sitemap:v1")
+    try:
+        cache.incr("public_config_version")
+    except Exception:
+        import time
+        cache.set("public_config_version", str(int(time.time())), 86400 * 30)
+
+
+def _check_rate_limit(key_prefix, limit, period_seconds):
+    """Simple rate limiting using Django's cache framework.
+
+    Args:
+        key_prefix: Prefix for the cache key (e.g., 'rate_limit_search')
+        limit: Maximum number of requests allowed
+        period_seconds: Time window in seconds
+
+    Returns:
+        tuple: (allowed: bool, remaining: int, reset_in: int)
+    """
+    cache_key = f"rate_limit:{key_prefix}"
+    now = timezone.now().timestamp()
+
+    # Get current window data
+    window = cache.get(cache_key)
+    if window is None:
+        # First request in window
+        cache.set(cache_key, {"count": 1, "reset_at": now + period_seconds}, period_seconds)
+        return True, limit - 1, period_seconds
+
+    # Check if window has expired
+    if now > window["reset_at"]:
+        # Reset window
+        cache.set(cache_key, {"count": 1, "reset_at": now + period_seconds}, period_seconds)
+        return True, limit - 1, period_seconds
+
+    # Increment count
+    window["count"] += 1
+    remaining = max(0, limit - window["count"])
+    reset_in = int(window["reset_at"] - now)
+
+    if window["count"] > limit:
+        return False, 0, reset_in
+
+    cache.set(cache_key, window, reset_in)
+    return True, remaining, reset_in
+
+
+def _get_rate_limit_headers(allowed, remaining, reset_in):
+    """Build rate limit headers."""
+    return {
+        "X-RateLimit-Remaining": str(remaining),
+        "X-RateLimit-Reset": str(reset_in),
+    }
 
 
 class UserLocationContextMixin:
@@ -3287,3 +3340,636 @@ class RobotsTxtView(View):
         base = request.build_absolute_uri("/").rstrip("/")
         body = "User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /staff\n\n" + f"Sitemap: {base}/api/v1/seo/sitemap.xml\n"
         return HttpResponse(body, content_type="text/plain")
+
+class WeatherForecastView(APIView):
+    """GET /api/v1/weather/forecast/?lat=27.7172&lon=85.3240&days=5
+
+    Returns a daily aggregated weather forecast using OpenWeatherMap's
+    5-day/3-hour forecast API. Falls back to current weather if forecast
+    is unavailable. Results are cached for 30 minutes.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        from .utils import get_current_weather, validate_nepal_coordinates
+
+        lat = request.query_params.get("lat") or request.query_params.get("latitude")
+        lon = request.query_params.get("lon") or request.query_params.get("longitude")
+
+        if lat is None or lon is None:
+            return Response(
+                {"error": {"code": "missing_parameters", "message": "lat and lon are required", "details": {}}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            lat = float(lat)
+            lon = float(lon)
+        except (TypeError, ValueError):
+            return Response(
+                {"error": {"code": "invalid_parameters", "message": "lat and lon must be numeric", "details": {}}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validate coordinates
+        validation = validate_nepal_coordinates(lat, lon)
+        if not validation["valid"]:
+            return Response(
+                {"error": {"code": "invalid_coordinates", "message": validation["reason"], "details": {}}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            days = int(request.query_params.get("days", 5))
+            days = max(1, min(days, 7))
+        except (TypeError, ValueError):
+            days = 5
+
+        # Cache results for 30 minutes
+        cache_key = f"weather_forecast:{round(lat, 2)}:{round(lon, 2)}:{days}"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
+        # Try to get forecast from OpenWeatherMap
+        forecast_data = self._fetch_forecast(lat, lon, days)
+
+        if forecast_data is None:
+            # Fall back to current weather
+            current = get_current_weather(lat, lon)
+            if current is None:
+                return Response(
+                    {"error": {"code": "weather_unavailable", "message": "Weather service is currently unavailable", "details": {}}},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
+            forecast_data = {
+                "source": "current_weather_fallback",
+                "days": [{
+                    "date": timezone.now().strftime("%Y-%m-%d"),
+                    "temp_min": current.get("temperature_c"),
+                    "temp_max": current.get("temperature_c"),
+                    "condition": current.get("condition"),
+                    "description": current.get("description"),
+                    "precipitation": 0,
+                }],
+            }
+        else:
+            forecast_data["source"] = "openweathermap_forecast"
+
+        forecast_data["cached"] = False
+        cache.set(cache_key, forecast_data, 1800)  # 30 minutes
+        return Response(forecast_data)
+
+    def _fetch_forecast(self, lat, lon, days):
+        """Fetch 5-day/3-hour forecast from OpenWeatherMap and aggregate to daily."""
+        import requests
+
+        if not settings.OPENWEATHER_API_KEY:
+            return None
+
+        try:
+            response = requests.get(
+                "https://api.openweathermap.org/data/2.5/forecast",
+                params={
+                    "lat": lat,
+                    "lon": lon,
+                    "appid": settings.OPENWEATHER_API_KEY,
+                    "units": "metric",
+                },
+                timeout=10,
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            if data.get("cod") != "200":
+                return None
+
+            # Aggregate 3-hour forecasts into daily
+            daily_data = {}
+            for item in data.get("list", []):
+                date_str = item["dt_txt"][:10]  # "YYYY-MM-DD"
+                if date_str not in daily_data:
+                    daily_data[date_str] = {
+                        "date": date_str,
+                        "temp_min": item["main"]["temp_min"],
+                        "temp_max": item["main"]["temp_max"],
+                        "conditions": [],
+                        "descriptions": [],
+                        "precipitation": 0,
+                    }
+                day = daily_data[date_str]
+                day["temp_min"] = min(day["temp_min"], item["main"]["temp_min"])
+                day["temp_max"] = max(day["temp_max"], item["main"]["temp_max"])
+                if item.get("weather"):
+                    day["conditions"].append(item["weather"][0]["main"])
+                    day["descriptions"].append(item["weather"][0]["description"])
+                if item.get("rain", {}).get("3h"):
+                    day["precipitation"] += item["rain"]["3h"]
+
+            # Pick most common condition for each day
+            result = []
+            for date_str, day in daily_data.items():
+                if day["conditions"]:
+                    from collections import Counter
+                    most_common = Counter(day["conditions"]).most_common(1)[0][0]
+                    day["condition"] = most_common
+                    day["description"] = day["descriptions"][day["conditions"].index(most_common)]
+                else:
+                    day["condition"] = "Unknown"
+                    day["description"] = ""
+                del day["conditions"]
+                del day["descriptions"]
+                result.append(day)
+
+            return {"days": result[:days]}
+
+        except (requests.RequestException, KeyError, IndexError) as exc:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning("Weather forecast fetch failed: %s", exc)
+            return None
+
+
+class BulkExportView(APIView):
+    """GET /api/v1/admin/export/?type=destinations&format=csv
+
+    Exports data as CSV or JSON. Only accessible by admin users.
+    Streams large datasets to avoid memory issues.
+    """
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        export_type = request.query_params.get("type", "destinations")
+        export_format = request.query_params.get("format", "csv")
+
+        if export_type not in ("destinations", "hotels", "bookings", "reviews"):
+            return Response(
+                {"error": {"code": "invalid_type", "message": "Type must be one of: destinations, hotels, bookings, reviews", "details": {}}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if export_format not in ("csv", "json"):
+            return Response(
+                {"error": {"code": "invalid_format", "message": "Format must be csv or json", "details": {}}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if export_format == "csv":
+            return self._export_csv(export_type)
+        return self._export_json(export_type)
+
+    def _export_csv(self, export_type):
+        """Export data as CSV using StreamingHttpResponse."""
+        import csv
+        import io
+
+        def generate_rows():
+            output = io.StringIO()
+            writer = csv.writer(output)
+
+            if export_type == "destinations":
+                writer.writerow(["id", "name", "slug", "category", "district", "province", "city", "latitude", "longitude", "average_rating", "status"])
+                yield output.getvalue()
+                output.seek(0)
+                output.truncate(0)
+                for dest in Destination.publicly_visible().iterator(chunk_size=500):
+                    writer.writerow([dest.id, dest.name, dest.slug, dest.category.name if dest.category else "", dest.district or "", dest.province or "", dest.city or "", dest.latitude or "", dest.longitude or "", dest.average_rating, dest.status])
+                    yield output.getvalue()
+                    output.seek(0)
+                    output.truncate(0)
+            elif export_type == "hotels":
+                writer.writerow(["id", "name", "destination", "price_per_night", "rating", "booking_status", "is_verified"])
+                yield output.getvalue()
+                output.seek(0)
+                output.truncate(0)
+                for hotel in Hotel.objects.select_related("destination").iterator(chunk_size=500):
+                    writer.writerow([hotel.id, hotel.name, hotel.destination.name if hotel.destination else "", hotel.price_per_night or "", hotel.rating or "", hotel.booking_status, hotel.is_verified])
+                    yield output.getvalue()
+                    output.seek(0)
+                    output.truncate(0)
+            elif export_type == "bookings":
+                from booking.models import Booking
+                writer.writerow(["id", "user_email", "hotel", "check_in", "check_out", "guests", "status", "total_price"])
+                yield output.getvalue()
+                output.seek(0)
+                output.truncate(0)
+                for booking in Booking.objects.select_related("user", "hotel").iterator(chunk_size=500):
+                    writer.writerow([booking.id, booking.user.email, booking.hotel.name, booking.check_in, booking.check_out, booking.guests, booking.status, booking.total_price or ""])
+                    yield output.getvalue()
+                    output.seek(0)
+                    output.truncate(0)
+            elif export_type == "reviews":
+                writer.writerow(["id", "destination", "user_email", "comment", "moderation_status", "created_at"])
+                yield output.getvalue()
+                output.seek(0)
+                output.truncate(0)
+                for review in Review.objects.select_related("destination", "user").iterator(chunk_size=500):
+                    writer.writerow([review.id, review.destination.name if review.destination else "", review.user.email, review.comment[:100], review.moderation_status, review.created_at])
+                    yield output.getvalue()
+                    output.seek(0)
+                    output.truncate(0)
+
+        response = StreamingHttpResponse(generate_rows(), content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="{export_type}_export.csv"'
+        return response
+
+    def _export_json(self, export_type):
+        """Export data as JSON using StreamingHttpResponse."""
+        import json
+
+        def generate_json():
+            yield "["
+            first = True
+
+            if export_type == "destinations":
+                for dest in Destination.publicly_visible().iterator(chunk_size=500):
+                    if not first:
+                        yield ","
+                    first = False
+                    yield json.dumps({
+                        "id": dest.id, "name": dest.name, "slug": dest.slug,
+                        "category": dest.category.name if dest.category else None,
+                        "district": dest.district, "province": dest.province,
+                        "city": dest.city, "latitude": str(dest.latitude) if dest.latitude else None,
+                        "longitude": str(dest.longitude) if dest.longitude else None,
+                        "average_rating": str(dest.average_rating), "status": dest.status,
+                    })
+            elif export_type == "hotels":
+                for hotel in Hotel.objects.select_related("destination").iterator(chunk_size=500):
+                    if not first:
+                        yield ","
+                    first = False
+                    yield json.dumps({
+                        "id": hotel.id, "name": hotel.name,
+                        "destination": hotel.destination.name if hotel.destination else None,
+                        "price_per_night": str(hotel.price_per_night) if hotel.price_per_night else None,
+                        "rating": str(hotel.rating) if hotel.rating else None,
+                        "booking_status": hotel.booking_status, "is_verified": hotel.is_verified,
+                    })
+            elif export_type == "bookings":
+                from booking.models import Booking
+                for booking in Booking.objects.select_related("user", "hotel").iterator(chunk_size=500):
+                    if not first:
+                        yield ","
+                    first = False
+                    yield json.dumps({
+                        "id": booking.id, "user_email": booking.user.email,
+                        "hotel": booking.hotel.name, "check_in": str(booking.check_in),
+                        "check_out": str(booking.check_out), "guests": booking.guests,
+                        "status": booking.status, "total_price": str(booking.total_price) if booking.total_price else None,
+                    })
+            elif export_type == "reviews":
+                for review in Review.objects.select_related("destination", "user").iterator(chunk_size=500):
+                    if not first:
+                        yield ","
+                    first = False
+                    yield json.dumps({
+                        "id": review.id, "destination": review.destination.name if review.destination else None,
+                        "user_email": review.user.email, "comment": review.comment,
+                        "moderation_status": review.moderation_status, "created_at": review.created_at.isoformat(),
+                    })
+
+            yield "]"
+
+        response = StreamingHttpResponse(generate_json(), content_type="application/json")
+        response["Content-Disposition"] = f'attachment; filename="{export_type}_export.json"'
+        return response
+
+
+class ReviewModerationView(APIView):
+    """GET/POST /api/v1/admin/review-moderation/
+
+    GET: Lists reviews with moderation_status=pending
+    POST: Approve/reject a review with 'action' parameter
+    Only accessible by admin/staff users.
+    """
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        pending_reviews = Review.objects.filter(
+            moderation_status="pending"
+        ).select_related("destination", "user").order_by("-created_at")[:100]
+
+        data = [{
+            "id": r.id,
+            "destination": r.destination.name if r.destination else None,
+            "user_email": r.user.email,
+            "comment": r.comment,
+            "moderation_status": r.moderation_status,
+            "created_at": r.created_at.isoformat(),
+        } for r in pending_reviews]
+
+        return Response({"reviews": data, "count": len(data)})
+
+    def post(self, request):
+        review_id = request.data.get("review_id")
+        action = request.data.get("action")
+        note = request.data.get("note", "")
+
+        if not review_id:
+            return Response(
+                {"error": {"code": "missing_review_id", "message": "review_id is required", "details": {}}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if action not in ("approve", "reject"):
+            return Response(
+                {"error": {"code": "invalid_action", "message": "action must be 'approve' or 'reject'", "details": {}}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            review = Review.objects.select_related("destination", "user").get(id=review_id)
+        except Review.DoesNotExist:
+            return Response(
+                {"error": {"code": "not_found", "message": "Review not found", "details": {}}},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if action == "approve":
+            review.moderation_status = "approved"
+        else:
+            review.moderation_status = "flagged"
+
+        review.moderation_note = note
+        review.moderated_by = request.user
+        review.moderated_at = timezone.now()
+        review.save(update_fields=["moderation_status", "moderation_note", "moderated_by", "moderated_at", "updated_at"])
+
+        return Response({
+            "message": f"Review {action}d successfully",
+            "review_id": review.id,
+            "moderation_status": review.moderation_status,
+        })
+
+
+class HealthCheckView(APIView):
+    """GET /api/v1/health/
+
+    Checks database connectivity, cache connectivity, and static files presence.
+    Returns {"status": "healthy", "checks": {...}}
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        checks = {}
+        all_healthy = True
+
+        # Check database connectivity
+        try:
+            from django.db import connection
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+                cursor.fetchone()
+            checks["database"] = {"status": "healthy", "message": "Database connection successful"}
+        except Exception as exc:
+            checks["database"] = {"status": "unhealthy", "message": str(exc)}
+            all_healthy = False
+
+        # Check cache connectivity
+        try:
+            cache.set("health_check", "ok", 10)
+            cache_value = cache.get("health_check")
+            if cache_value == "ok":
+                checks["cache"] = {"status": "healthy", "message": "Cache connection successful"}
+            else:
+                checks["cache"] = {"status": "unhealthy", "message": "Cache read/write mismatch"}
+                all_healthy = False
+        except Exception as exc:
+            checks["cache"] = {"status": "unhealthy", "message": str(exc)}
+            all_healthy = False
+
+        # Check static files presence
+        try:
+            import os
+            static_root = settings.STATIC_ROOT
+            if os.path.exists(static_root) and os.path.isdir(static_root):
+                static_files = len([f for f in os.listdir(static_root) if os.path.isfile(os.path.join(static_root, f))])
+                checks["static_files"] = {"status": "healthy", "message": f"Static files directory exists with {static_files} files"}
+            else:
+                checks["static_files"] = {"status": "warning", "message": "Static files directory does not exist (may be expected in development)"}
+        except Exception as exc:
+            checks["static_files"] = {"status": "unhealthy", "message": str(exc)}
+            all_healthy = False
+
+        response_data = {
+            "status": "healthy" if all_healthy else "degraded",
+            "checks": checks,
+            "timestamp": timezone.now().isoformat(),
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK if all_healthy else status.HTTP_503_SERVICE_UNAVAILABLE)
+
+
+class LocationHistoryView(APIView):
+    """GET/POST /api/v1/location-history/
+
+    GET: Returns user's location history (paginated, last 100)
+    POST: Records a new location (with validation)
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from .models import LocationHistory
+
+        # Rate limit: 30 requests per minute per user
+        allowed, remaining, reset_in = _check_rate_limit(
+            f"location_history:{request.user.id}", 30, 60
+        )
+        if not allowed:
+            return Response(
+                {"error": {"code": "rate_limit_exceeded", "message": "Too many requests. Please try again later.", "details": {"reset_in": reset_in}}},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        history = LocationHistory.objects.filter(
+            user=request.user
+        ).order_by("-recorded_at")[:100]
+
+        data = [{
+            "id": h.id,
+            "latitude": str(h.latitude),
+            "longitude": str(h.longitude),
+            "accuracy_m": h.accuracy_m,
+            "source": h.source,
+            "recorded_at": h.recorded_at.isoformat(),
+            "created_at": h.created_at.isoformat(),
+        } for h in history]
+
+        return Response({
+            "locations": data,
+            "count": len(data),
+        })
+
+    def post(self, request):
+        from .models import LocationHistory
+        from .utils import validate_nepal_coordinates
+
+        lat = request.data.get("latitude") or request.data.get("lat")
+        lon = request.data.get("longitude") or request.data.get("lon")
+        accuracy = request.data.get("accuracy_m")
+        source = request.data.get("source", "gps")
+
+        if lat is None or lon is None:
+            return Response(
+                {"error": {"code": "missing_coordinates", "message": "latitude and longitude are required", "details": {}}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validate coordinates
+        validation = validate_nepal_coordinates(lat, lon)
+        if not validation["valid"]:
+            return Response(
+                {"error": {"code": "invalid_coordinates", "message": validation["reason"], "details": {}}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if source not in ("gps", "geoip", "manual"):
+            source = "gps"
+
+        try:
+            lat = float(lat)
+            lon = float(lon)
+            accuracy = float(accuracy) if accuracy is not None else None
+        except (TypeError, ValueError):
+            return Response(
+                {"error": {"code": "invalid_parameters", "message": "Coordinates must be numeric", "details": {}}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        location = LocationHistory.objects.create(
+            user=request.user,
+            latitude=lat,
+            longitude=lon,
+            accuracy_m=accuracy,
+            source=source,
+            recorded_at=timezone.now(),
+        )
+
+        return Response({
+            "id": location.id,
+            "latitude": str(location.latitude),
+            "longitude": str(location.longitude),
+            "accuracy_m": location.accuracy_m,
+            "source": location.source,
+            "recorded_at": location.recorded_at.isoformat(),
+            "message": "Location recorded successfully",
+        }, status=status.HTTP_201_CREATED)
+
+
+class EnhancedSearchView(APIView):
+    """GET /api/v1/search/enhanced/?q=pokhara&category=trekking&district=Gandaki&min_rating=4&sort=distance
+
+    Enhanced search with filters:
+    - category: Filter by category slug
+    - district: Filter by district name
+    - min_rating: Minimum average rating
+    - max_rating: Maximum average rating
+    - has_images: Only show destinations with images
+    - verified_only: Only show verified destinations
+    - Sort by: relevance, rating, distance, popularity
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        # Rate limit: 30 requests per minute per IP
+        client_ip = self._get_client_ip(request)
+        allowed, remaining, reset_in = _check_rate_limit(
+            f"search:{client_ip}", 30, 60
+        )
+        if not allowed:
+            return Response(
+                {"error": {"code": "rate_limit_exceeded", "message": "Too many search requests. Please try again later.", "details": {"reset_in": reset_in}}},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        query = request.query_params.get("q", "").strip()
+        category = request.query_params.get("category", "").strip()
+        district = request.query_params.get("district", "").strip()
+        min_rating = request.query_params.get("min_rating")
+        max_rating = request.query_params.get("max_rating")
+        has_images = request.query_params.get("has_images", "").lower() in ("true", "1", "yes")
+        verified_only = request.query_params.get("verified_only", "").lower() in ("true", "1", "yes")
+        sort_by = request.query_params.get("sort", "relevance")
+        lat = request.query_params.get("lat")
+        lon = request.query_params.get("lon")
+
+        # Start with publicly visible destinations
+        qs = Destination.publicly_visible().select_related("category").prefetch_related("gallery")
+
+        # Text search
+        if query:
+            qs = qs.filter(
+                Q(name__icontains=query)
+                | Q(description__icontains=query)
+                | Q(city__icontains=query)
+                | Q(district__icontains=query)
+                | Q(aliases__icontains=query)
+            )
+
+        # Apply filters
+        if category:
+            qs = qs.filter(category__slug__iexact=category)
+        if district:
+            qs = qs.filter(district__icontains=district)
+        if min_rating:
+            try:
+                qs = qs.filter(average_rating__gte=float(min_rating))
+            except (TypeError, ValueError):
+                pass
+        if max_rating:
+            try:
+                qs = qs.filter(average_rating__lte=float(max_rating))
+            except (TypeError, ValueError):
+                pass
+        if has_images:
+            qs = qs.filter(gallery__isnull=False).distinct()
+        if verified_only:
+            qs = qs.filter(coordinate_status__in=["VERIFIED", "OFFICIAL", "COMMUNITY_VERIFIED"])
+
+        # Apply sorting
+        if sort_by == "rating":
+            qs = qs.order_by("-average_rating", "-views_count")
+        elif sort_by == "popularity":
+            qs = qs.order_by("-views_count", "-average_rating")
+        elif sort_by == "distance" and lat and lon:
+            try:
+                lat_f = float(lat)
+                lon_f = float(lon)
+                # Annotate with distance using raw SQL for performance
+                from django.db.models import FloatField
+                from django.db.models.functions import Cast
+                qs = qs.annotate(
+                    distance=Cast(
+                        F("latitude") * 0.0174533, output_field=FloatField()
+                    ) * 0 + Cast(
+                        F("longitude") * 0.0174533, output_field=FloatField()
+                    ) * 0 + Cast(
+                        (F("latitude") - lat_f) * 111.0, output_field=FloatField()
+                    ) ** 2 + Cast(
+                        (F("longitude") - lon_f) * 111.0 * 0.7071, output_field=FloatField()
+                    ) ** 2
+                ).order_by("distance")
+            except (TypeError, ValueError):
+                qs = qs.order_by("-average_rating")
+        else:
+            # Default: relevance (by views and rating)
+            qs = qs.order_by("-views_count", "-average_rating")
+
+        # Paginate
+        from .pagination import StandardResultsPagination
+        paginator = StandardResultsPagination()
+        page = paginator.paginate_queryset(qs, request)
+        if page is not None:
+            serializer = DestinationListSerializer(page, many=True, context={"request": request})
+            return paginator.get_paginated_response(serializer.data)
+
+        serializer = DestinationListSerializer(qs[:50], many=True, context={"request": request})
+        return Response({"results": serializer.data, "count": len(serializer.data)})
+
+    def _get_client_ip(self, request):
+        """Get client IP address."""
+        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+        if x_forwarded_for:
+            return x_forwarded_for.split(",")[0].strip()
+        return request.META.get("REMOTE_ADDR", "unknown")

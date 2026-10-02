@@ -2772,6 +2772,11 @@ class AdminCMSView(APIView):
         cache.delete("public:config:v1")
         cache.delete("seo:sitemap:v1")
         cache.delete("dest:map-points:v1")
+        try:
+            cache.incr("public_config_version")
+        except Exception:
+            import time
+            cache.set("public_config_version", str(int(time.time())), 86400 * 30)
 
     @staticmethod
     def _sync_published_record(resource, obj):
