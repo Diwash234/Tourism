@@ -2523,16 +2523,18 @@ class CMSBulkAndMediaTests(TestCase):
 
     def test_bulk_publish_uses_publication_gate(self):
         # The gate must also apply to bulk publishes, not just single-record
-        # ones: a page missing its meta description is a hard blocker, so the
-        # whole batch is refused with 409 and the record stays a draft.
+        # ones. This page's route does not start with "/", which is a
+        # structural blocker: publishing it would expose a page the router
+        # cannot serve. The whole batch must be refused with 409 and the
+        # record must stay a draft.
         blocked = ManagedPage.objects.create(
-            route="/blocked-test", key="blocked-test", title="Blocked Test",
+            route="blocked-test", key="blocked-test", title="Blocked Test",
             meta_description="", status="draft", is_enabled=False, updated_by=self.admin,
         )
         response = self.client.patch(reverse('admin-cms'), {'resource': 'pages', 'action': 'bulk', 'bulk_action': 'publish', 'ids': [blocked.id]}, format='json')
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT, response.content)
         codes = [item["publication_gate"]["blockers"][0]["code"] for item in response.data["blocked"]]
-        self.assertIn("missing_seo_description", codes)
+        self.assertIn("invalid_route", codes)
         blocked.refresh_from_db()
         self.assertEqual(blocked.status, "draft")
         self.assertFalse(blocked.is_enabled)

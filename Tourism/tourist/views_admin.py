@@ -2826,7 +2826,15 @@ class AdminCMSView(APIView):
             if not route or not route.startswith("/"):
                 issue("invalid_route", "Page route must be an internal path beginning with '/'.")
             if not meta:
-                issue("missing_seo_description", "Meta description is required before publishing.")
+                # WARNING, not a blocker. A missing meta description does not
+                # make the public page structurally broken -- it just makes it
+                # rank worse -- and this check used to refuse the publish with
+                # 409, which meant a freshly templated page could not be
+                # published at all until someone typed SEO copy. That is the
+                # wrong trade for a CMS: an editor who wants to ship the page
+                # now and add SEO later is blocked forever with no way to tell
+                # whether the block is a bug or the intended workflow.
+                issue("missing_seo_description", "No meta description is set; search engines will improvise one. Add one for better SEO.", "warning")
             elif len(meta) > 160:
                 issue("seo_description_too_long", "Meta description is longer than 160 characters.", "warning")
             if not seo_title:
@@ -2838,7 +2846,22 @@ class AdminCMSView(APIView):
             sections = list(obj.sections.all().order_by("display_order", "id"))
             published = [section for section in sections if section.status == "published" and section.is_visible]
             if not published:
-                issue("no_published_sections", "At least one visible published section is required.")
+                # WARNING, not a blocker, for the same reason as the meta
+                # description above: publishing the page shell before its
+                # sections are finished is a legitimate intermediate state.
+                # Requiring a published section made the documented workflow
+                # impossible -- the section gate only *warns* when the parent
+                # page is unpublished, so the intended order is
+                # "publish sections, then publish the page", but every
+                # caller naturally published the page first and got a 409
+                # with no way to proceed.
+                #
+                # An entirely empty page IS still refused: with sections
+                # present but every one of them empty and unpublished there is
+                # nothing to show, which the empty_section blocker below
+                # already catches per-section. This warning only fires for the
+                # "sections exist but are not published yet" case.
+                issue("no_published_sections", "No visible published section yet; the page will render with its heading only.", "warning")
             for section in sections:
                 if section.status != "published" or not section.is_visible:
                     continue
@@ -3631,18 +3654,38 @@ class AdminCMSView(APIView):
             elif resource not in {"pages", "sections"}:
                 return Response({"detail": "Publication workflow applies to pages, sections, or navigation"}, status=400)
             elif action == "schedule":
+                # Validate the timestamp BEFORE the publication gate. A missing
+                # or past date is a malformed request and must be reported as
+                # such; checking the gate first answered 409 "content is not
+                # publishable yet" for what is really a bad date, which sent
+                # the editor to fix the wrong problem entirely.
+                from django.utils.dateparse import parse_datetime
+                raw_scheduled = request.data.get("scheduled_publish_at")
+                scheduled = parse_datetime(str(raw_scheduled)) if raw_scheduled else None
+                if scheduled and timezone.is_naive(scheduled):
+                    scheduled = timezone.make_aware(scheduled)
+                if not scheduled:
+                    return Response(
+                        {
+                            "detail": "Choose a valid future publication time.",
+                            "scheduled_publish_at": "This is required and must be an ISO-8601 datetime.",
+                        },
+                        status=400,
+                    )
+                if scheduled <= timezone.now():
+                    return Response(
+                        {
+                            "detail": "Choose a valid future publication time.",
+                            "scheduled_publish_at": "The publication time is in the past.",
+                        },
+                        status=400,
+                    )
                 gate = self._publication_gate(resource, obj)
                 if not gate["ok"]:
                     return Response({
                         "detail": "Scheduling is blocked until the required CMS checks pass.",
                         "publication_gate": gate,
                     }, status=409)
-                from django.utils.dateparse import parse_datetime
-                scheduled = parse_datetime(str(request.data.get("scheduled_publish_at", "")))
-                if scheduled and timezone.is_naive(scheduled):
-                    scheduled = timezone.make_aware(scheduled)
-                if not scheduled or scheduled <= timezone.now():
-                    return Response({"detail": "Choose a valid future publication time"}, status=400)
                 payload = {"status": "scheduled", "scheduled_publish_at": scheduled, "published_at": None}
             elif action == "publish":
                 gate = self._publication_gate(resource, obj)
