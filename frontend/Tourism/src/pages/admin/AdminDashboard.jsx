@@ -133,6 +133,8 @@ const AdminDashboard = () => {
   const [pipelineImages, setPipelineImages] = useState([])
   const [pipelineLoading, setPipelineLoading] = useState(false)
   const [pipelineDestId, setPipelineDestId] = useState(null)
+  const [pipelineSource, setPipelineSource] = useState("")
+  const [pipelineLimit, setPipelineLimit] = useState(14)
   const [newImageUrl, setNewImageUrl] = useState("")
   const [newImageCaption, setNewImageCaption] = useState("")
   const [newImageFile, setNewImageFile] = useState(null)
@@ -288,7 +290,7 @@ const AdminDashboard = () => {
   const handleDiscoverPipelineImages = async () => {
     setPipelineLoading(true)
     try {
-      const { data } = await adminApi.discoverDestinationImages(pipelineDestSlug)
+      const { data } = await adminApi.discoverDestinationImages(pipelineDestSlug, { source: pipelineSource, limit: pipelineLimit })
       setPipelineImages(data.images || [])
       showToast(data.message || "Multi-source image discovery completed!", "success")
     } catch (e) {
@@ -301,7 +303,7 @@ const AdminDashboard = () => {
   const handleRefreshPipelineImages = async () => {
     setPipelineLoading(true)
     try {
-      const { data } = await adminApi.refreshDestinationImages(pipelineDestSlug)
+      const { data } = await adminApi.refreshDestinationImages(pipelineDestSlug, { source: pipelineSource, limit: pipelineLimit })
       setPipelineImages(data.images || [])
       showToast(data.message || "Image collection refreshed!", "success")
     } catch (e) {
@@ -1753,6 +1755,27 @@ const AdminDashboard = () => {
                 >
                   Load Images
                 </button>
+              </div>
+
+              <div className="mt-3 p-3 rounded-xl bg-slate-900/50 border border-emerald-700/40 space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <div className="flex-1">
+                    <p className="text-xs font-black uppercase text-emerald-300">Search real images by provider</p>
+                    <p className="text-[11px] text-slate-400">Results are matched to the destination and enter the review queue; unrelated generic fallback photos are not added.</p>
+                  </div>
+                  <select value={pipelineSource} onChange={(e) => setPipelineSource(e.target.value)} className="px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-xs text-white">
+                    <option value="">All sources</option>
+                    <option value="wikimedia">Wikimedia Commons</option>
+                    <option value="openverse">Openverse</option>
+                    <option value="unsplash">Unsplash</option>
+                    <option value="pexels">Pexels</option>
+                    <option value="flickr">Flickr</option>
+                    <option value="pixabay">Pixabay</option>
+                  </select>
+                  <select value={pipelineLimit} onChange={(e) => setPipelineLimit(Number(e.target.value))} className="px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-xs text-white">
+                    {[6, 12, 14, 24, 50].map((n) => <option key={n} value={n}>{n} results</option>)}
+                  </select>
+                </div>
               </div>
 
               {/* Admin: upload-by-URL + set cover */}
