@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import axiosClient from "../../api/axiosClient"
 import { FiSun, FiCloud, FiCloudRain, FiCloudSnow, FiWind, FiDroplets, FiThermometer } from "react-icons/fi"
 
 /**
@@ -9,12 +10,7 @@ export default function DestinationWeather({ lat, lng, destinationName: _destina
   const [weather, setWeather] = useState(null)
   // Start in the loading state only when there is something to fetch, so the
   // effect below never has to set state synchronously.
-  const [loading, setLoading] = useState(
-    () =>
-      Boolean(lat) &&
-      Boolean(lng) &&
-      Boolean(import.meta.env.VITE_OPENWEATHER_API_KEY)
-  )
+  const [loading, setLoading] = useState(Boolean(lat && lng))
   const [error, setError] = useState(null)
 
   useEffect(() => {
@@ -22,26 +18,20 @@ export default function DestinationWeather({ lat, lng, destinationName: _destina
       return
     }
 
-    const apiKey = import.meta.env.VITE_OPENWEATHER_API_KEY
-    if (!apiKey) {
-      return
-    }
-
     const fetchWeather = async () => {
       try {
-        const res = await fetch(
-          `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${apiKey}&units=metric`
-        )
-        if (!res.ok) throw new Error("Weather unavailable")
-        const data = await res.json()
+        const { data } = await axiosClient.get("/weather/", { params: { lat, lon: lng, days: 3 } })
+        if (!data?.available || !data?.current) throw new Error(data?.reason || "Weather unavailable")
+        const code = Number(data.current.weather_code)
+        const icon = code === 0 ? "01d" : code <= 3 ? "03d" : code >= 71 && code <= 86 ? "13d" : code >= 51 && code <= 82 ? "10d" : code >= 95 ? "11d" : "02d"
         setWeather({
-          temp: Math.round(data.main.temp),
-          feelsLike: Math.round(data.main.feels_like),
-          humidity: data.main.humidity,
-          windSpeed: data.wind.speed,
-          description: data.weather[0]?.description || "",
-          icon: data.weather[0]?.icon || "01d",
-          city: data.name,
+          temp: Math.round(Number(data.current.temperature_c)),
+          feelsLike: Math.round(Number(data.current.apparent_temperature_c)),
+          humidity: Number(data.current.relative_humidity_pct),
+          windSpeed: Number(data.current.wind_speed_kmh) / 3.6,
+          description: data.current.description || "Current conditions",
+          icon,
+          city: data.coordinates?.timezone || "Nepal",
         })
       } catch (err) {
         setError(err.message)
