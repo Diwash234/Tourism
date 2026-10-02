@@ -27,6 +27,8 @@ const PUBLIC_READ_PREFIXES = [
   "/emergency-contacts/",
   "/risk/",
   "/recommendations/",
+  "/ml/",
+  "/weather/",
 ]
 
 const isPublicReadRequest = (config) => {
