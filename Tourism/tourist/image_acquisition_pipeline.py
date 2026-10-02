@@ -127,7 +127,7 @@ class ImageAcquisitionPipeline:
             self._search_dataset_seeds,
         ]
 
-    def acquire_images_for_destination(self, destination: Destination, limit: int = 12, force_refresh: bool = False) -> List[Dict[str, Any]]:
+    def acquire_images_for_destination(self, destination: Destination, limit: int = 12, force_refresh: bool = False, source: str = "") -> List[Dict[str, Any]]:
         """
         Discovers at least `limit` high-quality images for a destination.
         Returns serialized list of image provenance dictionaries.
@@ -143,8 +143,17 @@ class ImageAcquisitionPipeline:
         collected = []
         seen_urls = set()
 
-        # 1. Run through waterfall provider chain
-        for provider_fn in self.providers:
+        # 1. Run through the selected provider or the complete waterfall chain.
+        provider_map = {
+            "wikimedia": self._search_wikimedia_commons,
+            "openverse": self._search_openverse,
+            "unsplash": self._search_unsplash,
+            "pexels": self._search_pexels,
+            "flickr": self._search_flickr,
+            "pixabay": self._search_pixabay,
+        }
+        selected_providers = [provider_map[source]] if source in provider_map else self.providers
+        for provider_fn in selected_providers:
             try:
                 candidates = provider_fn(destination, name_clean, district_clean)
                 for cand in candidates:
