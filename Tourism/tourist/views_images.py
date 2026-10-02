@@ -116,7 +116,11 @@ class DestinationImagesDiscoverView(APIView):
 
         pipeline = ImageAcquisitionPipeline()
         source = (request.data.get("source") or "").strip().lower()
-        images = pipeline.acquire_images_for_destination(destination, limit=min(int(request.data.get("limit") or 14), 50), force_refresh=False, source=source)
+        try:
+            limit = min(max(int(request.data.get("limit") or 14), 1), 50)
+        except (TypeError, ValueError):
+            limit = 14
+        images = pipeline.acquire_images_for_destination(destination, limit=limit, force_refresh=False, source=source)
         from audit.models import AuditLog
         AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="media", severity="info", source="backend", action="media.discover", message=f"Discovered {len(images)} image candidate(s) for {destination.name}", object_type="Destination", object_id=str(destination.id), extra={"candidate_count": len(images)})
         return Response({
@@ -145,7 +149,11 @@ class DestinationImagesRefreshView(APIView):
 
         pipeline = ImageAcquisitionPipeline()
         source = (request.data.get("source") or "").strip().lower()
-        images = pipeline.acquire_images_for_destination(destination, limit=min(int(request.data.get("limit") or 14), 50), force_refresh=True, source=source)
+        try:
+            limit = min(max(int(request.data.get("limit") or 14), 1), 50)
+        except (TypeError, ValueError):
+            limit = 14
+        images = pipeline.acquire_images_for_destination(destination, limit=limit, force_refresh=True, source=source)
         from audit.models import AuditLog
         AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="media", severity="info", source="backend", action="media.refresh", message=f"Refreshed {len(images)} image candidate(s) for {destination.name}", object_type="Destination", object_id=str(destination.id), extra={"candidate_count": len(images)})
         return Response({
