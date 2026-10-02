@@ -117,7 +117,13 @@ const destinationApi = {
    *         solitude, sad, energetic, winter, pilgrimage, lakeside, peaceful
    */
   moodRecommendations: (params = {}) =>
-    axiosClient.get("/destinations/mood-recommendations/", { params }),
+    axiosClient.get("/destinations/mood-recommendations/", {
+      params,
+      // A cold Render instance rebuilds the traveller-fact table on first
+      // use; the 20s global default reported that healthy slow start as
+      // "temporarily unavailable".
+      timeout: 45000,
+    }),
 
   /** User place submission — POST multipart to the real /destinations/ endpoint.
    *  CanSubmitPlace lets any authenticated user submit; `cover_image` travels in

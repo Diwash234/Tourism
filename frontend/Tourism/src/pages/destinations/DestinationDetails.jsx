@@ -7,7 +7,8 @@ import { FiMapPin, FiPhoneCall, FiDollarSign, FiShield, FiCoffee, FiGlobe, FiClo
 import destinationApi from "../../api/destinationApi"
 import emergencyApi from "../../api/emergencyApi"
 import userApi from "../../api/userApi"
-import { formatCoords, hasValidCoords, placeLocationLabel, INFO_UNAVAILABLE } from "../../utils/placeUtils"
+import { formatCoords, hasValidCoords, placeLocationLabel, INFO_UNAVAILABLE, haversineKmPrecise } from "../../utils/placeUtils"
+import { formatDistance } from "../../utils/formatDistance"
 import { LOCATION_ICON_URL } from "../../utils/locationIcons"
 import { getDestinationImageUrl } from "../../utils/imageUtils"
 import { photoApi } from "../../services/api"
@@ -198,7 +199,11 @@ export default function DestinationDetails() {
   const nearbyRequestRef = useRef(0)
   const poiRequestRef = useRef(0)
   const favoriteRequestRef = useRef(0)
-  const { position } = useGeolocation({ auto: false })
+  // The page owns the traveller's position so "distance from you" is live:
+  // one consent prompt per visit (browser-managed), the shared 5-minute
+  // cache and IP fallback otherwise. When `position` resolves the fetch
+  // effect below re-runs and sends latitude/longitude to the API.
+  const { position, source: positionSource, loading: locatingUser, refresh: refreshLocation } = useGeolocation()
 
   useEffect(() => {
     // Deferred one tick: keeps synchronous setState out of the effect
@@ -408,6 +413,23 @@ export default function DestinationDetails() {
   const riskCategory = (riskAnalysis?.risk_category || activeAlert?.severity || "").toUpperCase()
   const level = RISK_LEVELS[riskCategory] || { label: INFO_UNAVAILABLE, color: "bg-gray-100 text-gray-700" }
 
+  // Distance from the traveller's real position (haversine, straight line).
+  // Every other distance on this page is measured FROM THE DESTINATION
+  // (backend rows) or is a stored constant — with no origin label those
+  // read as "200 m away" when the traveller is kilometres off. source ===
+  // "ip" means only the network fallback located them (city level), so the
+  // number is honestly marked approximate.
+  const distanceFromYou =
+    position && hasValidCoords(destination.latitude, destination.longitude)
+      ? haversineKmPrecise(position.lat, position.lng, destination.latitude, destination.longitude)
+      : null
+  const approximateLocation = positionSource === "ip"
+  const directionsUrl = hasValidCoords(destination.latitude, destination.longitude)
+    ? `https://www.google.com/maps/dir/?api=1&destination=${destination.latitude},${destination.longitude}` +
+      (position ? `&origin=${position.lat},${position.lng}` : "") +
+      "&travelmode=driving"
+    : null
+
   return (
     <div className="ny-page container-app py-8 space-y-8 animate-fadeIn">
       <Breadcrumbs items={[
@@ -425,6 +447,48 @@ export default function DestinationDetails() {
       />
 
       {destination.notices?.length > 0 && <VisitorNoticeBanner notices={destination.notices} />}
+
+      {/* DISTANCE FROM THE TRAVELLER'S CURRENT LOCATION */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary-100 bg-white p-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-50 text-primary-700">
+            <FiNavigation />
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs font-black uppercase text-[#102A2E]">From your current location</p>
+            {distanceFromYou != null ? (
+              <p className="font-bold text-slate-900">
+                {formatDistance(distanceFromYou)} straight-line
+                {approximateLocation ? " · approximate (located to city level)" : ""}
+              </p>
+            ) : (
+              <p className="text-slate-500">
+                {locatingUser ? "Finding your location…" : "Allow location access to see how far it is from you"}
+              </p>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={refreshLocation}
+            disabled={locatingUser}
+            className="rounded-xl border border-primary-200 px-3 py-2 text-xs font-black text-primary-800 hover:bg-primary-50 disabled:opacity-60"
+          >
+            {locatingUser ? "Locating…" : "Refresh location"}
+          </button>
+          {directionsUrl && (
+            <a
+              href={directionsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="flex min-h-11 items-center gap-1.5 rounded-xl bg-primary-600 px-4 py-2 text-xs font-black text-white shadow hover:bg-primary-500"
+            >
+              Directions &amp; route map <FiExternalLink size={13} />
+            </a>
+          )}
+        </div>
+      </div>
 
       {/* Key Transit & Visiting Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -727,7 +791,7 @@ export default function DestinationDetails() {
             )}
 
             {/* Getting there — real route from your location or any other destination */}
-            <GettingThereCard destination={destination} />
+            <GettingThereCard destination={destination} userPosition={position} />
 
             {/* DATA PROVENANCE — where this record's coordinates came from (spec item 20).
                 Honest labels only: never claim verification that isn't recorded. */}
@@ -957,7 +1021,7 @@ export default function DestinationDetails() {
                   <div className="min-w-0">
                   <p className="font-bold text-gray-800">{row.name}</p>
                   <p className="text-primary-700 font-semibold mt-0.5">{row.phone_is_national_fallback ? "National fallback: " : ""}{row.phone_number || "Phone unavailable"}</p>
-                  {row.distance_km != null && <p className="text-xs text-slate-500">{row.distance_km} km · {formatCoords(row.latitude, row.longitude) || "coords not stored"}</p>}
+                  {row.distance_km != null && <p className="text-xs text-slate-500">{row.distance_km} km from {destination.name} · {formatCoords(row.latitude, row.longitude) || "coords not stored"}</p>}
                   </div>
                 </div>
               ))}
@@ -967,7 +1031,7 @@ export default function DestinationDetails() {
                   <div className="min-w-0">
                   <p className="font-bold text-gray-800">{row.name}</p>
                   <p className="text-primary-700 font-semibold mt-0.5">{row.phone_is_national_fallback ? "National fallback: " : ""}{row.phone_number || "Phone unavailable"}</p>
-                  {row.distance_km != null && <p className="text-xs text-slate-500">{row.distance_km} km</p>}
+                  {row.distance_km != null && <p className="text-xs text-slate-500">{row.distance_km} km from {destination.name}</p>}
                   </div>
                 </div>
               ))}
@@ -1059,7 +1123,7 @@ export default function DestinationDetails() {
                     </p>
                     {row.latitude != null && row.longitude != null && (
                       <p className="text-xs text-slate-400 tabular-nums">
-                        {formatCoords(row.latitude, row.longitude)} · straight-line {row.distance_km} km
+                        {formatCoords(row.latitude, row.longitude)} · straight-line {row.distance_km} km from {destination.name}
                       </p>
                     )}
                   </div>

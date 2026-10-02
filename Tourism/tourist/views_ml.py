@@ -1118,6 +1118,23 @@ class ItineraryView(APIView):
 
         qs = Destination.publicly_visible()
 
+        # Day stops are places to visit, never lodging/food/services. The
+        # public listing applies these exclusions (Destination rows include
+        # hotels, restaurants, hospitals and police points), but the planner
+        # previously used the bare public queryset — so "The North Face Inn"
+        # and similar rows came back as itinerary stops. Same classification
+        # rules as DestinationViewSet.get_queryset, applied unconditionally.
+        from .filters import (
+            ACCOMMODATION_SLUGS, ACCOMMODATION_NAME_HINTS,
+            NON_ATTRACTION_SLUGS, NON_ATTRACTION_NAME_HINTS,
+        )
+        _stop_slugs = set(ACCOMMODATION_SLUGS) | set(NON_ATTRACTION_SLUGS)
+        qs = qs.exclude(category__slug__in=_stop_slugs)
+        for _hint in ACCOMMODATION_NAME_HINTS:
+            qs = qs.exclude(name__icontains=_hint)
+        for _hint in NON_ATTRACTION_NAME_HINTS:
+            qs = qs.exclude(name__icontains=_hint)
+
         # A typed place may be a district, city or province ("Rolpa" is a
         # district, not a city) — match every level so district requests
         # never fall through to a generic nationwide plan.

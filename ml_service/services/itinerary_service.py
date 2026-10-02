@@ -22,6 +22,7 @@ on every form change (debounced) for "continuous" updates.
 
 import os
 import math
+import re
 
 import pandas as pd
 
@@ -148,6 +149,25 @@ def _category_matches(interest_categories, row_cat):
     return any(rc == c or c in rc for c in interest_categories)
 
 
+# Lodging/food/service rows can carry an attraction-like category tag in the
+# OSM dump (and the CSV does contain hotels). Those are planning resources,
+# never day stops — an itinerary must be built from real destinations only.
+_SERVICE_NAME_RE = re.compile(
+    r"\b(hotel|hostel|lodge|guest\s*house|homestay|motel|resort|villa|"
+    r"restaurant|cafe|coffee|bakery|bar|pub|club|hospital|clinic|pharmacy|"
+    r"police|bank|atm|fuel|petrol|bus\s*park|bus\s*station)\b",
+    re.IGNORECASE,
+)
+
+
+def _is_visit_stop(name):
+    """True when a dataset row names a place a traveller actually visits."""
+    text = str(name or "").strip()
+    if not text:
+        return False
+    return _SERVICE_NAME_RE.search(text) is None
+
+
 def _city_centroid(df, city):
     sub = df[df["city"].str.lower() == city.lower()]
     if sub.empty or sub["latitude"].isna().all() or sub["longitude"].isna().all():
@@ -166,6 +186,8 @@ def _pick_cities(df, interests, days, start_city):
 
     usable = df[df["name"].notna() & (df["name"].astype(str).str.strip() != "")]
     usable = usable[usable["city"].notna()]
+    # Never count lodging/service rows as reasons to plan around a city.
+    usable = usable[usable["name"].map(_is_visit_stop)]
     # Keep only rows whose category matches one of our interests.
     cat_col = "tourism_category" if "tourism_category" in usable.columns else "category"
     if cat_col not in usable.columns:
@@ -278,6 +300,9 @@ def build_rich_itinerary(
         else:
             matches = city_df
         matches = matches[matches["name"].notna() & (matches["name"].astype(str).str.strip() != "")]
+        # Hotels/restaurants/services are never day stops, whatever their
+        # category tag says (the CSV contains hotel rows).
+        matches = matches[matches["name"].map(_is_visit_stop)]
         matches = matches[~matches["name"].astype(str).str.lower().isin(used_names)]
         # Rank: strongest category match first, then by dataset order.
         if not matches.empty:

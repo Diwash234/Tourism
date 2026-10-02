@@ -139,10 +139,23 @@ export default function Recommendation() {
       const results = data.results || data.recommendations || (Array.isArray(data) ? data : [])
       setItems(Array.isArray(results) ? results : [])
       setMeta({ source: data.source, version: data.model_version, preferences: data.preferences, method: data.method, seasonSource: data.season_source })
-    } catch {
+    } catch (err) {
       setItems([])
       setMeta(null)
-      setLoadError("Recommendations are temporarily unavailable. Please try again, or browse the full destination catalogue.")
+      // Keep the cause visible: "temporarily unavailable" for everything
+      // made the next outage impossible to diagnose (timeout vs 5xx vs
+      // offline). The axios interceptor preserves code/response/apiUnreachable.
+      const status = err?.response?.status
+      const timedOut = err?.code === "ECONNABORTED" || /too long|timeout/i.test(String(err?.message || ""))
+      if (timedOut) {
+        setLoadError("Recommendations are taking longer than usual right now — please try again in a moment, or browse the full destination catalogue.")
+      } else if (status >= 500) {
+        setLoadError(`Recommendations hit a server error (HTTP ${status}) — please try again, or browse the full destination catalogue.`)
+      } else if (err?.apiUnreachable) {
+        setLoadError("Cannot reach the server for recommendations — check your connection and try again, or browse the full destination catalogue.")
+      } else {
+        setLoadError("Recommendations are temporarily unavailable. Please try again, or browse the full destination catalogue.")
+      }
     } finally {
       setLoading(false)
     }

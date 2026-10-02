@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 const CACHE_KEY = "ny_cached_position"
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
@@ -179,17 +179,24 @@ const useGeolocation = ({ auto = true, enableIpFallback = true } = {}) => {
     return () => clearTimeout(t)
   }, [auto, request])
 
-  // Build legacy position object for backward compatibility
-  const position = coords
-    ? {
-        lat: coords.latitude,
-        lng: coords.longitude,
-        accuracy,
-        altitude: null,
-        speed: null,
-        heading: null,
-      }
-    : null
+  // Build legacy position object for backward compatibility. Memoized:
+  // pages put `position` in effect dependency arrays, and a fresh object on
+  // every render would re-fire those effects (a refetch loop for any page
+  // that auto-requests the position).
+  const position = useMemo(
+    () =>
+      coords
+        ? {
+            lat: coords.latitude,
+            lng: coords.longitude,
+            accuracy,
+            altitude: null,
+            speed: null,
+            heading: null,
+          }
+        : null,
+    [coords, accuracy]
+  )
 
   return {
     // New API
