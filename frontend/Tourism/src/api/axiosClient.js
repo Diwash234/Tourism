@@ -138,7 +138,7 @@ axiosClient.interceptors.response.use(
 
     // Never refresh for the auth endpoints themselves or public config.
     const isAuthRoute =
-      url.includes("/auth/token/refresh/") || url.includes("/auth/login/") || url.includes("/config/public/")
+      url.includes("/auth/token/refresh/") || url.includes("/auth/login/") || url.includes("/auth/register/") || url.includes("/config/public/")
 
     if (status !== 401 || !originalRequest || isGuestPreview() || isAuthRoute) {
       return Promise.reject(error)

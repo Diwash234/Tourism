@@ -100,6 +100,14 @@ run_data_repairs() {
   echo "entrypoint: computing nearest hospital/police/hotel for destinations"
   python manage.py enrich_destination_nearby_services \
     || echo "entrypoint: WARNING - nearby-service enrichment skipped"
+
+  # Hide OSM-CSV junk destinations (coverless, mojibake, type=node/way/
+  # relation) from every public surface and re-pin the curated featured set
+  # the homepage falls back to when the CMS FeaturedDestination table is
+  # empty. Idempotent; never reactivates or unfeatures anything.
+  echo "entrypoint: reconciling public catalogue (OSM junk rows + featured set)"
+  python manage.py reconcile_catalogue \
+    || echo "entrypoint: WARNING - catalogue reconcile skipped"
 }
 
 # ------------------------------------------------- 1. schema / seed file
@@ -191,10 +199,9 @@ with connection.cursor() as cur:
 PY
   )
 
-  SEEDED=0
+  # ALWAYS load ALL data sources for PostgreSQL - no SEEDED flag to prevent multiple loads
   if [ "$DATA_EXISTS" = "0" ]; then
     echo "entrypoint: PostgreSQL destination catalogue is empty - loading ALL seed data sources"
-    SEEDED=1
 
     # 1. Canonical verified snapshot (tracked in git): destinations WITH
     #    categories, hotels, hospitals, police stations, restaurants, OSM
@@ -232,15 +239,75 @@ PY
     echo "entrypoint: PostgreSQL already contains $DATA_EXISTS destinations - preserving catalogue"
   fi
 
-  load_catalogue_if_empty
+  # ALWAYS import ALL additional data sources (idempotent: only adds missing records)
+  # These run regardless of whether data was seeded above
+  echo "entrypoint: importing OSM destinations"
+  python manage.py import_osm_destinations || echo "entrypoint: WARNING - OSM destinations import skipped"
 
-  # Backfill destination media from the verified seed (external photo URLs
-  # for galleries that only have placeholder entries).
+  echo "entrypoint: importing hotels from hotel.csv"
+  python manage.py import_hotels_csv || echo "entrypoint: WARNING - hotel CSV import skipped"
+  
+  echo "entrypoint: importing hospital directory"
+  python manage.py import_hospital --csv dataset/hospital_cleaned.csv \
+    || echo "entrypoint: WARNING - hospital CSV import skipped"
+  
+  echo "entrypoint: importing police directory"
+  python manage.py import_police --csv dataset/nearbypolice.csv \
+    || echo "entrypoint: WARNING - police CSV import skipped"
+  
+  echo "entrypoint: importing risk data"
+  python manage.py import_risk \
+    || echo "entrypoint: WARNING - risk CSV import skipped"
+
+  echo "entrypoint: importing emergency services"
+  python manage.py import_emergency_services \
+    || echo "entrypoint: WARNING - emergency services import skipped"
+  
+  echo "entrypoint: seeding district services"
+  python manage.py seed_district_services \
+    || echo "entrypoint: WARNING - district services seed skipped"
+  
+  # Import legacy users from the seed database
+  if [ -f "/app/downloads/nepal-tourism-database.sqlite3.gz" ]; then
+    echo "entrypoint: importing legacy user accounts"
+    python manage.py import_legacy_users \
+      || echo "entrypoint: WARNING - legacy users import skipped"
+  fi
+  
+  # Reconcile the destination budget table on every deploy
+  echo "entrypoint: importing verified destination budget dataset"
+  python manage.py import_budget \
+    || echo "entrypoint: WARNING - budget dataset import skipped"
+
+  echo "entrypoint: importing sourced emergency and nearby-service records"
+  python manage.py import_emergency_services \
+    || echo "entrypoint: WARNING - emergency services import skipped"
+  python manage.py seed_district_services \
+    || echo "entrypoint: WARNING - district services seed skipped"
+  
+  # Post-seed enrichment is best-effort: one missing data file must never
+  # abort the boot (set -e would kill daphne and fail the whole deploy).
+  echo "entrypoint: repairing external cover-image paths"
+  python manage.py repair_cover_image_urls \
+    || echo "entrypoint: WARNING - cover-image repair skipped"
+  
   echo "entrypoint: backfilling missing destination media from verified seed"
   python manage.py sync_seed_media_postgres \
     || echo "entrypoint: WARNING - media backfill skipped"
-
-  run_data_repairs
+  
+  # Fill empty destination columns from coordinates/CSVs after every seed
+  # path (snapshot, fixture, dataset, archive).  Idempotent - only empty
+  # values are written - so re-running on an existing catalogue is safe.
+  echo "entrypoint: filling missing destination data (distances, nearest city/airport, city names)"
+  python manage.py enrich_destinations \
+    || echo "entrypoint: WARNING - destination enrichment skipped"
+  
+  # Recompute nearest hospital/police/hotel proximity from the service tables.
+  # - only right after a fresh seed, so curated values on later boots are
+  # never overwritten.
+  echo "entrypoint: computing nearest hospital/police/hotel for destinations"
+  python manage.py enrich_destination_nearby_services \
+    || echo "entrypoint: WARNING - nearby-service enrichment skipped"
 
   # Data audit: intentionally fails the deploy instead of looking healthy
   # while a public catalogue table stayed empty.
