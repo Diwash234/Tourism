@@ -250,7 +250,7 @@ export default function NepalExperienceSection({ section = null }) {
               <div className="space-y-3">
                 <div className="h-48 w-full relative overflow-hidden rounded-2xl bg-black">
                   <PlaceholderImage src={fest.image} title={fest.name} alt={fest.name} className="h-full w-full transition-transform duration-500 hover:scale-105" />
-                  <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur text-amber-300 text-[10px] font-black uppercase">
+                  <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur text-amber-300 text-xs font-black uppercase">
                     {fest.nepali}
                   </span>
                 </div>

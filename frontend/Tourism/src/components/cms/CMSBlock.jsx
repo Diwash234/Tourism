@@ -67,9 +67,9 @@ function PackagesGridBlock({ data = {} }) {
             )}
           </div>
           <div className="p-4">
-            <span className="text-[10px] font-black uppercase text-emerald-700">{listing.kind}</span>
+            <span className="text-xs font-black uppercase text-emerald-700">{listing.kind}</span>
             <h4 className="font-black text-slate-900 text-sm leading-snug mt-0.5 line-clamp-2">{listing.title}</h4>
-            <p className="text-[11px] text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               {listing.duration_days ? `${listing.duration_days} day${listing.duration_days === 1 ? "" : "s"}` : "Flexible"}
               {listing.price_npr != null ? ` · NPR ${Number(listing.price_npr).toLocaleString()}` : ""}
             </p>
@@ -194,7 +194,7 @@ export function ContentBlockItem({ block, showEmpty = false }) {
           {imgs.map((img, i) => (
             <div key={i} className="overflow-hidden rounded-2xl bg-slate-100">
               <img loading="lazy" decoding="async" src={typeof img === "string" ? img : img.url} alt={img.alt || ""} className="w-full h-36 object-cover hover:scale-105 transition-transform" />
-              {img.caption && <p className="p-1.5 text-[10px] text-slate-600 truncate">{img.caption}</p>}
+              {img.caption && <p className="p-1.5 text-xs text-slate-600 truncate">{img.caption}</p>}
             </div>
           ))}
         </div>
@@ -349,7 +349,7 @@ export function ContentBlockItem({ block, showEmpty = false }) {
               {!card.image && card.emoji && <span className="text-2xl block mb-2">{card.emoji}</span>}
               <h4 className="font-black text-slate-900 text-sm">{card.title}</h4>
               {card.description && <p className="text-xs text-slate-500 mt-1 leading-relaxed">{card.description}</p>}
-              <span className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-700 mt-3 group-hover:gap-2 transition-all">Open →</span>
+              <span className="inline-flex items-center gap-1 text-xs font-black text-emerald-700 mt-3 group-hover:gap-2 transition-all">Open →</span>
               </div>
             </Link>
           ))}

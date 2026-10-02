@@ -45,7 +45,7 @@ export default function Stepper({ steps, current, onStepClick, orientation = "ho
                 {step.label}
               </p>
               {step.description && (
-                <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{step.description}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{step.description}</p>
               )}
             </div>
           </div>

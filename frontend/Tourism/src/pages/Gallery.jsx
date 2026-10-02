@@ -215,7 +215,7 @@ export default function Gallery() {
       {districtMedia.length > 0 && (
         <section className="overflow-hidden rounded-3xl bg-slate-950 py-5 border border-purple-900/40">
           <div className="px-5 mb-4 flex items-center justify-between">
-            <div><p className="text-[10px] uppercase tracking-widest text-purple-300 font-black">All Nepal District Visual Index</p><h2 className="text-white font-black text-xl">77 District Photo Marquee</h2></div>
+            <div><p className="text-xs uppercase tracking-widest text-purple-300 font-black">All Nepal District Visual Index</p><h2 className="text-white font-black text-xl">77 District Photo Marquee</h2></div>
             <span className="text-xs text-slate-400">{averageDistrictImages ? `${averageDistrictImages} images per district on average` : "District photo index"} · swipe or browse below</span>
           </div>
           <motion.div
@@ -242,7 +242,7 @@ export default function Gallery() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-[#102A2E] text-[10px] font-bold">
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-[#102A2E] text-xs font-bold">
                     {dest.tag}
                   </span>
                   <span className="text-xs text-gray-500">• {dest.location}</span>
@@ -289,13 +289,13 @@ export default function Gallery() {
                         className="h-full w-full transition-transform duration-500 group-hover:scale-110"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2.5">
-                        <span className="text-[10px] font-bold text-amber-300 flex items-center gap-1">
+                        <span className="text-xs font-bold text-amber-300 flex items-center gap-1">
                           <FiMaximize2 size={12} /> Click to Fullscreen
                         </span>
                       </div>
                     </div>
 
-                    <div className="p-2 bg-white text-[11px] space-y-0.5">
+                    <div className="p-2 bg-white text-xs space-y-0.5">
                       <p className="font-bold text-gray-900 truncate">{img.caption}</p>
                       <p className="text-[9px] text-emerald-600 font-mono truncate">{img.license || "Attribution unavailable"}</p>
                     </div>

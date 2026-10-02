@@ -112,7 +112,7 @@ export default function CommentSection({
                   <span className="text-xs font-semibold text-gray-900 dark:text-white">
                     {comment.user_name}
                   </span>
-                  <span className="text-[10px] text-gray-400">{comment.created_at}</span>
+                  <span className="text-xs text-gray-400">{comment.created_at}</span>
                 </div>
 
                 {editingId === comment.id ? (

@@ -188,7 +188,7 @@ export default function DestinationItinerary({ destination: _destination }) {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-bold text-[var(--ny-green)]">{activity.time}</span>
-                            <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
+                            <span className="text-xs text-gray-400 flex items-center gap-0.5">
                               <FiClock size={10} /> {activity.duration} min
                             </span>
                           </div>

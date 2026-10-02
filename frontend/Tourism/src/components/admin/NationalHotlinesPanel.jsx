@@ -61,7 +61,7 @@ export default function NationalHotlinesPanel() {
     </div>
     <div className="mt-4 grid gap-3 md:grid-cols-2">
       {rows.map((row) => <article key={row.type} className="rounded-xl border border-amber-200 bg-white p-4">
-        <div className="flex items-start justify-between gap-3"><div><h4 className="font-black">{row.name}</h4><p className="text-sm font-bold text-rose-700">{row.phone_number}</p><p className="text-xs text-slate-500">{row.description}</p></div><span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-black uppercase">{row.type}</span></div>
+        <div className="flex items-start justify-between gap-3"><div><h4 className="font-black">{row.name}</h4><p className="text-sm font-bold text-rose-700">{row.phone_number}</p><p className="text-xs text-slate-500">{row.description}</p></div><span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-black uppercase">{row.type}</span></div>
         <p className="mt-2 text-[11px] text-slate-500">Source: {row.source_name} {row.source_url && <a className="underline" href={row.source_url} target="_blank" rel="noreferrer">(open)</a>}</p>
         <div className="mt-3 flex gap-2"><button type="button" onClick={() => startEdit(row)} className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-bold text-white"><FiEdit3 /> Edit</button>{!protectedTypes.includes(row.type) && <button type="button" onClick={() => remove(row.type)} className="inline-flex items-center gap-1 rounded-lg bg-rose-700 px-3 py-1.5 text-xs font-bold text-white"><FiTrash2 /> Delete</button>}</div>
       </article>)}

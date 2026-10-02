@@ -90,7 +90,7 @@ export default function GuideVerificationPanel() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
           {ovCards.map(([label, counts]) => (
             <div key={label} className="bg-white rounded-2xl border p-4">
-              <p className="text-[10px] uppercase tracking-wider font-black text-slate-400">{label}</p>
+              <p className="text-xs uppercase tracking-wider font-black text-slate-400">{label}</p>
               {Object.entries(counts).filter(([k]) => label !== "Guide applications" || k !== "needs_info" || counts[k] > 0).slice(0, 6).map(([k, v]) => (
                 <p key={k} className="text-xs text-slate-600 flex justify-between mt-1">
                   <span className="capitalize">{k.replaceAll("_", " ")}</span><b>{v}</b>
@@ -99,9 +99,9 @@ export default function GuideVerificationPanel() {
             </div>
           ))}
           <div className="bg-violet-50 border border-violet-200 rounded-2xl p-4">
-            <p className="text-[10px] uppercase tracking-wider font-black text-violet-400">Pending work</p>
+            <p className="text-xs uppercase tracking-wider font-black text-violet-400">Pending work</p>
             <p className="text-3xl font-black text-violet-700 mt-1">{overview.pending_work}</p>
-            <p className="text-[10px] text-violet-500 mt-1">applications + job applications + booking requests awaiting action</p>
+            <p className="text-xs text-violet-500 mt-1">applications + job applications + booking requests awaiting action</p>
           </div>
         </div>
       )}
@@ -127,7 +127,7 @@ export default function GuideVerificationPanel() {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <b className="text-sm text-slate-900">#{a.id} {a.full_name}</b>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${STATUS_STYLE[a.status] || "bg-slate-100"}`}>{a.status.replaceAll("_", " ")}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-bold uppercase ${STATUS_STYLE[a.status] || "bg-slate-100"}`}>{a.status.replaceAll("_", " ")}</span>
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5">
                   {a.user_email}{a.phone ? ` · ${a.phone}` : ""}{a.base_city ? ` · ${a.base_city}` : ""} · applied {new Date(a.created_at).toLocaleDateString()}

@@ -164,7 +164,7 @@ export default function OwnerDeskPanel() {
           ].map(([label, value, href, Icon]) => {
             const card = (
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <p className="text-[10px] uppercase font-black text-slate-500 flex items-center gap-1"><Icon size={12} /> {label}</p>
+                <p className="text-xs uppercase font-black text-slate-500 flex items-center gap-1"><Icon size={12} /> {label}</p>
                 <p className="text-2xl font-black text-slate-900 mt-1">{value ?? 0}</p>
               </div>
             )
@@ -214,8 +214,8 @@ export default function OwnerDeskPanel() {
               <div key={notice.id} className="rounded-xl border border-slate-200 p-3 flex justify-between gap-3">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${kindTone[notice.kind] || kindTone.info}`}>{notice.kind}</span>
-                    {!notice.is_published && <span className="text-[10px] font-bold text-slate-500">Draft</span>}
+                    <span className={`text-xs font-black uppercase px-2 py-0.5 rounded-full ${kindTone[notice.kind] || kindTone.info}`}>{notice.kind}</span>
+                    {!notice.is_published && <span className="text-xs font-bold text-slate-500">Draft</span>}
                     <h4 className="font-bold text-slate-900">{notice.title}</h4>
                   </div>
                   <p className="text-xs text-slate-300 mt-1 line-clamp-2">{notice.body}</p>

@@ -57,7 +57,7 @@ export default function SafetyOpsPanel() {
   }
 
   const badge = (sev) => (
-    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${SEVERITY_STYLE[sev] || "bg-slate-100"}`}>{sev}</span>
+    <span className={`text-xs px-2 py-0.5 rounded-full font-bold uppercase ${SEVERITY_STYLE[sev] || "bg-slate-100"}`}>{sev}</span>
   )
 
   const section = (icon, title, items, render) => (
@@ -109,8 +109,8 @@ export default function SafetyOpsPanel() {
             <div className="flex flex-wrap items-center gap-2">
               <b className="text-sm text-slate-900">{a.title}</b>
               {badge(a.severity)}
-              {a.is_verified ? <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold">VERIFIED</span> : <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-bold">UNVERIFIED</span>}
-              {!a.is_active && <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-400 font-bold">DEACTIVATED</span>}
+              {a.is_verified ? <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold">VERIFIED</span> : <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-bold">UNVERIFIED</span>}
+              {!a.is_active && <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-400 font-bold">DEACTIVATED</span>}
             </div>
             <p className="text-xs text-slate-500 mt-0.5">{a.location} · {a.type} · source: {a.source || "unspecified"}</p>
             <div className="flex flex-wrap gap-2 mt-2">
@@ -134,7 +134,7 @@ export default function SafetyOpsPanel() {
             <div className="flex flex-wrap items-center gap-2">
               <b className="text-sm text-slate-900">{h.title}</b>
               {badge(h.severity)}
-              {h.is_verified && <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold">VERIFIED</span>}
+              {h.is_verified && <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold">VERIFIED</span>}
             </div>
             <p className="text-xs text-slate-500 mt-0.5">{h.location} · {h.type} · source: {h.source || "unspecified"}</p>
             <div className="flex flex-wrap gap-2 mt-2">
@@ -156,7 +156,7 @@ export default function SafetyOpsPanel() {
             <div className="flex flex-wrap items-center gap-2">
               <b className="text-sm text-slate-900">#{r.id} {r.title}</b>
               {badge(r.severity)}
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold uppercase">{r.status.replaceAll("_", " ")}</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold uppercase">{r.status.replaceAll("_", " ")}</span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">{r.location} · {r.type} · reported by {r.reporter}</p>
             <div className="flex flex-wrap gap-2 mt-2">

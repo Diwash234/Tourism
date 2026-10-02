@@ -123,7 +123,7 @@ export default function AdminGlobalSearch() {
               <button
                 key={item || "all"}
                 onClick={() => setType(item)}
-                className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${type === item ? "bg-emerald-700 text-white" : "bg-emerald-50 text-emerald-900"}`}
+                className={`rounded-full px-2 py-1 text-xs font-black uppercase ${type === item ? "bg-emerald-700 text-white" : "bg-emerald-50 text-emerald-900"}`}
               >
                 {item || "all"}
               </button>
@@ -134,7 +134,7 @@ export default function AdminGlobalSearch() {
           {!loading && !error && !rows.length && <p className="p-4 text-sm text-slate-600">No permitted records found.</p>}
           {Object.entries(grouped).map(([group, items]) => (
             <section key={group}>
-              <h3 className="px-3 pb-1 pt-3 text-[10px] font-black uppercase tracking-widest text-emerald-800">{group}</h3>
+              <h3 className="px-3 pb-1 pt-3 text-xs font-black uppercase tracking-widest text-emerald-800">{group}</h3>
               {items.map((row) => {
                 const index = rows.indexOf(row)
                 return (
@@ -148,7 +148,7 @@ export default function AdminGlobalSearch() {
                   >
                     <span className="block truncate font-semibold">{row.label}</span>
                     {row.snippet && <span className="block truncate text-[11px] text-slate-300">{row.snippet}</span>}
-                    <span className="text-[10px] uppercase text-slate-500">{row.module} · #{row.id}</span>
+                    <span className="text-xs uppercase text-slate-500">{row.module} · #{row.id}</span>
                   </button>
                 )
               })}

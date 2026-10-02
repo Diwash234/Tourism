@@ -67,7 +67,7 @@ export default function RoutingProviderPanel() {
       <header className="flex items-center gap-2">
         <FiRadio className="text-emerald-600" />
         <h3 className="font-black uppercase tracking-wider text-sm">Road Routing Provider</h3>
-        <span className={`ml-auto text-[10px] font-black px-2 py-1 rounded-full ${state.enabled ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>
+        <span className={`ml-auto text-xs font-black px-2 py-1 rounded-full ${state.enabled ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>
           {state.enabled ? "ACTIVE — street-level routes" : "Bundled graph (coordinate-based)"}
         </span>
       </header>
@@ -84,7 +84,7 @@ export default function RoutingProviderPanel() {
       </label>
 
       <div>
-        <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1">Base URL</label>
+        <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-1">Base URL</label>
         <input
           type="url"
           value={form.base_url}
@@ -92,13 +92,13 @@ export default function RoutingProviderPanel() {
           placeholder="https://router.example.org"
           className="input-base w-full"
         />
-        <p className="text-[10px] text-slate-400 mt-1">
+        <p className="text-xs text-slate-400 mt-1">
           The service is called as <code>{"{base}/route/v1/driving/{lng},{lat};{lng},{lat}"}</code> (OSRM contract).
         </p>
       </div>
 
       <div>
-        <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1">
+        <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-1">
           API key {state.api_key_set ? `(stored ••••${state.api_key_last4} — leave blank to keep)` : "(optional)"}
         </label>
         <input

@@ -134,7 +134,7 @@ export default function FeedbackWorkspace() {
             {/* Header */}
             <div className="border-b border-slate-800 pb-3 flex justify-between items-start">
               <div>
-                <span className="text-[10px] uppercase font-bold text-amber-400 tracking-wider block mb-1">
+                <span className="text-xs uppercase font-bold text-amber-400 tracking-wider block mb-1">
                   Support Ticket #{selected.id} · Category: {selected.category}
                 </span>
                 <h2 className="text-xl font-black text-white">{selected.subject}</h2>
@@ -150,7 +150,7 @@ export default function FeedbackWorkspace() {
             {/* Controls Bar */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs">
               <div>
-                <label className="text-[10px] font-bold text-slate-400 block mb-1">Update Status</label>
+                <label className="text-xs font-bold text-slate-400 block mb-1">Update Status</label>
                 <select
                   className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white focus:outline-none"
                   value={selected.status}
@@ -163,7 +163,7 @@ export default function FeedbackWorkspace() {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-slate-400 block mb-1">Set Priority</label>
+                <label className="text-xs font-bold text-slate-400 block mb-1">Set Priority</label>
                 <select
                   className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white focus:outline-none"
                   value={selected.priority}
@@ -177,7 +177,7 @@ export default function FeedbackWorkspace() {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-slate-400 block mb-1">Assign Staff User ID</label>
+                <label className="text-xs font-bold text-slate-400 block mb-1">Assign Staff User ID</label>
                 <input
                   type="text"
                   className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white focus:outline-none"
@@ -228,7 +228,7 @@ export default function FeedbackWorkspace() {
                 if (m.is_internal) {
                   return (
                     <div key={m.id} className="p-3 rounded-xl bg-amber-950/90 border border-amber-600/50 text-amber-200 text-xs space-y-1">
-                      <b className="text-amber-300 text-[10px] uppercase font-bold block">🔒 Internal Staff Note ({m.sender}):</b>
+                      <b className="text-amber-300 text-xs uppercase font-bold block">🔒 Internal Staff Note ({m.sender}):</b>
                       <p>{m.body}</p>
                     </div>
                   )

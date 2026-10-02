@@ -91,7 +91,7 @@ export default function DestinationRiskPanel() {
       {risk && <div className="p-5 sm:p-6 space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div><p className="text-xs font-bold uppercase text-gray-400">{risk.destination.district} · {risk.destination.province}</p><h3 className="text-2xl font-black text-gray-900">{risk.destination.name}</h3><p className="text-xs text-gray-500 mt-1">Calculated {new Date(risk.calculated_at).toLocaleString()}</p></div>
-          <div className={`rounded-2xl border p-4 min-w-48 ${COLORS[risk.overall.level]}`}><p className="text-[10px] font-black uppercase">Service risk indicator</p><div className="flex items-end gap-2"><b className="text-3xl">{risk.overall.score}</b><Badge level={risk.overall.level} /></div><p className="text-[10px] mt-1">Not an official warning</p></div>
+          <div className={`rounded-2xl border p-4 min-w-48 ${COLORS[risk.overall.level]}`}><p className="text-xs font-black uppercase">Service risk indicator</p><div className="flex items-end gap-2"><b className="text-3xl">{risk.overall.score}</b><Badge level={risk.overall.level} /></div><p className="text-xs mt-1">Not an official warning</p></div>
         </div>
 
         <div className="grid md:grid-cols-3 gap-3">

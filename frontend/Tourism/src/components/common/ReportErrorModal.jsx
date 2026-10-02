@@ -41,7 +41,7 @@ export default function ReportErrorModal({ isOpen, onClose, destination, fieldNa
       <div className="dark-surface max-w-lg w-full rounded-[var(--ny-radius-lg)] border border-slate-800 bg-slate-950 p-6 text-white shadow-2xl space-y-4">
         <div className="flex justify-between items-start border-b border-slate-800 pb-3">
           <div>
-            <span className="text-[10px] font-black uppercase text-amber-400">Data Integrity Guard</span>
+            <span className="text-xs font-black uppercase text-amber-400">Data Integrity Guard</span>
             <h3 className="text-lg font-black mt-0.5">Report Incorrect Information</h3>
             {destination?.name && (
               <p className="text-xs text-slate-400">Destination: <span className="text-white font-bold">{destination.name}</span></p>

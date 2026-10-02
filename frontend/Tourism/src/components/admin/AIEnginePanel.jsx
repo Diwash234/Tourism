@@ -279,7 +279,7 @@ export default function AIEnginePanel() {
                         className="w-full text-left p-3 hover:bg-slate-800 flex justify-between items-center"
                       >
                         <span className="font-bold text-white">{d.name}</span>
-                        <span className="text-[10px] text-slate-400">{d.city || d.district}</span>
+                        <span className="text-xs text-slate-400">{d.city || d.district}</span>
                       </button>
                     ))}
                   </div>

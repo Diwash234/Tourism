@@ -175,7 +175,7 @@ adminApi.getCMS("police_stations").catch(() => null),
                 <li key={`${item.kind}-${item.label}-${i}`} className="flex items-center justify-between gap-3 rounded-lg bg-slate-800/50 px-3 py-2">
                   <span className="min-w-0">
                     <span className="block truncate text-xs font-bold text-white">{item.label}</span>
-                    <span className="text-[10px] uppercase font-black text-emerald-300/80">{item.kind}</span>
+                    <span className="text-xs uppercase font-black text-emerald-300/80">{item.kind}</span>
                   </span>
                   <span className="shrink-0 text-[11px] font-semibold text-slate-300">{timeAgo(item.at)}</span>
                 </li>

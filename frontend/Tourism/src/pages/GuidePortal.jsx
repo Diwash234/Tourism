@@ -211,7 +211,7 @@ export default function GuidePortal() {
                     <div key={a.id} className="bg-white rounded-3xl border p-5 space-y-2">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <b className="text-slate-900">{a.full_name}</b>
-                        <span className={`text-[10px] px-2.5 py-1 rounded-full font-black uppercase flex items-center gap-1 ${m.cls}`}>{m.icon} {m.label}</span>
+                        <span className={`text-xs px-2.5 py-1 rounded-full font-black uppercase flex items-center gap-1 ${m.cls}`}>{m.icon} {m.label}</span>
                       </div>
                       <p className="text-xs text-slate-500">Applied {new Date(a.created_at).toLocaleDateString()}{a.reviewed_at ? ` · last review ${new Date(a.reviewed_at).toLocaleDateString()}${a.reviewed_by ? ` by ${a.reviewed_by}` : ""}` : ""}</p>
                       {a.admin_note && (
@@ -233,7 +233,7 @@ export default function GuidePortal() {
                 <form onSubmit={saveProfile} className="bg-white rounded-3xl border p-6 space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <h2 className="font-black text-slate-900 flex items-center gap-2"><FiEdit3 /> My Guide Profile</h2>
-                    <span className={`text-[10px] px-2.5 py-1 rounded-full font-black uppercase ${profile.verification_status === "verified" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-black uppercase ${profile.verification_status === "verified" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
                       {profile.verification_status}
                     </span>
                   </div>
@@ -250,7 +250,7 @@ export default function GuidePortal() {
                     Listed in the public guide directory (when verified)
                   </label>
                   <button disabled={busy} className="px-6 py-3 bg-[#1D5146] disabled:opacity-40 text-white rounded-xl text-sm font-black">{busy ? "Saving…" : "Save Profile"}</button>
-                  <p className="text-[11px] text-slate-400">Verification status is managed by the platform verification team and cannot be edited here.</p>
+                  <p className="text-xs text-slate-400">Verification status is managed by the platform verification team and cannot be edited here.</p>
                 </form>
               ) : (
                 <div className="bg-white rounded-3xl border p-12 text-center text-sm text-slate-500">
@@ -269,7 +269,7 @@ export default function GuidePortal() {
                           <b className="text-slate-900">{b.tourist_name}</b>
                           <span className="text-xs text-slate-500"> · {b.tourist_email}</span>
                         </div>
-                        <span className={`text-[10px] px-2.5 py-1 rounded-full font-black uppercase ${
+                        <span className={`text-xs px-2.5 py-1 rounded-full font-black uppercase ${
                           b.status === "requested" ? "bg-sky-100 text-sky-700" :
                           b.status === "accepted" ? "bg-emerald-100 text-emerald-700" :
                           b.status === "completed" ? "bg-slate-200 text-slate-700" :
@@ -326,27 +326,27 @@ export default function GuidePortal() {
                   <div className="space-y-3">
                     <div className="grid sm:grid-cols-4 gap-3">
                       <div className="bg-white rounded-2xl border p-4">
-                        <p className="text-[10px] uppercase tracking-wider font-black text-slate-400">Reputation</p>
+                        <p className="text-xs uppercase tracking-wider font-black text-slate-400">Reputation</p>
                         <p className="text-2xl font-black text-amber-600 mt-1">{stats.rating_avg ? `${stats.rating_avg}★` : "—"}</p>
-                        <p className="text-[11px] text-slate-400">{stats.review_count} review{stats.review_count === 1 ? "" : "s"}</p>
+                        <p className="text-xs text-slate-400">{stats.review_count} review{stats.review_count === 1 ? "" : "s"}</p>
                       </div>
                       <div className="bg-white rounded-2xl border p-4">
-                        <p className="text-[10px] uppercase tracking-wider font-black text-slate-400">Completed trips</p>
+                        <p className="text-xs uppercase tracking-wider font-black text-slate-400">Completed trips</p>
                         <p className="text-2xl font-black text-slate-900 mt-1">{stats.booking_counts.completed}</p>
-                        <p className="text-[11px] text-slate-400">{stats.booking_counts.accepted} upcoming · {stats.booking_counts.requested} pending requests</p>
+                        <p className="text-xs text-slate-400">{stats.booking_counts.accepted} upcoming · {stats.booking_counts.requested} pending requests</p>
                       </div>
                       <div className="bg-white rounded-2xl border p-4">
-                        <p className="text-[10px] uppercase tracking-wider font-black text-slate-400">Earned (estimate)</p>
+                        <p className="text-xs uppercase tracking-wider font-black text-slate-400">Earned (estimate)</p>
                         <p className="text-2xl font-black text-emerald-600 mt-1">NPR {Number(stats.completed_earnings_estimate_npr).toLocaleString()}</p>
-                        <p className="text-[11px] text-slate-400">from completed trips</p>
+                        <p className="text-xs text-slate-400">from completed trips</p>
                       </div>
                       <div className="bg-white rounded-2xl border p-4">
-                        <p className="text-[10px] uppercase tracking-wider font-black text-slate-400">Upcoming (estimate)</p>
+                        <p className="text-xs uppercase tracking-wider font-black text-slate-400">Upcoming (estimate)</p>
                         <p className="text-2xl font-black text-sky-600 mt-1">NPR {Number(stats.upcoming_earnings_estimate_npr).toLocaleString()}</p>
-                        <p className="text-[11px] text-slate-400">from accepted trips</p>
+                        <p className="text-xs text-slate-400">from accepted trips</p>
                       </div>
                     </div>
-                    <p className="text-[11px] text-slate-400">Estimates are calculated as daily rate × trip days. The platform does not process guide payments — settle rates directly with travellers.</p>
+                    <p className="text-xs text-slate-400">Estimates are calculated as daily rate × trip days. The platform does not process guide payments — settle rates directly with travellers.</p>
                     {stats.upcoming_trips.length > 0 && (
                       <div className="bg-white rounded-3xl border divide-y">
                         {stats.upcoming_trips.map((t) => (

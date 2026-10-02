@@ -11,7 +11,7 @@ export default function HimalPackageCards({ offers, onAdd }) {
 
   return (
     <div className="max-w-[85%] mt-3 w-full space-y-2" data-testid="himal-package-cards">
-      <p className="text-[11px] font-bold text-amber-900">
+      <p className="text-xs font-bold text-amber-900">
         Published packages (request to book — no card numbers here):
       </p>
       {offers.map((offer) => (
@@ -22,12 +22,12 @@ export default function HimalPackageCards({ offers, onAdd }) {
           data-alternative={offer.is_alternative ? "true" : "false"}
           className="rounded-xl border border-amber-200 bg-white p-3 space-y-2"
         >
-          <p className="text-[10px] font-black uppercase text-amber-800">
+          <p className="text-xs font-black uppercase text-amber-800">
             {offer.kind || "Package"} · {offer.duration_days != null ? `${offer.duration_days} day(s)` : "Duration unavailable"}
             {offer.is_alternative ? " · alternative" : ""}
           </p>
           {offer.is_alternative && (
-            <p data-testid="himal-package-alternative" className="text-[10px] text-amber-800">
+            <p data-testid="himal-package-alternative" className="text-xs text-amber-800">
               Nearby-duration published alternative (not an exact match)
             </p>
           )}
@@ -39,7 +39,7 @@ export default function HimalPackageCards({ offers, onAdd }) {
             <Link
               to={`/packages/${offer.slug}`}
               data-testid="himal-package-view"
-              className="flex-1 text-center text-[11px] font-black rounded-lg bg-amber-400 text-gray-950 py-1.5"
+              className="flex-1 text-center text-xs font-black rounded-lg bg-amber-400 text-gray-950 py-1.5"
             >
               View
             </Link>
@@ -47,7 +47,7 @@ export default function HimalPackageCards({ offers, onAdd }) {
               type="button"
               data-testid="himal-package-add"
               onClick={() => add(offer)}
-              className="flex-1 text-[11px] font-black rounded-lg bg-emerald-700 text-white py-1.5"
+              className="flex-1 text-xs font-black rounded-lg bg-emerald-700 text-white py-1.5"
             >
               Add to trip
             </button>

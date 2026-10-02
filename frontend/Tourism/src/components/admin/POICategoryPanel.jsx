@@ -71,7 +71,7 @@ export default function POICategoryPanel() {
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-200 text-[11px] uppercase tracking-wide text-slate-500">
+              <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
                 <th className="py-2 pr-3">Icon</th>
                 <th className="py-2 pr-3">Label (public name)</th>
                 <th className="py-2 pr-3">Order</th>
@@ -97,7 +97,7 @@ export default function POICategoryPanel() {
                       className="w-full min-w-40 rounded-lg border border-slate-300 px-2 py-1"
                       aria-label={`Label for ${row.key}`}
                     />
-                    <p className="mt-0.5 text-[10px] text-slate-400">{row.key}</p>
+                    <p className="mt-0.5 text-xs text-slate-400">{row.key}</p>
                   </td>
                   <td className="py-2 pr-3">
                     <input

@@ -74,7 +74,7 @@ export default function ReviewSection({ reviews = [], onAddReview }) {
               </div>
               <div className="flex items-center gap-1.5">
                 {r.rating != null ? <span className="text-amber-500 font-bold">{"★".repeat(Math.max(0, Math.min(5, Number(r.rating))))}</span> : <span className="text-xs text-slate-400">Rating unavailable</span>}
-                <span className="text-[10px] text-slate-400">{r.date || "Recent"}</span>
+                <span className="text-xs text-slate-400">{r.date || "Recent"}</span>
               </div>
             </div>
             <p className="text-slate-700 leading-relaxed pl-9">{r.comment || r.body}</p>

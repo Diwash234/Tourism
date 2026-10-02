@@ -137,7 +137,7 @@ export default function HotelOpsPanel({ module = "hotels" }) {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <b className="text-sm text-slate-900">{b.reference} · {b.hotel_name}</b>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${STATUS_STYLE[b.status] || "bg-slate-100"}`}>{b.status}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-bold uppercase ${STATUS_STYLE[b.status] || "bg-slate-100"}`}>{b.status}</span>
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">
                     {b.customer_name} ({b.customer_email}) ·

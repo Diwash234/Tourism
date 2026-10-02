@@ -226,14 +226,14 @@ export default function UserFeedbackModal({ isOpen, onClose, destination = null 
                     <button
                       type="button"
                       onClick={() => setSelectedThread(null)}
-                      className="text-amber-400 hover:underline font-bold text-[11px] block mb-1"
+                      className="text-amber-400 hover:underline font-bold text-xs block mb-1"
                     >
                       ← Back to All Threads
                     </button>
                     <b className="text-white text-sm">{selectedThread.subject}</b>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 text-[10px] font-mono font-bold uppercase">
+                    <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 text-xs font-mono font-bold uppercase">
                       {selectedThread.status}
                     </span>
                     <button type="button" onClick={loadHistory} className="p-1 rounded bg-slate-800 text-slate-300 hover:text-white" title="Refresh messages">
@@ -249,7 +249,7 @@ export default function UserFeedbackModal({ isOpen, onClose, destination = null 
                       <FiUser size={12} /> {selectedThread.name || "You"} (Ticket Creator)
                     </div>
                     <p>{selectedThread.message}</p>
-                    <span className="text-[10px] text-amber-400/70 mt-1 block">
+                    <span className="text-xs text-amber-400/70 mt-1 block">
                       {new Date(selectedThread.created_at).toLocaleString()}
                     </span>
                   </div>
@@ -265,7 +265,7 @@ export default function UserFeedbackModal({ isOpen, onClose, destination = null 
                             : "bg-emerald-950/80 border border-emerald-700/50 text-emerald-100 self-end ml-auto"
                         }`}
                       >
-                        <div className="font-bold text-[11px] flex items-center gap-1">
+                        <div className="font-bold text-xs flex items-center gap-1">
                           {isAdmin ? <FiShield size={12} className="text-purple-300" /> : <FiUser size={12} className="text-emerald-300" />}
                           <span className={isAdmin ? "text-purple-300" : "text-emerald-300"}>
                             {msg.sender}
@@ -313,12 +313,12 @@ export default function UserFeedbackModal({ isOpen, onClose, destination = null 
                     >
                       <div className="flex justify-between items-center">
                         <b className="text-white text-sm">{thread.subject}</b>
-                        <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 text-[10px] font-mono font-bold uppercase">
+                        <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 text-xs font-mono font-bold uppercase">
                           {thread.status}
                         </span>
                       </div>
                       <p className="text-slate-300 text-xs line-clamp-2">{thread.message}</p>
-                      <div className="flex justify-between text-[10px] text-slate-400 mt-2">
+                      <div className="flex justify-between text-xs text-slate-400 mt-2">
                         <span>Category: {thread.category}</span>
                         <span>{thread.messages?.length || 1} message(s)</span>
                       </div>

@@ -85,7 +85,7 @@ export default function DataHealthPanel() {
 
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <span className="text-[10px] text-slate-400 block uppercase font-bold">Data Quality Score</span>
+            <span className="text-xs text-slate-400 block uppercase font-bold">Data Quality Score</span>
             <span className="text-2xl font-black text-emerald-400">{stats.quality_score}%</span>
           </div>
           <button
@@ -156,7 +156,7 @@ export default function DataHealthPanel() {
         <div className="p-6 rounded-3xl bg-slate-950 border border-slate-800 space-y-4 shadow-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
             <div>
-              <span className="px-3 py-0.5 rounded-full bg-blue-400/20 text-blue-300 text-[10px] font-black uppercase tracking-wider border border-blue-400/30">
+              <span className="px-3 py-0.5 rounded-full bg-blue-400/20 text-blue-300 text-xs font-black uppercase tracking-wider border border-blue-400/30">
                 Navigation Analytics
               </span>
               <h3 className="text-lg font-black text-white mt-1">Route Calculation Usage</h3>
@@ -166,19 +166,19 @@ export default function DataHealthPanel() {
             </div>
             <div className="flex gap-4 text-right text-xs">
               <div>
-                <span className="text-slate-400 block uppercase font-bold text-[10px]">Total</span>
+                <span className="text-slate-400 block uppercase font-bold text-xs">Total</span>
                 <span className="text-xl font-black text-white">{navAnalytics.total_calculations}</span>
               </div>
               <div>
-                <span className="text-slate-400 block uppercase font-bold text-[10px]">Last 30d</span>
+                <span className="text-slate-400 block uppercase font-bold text-xs">Last 30d</span>
                 <span className="text-xl font-black text-blue-300">{navAnalytics.calculations_last_30_days}</span>
               </div>
               <div>
-                <span className="text-slate-400 block uppercase font-bold text-[10px]">Travellers</span>
+                <span className="text-slate-400 block uppercase font-bold text-xs">Travellers</span>
                 <span className="text-xl font-black text-white">{navAnalytics.distinct_travellers}</span>
               </div>
               <div>
-                <span className="text-slate-400 block uppercase font-bold text-[10px]">Saved</span>
+                <span className="text-slate-400 block uppercase font-bold text-xs">Saved</span>
                 <span className="text-xl font-black text-amber-300">{navAnalytics.saved_routes}</span>
               </div>
             </div>
@@ -186,7 +186,7 @@ export default function DataHealthPanel() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-xs">
             <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800">
-              <p className="font-black text-slate-200 uppercase text-[10px] tracking-wider mb-2">Top Requested Destinations</p>
+              <p className="font-black text-slate-200 uppercase text-xs tracking-wider mb-2">Top Requested Destinations</p>
               {navAnalytics.top_destinations?.length ? (
                 <ul className="space-y-1">
                   {navAnalytics.top_destinations.map((row) => (
@@ -202,7 +202,7 @@ export default function DataHealthPanel() {
             </div>
 
             <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800">
-              <p className="font-black text-slate-200 uppercase text-[10px] tracking-wider mb-2">Travel Mode Split</p>
+              <p className="font-black text-slate-200 uppercase text-xs tracking-wider mb-2">Travel Mode Split</p>
               {navAnalytics.mode_split?.length ? (
                 <ul className="space-y-1">
                   {navAnalytics.mode_split.map((row) => (
@@ -231,7 +231,7 @@ export default function DataHealthPanel() {
         <form onSubmit={handleSaveRates} className="p-6 rounded-3xl bg-slate-950 border border-slate-800 space-y-4 shadow-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
             <div>
-              <span className="px-3 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-black uppercase tracking-wider border border-amber-400/30">
+              <span className="px-3 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-xs font-black uppercase tracking-wider border border-amber-400/30">
                 Official Government Rate & CPI Studio
               </span>
               <h3 className="text-lg font-black text-white mt-1">Travel Cost & Inflation Rate Multipliers</h3>
@@ -262,7 +262,7 @@ export default function DataHealthPanel() {
                 onChange={(e) => setRates({ ...rates, food_multiplier: parseFloat(e.target.value) || 1.0 })}
                 className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-amber-400"
               />
-              <span className="text-[10px] text-slate-400">Baseline 1.00 (+4% inflation = 1.04)</span>
+              <span className="text-xs text-slate-400">Baseline 1.00 (+4% inflation = 1.04)</span>
             </div>
 
             <div className="space-y-1">
@@ -276,7 +276,7 @@ export default function DataHealthPanel() {
                 onChange={(e) => setRates({ ...rates, transport_multiplier: parseFloat(e.target.value) || 1.0 })}
                 className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-amber-400"
               />
-              <span className="text-[10px] text-slate-400">Baseline 1.00 (+6% fuel adjustment = 1.06)</span>
+              <span className="text-xs text-slate-400">Baseline 1.00 (+6% fuel adjustment = 1.06)</span>
             </div>
 
             <div className="space-y-1">
@@ -290,7 +290,7 @@ export default function DataHealthPanel() {
                 onChange={(e) => setRates({ ...rates, accommodation_multiplier: parseFloat(e.target.value) || 1.0 })}
                 className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-amber-400"
               />
-              <span className="text-[10px] text-slate-400">Baseline 1.00 (+2% seasonal index = 1.02)</span>
+              <span className="text-xs text-slate-400">Baseline 1.00 (+2% seasonal index = 1.02)</span>
             </div>
           </div>
 

@@ -240,9 +240,9 @@ export default function HomepageManagerPanel() {
 
   const field = "w-full rounded-xl border border-slate-600/50 bg-slate-800/60 px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
   const statusChip = (section) => {
-    if (section.status !== "published") return <span className="rounded-full bg-amber-500/20 px-2.5 py-1 text-[10px] font-black uppercase text-amber-300 flex items-center gap-1"><FiClock size={10} /> {section.status}</span>
-    if (hasPendingChanges(section)) return <span className="rounded-full bg-sky-500/20 px-2.5 py-1 text-[10px] font-black uppercase text-sky-300 flex items-center gap-1"><FiEdit3 size={10} /> Draft pending</span>
-    return <span className="rounded-full bg-emerald-500/20 px-2.5 py-1 text-[10px] font-black uppercase text-emerald-300 flex items-center gap-1"><FiCheckCircle size={10} /> Live</span>
+    if (section.status !== "published") return <span className="rounded-full bg-amber-500/20 px-2.5 py-1 text-xs font-black uppercase text-amber-300 flex items-center gap-1"><FiClock size={10} /> {section.status}</span>
+    if (hasPendingChanges(section)) return <span className="rounded-full bg-sky-500/20 px-2.5 py-1 text-xs font-black uppercase text-sky-300 flex items-center gap-1"><FiEdit3 size={10} /> Draft pending</span>
+    return <span className="rounded-full bg-emerald-500/20 px-2.5 py-1 text-xs font-black uppercase text-emerald-300 flex items-center gap-1"><FiCheckCircle size={10} /> Live</span>
   }
 
   return (
@@ -370,7 +370,7 @@ export default function HomepageManagerPanel() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="text-sm font-black uppercase tracking-wider text-slate-300">Editing: {draft.title || draft.key}</h3>
                   <div className="flex items-center gap-2">
-                    {dirty && <span className="rounded-full bg-amber-500/20 px-2.5 py-1 text-[10px] font-black uppercase text-amber-300">Unsaved changes</span>}
+                    {dirty && <span className="rounded-full bg-amber-500/20 px-2.5 py-1 text-xs font-black uppercase text-amber-300">Unsaved changes</span>}
                     {statusChip(draft)}
                   </div>
                 </div>
@@ -586,7 +586,7 @@ export default function HomepageManagerPanel() {
                   onClick={() => { setDraft((d) => (d ? { ...d, image_url: row.url || row.external_url || "" } : d)); setMediaPicker(false); showToast("Image selected — remember to Publish", "success") }}
                   className="group rounded-xl border border-slate-700/60 overflow-hidden text-left hover:border-emerald-500">
                   <img src={row.url} alt={row.caption || "Media"} loading="lazy" className="h-24 w-full object-cover" />
-                  <span className="block truncate px-2 py-1.5 text-[10px] font-bold text-slate-300 group-hover:text-emerald-300">{row.caption || row.url}</span>
+                  <span className="block truncate px-2 py-1.5 text-xs font-bold text-slate-300 group-hover:text-emerald-300">{row.caption || row.url}</span>
                 </button>
               ))}
               {!mediaRows.length && <p className="col-span-4 py-6 text-center text-sm text-slate-400">No media found. Upload images in the Media Library panel first.</p>}

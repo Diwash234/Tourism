@@ -158,7 +158,7 @@ export default function NearbyPlacesAdvanced() {
               >
                 {tab.label}
                 {results[tab.key]?.length > 0 && (
-                  <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300">
+                  <span className="ml-1.5 px-1.5 py-0.5 text-xs font-bold rounded-full bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300">
                     {results[tab.key].length}
                   </span>
                 )}

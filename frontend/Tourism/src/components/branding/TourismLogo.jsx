@@ -83,9 +83,9 @@ const TourismLogo = ({ to = "/", showTagline = true, size = "md", darkText = fal
 
   const dims = {
     sm: { box: 34, text: "text-lg", tagline: "hidden" },
-    md: { box: 42, text: "text-xl", tagline: "text-[11px]" },
+    md: { box: 42, text: "text-xl", tagline: "text-xs" },
     lg: { box: 56, text: "text-2xl sm:text-3xl", tagline: "text-xs" },
-  }[size] || { box: 42, text: "text-xl", tagline: "text-[11px]" }
+  }[size] || { box: 42, text: "text-xl", tagline: "text-xs" }
 
   return (
     <Link to={to} className="flex items-center gap-2 select-none shrink-0 min-w-0 group">

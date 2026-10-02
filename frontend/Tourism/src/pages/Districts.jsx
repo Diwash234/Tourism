@@ -89,7 +89,7 @@ export default function Districts() {
                 className="rounded-xl border border-gray-200 bg-white p-3 text-left hover:border-emerald-400 transition-colors"
               >
                 <p className="text-xs font-black text-gray-900">{item.name}</p>
-                <p className="text-[10px] text-gray-500 mt-0.5">{item.district_count} districts</p>
+                <p className="text-xs text-gray-500 mt-0.5">{item.district_count} districts</p>
               </button>
             ))}
           </div>
@@ -103,11 +103,11 @@ export default function Districts() {
               className="group rounded-2xl border border-gray-200 bg-white p-4 hover:border-emerald-400 hover:shadow-md transition-all"
             >
               <p className="font-black text-sm text-gray-900 group-hover:text-emerald-700">{row.name}</p>
-              <p className="text-[11px] text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 mt-1">
                 {row.province} · {row.destination_count > 0 ? `${row.destination_count} recorded places` : "Profile awaiting verified data"}
               </p>
               {row.elevation_m != null && (
-                <p className="text-[10px] text-gray-400 mt-0.5">Elevation: ~{row.elevation_m} m</p>
+                <p className="text-xs text-gray-400 mt-0.5">Elevation: ~{row.elevation_m} m</p>
               )}
             </Link>
           ))}

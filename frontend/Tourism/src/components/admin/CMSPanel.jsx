@@ -409,7 +409,7 @@ export default function CMSPanel({ defaultResource = "pages" }) {
               </select>
             </div>
             {(listQuery || statusFilter !== "all") && (
-              <p className="text-[10px] font-bold text-slate-500">Showing {visibleRows.length} of {rows.length}</p>
+              <p className="text-xs font-bold text-slate-500">Showing {visibleRows.length} of {rows.length}</p>
             )}
           </div>
           <div className="overflow-y-auto max-h-[58vh] p-2 space-y-1">
@@ -419,7 +419,7 @@ export default function CMSPanel({ defaultResource = "pages" }) {
               <div key={row.id} className="flex items-stretch gap-1">
                 <button onClick={() => choose(row)} className={`block flex-1 min-w-0 text-left p-3 rounded-xl text-xs ${selected?.id === row.id ? "bg-emerald-50 ring-1 ring-emerald-600" : "bg-slate-50 hover:bg-emerald-50"}`}>
                   <span className="font-bold text-slate-900">{displayName(row)}</span>
-                  <span className="flex justify-between mt-1 text-[10px] text-slate-500">
+                  <span className="flex justify-between mt-1 text-xs text-slate-500">
                     <span>#{row.id}</span>
                     {row.status && <span className={row.status === "published" ? "text-emerald-700" : row.status === "scheduled" ? "text-sky-700" : "text-amber-700"}>{row.status}</span>}
                   </span>
@@ -431,14 +431,14 @@ export default function CMSPanel({ defaultResource = "pages" }) {
                       disabled={rows.findIndex((r) => r.id === row.id) === 0 || busy}
                       aria-label={`Move ${displayName(row)} up`}
                       title="Move up"
-                      className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-600 hover:bg-emerald-50 disabled:opacity-30"
+                      className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-xs font-bold text-slate-600 hover:bg-emerald-50 disabled:opacity-30"
                     >↑</button>
                     <button
                       onClick={() => moveSection(row, 1)}
                       disabled={rows.findIndex((r) => r.id === row.id) === rows.length - 1 || busy}
                       aria-label={`Move ${displayName(row)} down`}
                       title="Move down"
-                      className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-600 hover:bg-emerald-50 disabled:opacity-30"
+                      className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-xs font-bold text-slate-600 hover:bg-emerald-50 disabled:opacity-30"
                     >↓</button>
                   </div>
                 )}
@@ -526,7 +526,7 @@ export default function CMSPanel({ defaultResource = "pages" }) {
           <div className="flex h-[90vh] w-full max-w-7xl flex-col rounded-2xl bg-slate-100 p-4">
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <div className="mr-auto">
-                <span className="text-[10px] uppercase font-black text-emerald-700">Preview as traveller</span>
+                <span className="text-xs uppercase font-black text-emerald-700">Preview as traveller</span>
                 <h2 className="text-xl font-black text-slate-900">{preview.seo_title || displayName(preview)}</h2>
               </div>
               {[["live", "Live logged-out site"], ["draft", "Draft content"]].map(([id, label]) => (
@@ -581,7 +581,7 @@ export default function CMSPanel({ defaultResource = "pages" }) {
               return (
                 <div className="space-y-6">
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Google search result</p>
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Google search result</p>
                     <div className="rounded-xl border border-slate-200 bg-white p-4">
                       <p className="text-xs text-emerald-800">nepalyatra.com{route}</p>
                       <p className="text-lg text-[#1a0dab] leading-snug">{seoTitle.length > 60 ? seoTitle.slice(0, 60) + "…" : seoTitle || "(no title)"}</p>
@@ -592,13 +592,13 @@ export default function CMSPanel({ defaultResource = "pages" }) {
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Social share card</p>
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Social share card</p>
                     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
                       {og
                         ? <img src={og} alt="" className="aspect-[1.91/1] w-full object-cover" />
                         : <div className="aspect-[1.91/1] w-full bg-slate-100 flex items-center justify-center text-xs text-slate-400">No OG image set — shares will look plain</div>}
                       <div className="p-3">
-                        <p className="text-[10px] uppercase text-slate-400">nepalyatra.com</p>
+                        <p className="text-xs uppercase text-slate-400">nepalyatra.com</p>
                         <p className="text-sm font-bold text-slate-900">{seoTitle || "(no title)"}</p>
                         <p className="text-xs text-slate-500 line-clamp-2">{desc || "(no description)"}</p>
                       </div>
@@ -740,7 +740,7 @@ function VisibilityFields({ value, set }) {
             ))}
           </div>
         </div>
-        <p className="text-[10px] text-slate-500 sm:col-span-2">
+        <p className="text-xs text-slate-500 sm:col-span-2">
           Date + audience rules are enforced by the API (hidden content is never sent). Device rules hide the section in the browser.
         </p>
       </div>
@@ -950,7 +950,7 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
 
       {/* Live Visual Section Preview */}
       <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
-        <span className="text-[10px] font-black uppercase text-amber-400">Live Visual Section Preview</span>
+        <span className="text-xs font-black uppercase text-amber-400">Live Visual Section Preview</span>
         <div className="p-2">
           <CMSBlock section={value} />
         </div>
@@ -974,7 +974,7 @@ function BlockExactPreview({ section, blocks, editingBlock }) {
   return (
     <div className="space-y-2 rounded-xl border border-slate-700 p-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-[10px] font-black uppercase text-amber-400">Exact preview (unsaved changes, as travellers will see it)</span>
+        <span className="text-xs font-black uppercase text-amber-400">Exact preview (unsaved changes, as travellers will see it)</span>
         <span className="flex gap-1" role="group" aria-label="Preview width">
           {["desktop", "mobile"].map((d) => (
             <button key={d} type="button" aria-pressed={device === d} onClick={() => setDevice(d)}
@@ -1138,7 +1138,7 @@ export function ContentBlocksBuilder({ sectionId, section = null, onToast }) {
                   <span>{bt.icon}</span>
                   <span className="font-extrabold text-xs text-white group-hover:text-amber-300">{bt.label}</span>
                 </div>
-                <p className="text-[10px] text-slate-400 line-clamp-2">{bt.desc}</p>
+                <p className="text-xs text-slate-400 line-clamp-2">{bt.desc}</p>
               </button>
             ))}
           </div>
@@ -1158,7 +1158,7 @@ export function ContentBlocksBuilder({ sectionId, section = null, onToast }) {
             <div key={b.id} className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
               <div className="flex items-center justify-between gap-2 text-xs">
                 <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded bg-slate-800 text-amber-300 text-[10px] font-black uppercase">
+                  <span className="px-2 py-0.5 rounded bg-slate-800 text-amber-300 text-xs font-black uppercase">
                     {b.block_type}
                   </span>
                   <span className="font-bold text-white truncate max-w-xs">{b.title || b.data?.text || b.data?.label || `Block #${b.id}`}</span>
@@ -1409,7 +1409,7 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
         <p className="text-xs font-black text-emerald-800">All sections on this page ({sections.length})</p>
         <div className="flex gap-2">
           <button type="button" onClick={addSection} className="rounded-lg bg-emerald-700 px-3 py-1 text-xs font-bold text-white">Add section</button>
-          <p className="self-center text-[10px] text-slate-500">Edit, preview, drag or use arrows.</p>
+          <p className="self-center text-xs text-slate-500">Edit, preview, drag or use arrows.</p>
         </div>
       </div>
       {!sections.length && (
@@ -1436,7 +1436,7 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
               <span className="font-black text-emerald-800">{index + 1}</span>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-bold">{section.title || section.key}</p>
-                <p className="text-[10px] uppercase tracking-widest text-slate-500">{section.key} · {section.section_type || "text"} · {section.status}{section.is_visible === false ? " · hidden" : ""}</p>
+                <p className="text-xs uppercase tracking-widest text-slate-500">{section.key} · {section.section_type || "text"} · {section.status}{section.is_visible === false ? " · hidden" : ""}</p>
               </div>
               <button type="button" onClick={() => setPreviewId(previewId === section.id ? null : section.id)} className="rounded bg-white px-2 py-1 font-bold">Preview</button>
               <button type="button" onClick={() => { setOpenId(openId === section.id ? null : section.id); setDraft({ ...section }) }} className="rounded bg-white px-2 py-1 font-bold">Edit</button>

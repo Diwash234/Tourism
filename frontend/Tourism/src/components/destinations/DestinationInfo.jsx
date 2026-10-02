@@ -34,7 +34,7 @@ export default function DestinationInfo({ destination }) {
 
       {destination?.tags?.length > 0 && (
         <div className="mt-4 pt-4 border-t border-[var(--ny-border)]">
-          <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Tags</p>
+          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Tags</p>
           <div className="flex flex-wrap gap-1.5">
             {destination.tags.map((tag) => (
               <Badge key={tag} variant="primary" size="sm">{tag}</Badge>

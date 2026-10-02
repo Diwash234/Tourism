@@ -119,7 +119,7 @@ export default function ServicePhotosPanel() {
                 ? <img loading="lazy" decoding="async" src={row.image_url} alt={row.name} className="h-36 w-full object-cover" />
                 : <div className="flex h-36 items-center justify-center bg-emerald-100 text-emerald-800"><Icon className="text-3xl" /></div>}
               <div className="space-y-2 p-3 text-xs text-slate-700">
-                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-800">{row.kind} · {row.category}</p>
+                <p className="text-xs font-black uppercase tracking-widest text-emerald-800">{row.kind} · {row.category}</p>
                 <h3 className="truncate text-sm font-black text-slate-900">{row.name}</h3>
                 <p className="truncate">{row.destination || row.address || "Nepal"}</p>
                 <p>{row.phone || "Phone not listed"}</p>

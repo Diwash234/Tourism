@@ -67,7 +67,7 @@ export default function DestinationNearby({ destination, radius = 50 }) {
           <FiMapPin size={16} className="text-[var(--ny-green)]" />
           Nearby Places
         </h3>
-        <span className="text-[10px] text-gray-400 uppercase tracking-wider">Within {radius} km</span>
+        <span className="text-xs text-gray-400 uppercase tracking-wider">Within {radius} km</span>
       </div>
 
       <div className="space-y-3">

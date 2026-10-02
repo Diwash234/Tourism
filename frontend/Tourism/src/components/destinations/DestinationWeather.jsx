@@ -77,7 +77,7 @@ export default function DestinationWeather({ lat, lng, destinationName: _destina
     <div className="bg-white dark:bg-slate-800 border border-[var(--ny-border)] rounded-2xl p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-bold text-gray-900 dark:text-white">Weather</h3>
-        <span className="text-[10px] text-gray-400 uppercase tracking-wider">{weather.city}</span>
+        <span className="text-xs text-gray-400 uppercase tracking-wider">{weather.city}</span>
       </div>
       <div className="flex items-center gap-4">
         <div className="flex-shrink-0">{getIcon(weather.icon)}</div>
@@ -90,17 +90,17 @@ export default function DestinationWeather({ lat, lng, destinationName: _destina
         <div className="text-center">
           <FiThermometer size={14} className="mx-auto text-gray-400 mb-1" />
           <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{weather.feelsLike}°</p>
-          <p className="text-[10px] text-gray-400">Feels like</p>
+          <p className="text-xs text-gray-400">Feels like</p>
         </div>
         <div className="text-center">
           <FiDroplets size={14} className="mx-auto text-blue-400 mb-1" />
           <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{weather.humidity}%</p>
-          <p className="text-[10px] text-gray-400">Humidity</p>
+          <p className="text-xs text-gray-400">Humidity</p>
         </div>
         <div className="text-center">
           <FiWind size={14} className="mx-auto text-gray-400 mb-1" />
           <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{weather.windSpeed} m/s</p>
-          <p className="text-[10px] text-gray-400">Wind</p>
+          <p className="text-xs text-gray-400">Wind</p>
         </div>
       </div>
     </div>

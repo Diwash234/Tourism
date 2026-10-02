@@ -70,7 +70,7 @@ export const FactChips = ({ facts }) => {
     <ul className="flex flex-wrap gap-1.5" aria-label="Key facts">
       {chips.filter((c) => c.text).map((c) => (
         <li key={c.key} title={c.title}
-          className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-700">
+          className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-700">
           {c.text}
         </li>
       ))}

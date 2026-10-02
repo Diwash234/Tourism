@@ -47,12 +47,12 @@ export default function RecommendationEngine() {
         {items.map((rec) => (
           <div key={rec.slug || rec.id} className="p-4 rounded-2xl bg-white border border-[#E5E0D5] hover:border-[#2E6B5A] transition-all space-y-1.5 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-gray-400 flex items-center gap-1">
+              <span className="text-xs text-gray-400 flex items-center gap-1">
                 <FiMapPin /> {rec.city || rec.district || "Information unavailable"}
               </span>
             </div>
             <h4 className="font-bold text-gray-900 text-sm">{rec.name}</h4>
-            <p className="text-[11px] text-gray-500">{rec.short_description || rec.district || "Recorded destination"}</p>
+            <p className="text-xs text-gray-500">{rec.short_description || rec.district || "Recorded destination"}</p>
             {rec.slug && (
               <Link to={`/destinations/${rec.slug}`} className="text-xs font-bold text-[#102A2E] hover:text-[#102A2E] flex items-center gap-1 pt-1">
                 Explore Destination <FiArrowRight size={12} />

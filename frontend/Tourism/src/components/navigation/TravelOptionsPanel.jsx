@@ -110,17 +110,17 @@ export default function TravelOptionsPanel({ originPayload, destinationName, des
                     </span>
                   )}
                 </p>
-                <p className="text-[10px] text-slate-400 truncate">
+                <p className="text-xs text-slate-400 truncate">
                   {fmtDuration(option.duration_min)} · {costLabel(option)}
                   {option.cost_npr && option.cost_npr[0] !== 0 ? ` · ${option.cost_note}` : ""}
                 </p>
-                {option.note && <p className="text-[10px] text-amber-300/80">{option.note}</p>}
+                {option.note && <p className="text-xs text-amber-300/80">{option.note}</p>}
               </div>
-              <span className="text-[10px] text-slate-500 text-right shrink-0">{option.distance_km?.toFixed(1)} km</span>
+              <span className="text-xs text-slate-500 text-right shrink-0">{option.distance_km?.toFixed(1)} km</span>
             </div>
           ))}
         </div>
-        <p className="mt-2 text-[10px] text-slate-500">
+        <p className="mt-2 text-xs text-slate-500">
           {data.distance_label}
           {recommendedOption ? ` · Why ${recommendedOption.label.toLowerCase()}? ${data.recommendation_reasons.join(" · ")}` : ""}
         </p>
@@ -133,7 +133,7 @@ export default function TravelOptionsPanel({ originPayload, destinationName, des
           <>
             <ol className="space-y-1">
               {data.turn_by_turn.steps.map((step, idx) => (
-                <li key={idx} className="flex gap-2 text-[11px] text-slate-300">
+                <li key={idx} className="flex gap-2 text-xs text-slate-300">
                   <span className="text-emerald-400 font-black shrink-0">{idx + 1}.</span>
                   <span>
                     {step.instruction}
@@ -143,11 +143,11 @@ export default function TravelOptionsPanel({ originPayload, destinationName, des
               ))}
             </ol>
             {data.turn_by_turn_note && (
-              <p className="text-[10px] text-slate-500 mt-2 leading-snug">{data.turn_by_turn_note}</p>
+              <p className="text-xs text-slate-500 mt-2 leading-snug">{data.turn_by_turn_note}</p>
             )}
           </>
         ) : (
-          <p className="text-[11px] text-amber-300">{data.turn_by_turn_note}</p>
+          <p className="text-xs text-amber-300">{data.turn_by_turn_note}</p>
         )}
       </div>
 
@@ -157,7 +157,7 @@ export default function TravelOptionsPanel({ originPayload, destinationName, des
           <h3 className="text-xs font-black uppercase tracking-wider text-emerald-400 mb-2">Along your route</h3>
           <ul className="space-y-1">
             {data.along_the_way.map((place) => (
-              <li key={place.slug || place.name} className="flex items-center justify-between gap-2 text-[11px] text-slate-300">
+              <li key={place.slug || place.name} className="flex items-center justify-between gap-2 text-xs text-slate-300">
                 <span className="truncate">📸 {place.name} <span className="text-slate-500">· {place.category}</span></span>
                 <span className="text-amber-300 font-bold whitespace-nowrap">+{place.detour_minutes} min detour</span>
               </li>
@@ -170,7 +170,7 @@ export default function TravelOptionsPanel({ originPayload, destinationName, des
       {data.before_you_go && data.before_you_go !== UNAVAILABLE && (
         <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800">
           <h3 className="text-xs font-black uppercase tracking-wider text-emerald-400 mb-2">Before you go</h3>
-          <ul className="space-y-1 text-[11px] text-slate-300">
+          <ul className="space-y-1 text-xs text-slate-300">
             <li>🕐 Opening hours: <b className="text-white">{data.before_you_go.opening_hours}</b></li>
             <li>Entry fee: <b className="text-white">{data.before_you_go.entry_fee_npr != null ? `Rs. ${data.before_you_go.entry_fee_npr}` : UNAVAILABLE}</b></li>
             <li>Best time: <b className="text-white">{data.before_you_go.best_time_to_visit}</b></li>

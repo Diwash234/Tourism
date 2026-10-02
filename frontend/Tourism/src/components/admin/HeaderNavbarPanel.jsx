@@ -108,7 +108,7 @@ export default function HeaderNavbarPanel() {
               >
                 <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${draft[feature.key] ? "left-[22px]" : "left-0.5"}`} />
               </button>
-              <span className={`w-12 text-right text-[10px] font-bold ${draft[feature.key] ? "text-emerald-700" : "text-slate-400"}`}>
+              <span className={`w-12 text-right text-xs font-bold ${draft[feature.key] ? "text-emerald-700" : "text-slate-400"}`}>
                 {draft[feature.key] ? "Shown" : "Hidden"}
               </span>
             </div>

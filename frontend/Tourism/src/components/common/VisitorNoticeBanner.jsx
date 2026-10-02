@@ -34,7 +34,7 @@ export default function VisitorNoticeBanner({ notices = [] }) {
         {notices.slice(0, 6).map((notice) => {
           const card = (
             <article className={`rounded-2xl border p-4 ${TONE[notice.kind] || TONE.info}`}>
-              <p className="text-[10px] font-black uppercase tracking-wider">{LABEL[notice.kind] || "Notice"}</p>
+              <p className="text-xs font-black uppercase tracking-wider">{LABEL[notice.kind] || "Notice"}</p>
               <h3 className="font-bold mt-1">{notice.title}</h3>
               {notice.body && <p className="text-sm mt-1 leading-relaxed">{notice.body}</p>}
               {(notice.destination_name || notice.city || notice.district) && (

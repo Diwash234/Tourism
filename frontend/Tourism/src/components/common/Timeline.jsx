@@ -32,7 +32,7 @@ export default function Timeline({ items, className = "" }) {
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{item.description}</p>
             )}
             {item.time && (
-              <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">{item.time}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{item.time}</p>
             )}
           </div>
         </div>

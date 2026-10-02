@@ -29,7 +29,7 @@ const Group = ({ title, note, children }) => (
   <fieldset className="space-y-2">
     <legend className="text-xs font-bold uppercase tracking-wide text-[var(--ny-text-secondary)]">{title}</legend>
     <div className="flex flex-wrap gap-1.5">{children}</div>
-    {note && <p className="text-[11px] leading-4 text-[var(--ny-text-muted)]">{note}</p>}
+    {note && <p className="text-xs leading-4 text-[var(--ny-text-muted)]">{note}</p>}
   </fieldset>
 )
 

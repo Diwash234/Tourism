@@ -276,7 +276,7 @@ export const ElevationScrollProgress = () => {
       />
       {scrollPercent > 3 && (
         <div
-          className="absolute top-2 right-4 bg-slate-900/85 border border-white/15 px-2.5 py-0.5 rounded-full text-[10px] font-mono text-amber-300 backdrop-blur shadow-md flex items-center gap-1.5 transition-all"
+          className="absolute top-2 right-4 bg-slate-900/85 border border-white/15 px-2.5 py-0.5 rounded-full text-xs font-mono text-amber-300 backdrop-blur shadow-md flex items-center gap-1.5 transition-all"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           <span>Elevation: {currentAlt.toLocaleString()}m</span>
@@ -338,7 +338,7 @@ export const DokoMotifBadge = ({ label = "My Doko", count = null, className = ""
       <span className="text-sm">🧺</span>
       <span>{label}</span>
       {count !== null && (
-        <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-200 text-[10px]">
+        <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-200 text-xs">
           {count}
         </span>
       )}

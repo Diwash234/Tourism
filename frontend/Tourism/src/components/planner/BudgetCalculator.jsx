@@ -183,7 +183,7 @@ export default function BudgetCalculator() {
                   </div>
                   <div className="text-right">
                     <p className="text-xs font-bold text-gray-900 dark:text-white">NPR {item.value.toLocaleString()}</p>
-                    <p className="text-[10px] text-gray-400">{item.percentage}%</p>
+                    <p className="text-xs text-gray-400">{item.percentage}%</p>
                   </div>
                 </div>
               ))}
@@ -192,7 +192,7 @@ export default function BudgetCalculator() {
 
           {/* Info Note */}
           <div className="mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900">
-            <p className="text-[10px] text-amber-700 dark:text-amber-400 flex items-start gap-1.5">
+            <p className="text-xs text-amber-700 dark:text-amber-400 flex items-start gap-1.5">
               <FiInfo size={12} className="shrink-0 mt-0.5" />
               This is a rough estimate. Actual costs vary based on season, availability, and personal preferences. Always research current prices before traveling.
             </p>

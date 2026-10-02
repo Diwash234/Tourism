@@ -115,7 +115,7 @@ const MapillaryImages = ({ latitude, longitude, radiusM = 400, limit = 6 }) => {
               loading="lazy"
               className="w-full h-20 object-cover group-hover:scale-105 transition-transform duration-300"
             />
-            <span className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-1.5 text-[10px] text-white flex items-center justify-between font-medium">
+            <span className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-1.5 text-xs text-white flex items-center justify-between font-medium">
               <span className="truncate">{img.title || (img.width ? `${img.width}×${img.height}px` : "Nepal Corridor")}</span>
               <FiExternalLink size={10} className="shrink-0 ml-1" />
             </span>

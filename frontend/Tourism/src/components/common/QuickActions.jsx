@@ -50,7 +50,7 @@ export default function QuickActions() {
                 <div className={`w-9 h-9 rounded-xl ${color} text-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform`}>
                   <Icon size={16} />
                 </div>
-                <span className="text-[10px] font-semibold text-gray-600 dark:text-gray-300">{label}</span>
+                <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">{label}</span>
               </Link>
             ))}
           </div>

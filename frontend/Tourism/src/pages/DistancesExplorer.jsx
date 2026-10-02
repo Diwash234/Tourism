@@ -308,7 +308,7 @@ export default function DistancesExplorer() {
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <img src="/icons/ui/navigate.svg" alt="" aria-hidden="true" className="w-9 h-9 shrink-0" />
             <div className="min-w-0">
-              <p className="text-[11px] font-extrabold uppercase tracking-wide text-gray-400">{t("dx.origin")}</p>
+              <p className="text-xs font-extrabold uppercase tracking-wide text-gray-400">{t("dx.origin")}</p>
               <p className="font-bold text-gray-900 truncate">
                 {origin?.label || "Choose an origin"}
 
@@ -348,7 +348,7 @@ export default function DistancesExplorer() {
                         <PlaceTypeIconImg destination={p} className="w-5 h-5 shrink-0" />
                         <span className="min-w-0">
                           <span className="block text-xs font-bold text-gray-800 truncate">{p.name}</span>
-                          <span className="block text-[10px] text-gray-400 truncate">{p.district || "—"}{p.province ? ` · ${p.province}` : ""}</span>
+                          <span className="block text-xs text-gray-400 truncate">{p.district || "—"}{p.province ? ` · ${p.province}` : ""}</span>
                         </span>
                       </button>
                     </li>
@@ -375,7 +375,7 @@ export default function DistancesExplorer() {
               className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#1D5146]/40"
             />
           </div>
-          <span className="hidden sm:inline text-[11px] font-bold text-gray-400 whitespace-nowrap">
+          <span className="hidden sm:inline text-xs font-bold text-gray-400 whitespace-nowrap">
             {t("dx.nearest_first")}
           </span>
         </div>
@@ -392,7 +392,7 @@ export default function DistancesExplorer() {
         <div className="card-base rounded-3xl border border-[#E5E0D5] overflow-hidden flex flex-col">
           <div className="px-5 pt-4 pb-3 flex items-center justify-between gap-3">
             <h3 className="font-bold text-sm text-gray-900">{t("dx.title")}</h3>
-            <span className="text-[11px] text-gray-400 font-semibold hidden sm:block">{t("dx.map_hint")}</span>
+            <span className="text-xs text-gray-400 font-semibold hidden sm:block">{t("dx.map_hint")}</span>
           </div>
           <div ref={mapElRef} className="flex-1 min-h-[420px] xl:min-h-[520px] w-full" />
         </div>
@@ -402,7 +402,7 @@ export default function DistancesExplorer() {
             <h3 className="font-bold text-sm text-gray-900">
               {query ? `${filtered.length.toLocaleString("en-US")} ${t("dx.total").replace("{n}", "")}` : t("dx.nearest_first")}
             </h3>
-            <span className="text-[11px] font-bold text-[#1D5146] bg-emerald-50 rounded-full px-2.5 py-1">
+            <span className="text-xs font-bold text-[#1D5146] bg-emerald-50 rounded-full px-2.5 py-1">
               {formatDistanceKm(filtered[0]?.km)} – {formatDistanceKm(filtered[Math.min(visible, filtered.length) - 1]?.km)}
             </span>
           </div>
@@ -425,20 +425,20 @@ export default function DistancesExplorer() {
                   <PlaceTypeIconImg destination={p} className="w-7 h-7 shrink-0" />
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-bold text-gray-900 truncate">{p.name}</p>
-                    <p className="text-[10px] text-gray-400 truncate">
+                    <p className="text-xs text-gray-400 truncate">
                       {p.district || "—"}{p.province ? ` · ${p.province}` : ""}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-xs font-extrabold text-[#1D5146] tabular-nums">{formatDistanceKm(p.km)}</p>
-                    <p className="text-[10px] font-bold text-gray-400 tabular-nums" title={t("dx.bearing")}>
+                    <p className="text-xs font-bold text-gray-400 tabular-nums" title={t("dx.bearing")}>
                       {p.dir} {compassArrow(p.dir)}
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); getDirections(p) }}
-                    className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-[#1D5146] hover:text-white text-gray-600 text-[10px] font-extrabold transition-colors"
+                    className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-[#1D5146] hover:text-white text-gray-600 text-xs font-extrabold transition-colors"
                     title={t("dx.get_directions")}
                   >
                     <img src="/icons/ui/turn-right.svg" alt="" aria-hidden="true" className="w-3.5 h-3.5" />
@@ -472,7 +472,7 @@ export default function DistancesExplorer() {
               </p>
             </div>
             {badge && !routeLoading && (
-              <span className={`text-[11px] font-extrabold rounded-full px-3 py-1 ${badge.cls}`}>{badge.label}</span>
+              <span className={`text-xs font-extrabold rounded-full px-3 py-1 ${badge.cls}`}>{badge.label}</span>
             )}
           </div>
 
@@ -486,17 +486,17 @@ export default function DistancesExplorer() {
             <>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div className="rounded-2xl bg-gray-50 border border-gray-100 p-3">
-                  <p className="text-[10px] font-extrabold uppercase text-gray-400">{t("dx.road")}</p>
+                  <p className="text-xs font-extrabold uppercase text-gray-400">{t("dx.road")}</p>
                   <p className="text-lg font-black text-gray-900">{(primary.distance_km ?? 0).toLocaleString("en-US")} km</p>
                 </div>
                 <div className="rounded-2xl bg-gray-50 border border-gray-100 p-3">
-                  <p className="text-[10px] font-extrabold uppercase text-gray-400">{t("dx.eta")}</p>
+                  <p className="text-xs font-extrabold uppercase text-gray-400">{t("dx.eta")}</p>
                   <p className="text-lg font-black text-gray-900">
                     {primary.duration_min == null ? "Unavailable" : formatDuration(primary.duration_min)}
                   </p>
                 </div>
                 <div className="rounded-2xl bg-gray-50 border border-gray-100 p-3 col-span-2 sm:col-span-1">
-                  <p className="text-[10px] font-extrabold uppercase text-gray-400">{t("dx.straight_line")}</p>
+                  <p className="text-xs font-extrabold uppercase text-gray-400">{t("dx.straight_line")}</p>
                   <p className="text-lg font-black text-gray-900">{formatDistanceKm(selected?.km ?? routeFor?.km)}</p>
                 </div>
               </div>

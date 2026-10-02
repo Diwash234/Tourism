@@ -151,7 +151,7 @@ export default function AdvancedSearch({ onResultSelect: _onResultSelect, classN
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <div>
-              <label className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Category</label>
+              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Category</label>
               <select
                 value={filters.category}
                 onChange={(e) => handleFilterChange("category", e.target.value)}
@@ -163,7 +163,7 @@ export default function AdvancedSearch({ onResultSelect: _onResultSelect, classN
             </div>
 
             <div>
-              <label className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Province</label>
+              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Province</label>
               <select
                 value={filters.province}
                 onChange={(e) => handleFilterChange("province", e.target.value)}
@@ -175,7 +175,7 @@ export default function AdvancedSearch({ onResultSelect: _onResultSelect, classN
             </div>
 
             <div>
-              <label className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Budget</label>
+              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Budget</label>
               <select
                 value={filters.budget}
                 onChange={(e) => handleFilterChange("budget", e.target.value)}
@@ -187,7 +187,7 @@ export default function AdvancedSearch({ onResultSelect: _onResultSelect, classN
             </div>
 
             <div>
-              <label className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Min Rating</label>
+              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Min Rating</label>
               <select
                 value={filters.minRating}
                 onChange={(e) => handleFilterChange("minRating", e.target.value)}
@@ -201,7 +201,7 @@ export default function AdvancedSearch({ onResultSelect: _onResultSelect, classN
             </div>
 
             <div>
-              <label className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Activity</label>
+              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Activity</label>
               <select
                 value={filters.activity}
                 onChange={(e) => handleFilterChange("activity", e.target.value)}
@@ -272,13 +272,13 @@ export default function AdvancedSearch({ onResultSelect: _onResultSelect, classN
                     {dest.tags.slice(0, 3).map((tag) => (
                       <span
                         key={tag}
-                        className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-[var(--ny-soft-green)] text-[var(--ny-green)]"
+                        className="px-2 py-0.5 text-xs font-medium rounded-full bg-[var(--ny-soft-green)] text-[var(--ny-green)]"
                       >
                         {tag}
                       </span>
                     ))}
                     {dest.tags.length > 3 && (
-                      <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400">
+                      <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400">
                         +{dest.tags.length - 3}
                       </span>
                     )}

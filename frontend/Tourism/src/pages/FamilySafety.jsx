@@ -307,7 +307,7 @@ const FamilySafety = () => {
                 <div key={l.id} className="flex items-center justify-between gap-2 bg-amber-50 rounded-xl px-3 py-2">
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">{l.requester_name || "Family member"}</p>
-                    <p className="text-[11px] text-gray-500 truncate">{l.relationship || "wants to link as family"}</p>
+                    <p className="text-xs text-gray-500 truncate">{l.relationship || "wants to link as family"}</p>
                   </div>
                   <div className="flex gap-1.5 shrink-0">
                     <button
@@ -344,7 +344,7 @@ const FamilySafety = () => {
       )}
 
       {accepted.length > 0 && (
-        <p className="text-[11px] text-gray-500 mb-3 flex flex-wrap items-center gap-x-2 gap-y-1">
+        <p className="text-xs text-gray-500 mb-3 flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="inline-flex items-center gap-1 font-bold text-forest-700 bg-forest-50 rounded-full px-2 py-0.5">
             <span className="h-1.5 w-1.5 rounded-full bg-forest-500 animate-pulse" /> Auto-refresh every {MEMBER_POLL_MS / 1000}s
           </span>
@@ -362,7 +362,7 @@ const FamilySafety = () => {
           return (
             <div key={l.id} className={`card-base p-4 relative ${live ? "ring-2 ring-forest-400" : ""}`}>
               {live && (
-                <span className="absolute top-3 right-3 flex items-center gap-1 text-[10px] font-bold text-forest-700 bg-forest-50 rounded-full px-2 py-0.5">
+                <span className="absolute top-3 right-3 flex items-center gap-1 text-xs font-bold text-forest-700 bg-forest-50 rounded-full px-2 py-0.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-forest-500 animate-pulse" /> LIVE · {MEMBER_POLL_MS / 1000}s
                 </span>
               )}
@@ -372,7 +372,7 @@ const FamilySafety = () => {
                 </div>
                 <div className="min-w-0">
                   <p className="font-semibold text-sm truncate">{l.member_name}</p>
-                  <p className="text-[11px] text-gray-400 truncate">{l.relationship || "Family"}</p>
+                  <p className="text-xs text-gray-400 truncate">{l.relationship || "Family"}</p>
                 </div>
               </div>
 
@@ -395,18 +395,18 @@ const FamilySafety = () => {
               )}
 
               {m?.active_sos?.length > 0 && (
-                <p className="mt-2 text-[11px] font-bold text-nepalred-600 bg-nepalred-50 rounded-lg px-2 py-1.5">
+                <p className="mt-2 text-xs font-bold text-nepalred-600 bg-nepalred-50 rounded-lg px-2 py-1.5">
                   ACTIVE SOS — {m.active_sos.length} alert{m.active_sos.length > 1 ? "s" : ""}
                 </p>
               )}
 
               <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
-                <span className="text-[11px] text-gray-400">
+                <span className="text-xs text-gray-400">
                   {m?.history?.length || 0} trip{(m?.history?.length || 0) === 1 ? "" : "s"} · {t("family.trip_history")}
                 </span>
                 <button
                   onClick={() => removeLink(l.id)}
-                  className="text-[11px] text-nepalred-500 hover:underline"
+                  className="text-xs text-nepalred-500 hover:underline"
                 >
                   Unlink
                 </button>

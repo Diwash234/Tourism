@@ -203,7 +203,7 @@ export default function AdminRouteManagerPanel() {
             {calcSelectedDest ? (
               <div className="flex items-center justify-between p-2 rounded-xl bg-blue-950/40 border border-blue-500/40 text-xs">
                 <span className="font-bold text-white truncate">{calcSelectedDest.name}</span>
-                <button type="button" onClick={() => setCalcSelectedDest(null)} className="text-slate-400 hover:text-white text-[10px]">Change</button>
+                <button type="button" onClick={() => setCalcSelectedDest(null)} className="text-slate-400 hover:text-white text-xs">Change</button>
               </div>
             ) : (
               <input
@@ -224,7 +224,7 @@ export default function AdminRouteManagerPanel() {
                     className="w-full text-left p-2.5 text-xs text-white hover:bg-slate-800 flex justify-between"
                   >
                     <span>{d.name}</span>
-                    <span className="text-[10px] text-slate-400">{d.city || d.district}</span>
+                    <span className="text-xs text-slate-400">{d.city || d.district}</span>
                   </button>
                 ))}
               </div>
@@ -259,7 +259,7 @@ export default function AdminRouteManagerPanel() {
           <div className="p-4 rounded-2xl bg-slate-900 border border-blue-500/40 text-xs space-y-2">
             <div className="flex justify-between items-center font-bold text-white">
               <span>{calcResult.origin_name} ➔ {calcResult.destination_name}</span>
-              <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 text-[10px] uppercase font-mono">{calcResult.confidence_level}</span>
+              <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 text-xs uppercase font-mono">{calcResult.confidence_level}</span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-slate-300">
               <div><b>Distance:</b> {calcResult.distance_km != null ? `${calcResult.distance_km} km` : "Distance unavailable"}</div>
@@ -286,7 +286,7 @@ export default function AdminRouteManagerPanel() {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-slate-900 text-amber-300 font-bold uppercase text-[10px]">
+            <thead className="bg-slate-900 text-amber-300 font-bold uppercase text-xs">
               <tr>
                 <th className="p-3">Route (Origin ➔ Destination)</th>
                 <th className="p-3">Mode</th>
@@ -305,7 +305,7 @@ export default function AdminRouteManagerPanel() {
                   <td className="p-3">{r.distance_km ? `${r.distance_km} km` : "—"}</td>
                   <td className="p-3">{r.approx_duration || "—"}</td>
                   <td className="p-3 font-mono text-amber-300">{r.estimated_fare_npr ? `NPR ${r.estimated_fare_npr}` : "Information unavailable"}</td>
-                  <td className="p-3"><span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[10px]">{r.confidence_level || "CALCULATED"}</span></td>
+                  <td className="p-3"><span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-xs">{r.confidence_level || "CALCULATED"}</span></td>
                   <td className="p-3 text-right">
                     <button
                       onClick={() => {

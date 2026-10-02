@@ -110,14 +110,14 @@ export default function GettingThereCard({ destination, userPosition }) {
           <button
             type="button"
             onClick={() => { setGpsMode(true); setOriginPick(null); setResult(null) }}
-            className={`rounded-lg px-3 py-1.5 text-[11px] font-bold border transition ${gpsMode ? "bg-emerald-700 text-white border-emerald-700" : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700"}`}
+            className={`rounded-lg px-3 py-1.5 text-xs font-bold border transition ${gpsMode ? "bg-emerald-700 text-white border-emerald-700" : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700"}`}
           >
             {t("tp.origin.my_location")}
           </button>
           <button
             type="button"
             onClick={() => { setGpsMode(false); setResult(null) }}
-            className={`rounded-lg px-3 py-1.5 text-[11px] font-bold border transition ${!gpsMode ? "bg-emerald-700 text-white border-emerald-700" : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700"}`}
+            className={`rounded-lg px-3 py-1.5 text-xs font-bold border transition ${!gpsMode ? "bg-emerald-700 text-white border-emerald-700" : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700"}`}
           >
             {t("tp.from")}
           </button>
@@ -160,7 +160,7 @@ export default function GettingThereCard({ destination, userPosition }) {
         >
           {loading ? "…" : t("tp.get_route")}
         </button>
-        {error && <span className="text-[11px] font-bold text-red-700 dark:text-red-300">{error}</span>}
+        {error && <span className="text-xs font-bold text-red-700 dark:text-red-300">{error}</span>}
       </div>
 
       {result && (
@@ -176,11 +176,11 @@ export default function GettingThereCard({ destination, userPosition }) {
             <div className="text-lg font-black text-emerald-700 dark:text-emerald-400">{formatDistance(result.primary.distance_km)}</div>
             <div className="text-lg font-black text-slate-900 dark:text-white">{formatDuration(result.primary.duration_min)}</div>
             {badge(result.primary.grade)}
-            <span className="text-[11px] text-slate-400">
+            <span className="text-xs text-slate-400">
               {t("tp.straight_line")}: {formatDistance(result.straight_line_km)}
             </span>
             {(result.alternatives || []).length > 0 && (
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
                 +{(result.alternatives || []).length} {t("tp.alternatives").toLowerCase()}
               </span>
             )}
@@ -192,19 +192,19 @@ export default function GettingThereCard({ destination, userPosition }) {
               }&travelmode=driving`}
               target="_blank"
               rel="noreferrer"
-              className="rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold px-3 py-1.5 text-[11px]"
+              className="rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold px-3 py-1.5 text-xs"
             >
               Open road map &amp; turns ↗
             </a>
             <Link
               to={`/travel?dest=${encodeURIComponent(destination.slug)}`}
-              className="rounded-lg border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 font-bold px-3 py-1.5 text-[11px] hover:bg-emerald-50 dark:hover:bg-slate-800"
+              className="rounded-lg border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 font-bold px-3 py-1.5 text-xs hover:bg-emerald-50 dark:hover:bg-slate-800"
             >
               {t("tp.title")} ➔
             </Link>
             <Link
               to={isAuthenticated ? `/navigation?dest=${encodeURIComponent(destination.name)}` : `/login?next=${encodeURIComponent(`/navigation?dest=${encodeURIComponent(destination.name)}`)}`}
-              className="rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 text-[11px]"
+              className="rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 text-xs"
             >
               {isAuthenticated ? t("tp.start_navigation") : "Sign in to navigate"}
             </Link>

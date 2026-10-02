@@ -121,7 +121,7 @@ export default function RedirectsPanel() {
         <form onSubmit={submit} className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 space-y-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block">
-              <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600">From (old address)</span>
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-600">From (old address)</span>
               <input
                 value={draft.old_path}
                 onChange={(e) => setDraft({ ...draft, old_path: e.target.value })}
@@ -131,7 +131,7 @@ export default function RedirectsPanel() {
               />
             </label>
             <label className="block">
-              <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600">To (new address)</span>
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-600">To (new address)</span>
               <input
                 value={draft.new_path}
                 onChange={(e) => setDraft({ ...draft, new_path: e.target.value })}
@@ -142,7 +142,7 @@ export default function RedirectsPanel() {
             </label>
           </div>
           <label className="block">
-            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600">Note (optional, admin only)</span>
+            <span className="text-xs font-bold uppercase tracking-wide text-slate-600">Note (optional, admin only)</span>
             <input
               value={draft.note}
               onChange={(e) => setDraft({ ...draft, note: e.target.value })}
@@ -189,14 +189,14 @@ export default function RedirectsPanel() {
                     <span className="mx-1.5 text-slate-400">→</span>
                     <span className="font-mono text-xs text-emerald-800">{rule.new_path}</span>
                   </p>
-                  {rule.note && <p className="truncate text-[11px] text-slate-500">{rule.note}</p>}
+                  {rule.note && <p className="truncate text-xs text-slate-500">{rule.note}</p>}
                 </div>
-                <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${rule.is_permanent ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+                <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${rule.is_permanent ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
                   {rule.is_permanent ? "Permanent" : "Temporary"}
                 </span>
                 <button
                   onClick={() => toggleActive(rule)}
-                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${rule.is_active ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-600"}`}
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${rule.is_active ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-600"}`}
                   aria-label={rule.is_active ? "Pause redirect" : "Activate redirect"}
                 >
                   {rule.is_active ? "Active" : "Paused"}
@@ -206,8 +206,8 @@ export default function RedirectsPanel() {
                 </button>
                 {confirmDelete === rule.id ? (
                   <span className="inline-flex items-center gap-1">
-                    <button onClick={() => remove(rule)} className="rounded-md bg-rose-600 px-2 py-1 text-[10px] font-bold text-white hover:bg-rose-700">Delete?</button>
-                    <button onClick={() => setConfirmDelete(null)} className="rounded-md border border-slate-200 px-2 py-1 text-[10px] font-bold text-slate-600">No</button>
+                    <button onClick={() => remove(rule)} className="rounded-md bg-rose-600 px-2 py-1 text-xs font-bold text-white hover:bg-rose-700">Delete?</button>
+                    <button onClick={() => setConfirmDelete(null)} className="rounded-md border border-slate-200 px-2 py-1 text-xs font-bold text-slate-600">No</button>
                   </span>
                 ) : (
                   <button onClick={() => setConfirmDelete(rule.id)} aria-label="Delete redirect" title="Delete" className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-600 hover:bg-rose-50 hover:text-rose-600">

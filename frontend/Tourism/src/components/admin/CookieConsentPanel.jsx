@@ -106,7 +106,7 @@ export default function CookieConsentPanel() {
               >
                 <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${draft.enabled ? "left-[22px]" : "left-0.5"}`} />
               </button>
-              <span className={`w-12 text-right text-[10px] font-bold ${draft.enabled ? "text-emerald-700" : "text-slate-400"}`}>
+              <span className={`w-12 text-right text-xs font-bold ${draft.enabled ? "text-emerald-700" : "text-slate-400"}`}>
                 {draft.enabled ? "Shown" : "Hidden"}
               </span>
             </div>
@@ -119,7 +119,7 @@ export default function CookieConsentPanel() {
                 placeholder={DEFAULT_COOKIE_MESSAGE}
                 className="mt-1 w-full rounded-lg border border-emerald-200 px-2.5 py-1.5 text-sm focus:border-emerald-600 focus:outline-none"
               />
-              <span className="mt-1 block text-[10px] text-slate-400">
+              <span className="mt-1 block text-xs text-slate-400">
                 A link to the Privacy Policy is always added after the message. Clear the box to restore the default wording.
               </span>
             </label>

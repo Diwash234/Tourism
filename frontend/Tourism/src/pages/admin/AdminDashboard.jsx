@@ -1761,7 +1761,7 @@ const AdminDashboard = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                   <div className="flex-1">
                     <p className="text-xs font-black uppercase text-emerald-300">Search real images by provider</p>
-                    <p className="text-[11px] text-slate-400">Results are matched to the destination and enter the review queue; unrelated generic fallback photos are not added.</p>
+                    <p className="text-xs text-slate-400">Results are matched to the destination and enter the review queue; unrelated generic fallback photos are not added.</p>
                   </div>
                   <select value={pipelineSource} onChange={(e) => setPipelineSource(e.target.value)} className="px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-xs text-white">
                     <option value="">All sources</option>

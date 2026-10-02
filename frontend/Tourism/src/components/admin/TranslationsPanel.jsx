@@ -140,7 +140,7 @@ export default function TranslationsPanel() {
               aria-label="Search translatable content"
               className="w-full rounded-lg border border-emerald-200 px-2.5 py-1.5 text-xs focus:border-emerald-600 focus:outline-none"
             />
-            <p className="text-[10px] font-bold text-slate-500">
+            <p className="text-xs font-bold text-slate-500">
               {doneCount} of {records.length} translated into {langName}
             </p>
           </div>
@@ -162,7 +162,7 @@ export default function TranslationsPanel() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className={`block truncate font-bold ${isActive ? "text-white" : "text-slate-800"}`}>{record.title}</span>
-                    <span className={`block truncate text-[10px] ${isActive ? "text-emerald-100" : "text-slate-500"}`}>
+                    <span className={`block truncate text-xs ${isActive ? "text-emerald-100" : "text-slate-500"}`}>
                       {TYPE_LABELS[record.type]} · {record.hint}
                     </span>
                   </span>
@@ -182,7 +182,7 @@ export default function TranslationsPanel() {
               <div className="flex flex-wrap items-center gap-2">
                 <div className="mr-auto">
                   <h3 className="text-sm font-black text-slate-900">{selected.title}</h3>
-                  <p className="text-[11px] text-slate-500">{TYPE_LABELS[selected.type]} · {selected.hint} · into {langName}</p>
+                  <p className="text-xs text-slate-500">{TYPE_LABELS[selected.type]} · {selected.hint} · into {langName}</p>
                 </div>
                 <button
                   onClick={save}
@@ -194,7 +194,7 @@ export default function TranslationsPanel() {
               </div>
               {fields.map((field) => (
                 <label key={field.name} className="block">
-                  <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600">{field.label}</span>
+                  <span className="text-xs font-bold uppercase tracking-wide text-slate-600">{field.label}</span>
                   <span className="mt-1 block rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs text-slate-500">
                     <b className="text-slate-400">Original:</b> {String(selected.source[field.name] || "—").slice(0, 180) || "—"}
                   </span>
@@ -216,7 +216,7 @@ export default function TranslationsPanel() {
                   )}
                 </label>
               ))}
-              <p className="text-[11px] text-slate-400">
+              <p className="text-xs text-slate-400">
                 Fields left empty fall back to the original text on the public site.
               </p>
             </div>

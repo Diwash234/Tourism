@@ -127,7 +127,7 @@ export default defineConfig(({ mode }) => ({
   },
   server: {
     host: '0.0.0.0',
-    hmr: false,
+    hmr: true,
     port: 5173,
     allowedHosts: true,
     proxy: {

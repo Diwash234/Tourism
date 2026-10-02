@@ -254,17 +254,17 @@ export default function FeaturedDestinationsPanel() {
 
         <div className="flex items-center justify-around p-3 rounded-2xl bg-slate-900 border border-slate-800 text-xs">
           <div>
-            <span className="text-slate-400 block text-[10px] uppercase font-bold">Total Featured</span>
+            <span className="text-slate-400 block text-xs uppercase font-bold">Total Featured</span>
             <span className="text-lg font-black text-white">{cards.length}</span>
           </div>
           <div className="h-6 w-px bg-slate-800" />
           <div>
-            <span className="text-slate-400 block text-[10px] uppercase font-bold">Live Published</span>
+            <span className="text-slate-400 block text-xs uppercase font-bold">Live Published</span>
             <span className="text-lg font-black text-emerald-400">{cards.filter(c => c.is_published).length}</span>
           </div>
           <div className="h-6 w-px bg-slate-800" />
           <div>
-            <span className="text-slate-400 block text-[10px] uppercase font-bold">Draft / Hidden</span>
+            <span className="text-slate-400 block text-xs uppercase font-bold">Draft / Hidden</span>
             <span className="text-lg font-black text-amber-300">{cards.filter(c => !c.is_published).length}</span>
           </div>
         </div>
@@ -311,12 +311,12 @@ export default function FeaturedDestinationsPanel() {
 
                 {/* Status & Position Badges */}
                 <div className="absolute top-3 left-3 flex gap-2">
-                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
                     card.is_published ? "bg-emerald-500 text-slate-950" : "bg-amber-500 text-slate-950"
                   }`}>
                     {card.is_published ? "✓ Published" : "Draft"}
                   </span>
-                  <span className="px-2.5 py-1 rounded-full bg-black/70 backdrop-blur text-amber-300 text-[10px] font-mono font-bold">
+                  <span className="px-2.5 py-1 rounded-full bg-black/70 backdrop-blur text-amber-300 text-xs font-mono font-bold">
                     Order #{card.display_order ?? idx + 1}
                   </span>
                 </div>
@@ -415,7 +415,7 @@ export default function FeaturedDestinationsPanel() {
             >
               <div className="flex justify-between items-start border-b border-slate-800 pb-4">
                 <div>
-                  <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider">
+                  <span className="text-xs font-black uppercase text-amber-400 tracking-wider">
                     Admin Content Publishing Studio
                   </span>
                   <h3 className="text-2xl font-black mt-1">
@@ -476,7 +476,7 @@ export default function FeaturedDestinationsPanel() {
                                   <p className="font-bold text-white">{d.name}</p>
                                   <p className="text-[11px] text-slate-400">{d.city || d.district}, {d.province}</p>
                                 </div>
-                                <span className="text-[10px] px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 font-bold">Select</span>
+                                <span className="text-xs px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 font-bold">Select</span>
                               </button>
                             ))}
                           </div>
@@ -603,7 +603,7 @@ export default function FeaturedDestinationsPanel() {
 
                 {/* Live Card Preview */}
                 <div className="p-4 rounded-3xl bg-slate-900/80 border border-amber-500/30 space-y-2">
-                  <span className="text-[10px] font-black uppercase text-amber-400 block">Live Preview Card</span>
+                  <span className="text-xs font-black uppercase text-amber-400 block">Live Preview Card</span>
                   <div className="p-4 rounded-2xl bg-white text-slate-900 space-y-2 shadow-lg">
                     <div className="h-32 rounded-xl bg-slate-100 overflow-hidden relative">
                       <img
@@ -611,7 +611,7 @@ export default function FeaturedDestinationsPanel() {
                         alt="Preview"
                         className="w-full h-full object-cover"
                       />
-                      <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/60 text-white text-[10px] font-bold">
+                      <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/60 text-white text-xs font-bold">
                         📍 {selectedDest?.name || "Selected Destination"}
                       </span>
                     </div>

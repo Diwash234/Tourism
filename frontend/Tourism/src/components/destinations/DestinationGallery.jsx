@@ -104,7 +104,7 @@ export default function DestinationGallery({ images = [], destinationName = "" }
                 <FiZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity" size={24} />
               </div>
               {image.category && (
-                <span className="absolute top-2 left-2 px-2 py-0.5 text-[10px] font-bold rounded-full bg-black/50 text-white">
+                <span className="absolute top-2 left-2 px-2 py-0.5 text-xs font-bold rounded-full bg-black/50 text-white">
                   {image.category}
                 </span>
               )}

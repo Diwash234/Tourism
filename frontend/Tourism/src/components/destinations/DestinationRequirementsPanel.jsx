@@ -62,7 +62,7 @@ export default function DestinationRequirementsPanel({ destinationId }) {
         {alt.recorded ? (
           <span>
             Elevation ≈ <strong>{alt.elevation_m.toLocaleString()} m</strong>
-            <span className="block text-[11px] text-slate-500">{alt.elevation_kind === "dem" ? "Approx. terrain height (Copernicus DEM via Open-Meteo)" : alt.elevation_source}</span>
+            <span className="block text-xs text-slate-500">{alt.elevation_kind === "dem" ? "Approx. terrain height (Copernicus DEM via Open-Meteo)" : alt.elevation_source}</span>
             {alt.above_threshold ? <span className="mt-1 block text-xs font-medium text-amber-800">Above 2,500 m — ascend gradually; know the AMS symptoms. <Link className="underline" to="/before-you-travel#altitude">Altitude guide</Link></span> : null}
           </span>
         ) : <span>Elevation not recorded for this place.</span>}
@@ -102,7 +102,7 @@ export default function DestinationRequirementsPanel({ destinationId }) {
         </p>
       ) : null}
 
-      <p className="text-[11px] text-slate-500">{data.matching_note} <Link className="underline" to="/before-you-travel">Visa & full requirements →</Link></p>
+      <p className="text-xs text-slate-500">{data.matching_note} <Link className="underline" to="/before-you-travel">Visa & full requirements →</Link></p>
     </section>
   )
 }

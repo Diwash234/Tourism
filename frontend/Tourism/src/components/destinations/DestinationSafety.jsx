@@ -57,7 +57,7 @@ export default function DestinationSafety({ destination, safetyInfo }) {
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-gray-900 dark:text-white">{contact.name}</p>
-                  <p className="text-[10px] text-gray-400">{contact.number}</p>
+                  <p className="text-xs text-gray-400">{contact.number}</p>
                 </div>
               </div>
               <a
@@ -94,7 +94,7 @@ export default function DestinationSafety({ destination, safetyInfo }) {
             <div>
               <p className="text-xs font-semibold text-blue-800 dark:text-blue-200">Nearest Hospital</p>
               <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">{safetyInfo.nearest_hospital.name}</p>
-              <p className="text-[10px] text-blue-500 dark:text-blue-500 mt-0.5">
+              <p className="text-xs text-blue-500 dark:text-blue-500 mt-0.5">
                 {safetyInfo.nearest_hospital.distance_km?.toFixed(1)} km away
               </p>
             </div>

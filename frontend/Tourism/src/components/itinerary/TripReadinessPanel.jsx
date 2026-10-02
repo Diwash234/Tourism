@@ -76,7 +76,7 @@ export default function TripReadinessPanel({ plan }) {
             </ul>
           )}
           {plan.acclimatization?.source?.url && (
-            <a className="mt-2 inline-flex items-center gap-1 text-[11px] underline" href={plan.acclimatization.source.url} target="_blank" rel="noreferrer">
+            <a className="mt-2 inline-flex items-center gap-1 text-xs underline" href={plan.acclimatization.source.url} target="_blank" rel="noreferrer">
               NTB — Safety in the mountains <FiExternalLink size={10} />
             </a>
           )}
@@ -90,9 +90,9 @@ export default function TripReadinessPanel({ plan }) {
             <ul className="mt-2 divide-y divide-slate-100 text-sm">
               {lines.map((l) => (
                 <li key={l.label} className="flex items-start justify-between gap-3 py-1.5">
-                  <span className="min-w-0">{l.label}{l.basis ? <span className="block text-[11px] text-[var(--ny-text-muted)]">{l.basis}</span> : null}</span>
+                  <span className="min-w-0">{l.label}{l.basis ? <span className="block text-xs text-[var(--ny-text-muted)]">{l.basis}</span> : null}</span>
                   <span className="shrink-0 text-right font-semibold">{l.amount_npr_per_person != null ? npr(l.amount_npr_per_person) : <span className="text-xs font-normal">not quoted</span>}
-                    {l.currency === "USD" && l.amount_per_person != null ? <span className="block text-[11px] font-normal">US${l.amount_per_person}</span> : null}</span>
+                    {l.currency === "USD" && l.amount_per_person != null ? <span className="block text-xs font-normal">US${l.amount_per_person}</span> : null}</span>
                 </li>
               ))}
             </ul>
@@ -102,7 +102,7 @@ export default function TripReadinessPanel({ plan }) {
           {lines.length > 0 && (
             <p className="mt-2 flex justify-between border-t border-slate-200 pt-2 text-sm font-bold"><span>Per person</span><span>{npr(permits.fee_totals.per_person_npr)}</span></p>
           )}
-          <p className="mt-2 text-[11px] text-[var(--ny-text-muted)]">{permits.matching_note} Visa fees are listed in the checklist.</p>
+          <p className="mt-2 text-xs text-[var(--ny-text-muted)]">{permits.matching_note} Visa fees are listed in the checklist.</p>
         </div>
       )}
 
@@ -114,10 +114,10 @@ export default function TripReadinessPanel({ plan }) {
               <li key={item.key} className="flex gap-2 rounded-lg border border-slate-200 p-2 text-sm">
                 <input type="checkbox" className="mt-1" aria-label={item.label} />
                 <span className="min-w-0">
-                  <span className="font-semibold">{item.label}</span>{item.required ? <span className="ml-1 text-[10px] uppercase text-red-700">required</span> : null}
+                  <span className="font-semibold">{item.label}</span>{item.required ? <span className="ml-1 text-xs uppercase text-red-700">required</span> : null}
                   <span className="block text-xs text-[var(--ny-text-secondary)]">{item.detail}</span>
                   {item.link ? <Link className="text-xs underline" to={item.link}>Open</Link> : null}
-                  {item.source?.url ? <a className="inline-flex items-center gap-1 text-[11px] underline" href={item.source.url} target="_blank" rel="noreferrer">{item.source.publisher} <FiExternalLink size={10} /></a> : null}
+                  {item.source?.url ? <a className="inline-flex items-center gap-1 text-xs underline" href={item.source.url} target="_blank" rel="noreferrer">{item.source.publisher} <FiExternalLink size={10} /></a> : null}
                 </span>
               </li>
             ))}

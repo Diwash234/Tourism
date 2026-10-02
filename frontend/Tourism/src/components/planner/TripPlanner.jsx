@@ -142,7 +142,7 @@ export default function TripPlanner() {
           <div className="flex items-end">
             <div className="text-center p-3 rounded-xl bg-[var(--ny-soft-green)] w-full">
               <p className="text-2xl font-bold text-[var(--ny-green)]">{totalDays}</p>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider">Days</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Days</p>
             </div>
           </div>
         </div>
@@ -258,19 +258,19 @@ export default function TripPlanner() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="text-center p-3 rounded-xl bg-gray-50 dark:bg-slate-700/50">
               <p className="text-2xl font-bold text-[var(--ny-green)]">NPR {estimatedBudget.toLocaleString()}</p>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wider">Total</p>
+              <p className="text-xs text-gray-400 uppercase tracking-wider">Total</p>
             </div>
             <div className="text-center p-3 rounded-xl bg-gray-50 dark:bg-slate-700/50">
               <p className="text-2xl font-bold text-gray-900 dark:text-white">NPR {Math.round(estimatedBudget / totalDays).toLocaleString()}</p>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wider">Per Day</p>
+              <p className="text-xs text-gray-400 uppercase tracking-wider">Per Day</p>
             </div>
             <div className="text-center p-3 rounded-xl bg-gray-50 dark:bg-slate-700/50">
               <p className="text-2xl font-bold text-gray-900 dark:text-white">NPR {Math.round(estimatedBudget / travelers).toLocaleString()}</p>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wider">Per Person</p>
+              <p className="text-xs text-gray-400 uppercase tracking-wider">Per Person</p>
             </div>
             <div className="text-center p-3 rounded-xl bg-gray-50 dark:bg-slate-700/50">
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalDays}</p>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wider">Days</p>
+              <p className="text-xs text-gray-400 uppercase tracking-wider">Days</p>
             </div>
           </div>
         </div>

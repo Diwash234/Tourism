@@ -283,7 +283,7 @@ export default function MediaLibraryPanel() {
                 {image.is_cover && <span className="rounded bg-amber-100 px-2 text-amber-800">Cover</span>}
               </div>
               <p className="truncate">{image.caption || "No caption"}</p>
-              {image.used_on?.length > 0 && <p className="mt-1 text-[10px] text-slate-500">Used on: {image.used_on.map((item) => item.label).join(" · ")}</p>}
+              {image.used_on?.length > 0 && <p className="mt-1 text-xs text-slate-500">Used on: {image.used_on.map((item) => item.label).join(" · ")}</p>}
               <p>{image.source} · {image.status} · position {image.ordering + 1}</p>
               <div className="mt-3 grid grid-cols-2 gap-1.5">
                 <button onClick={() => handleOpenEditMedia(image)} className={`${image.is_cover || !["approved", "verified"].includes(image.status) ? "col-span-2" : ""} rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-2 py-1.5 font-bold`}>Replace / Edit Image</button>
@@ -370,7 +370,7 @@ export default function MediaLibraryPanel() {
           <form onSubmit={handleSaveEditMedia} className="w-full max-w-xl space-y-4 rounded-3xl bg-white p-6 text-slate-900 shadow-2xl">
             <div className="flex justify-between items-start border-b border-slate-100 pb-3">
               <div>
-                <span className="text-[10px] font-black uppercase text-emerald-800">Media Library Desk</span>
+                <span className="text-xs font-black uppercase text-emerald-800">Media Library Desk</span>
                 <h3 className="text-xl font-black text-slate-900 mt-0.5">Replace or Correct Image #{editingMedia.id}</h3>
                 <p className="text-xs text-slate-500">Destination: <b className="text-slate-800">{editingMedia.destination}</b></p>
               </div>
@@ -390,7 +390,7 @@ export default function MediaLibraryPanel() {
                 <input type="file" accept="image/*" onChange={(e) => setReplacementFile(e.target.files?.[0] || null)} className="block w-full mt-1 text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-700 file:text-white" />
               </label>
 
-              <div className="text-center text-[10px] font-bold text-slate-400">— OR —</div>
+              <div className="text-center text-xs font-bold text-slate-400">— OR —</div>
 
               <label className="block font-bold text-slate-800">Option 2: Replace Image URL
                 <input type="url" className="input-field mt-1" value={editForm.external_url} onChange={(e) => setEditForm({ ...editForm, external_url: e.target.value })} placeholder="https://..." />

@@ -71,7 +71,7 @@ export default function Expenditure() {
               <span className="text-lg font-black text-[#102A2E]">{exp.total_cost != null ? `NPR ${Number(exp.total_cost).toLocaleString()}` : "Total unavailable"}</span>
             </div>
             <p className="text-xs text-gray-500">{exp.num_days} Days · {exp.num_people} Person(s) · {exp.travel_mode}</p>
-            <div className="p-3 rounded-xl bg-[#F7F8F5] text-[11px] grid grid-cols-2 gap-1 text-gray-700">
+            <div className="p-3 rounded-xl bg-[#F7F8F5] text-xs grid grid-cols-2 gap-1 text-gray-700">
               <div>Stay: {exp.accommodation_cost != null ? `NPR ${Number(exp.accommodation_cost).toLocaleString()}` : "unavailable"}</div>
               <div>Transit: {exp.travel_cost != null ? `NPR ${Number(exp.travel_cost).toLocaleString()}` : "unavailable"}</div>
               <div>Food: {exp.food_cost != null ? `NPR ${Number(exp.food_cost).toLocaleString()}` : "unavailable"}</div>

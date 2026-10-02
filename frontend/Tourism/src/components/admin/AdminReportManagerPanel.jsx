@@ -107,7 +107,7 @@ export default function AdminReportManagerPanel() {
               >
                 <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                    <span className={`px-2 py-0.5 rounded text-xs font-black uppercase ${
                       r.severity === "critical" ? "bg-rose-900/80 text-rose-200" :
                       r.severity === "high" ? "bg-amber-900/80 text-amber-200" : "bg-slate-800 text-slate-300"
                     }`}>
@@ -116,7 +116,7 @@ export default function AdminReportManagerPanel() {
                     <span className="font-black text-white text-sm">
                       {r.report_type.replace("_", " ").toUpperCase()} on {r.destination_name || "General Page"}
                     </span>
-                    <span className="px-2 py-0.5 rounded bg-blue-900/60 text-blue-200 text-[10px] font-mono">
+                    <span className="px-2 py-0.5 rounded bg-blue-900/60 text-blue-200 text-xs font-mono">
                       Status: {r.status}
                     </span>
                   </div>

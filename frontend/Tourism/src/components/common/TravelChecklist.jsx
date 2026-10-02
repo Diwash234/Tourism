@@ -93,7 +93,7 @@ export default function TravelChecklist() {
             key={cat}
             type="button"
             onClick={() => setActiveCategory(cat)}
-            className={`px-3 py-1.5 text-[10px] font-semibold rounded-full whitespace-nowrap transition-colors ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-colors ${
               activeCategory === cat
                 ? "bg-[var(--ny-green)] text-white"
                 : "bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-600"

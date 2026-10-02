@@ -130,15 +130,15 @@ export default function LiveNavigationPanel({ destination, mode = "driving", sto
       {context?.safety?.warnings?.length > 0 && (
         <div className="px-4 py-2 bg-orange-50 border-b border-orange-100 space-y-1">
           {context.safety.warnings.slice(0, 3).map((w, i) => (
-            <p key={i} className="text-[11px] font-semibold text-orange-700">
+            <p key={i} className="text-xs font-semibold text-orange-700">
               ⚠️ {w.title} — {w.place} ({fmtDist(w.distance_from_route_m)} from route, {w.severity})
             </p>
           ))}
-          <p className="text-[10px] text-orange-500">{context.safety.note}</p>
+          <p className="text-xs text-orange-500">{context.safety.note}</p>
         </div>
       )}
       {context?.weather?.data && (
-        <p className="px-4 py-1.5 text-[11px] font-semibold text-sky-700 bg-sky-50 border-b border-sky-100">
+        <p className="px-4 py-1.5 text-xs font-semibold text-sky-700 bg-sky-50 border-b border-sky-100">
           🌤 {context.weather.data.weather?.[0]?.main ?? "Conditions"} ·{" "}
           {Math.round(context.weather.data.main?.temp ?? 0)}°C at route midpoint
         </p>
@@ -146,24 +146,24 @@ export default function LiveNavigationPanel({ destination, mode = "driving", sto
       {route && (
         <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b border-[#E5E0D5]" data-testid="route-quality-row">
           <RouteQualityBadge source={route.source} />
-          <span className="text-[11px] text-gray-600">{routeQuality(route.source).detail}</span>
+          <span className="text-xs text-gray-600">{routeQuality(route.source).detail}</span>
         </div>
       )}
       {route && route.navigation_grade === false && (
         <div className="px-4 py-3 bg-amber-50 border-b border-amber-200">
           <p className="text-xs font-extrabold text-amber-800">⚠ Routing service unavailable</p>
-          <p className="text-[11px] text-amber-700 mt-0.5">
+          <p className="text-xs text-amber-700 mt-0.5">
             This is an estimated route ({routeQuality(route.source).label.toLowerCase()}) and is <b>not suitable for
             turn-by-turn navigation</b>. Preview and distances remain available.
           </p>
           <button onClick={preview}
-            className="mt-1.5 text-[11px] font-bold px-3 py-1 rounded-lg bg-amber-600 text-white">
+            className="mt-1.5 text-xs font-bold px-3 py-1 rounded-lg bg-amber-600 text-white">
             Retry road routing
           </button>
         </div>
       )}
       {route?.note && (
-        <p className="px-4 py-2 text-[11px] text-amber-700 bg-amber-50 border-b border-amber-100">{route.note}</p>
+        <p className="px-4 py-2 text-xs text-amber-700 bg-amber-50 border-b border-amber-100">{route.note}</p>
       )}
 
       {state === NAV_STATES.REROUTING && (
@@ -176,7 +176,7 @@ export default function LiveNavigationPanel({ destination, mode = "driving", sto
           <FiCheckCircle className="mx-auto text-emerald-600 text-3xl" />
           <p className="font-extrabold text-emerald-800 mt-1">You arrived</p>
           <p className="text-xs text-emerald-700">{destination?.name}</p>
-          <p className="text-[11px] text-emerald-600 mt-1">
+          <p className="text-xs text-emerald-600 mt-1">
             {fmtDist(route?.distance_m)} · {fmtDur(route?.duration_s)}
           </p>
         </div>
@@ -210,10 +210,10 @@ export default function LiveNavigationPanel({ destination, mode = "driving", sto
 
       {alternatives.length > 0 && state === NAV_STATES.ROUTE_PREVIEW && (
         <div className="p-4 space-y-2 border-t border-[#E5E0D5]">
-          <p className="text-[10px] font-black uppercase text-gray-500">Route options</p>
+          <p className="text-xs font-black uppercase text-gray-500">Route options</p>
           <button className="w-full text-left p-2.5 rounded-xl border-2 border-[#1D5146] bg-[#F7F8F5] flex justify-between items-center">
             <span className="text-xs font-bold text-gray-900">⭐ Recommended</span>
-            <span className="text-[11px] text-gray-600">{fmtDist(route?.distance_m)} · {fmtDur(route?.duration_s)}</span>
+            <span className="text-xs text-gray-600">{fmtDist(route?.distance_m)} · {fmtDur(route?.duration_s)}</span>
           </button>
           {alternatives.slice(0, 2).map((alt, i) => (
             <button key={i} onClick={() => selectAlternative(i)}
@@ -221,15 +221,15 @@ export default function LiveNavigationPanel({ destination, mode = "driving", sto
               <span className="text-xs font-bold text-gray-700">
                 {ALT_LABELS[i]?.icon} {alt.duration_s < route?.duration_s ? "Faster" : ALT_LABELS[i]?.name}
               </span>
-              <span className="text-[11px] text-gray-600">{fmtDist(alt.distance_m)} · {fmtDur(alt.duration_s)}</span>
+              <span className="text-xs text-gray-600">{fmtDist(alt.distance_m)} · {fmtDur(alt.duration_s)}</span>
             </button>
           ))}
-          <p className="text-[10px] text-gray-400">Selecting an option replaces the highlighted route and steps.</p>
+          <p className="text-xs text-gray-400">Selecting an option replaces the highlighted route and steps.</p>
         </div>
       )}
 
       {legs && (
-        <div className="px-4 py-2 text-[11px] font-bold text-gray-600 border-t border-[#E5E0D5]">
+        <div className="px-4 py-2 text-xs font-bold text-gray-600 border-t border-[#E5E0D5]">
           Stop {activeLeg + 1} of {legs.length}: {legs[activeLeg]?.from?.name} → {legs[activeLeg]?.to?.name}
           {legs[activeLeg]?.source && <RouteQualityBadge source={legs[activeLeg].source} className="ml-2" />}
         </div>
@@ -237,9 +237,9 @@ export default function LiveNavigationPanel({ destination, mode = "driving", sto
 
       {state === NAV_STATES.ARRIVED && legs && activeLeg < legs.length - 1 && (
         <div className="p-4 border-t border-[#E5E0D5] bg-[#F7F8F5]">
-          <p className="text-[10px] font-black uppercase text-gray-500">Next stop</p>
+          <p className="text-xs font-black uppercase text-gray-500">Next stop</p>
           <p className="text-sm font-extrabold text-gray-900">{legs[activeLeg + 1]?.to?.name}</p>
-          <p className="text-[11px] text-gray-600 mb-2">
+          <p className="text-xs text-gray-600 mb-2">
             {fmtDist(legs[activeLeg + 1]?.distance_m)} · {fmtDur(legs[activeLeg + 1]?.duration_s)}
           </p>
           <button onClick={nextStop}
@@ -252,7 +252,7 @@ export default function LiveNavigationPanel({ destination, mode = "driving", sto
       {(route || next) && state !== NAV_STATES.ARRIVED && (
         <div className="p-4 grid sm:grid-cols-2 gap-3">
           <div className="p-3 rounded-2xl bg-[#102A2E] text-white">
-            <p className="text-[10px] font-black uppercase text-amber-300 flex items-center gap-1">
+            <p className="text-xs font-black uppercase text-amber-300 flex items-center gap-1">
               <FiMapPin size={10} /> {next ? `Next in ${fmtDist(next.distance_m)}` : "Next instruction"}
             </p>
             <p className="text-sm font-bold leading-snug mt-1">
@@ -260,12 +260,12 @@ export default function LiveNavigationPanel({ destination, mode = "driving", sto
             </p>
           </div>
           <div className="p-3 rounded-2xl bg-[#F7F8F5] border border-[#E5E0D5]">
-            <p className="text-[10px] font-black uppercase text-gray-500">Remaining</p>
+            <p className="text-xs font-black uppercase text-gray-500">Remaining</p>
             <p className="text-sm font-extrabold text-gray-900">
               {fmtDist(progress?.distance_remaining_m ?? route?.distance_m)} ·{" "}
               {fmtDur(progress?.duration_remaining_s ?? route?.duration_s)}
             </p>
-            <p className="text-[11px] text-gray-500 mt-0.5">
+            <p className="text-xs text-gray-500 mt-0.5">
               ETA {fmtEta(progress?.duration_remaining_s ?? route?.duration_s)}
               {progress && ` · ${Math.round(progress.progress * 100)}% done`}
               {progress && !progress.on_route && " · off route"}

@@ -133,10 +133,10 @@ export default function SupportDeskPanel() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <b className="text-sm text-slate-900 truncate">#{t.id} {t.subject}</b>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${STATUS_STYLE[t.status] || "bg-slate-100"}`}>{t.status.replaceAll("_", " ")}</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${t.priority === "urgent" ? "bg-rose-600 text-white" : t.priority === "high" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-600"}`}>{t.priority}</span>
-                    {t.is_escalated && <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-600 text-white font-bold">ESCALATED</span>}
-                    {!t.assigned_to && <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 font-bold">UNASSIGNED</span>}
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-bold uppercase ${STATUS_STYLE[t.status] || "bg-slate-100"}`}>{t.status.replaceAll("_", " ")}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-bold uppercase ${t.priority === "urgent" ? "bg-rose-600 text-white" : t.priority === "high" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-600"}`}>{t.priority}</span>
+                    {t.is_escalated && <span className="text-xs px-2 py-0.5 rounded-full bg-rose-600 text-white font-bold">ESCALATED</span>}
+                    {!t.assigned_to && <span className="text-xs px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 font-bold">UNASSIGNED</span>}
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">
                     <FiUser className="inline" /> {t.customer_name} · {t.category} · {new Date(t.created_at).toLocaleString()}
@@ -188,15 +188,15 @@ export default function SupportDeskPanel() {
             </div>
 
             <div className="rounded-xl bg-slate-50 border p-3">
-              <p className="text-[10px] uppercase font-black text-slate-500 mb-1">Original request</p>
+              <p className="text-xs uppercase font-black text-slate-500 mb-1">Original request</p>
               <p className="text-sm text-slate-700">{selected.message}</p>
             </div>
 
             <div className="space-y-2">
-              <p className="text-[10px] uppercase font-black text-slate-500">Conversation</p>
+              <p className="text-xs uppercase font-black text-slate-500">Conversation</p>
               {selected.messages.map((m) => (
                 <div key={m.id} className={`rounded-xl px-3 py-2 text-sm border ${m.is_internal ? "bg-amber-50 border-amber-200" : m.sender_is_staff ? "bg-emerald-50 border-emerald-100 ml-6" : "bg-slate-50 border-slate-200 mr-6"}`}>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase">
+                  <p className="text-xs font-bold text-slate-500 uppercase">
                     {m.is_internal ? "Internal note" : m.sender_is_staff ? "Staff" : "Customer"} · {m.sender} · {new Date(m.created_at).toLocaleString()}
                   </p>
                   <p className="text-slate-700 mt-0.5">{m.body}</p>

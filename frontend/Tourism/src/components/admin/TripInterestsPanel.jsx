@@ -73,7 +73,7 @@ export default function TripInterestsPanel() {
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-200 text-[11px] uppercase tracking-wide text-slate-500">
+              <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
                 <th className="py-2 pr-3">Key (mood term)</th>
                 <th className="py-2 pr-3">Label (public name)</th>
                 <th className="py-2 pr-3">Emoji</th>

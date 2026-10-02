@@ -344,15 +344,15 @@ const NationalSymbols = () => {
                             ) : (
                               <span className="text-3xl p-2 rounded-2xl bg-slate-800 border border-slate-700">{s.icon}</span>
                             )}
-                            <span className="text-[10px] font-bold text-amber-300 bg-amber-950/80 border border-amber-800/60 px-2 py-0.5 rounded-full">
+                            <span className="text-xs font-bold text-amber-300 bg-amber-950/80 border border-amber-800/60 px-2 py-0.5 rounded-full">
                               {s.nepali}
                             </span>
                           </div>
                           <div>
-                            <span className="text-[10px] uppercase font-bold text-slate-400 block">{s.category}</span>
+                            <span className="text-xs uppercase font-bold text-slate-400 block">{s.category}</span>
                             <h4 className="font-extrabold text-sm text-white">{s.title}</h4>
                           </div>
-                          <p className="text-slate-300 leading-relaxed text-[11px]">{s.value}</p>
+                          <p className="text-slate-300 leading-relaxed text-xs">{s.value}</p>
                         </div>
                       </div>
                     ))}
@@ -366,13 +366,13 @@ const NationalSymbols = () => {
                     <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
                       <div className="flex justify-between items-center">
                         <h4 className="text-base font-black text-amber-300">🏔️ Nepal's 8 Mountains Above 8,000 Meters</h4>
-                        <span className="text-[10px] bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded-full font-bold border border-emerald-800">
+                        <span className="text-xs bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded-full font-bold border border-emerald-800">
                           8 of 14 Highest Peaks on Earth
                         </span>
                       </div>
                       <div className="overflow-x-auto rounded-xl border border-slate-800">
                         <table className="w-full text-left text-xs">
-                          <thead className="bg-slate-950 text-amber-300 uppercase font-black tracking-wider text-[10px]">
+                          <thead className="bg-slate-950 text-amber-300 uppercase font-black tracking-wider text-xs">
                             <tr>
                               <th className="p-2.5">Rank</th>
                               <th className="p-2.5">Mountain Peak</th>
@@ -403,9 +403,9 @@ const NationalSymbols = () => {
                         {HIMALAYAN_RANGES.map((r, i) => (
                           <div key={i} className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
                             <p className="font-black text-amber-300 text-xs">{r.range}</p>
-                            <p className="text-emerald-400 font-bold text-[11px]">Highest: {r.highest}</p>
-                            <p className="text-slate-300 text-[11px]"><b>Peaks:</b> {r.peaks}</p>
-                            <p className="text-slate-400 text-[10px]">📍 {r.area}</p>
+                            <p className="text-emerald-400 font-bold text-xs">Highest: {r.highest}</p>
+                            <p className="text-slate-300 text-xs"><b>Peaks:</b> {r.peaks}</p>
+                            <p className="text-slate-400 text-xs">📍 {r.area}</p>
                           </div>
                         ))}
                       </div>
@@ -424,12 +424,12 @@ const NationalSymbols = () => {
                           <div key={idx} className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1.5">
                             <div className="flex justify-between items-start">
                               <h5 className="font-black text-white text-sm">{fest.title}</h5>
-                              <span className="text-[10px] bg-amber-950 text-amber-300 border border-amber-800 px-2 py-0.5 rounded font-bold">
+                              <span className="text-xs bg-amber-950 text-amber-300 border border-amber-800 px-2 py-0.5 rounded font-bold">
                                 {fest.date}
                               </span>
                             </div>
                             <p className="text-slate-300 text-xs leading-relaxed">{fest.body}</p>
-                            <p className="text-[10px] font-bold text-emerald-400 pt-1">📍 {fest.city}</p>
+                            <p className="text-xs font-bold text-emerald-400 pt-1">📍 {fest.city}</p>
                           </div>
                         ))}
                       </div>
@@ -445,10 +445,10 @@ const NationalSymbols = () => {
                               <img loading="lazy" decoding="async" src={food.image} alt={food.name} className="w-full h-28 object-cover rounded-xl border border-slate-700/50" />
                             )}
                             <div className="flex-1 space-y-1">
-                              <span className="text-[10px] font-black uppercase text-amber-400">{food.nepali}</span>
+                              <span className="text-xs font-black uppercase text-amber-400">{food.nepali}</span>
                               <h5 className="font-extrabold text-white text-xs">{food.name}</h5>
-                              <p className="text-[10px] text-slate-400">📍 {food.region}</p>
-                              <p className="text-slate-300 text-[11px] leading-relaxed">{food.desc}</p>
+                              <p className="text-xs text-slate-400">📍 {food.region}</p>
+                              <p className="text-slate-300 text-xs leading-relaxed">{food.desc}</p>
                             </div>
                           </div>
                         ))}
@@ -468,7 +468,7 @@ const NationalSymbols = () => {
                       >
                         <h4 className="font-black text-white text-sm">{p.name} Province</h4>
                         <p className="text-emerald-400 font-bold text-xs">{p.count}</p>
-                        <p className="text-slate-400 text-[11px]">Key Highlight: {p.highlight}</p>
+                        <p className="text-slate-400 text-xs">Key Highlight: {p.highlight}</p>
                       </Link>
                     ))}
                   </div>

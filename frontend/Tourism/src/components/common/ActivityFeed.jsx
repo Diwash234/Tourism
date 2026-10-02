@@ -61,7 +61,7 @@ export default function ActivityFeed({ limit = 10, className = "" }) {
     <div className={`space-y-2 ${className}`}>
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-bold text-gray-900 dark:text-white">Recent Activity</h3>
-        <span className="text-[10px] text-gray-400 uppercase tracking-wider">Live</span>
+        <span className="text-xs text-gray-400 uppercase tracking-wider">Live</span>
       </div>
       {activities.map(activity => {
         const config = ACTIVITY_TYPES[activity.type] || ACTIVITY_TYPES.signup
@@ -80,11 +80,11 @@ export default function ActivityFeed({ limit = 10, className = "" }) {
                 </Link>
               </p>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-[10px] text-gray-400">{activity.time}</span>
+                <span className="text-xs text-gray-400">{activity.time}</span>
                 {activity.rating && (
                   <div className="flex items-center gap-0.5">
                     {Array.from({ length: activity.rating }).map((_, i) => (
-                      <span key={i} className="text-amber-400 text-[10px]">★</span>
+                      <span key={i} className="text-amber-400 text-xs">★</span>
                     ))}
                   </div>
                 )}

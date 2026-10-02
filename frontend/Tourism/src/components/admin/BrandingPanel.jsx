@@ -136,7 +136,7 @@ export default function BrandingPanel() {
       {/* Live Brand Preview Card — mirrors the published traveller header using
           the draft values below, so admins see exactly what will ship. */}
       <div className="p-6 rounded-3xl bg-white border border-[#E5E0D5] space-y-3 shadow-xl">
-        <span className="text-[10px] font-black uppercase text-[#697675] block tracking-wider">Live Logo & Header Preview</span>
+        <span className="text-xs font-black uppercase text-[#697675] block tracking-wider">Live Logo & Header Preview</span>
         <div
           className="p-5 rounded-2xl border border-[#E5E0D5] flex flex-wrap items-center justify-between gap-4"
           style={{ background: "var(--brand-surface, #ffffff)" }}
@@ -229,7 +229,7 @@ export default function BrandingPanel() {
                   )}
                   <div className="space-y-1">
                     <b className="capitalize text-white block text-sm">{kind === "logo" ? "Primary Brand Logo" : "Browser Favicon"}</b>
-                    <p className="text-[10px] text-slate-400">
+                    <p className="text-xs text-slate-400">
                       {assets[kind] ? `${assets[kind].width}×${assets[kind].height} px` : "Using vector emblem"}
                     </p>
                     <div className="flex gap-2 pt-1">

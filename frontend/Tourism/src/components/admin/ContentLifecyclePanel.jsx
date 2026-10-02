@@ -331,7 +331,7 @@ export default function ContentLifecyclePanel() {
                     <td className="p-2 text-white">#{r.id} {r.name}</td>
                     <td className="p-2 text-slate-300">{r.district}</td>
                     <td className="p-2 text-slate-300">{r.category}</td>
-                    <td className="p-2"><StatusPill status={r.status} />{!r.is_active && <span className="ml-1 text-[10px] text-slate-500">inactive</span>}</td>
+                    <td className="p-2"><StatusPill status={r.status} />{!r.is_active && <span className="ml-1 text-xs text-slate-500">inactive</span>}</td>
                     <td className="p-2 text-slate-400 text-xs">{r.provenance}</td>
                     <td className="p-2 text-xs text-slate-400">{r.latitude != null ? `${r.latitude.toFixed(4)}, ${r.longitude?.toFixed(4)}` : "—"} <span className={r.coordinate_status === "VERIFIED" ? "text-emerald-400" : "text-amber-400"}>{r.coordinate_status === "VERIFIED" ? "✓" : "?"}</span></td>
                     <td className="p-2 text-xs">
@@ -341,7 +341,7 @@ export default function ContentLifecyclePanel() {
                       {r.pending_proposals > 0 && <span className="text-amber-300">{r.pending_proposals}📝</span>}
                     </td>
                     <td className="p-2 space-y-1">
-                      <span className={`block text-[10px] font-bold ${r.public ? "text-emerald-400" : "text-slate-500"}`}>
+                      <span className={`block text-xs font-bold ${r.public ? "text-emerald-400" : "text-slate-500"}`}>
                         Public: {r.public ? "YES" : "NO"}
                       </span>
                       <div className="flex flex-wrap gap-1">

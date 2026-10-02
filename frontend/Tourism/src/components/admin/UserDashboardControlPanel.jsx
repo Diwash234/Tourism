@@ -133,7 +133,7 @@ export default function UserDashboardControlPanel() {
           <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
             Customize which components, engagement tools, AI replanning actions, and broadcast announcements appear on all traveler user dashboards in real time.
           </p>
-          <p className="text-[10px] text-slate-400 mt-1 max-w-2xl">
+          <p className="text-xs text-slate-400 mt-1 max-w-2xl">
             Scope: this panel controls the <b>user Dashboard page only</b> (the same dashboard every traveller sees).
             To edit any other page of the website — sections, headings, images, CTAs — use <b>Website → Page Editor</b>;
             site-wide branding, theme and routing live under <b>Branding, Theme & Routing</b>.
@@ -208,7 +208,7 @@ export default function UserDashboardControlPanel() {
           >
             <div>
               <p className="font-bold text-xs text-slate-900">AI Itinerary Modification Bar</p>
-              <p className="text-[11px] text-slate-500">Enable 1-click AI modification actions on user travel plans</p>
+              <p className="text-xs text-slate-500">Enable 1-click AI modification actions on user travel plans</p>
             </div>
             {enableAIReplanning ? <FiToggleRight size={24} className="text-emerald-600" /> : <FiToggleLeft size={24} className="text-slate-400" />}
           </div>
@@ -221,7 +221,7 @@ export default function UserDashboardControlPanel() {
           >
             <div>
               <p className="font-bold text-xs text-slate-900">Traveler Feedback Prompt</p>
-              <p className="text-[11px] text-slate-500">Show feedback trigger button and rating modal on dashboard</p>
+              <p className="text-xs text-slate-500">Show feedback trigger button and rating modal on dashboard</p>
             </div>
             {enableFeedbackPrompt ? <FiToggleRight size={24} className="text-emerald-600" /> : <FiToggleLeft size={24} className="text-slate-400" />}
           </div>
@@ -234,7 +234,7 @@ export default function UserDashboardControlPanel() {
           >
             <div>
               <p className="font-bold text-xs text-slate-900">Community Photo Upload Desk</p>
-              <p className="text-[11px] text-slate-500">Allow travelers to upload photos directly from dashboard</p>
+              <p className="text-xs text-slate-500">Allow travelers to upload photos directly from dashboard</p>
             </div>
             {enablePhotoUploads ? <FiToggleRight size={24} className="text-emerald-600" /> : <FiToggleLeft size={24} className="text-slate-400" />}
           </div>
@@ -294,11 +294,11 @@ export default function UserDashboardControlPanel() {
                   <div className="flex items-center justify-between">
                     <span className="font-extrabold text-sm text-slate-900">{block.name}</span>
                     {enabled ? (
-                      <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-black flex items-center gap-1">
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-xs font-black flex items-center gap-1">
                         <FiEye size={10} /> Active
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 rounded-md bg-slate-200 text-slate-600 text-[10px] font-bold flex items-center gap-1">
+                      <span className="px-2 py-0.5 rounded-md bg-slate-200 text-slate-600 text-xs font-bold flex items-center gap-1">
                         <FiEyeOff size={10} /> Hidden
                       </span>
                     )}
@@ -306,7 +306,7 @@ export default function UserDashboardControlPanel() {
                   <p className="text-xs text-slate-500 line-clamp-2">{block.description}</p>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px]">
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
                   <span className="font-mono text-slate-400">Block key: {block.key}</span>
                   <span className={`font-bold ${enabled ? "text-emerald-700" : "text-slate-500"}`}>
                     {enabled ? "✓ Visible on Dashboard" : "Hidden"}

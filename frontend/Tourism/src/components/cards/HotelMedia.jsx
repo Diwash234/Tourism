@@ -23,6 +23,6 @@ export default function HotelMedia({ hotel, className = "", alt, showContextLabe
   return <div className={`relative ${className}`}>
     <img src={src} alt={alt || hotel.name || "Hotel"} loading="lazy"
       onError={() => setIndex(current => current + 1)} className="w-full h-full object-cover"/>
-    {showContextLabel && !hotel.image_is_hotel_specific && <span className="absolute bottom-2 right-2 rounded bg-black/65 px-2 py-1 text-[10px] font-bold text-white">Destination area photo</span>}
+    {showContextLabel && !hotel.image_is_hotel_specific && <span className="absolute bottom-2 right-2 rounded bg-black/65 px-2 py-1 text-xs font-bold text-white">Destination area photo</span>}
   </div>
 }

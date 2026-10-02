@@ -268,7 +268,7 @@ export default function ChatBot() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-1 text-[10px] text-primary-100">
+                    <div className="flex items-center justify-between pt-1 text-xs text-primary-100">
                       <span>{message.distance_cards.fare_note ? <b>{message.distance_cards.fare_note}</b> : "Fare unavailable unless a recorded route value is supplied."}</span>
                       <Link
                         to={`/navigation?origin=${encodeURIComponent(message.distance_cards.origin)}&dest=${encodeURIComponent(message.distance_cards.destination)}`}
@@ -302,12 +302,12 @@ export default function ChatBot() {
 
                     <div className="space-y-1.5">
                       {message.itinerary_cards.schedule.map((item, idx) => (
-                        <div key={idx} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-[11px]">
+                        <div key={idx} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs">
                           <div className="flex justify-between font-bold text-gray-900">
                             <span>{item.title}</span>
                             <span className="text-primary-700 font-mono">{item.daily_budget_npr != null ? `NPR ${item.daily_budget_npr.toLocaleString()} (estimate)` : "Budget unavailable"}</span>
                           </div>
-                          <p className="text-[10px] text-gray-600 mt-0.5">{item.highlights}</p>
+                          <p className="text-xs text-gray-600 mt-0.5">{item.highlights}</p>
                         </div>
                       ))}
                     </div>
@@ -317,7 +317,7 @@ export default function ChatBot() {
                 {/* 3. Recorded photo gallery cards */}
                 {message.image_cards && message.image_cards.length > 0 && (
                   <div className="max-w-[85%] mt-3 w-full space-y-1.5">
-                    <p className="text-[11px] font-bold text-primary-900 flex items-center gap-1">
+                    <p className="text-xs font-bold text-primary-900 flex items-center gap-1">
                       <FiImage /> Recorded photos & attribution:
                     </p>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -349,7 +349,7 @@ export default function ChatBot() {
                       >
                         <div className="h-32 w-full relative overflow-hidden bg-black">
                           <PlaceholderImage src={card.image} title={card.name} alt={card.name} className="h-full w-full" />
-                          <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur text-amber-300 text-[10px] font-bold">
+                          <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur text-amber-300 text-xs font-bold">
                             {card.category}
                           </span>
                         </div>

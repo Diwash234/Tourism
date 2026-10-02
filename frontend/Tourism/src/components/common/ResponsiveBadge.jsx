@@ -24,7 +24,7 @@ const ResponsiveBadge = ({
   }
 
   const sizes = {
-    sm: isMobile ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-xs',
+    sm: isMobile ? 'px-1.5 py-0.5 text-xs' : 'px-2 py-0.5 text-xs',
     md: isMobile ? 'px-2 py-1 text-xs' : 'px-2.5 py-1 text-sm',
     lg: isMobile ? 'px-2.5 py-1 text-sm' : 'px-3 py-1.5 text-base',
   }

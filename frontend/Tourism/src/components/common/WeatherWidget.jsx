@@ -113,14 +113,14 @@ export default function WeatherWidget({ lat, lng, destinationName }) {
         <div className="flex items-center gap-2">
           <FiCloud size={14} className="text-gray-400" />
           <div>
-            <p className="text-[10px] text-gray-400 uppercase">Humidity</p>
+            <p className="text-xs text-gray-400 uppercase">Humidity</p>
             <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{weather.humidity}%</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <FiWind size={14} className="text-gray-400" />
           <div>
-            <p className="text-[10px] text-gray-400 uppercase">Wind</p>
+            <p className="text-xs text-gray-400 uppercase">Wind</p>
             <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{weather.windSpeed} m/s</p>
           </div>
         </div>

@@ -50,7 +50,7 @@ export default function StaffLayout() {
         </button>
         <FiBriefcase className="hidden sm:block" />
         <b className="hidden min-w-0 truncate sm:inline">Nepal Yatra Staff Operations</b>
-        <span className="ml-auto hidden rounded-full bg-amber-800 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-amber-100 sm:inline">Staff</span>
+        <span className="ml-auto hidden rounded-full bg-amber-800 px-2 py-1 text-xs font-black uppercase tracking-wide text-amber-100 sm:inline">Staff</span>
         <span className="hidden text-xs text-amber-950 sm:inline">{userDisplayName(user)}</span>
         <Link to="/" className="hidden min-h-11 items-center whitespace-nowrap rounded-lg bg-white px-3 py-2 text-xs font-bold text-amber-900 sm:inline-flex">Traveller site</Link>
         <button type="button" onClick={logout} className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-rose-700 text-white" aria-label="Log out">
@@ -71,7 +71,7 @@ export default function StaffLayout() {
           </button>
         </div>
         {districts.length > 0 && (
-          <p className="mb-3 rounded-lg bg-amber-900 p-2 text-[10px] text-amber-200">
+          <p className="mb-3 rounded-lg bg-amber-900 p-2 text-xs text-amber-200">
             District scope: {districts.join(", ")}
           </p>
         )}
@@ -91,7 +91,7 @@ export default function StaffLayout() {
             {label}
           </NavLink>
         ))}
-        <p className="mt-6 text-[10px] text-amber-300">
+        <p className="mt-6 text-xs text-amber-300">
           Queues come from your assigned capabilities, districts, hotels and tasks. CMS, users and analytics stay in Admin.
         </p>
       </aside>

@@ -158,7 +158,7 @@ export default function RichTextEditor({ value = "", onChange, label = "Section 
         className="min-h-[12rem] px-3 py-2 text-sm outline-none prose prose-sm max-w-none"
         onInput={emit}
       />
-      <p className="border-t border-emerald-100 bg-emerald-50 px-3 py-1 text-[10px] font-bold text-emerald-800">{count} characters · {strip(ref.current?.innerHTML || value).split(" ").filter(Boolean).length} words</p>
+      <p className="border-t border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">{count} characters · {strip(ref.current?.innerHTML || value).split(" ").filter(Boolean).length} words</p>
     </div>
   )
 }

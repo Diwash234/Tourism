@@ -6,7 +6,7 @@ const Stat = ({ icon: Icon, label, value, tone = "text-emerald-600 bg-emerald-50
       <Icon size={18} />
     </div>
     <div>
-      <p className="text-[11px] text-gray-500 font-bold uppercase tracking-wider">{label}</p>
+      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">{label}</p>
       <p className="font-extrabold text-slate-900 text-sm mt-0.5">{value}</p>
     </div>
   </div>
@@ -34,7 +34,7 @@ const SafetyOverview = ({
             <FiShield size={26} />
           </div>
           <div>
-            <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+            <span className="text-xs font-black uppercase text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
               Alert activity
             </span>
             <h3 className="font-black text-xl text-slate-900 mt-1">Alert activity overview</h3>
@@ -44,7 +44,7 @@ const SafetyOverview = ({
 
         <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 p-4 rounded-2xl self-start sm:self-auto">
           <div className="text-right">
-            <span className="text-[10px] text-emerald-800 font-black uppercase tracking-wider block">Alert activity index</span>
+            <span className="text-xs text-emerald-800 font-black uppercase tracking-wider block">Alert activity index</span>
             <span className="text-3xl font-black text-emerald-700 font-mono">{hasScore ? `${displayScore}%` : "—"}</span>
           </div>
           <span className={`px-2.5 py-1 rounded-xl font-black text-xs uppercase shadow text-white ${!hasScore ? "bg-slate-400" : isHigh ? "bg-emerald-700" : "bg-amber-600"}`}>

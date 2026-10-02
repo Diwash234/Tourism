@@ -95,7 +95,7 @@ export default function GuideBookings() {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="font-black text-slate-900">{b.guide_name}</h3>
-                  <span className={`text-[10px] px-2.5 py-1 rounded-full font-black uppercase ${STATUS_STYLE[b.status] || "bg-slate-100"}`}>{b.status}</span>
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-black uppercase ${STATUS_STYLE[b.status] || "bg-slate-100"}`}>{b.status}</span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
                   <span className="flex items-center gap-1"><FiCalendar /> {b.start_date}{b.end_date ? ` → ${b.end_date}` : ""}</span>

@@ -141,7 +141,7 @@ export default function EmergencyDirectoryPanel() {
           <div>
             <div className="flex items-center gap-2">
               <p className="text-[11px] font-black uppercase tracking-wider text-rose-700">Safety</p>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] font-bold flex items-center gap-1">
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold flex items-center gap-1">
                 <FiRadio className="animate-pulse text-emerald-600" /> Live 5s Polling · Updated {lastUpdatedSec}s ago
               </span>
             </div>
@@ -221,7 +221,7 @@ export default function EmergencyDirectoryPanel() {
                 <p className="font-bold text-slate-900">{row.name}</p>
                 <p className="text-xs text-slate-500">{row.kind} · {row.district || row.destination_name || "Nepal"} · {row.phone || "no phone"}{row.is_archived ? " · archived" : ""}{row.verified ? " · verified" : ""}</p>
                 <p className="text-xs text-slate-500">{row.latitude}, {row.longitude}</p>{row.website && <a href={row.website} target="_blank" rel="noreferrer" className="text-xs font-semibold text-blue-700 underline">Official website</a>}
-                 <p className="text-[10px] text-slate-400">Source: {row.source_name || "Not recorded"} · Updated {row.updated_at ? new Date(row.updated_at).toLocaleString() : "unknown"}</p>
+                 <p className="text-xs text-slate-400">Source: {row.source_name || "Not recorded"} · Updated {row.updated_at ? new Date(row.updated_at).toLocaleString() : "unknown"}</p>
                  <div className="flex gap-2 mt-2">
                    <button type="button" onClick={() => openEdit(row)} className="inline-flex items-center gap-1 text-xs font-bold text-slate-700"><FiEdit3 /> Edit</button>
                   {!row.verified && <button type="button" onClick={() => act(row, "verify")} className="text-xs font-bold text-emerald-700">Verify</button>}
@@ -245,7 +245,7 @@ export default function EmergencyDirectoryPanel() {
         <div className="fixed inset-0 z-[100] grid place-items-center bg-black/60 p-4">
           <form onSubmit={saveEdit} className="w-full max-w-2xl space-y-3 rounded-2xl bg-white p-6 text-slate-900 shadow-2xl">
             <div className="flex items-start justify-between border-b border-slate-100 pb-3">
-              <div><p className="text-[10px] font-black uppercase text-rose-700">Emergency record</p><h3 className="text-xl font-black">Edit {editing.name}</h3></div>
+              <div><p className="text-xs font-black uppercase text-rose-700">Emergency record</p><h3 className="text-xl font-black">Edit {editing.name}</h3></div>
               <button type="button" onClick={() => setEditing(null)} className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold" aria-label="Close editor">Close</button>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">

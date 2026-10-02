@@ -133,7 +133,7 @@ export default function ContentOpsPanel({ canReview = false }) {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <b className="text-sm text-slate-900">{d.name}</b>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${STATUS_STYLE[d.status] || "bg-slate-100"}`}>{d.status}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-bold uppercase ${STATUS_STYLE[d.status] || "bg-slate-100"}`}>{d.status}</span>
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5">
                   {d.district || d.city || "Nepal"}{d.submitted_by ? ` · by ${d.submitted_by}` : ""} · updated {new Date(d.updated_at).toLocaleDateString()}
