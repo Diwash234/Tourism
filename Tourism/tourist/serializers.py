@@ -303,6 +303,21 @@ class DestinationListSerializer(serializers.ModelSerializer):
         from .location_sync import has_map_pin
         return has_map_pin(obj)
 
+    # `distance_km` is present only when the caller passes user_lat/user_lon in
+    # the serializer context (the nearby endpoints do), and is then null
+    # otherwise. The key is always emitted so clients can read it
+    # unconditionally instead of KeyError-ing on non-geo listings.
+    distance_km = serializers.SerializerMethodField()
+
+    def get_distance_km(self, obj):
+        user_lat = self.context.get("user_lat")
+        user_lon = self.context.get("user_lon")
+        if user_lat is None or user_lon is None:
+            return None
+        if obj.latitude is None or obj.longitude is None:
+            return None
+        return round(haversine_distance(user_lat, user_lon, obj.latitude, obj.longitude), 2)
+
     class Meta:
         model = Destination
         fields = [
@@ -310,7 +325,7 @@ class DestinationListSerializer(serializers.ModelSerializer):
             "category_name", "average_rating", "entry_fee", "type",
             "cover_image", "cover_image_url", "is_featured",
             "budget_estimate", "risk_level", "recommended_season",
-            "display_city", "has_map_pin",
+            "display_city", "has_map_pin", "distance_km",
         ]
 
 
@@ -739,9 +754,14 @@ class DeviceTokenSerializer(serializers.ModelSerializer):
 
 
 class NearbyDestinationQuerySerializer(serializers.Serializer):
-    latitude = serializers.FloatField()
-    longitude = serializers.FloatField()
-    radius = serializers.FloatField(default=10.0)
+    # Coordinates are bounded, not just numeric. Without the range check a
+    # latitude of 999 passed validation and produced a bounding box spanning
+    # most of the planet, so `nearby` answered 200 with an arbitrary slice of
+    # the catalogue instead of rejecting the obviously-invalid request.
+    # Valid ranges are latitude [-90, 90] and longitude [-180, 180].
+    latitude = serializers.FloatField(min_value=-90.0, max_value=90.0)
+    longitude = serializers.FloatField(min_value=-180.0, max_value=180.0)
+    radius = serializers.FloatField(default=10.0, min_value=0.1, max_value=2000)
     # `radius_km` is the name every view reads out of validated_data
     # (destinations/nearby, alerts/nearby, emergency-contacts/nearest) - the
     # field was renamed to `radius` in an old cleanup, which KeyError'd all

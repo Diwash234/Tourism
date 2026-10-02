@@ -246,7 +246,12 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 # The React production bundle is copied here by Docker and collected by Django.
 # Keeping it in STATICFILES_DIRS makes WhiteNoise serve Vite assets at /static/.
-STATICFILES_DIRS = [BASE_DIR / "frontend_dist"] if (BASE_DIR / "frontend_dist").is_dir() else []
+# Only include frontend_dist when it exists (i.e., after `npm run build`).
+frontend_dist_path = BASE_DIR / "frontend_dist"
+if frontend_dist_path.is_dir():
+    STATICFILES_DIRS = [frontend_dist_path]
+else:
+    STATICFILES_DIRS = []
 
 # WhiteNoise serves and caches everything under STATIC_ROOT, which is what makes
 # `collectstatic` + gunicorn serve the CSS/JS and the Vite bundle on Render

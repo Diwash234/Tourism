@@ -103,7 +103,7 @@ const manualChunks = (id) => {
 }
 
 export default defineConfig(({ mode }) => ({
-  base: '/static/',
+  base: '/',
   plugins: [react(), noStaleReactChunks, siteMetadata(loadEnv(mode, process.cwd(), 'VITE_').VITE_SITE_URL)],
   // Prevent invalid-hook-call / null React dispatcher errors when linked
   // packages or Vite dependency optimization resolve React more than once.
