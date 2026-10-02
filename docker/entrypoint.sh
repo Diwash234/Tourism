@@ -204,24 +204,13 @@ PY
   # deploy, competing with Daphne and causing 502/OOM on the 512 MiB plan.
   load_catalogue_if_empty
 
-  # A fresh database may need the legacy accounts once; an existing database
-  # is never touched by this import.
+  # The legacy-user importer is idempotent: it creates only missing emails and
+  # preserves existing passwords. Run this lightweight account sync on every
+  # boot so a Render database that already has destinations but is missing one
+  # of the 22 legacy traveller accounts is repaired too.
   if [ -f "/app/downloads/nepal-tourism-database.sqlite3.gz" ]; then
-    USER_COUNT=$(python - <<'PY'
-import os
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Tourism.settings")
-import django
-django.setup()
-from tourist.models import User
-print(User.objects.count())
-PY
-)
-    if [ "$USER_COUNT" = "0" ]; then
-      echo "entrypoint: importing legacy user accounts into empty user table"
-      python manage.py import_legacy_users || echo "entrypoint: WARNING - legacy user import skipped"
-    else
-      echo "entrypoint: preserving $USER_COUNT existing user accounts"
-    fi
+    echo "entrypoint: reconciling legacy user accounts (missing only)"
+    python manage.py import_legacy_users       || echo "entrypoint: WARNING - legacy user import skipped"
   fi
 
   # Heavy enrichment and media repair are deliberately opt-in on the small
