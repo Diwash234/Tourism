@@ -199,115 +199,40 @@ with connection.cursor() as cur:
 PY
   )
 
-  # ALWAYS load ALL data sources for PostgreSQL - no SEEDED flag to prevent multiple loads
-  if [ "$DATA_EXISTS" = "0" ]; then
-    echo "entrypoint: PostgreSQL destination catalogue is empty - loading ALL seed data sources"
+  # Existing PostgreSQL catalogues must not be bulk-reimported on every web
+  # restart. The old path ran every OSM/CSV import plus enrichment on each
+  # deploy, competing with Daphne and causing 502/OOM on the 512 MiB plan.
+  load_catalogue_if_empty
 
-    # 1. Canonical verified snapshot (tracked in git): destinations WITH
-    #    categories, hotels, hospitals, police stations, restaurants, OSM
-    #    services and published CMS pages.
-    if [ -f "/app/Tourism/dataset/verified_tourism_data.json" ]; then
-      echo "entrypoint: loading verified snapshot (destinations + services + CMS)"
-      python manage.py import_verified_snapshot /app/Tourism/dataset/verified_tourism_data.json \
-        || echo "entrypoint: WARNING - verified snapshot load failed"
-    fi
-
-    # 2. Local prebuilt fixture (not in git; present only on custom images).
-    if [ -f "/app/Tourism/load.json" ]; then
-      echo "entrypoint: loading prebuilt load.json fixture"
-      python manage.py loaddata /app/Tourism/load.json \
-        || echo "entrypoint: WARNING - load.json load failed"
-    fi
-
-    # 3. Convert the tracked dataset catalogue (embeds the category table so
-    #    destination FKs always resolve on a fresh migrated database).
-    if [ -f "/app/Tourism/dataset/data.json" ]; then
-      echo "entrypoint: converting dataset/data.json to a fixture"
-      python manage.py convert_dataset_to_fixture --output /tmp/tourism-load.json \
-        && python manage.py loaddata /tmp/tourism-load.json \
-        || echo "entrypoint: WARNING - dataset conversion/load failed"
-      rm -f /tmp/tourism-load.json
-    fi
-
-    # 4. Published seed SQLite archive.
-    if [ -f "/app/downloads/nepal-tourism-seed.sqlite3.gz" ]; then
-      echo "entrypoint: importing published seed archive"
-      python manage.py import_public_seed_postgres \
-        || echo "entrypoint: WARNING - seed archive import failed"
-    fi
-  else
-    echo "entrypoint: PostgreSQL already contains $DATA_EXISTS destinations - preserving catalogue"
-  fi
-
-  # ALWAYS import ALL additional data sources (idempotent: only adds missing records)
-  # These run regardless of whether data was seeded above
-  echo "entrypoint: importing OSM destinations"
-  python manage.py import_osm_destinations || echo "entrypoint: WARNING - OSM destinations import skipped"
-
-  echo "entrypoint: importing hotels from hotel.csv"
-  python manage.py import_hotels_csv || echo "entrypoint: WARNING - hotel CSV import skipped"
-  
-  echo "entrypoint: importing hospital directory"
-  python manage.py import_hospital --csv dataset/hospital_cleaned.csv \
-    || echo "entrypoint: WARNING - hospital CSV import skipped"
-  
-  echo "entrypoint: importing police directory"
-  python manage.py import_police --csv dataset/nearbypolice.csv \
-    || echo "entrypoint: WARNING - police CSV import skipped"
-  
-  echo "entrypoint: importing risk data"
-  python manage.py import_risk \
-    || echo "entrypoint: WARNING - risk CSV import skipped"
-
-  echo "entrypoint: importing emergency services"
-  python manage.py import_emergency_services \
-    || echo "entrypoint: WARNING - emergency services import skipped"
-  
-  echo "entrypoint: seeding district services"
-  python manage.py seed_district_services \
-    || echo "entrypoint: WARNING - district services seed skipped"
-  
-  # Import legacy users from the seed database
+  # A fresh database may need the legacy accounts once; an existing database
+  # is never touched by this import.
   if [ -f "/app/downloads/nepal-tourism-database.sqlite3.gz" ]; then
-    echo "entrypoint: importing legacy user accounts"
-    python manage.py import_legacy_users \
-      || echo "entrypoint: WARNING - legacy users import skipped"
+    USER_COUNT=$(python - <<'PY'
+import os
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Tourism.settings")
+import django
+django.setup()
+from tourist.models import User
+print(User.objects.count())
+PY
+)
+    if [ "$USER_COUNT" = "0" ]; then
+      echo "entrypoint: importing legacy user accounts into empty user table"
+      python manage.py import_legacy_users || echo "entrypoint: WARNING - legacy user import skipped"
+    else
+      echo "entrypoint: preserving $USER_COUNT existing user accounts"
+    fi
   fi
-  
-  # Reconcile the destination budget table on every deploy
-  echo "entrypoint: importing verified destination budget dataset"
-  python manage.py import_budget \
-    || echo "entrypoint: WARNING - budget dataset import skipped"
 
-  echo "entrypoint: importing sourced emergency and nearby-service records"
-  python manage.py import_emergency_services \
-    || echo "entrypoint: WARNING - emergency services import skipped"
-  python manage.py seed_district_services \
-    || echo "entrypoint: WARNING - district services seed skipped"
-  
-  # Post-seed enrichment is best-effort: one missing data file must never
-  # abort the boot (set -e would kill daphne and fail the whole deploy).
-  echo "entrypoint: repairing external cover-image paths"
-  python manage.py repair_cover_image_urls \
-    || echo "entrypoint: WARNING - cover-image repair skipped"
-  
-  echo "entrypoint: backfilling missing destination media from verified seed"
-  python manage.py sync_seed_media_postgres \
-    || echo "entrypoint: WARNING - media backfill skipped"
-  
-  # Fill empty destination columns from coordinates/CSVs after every seed
-  # path (snapshot, fixture, dataset, archive).  Idempotent - only empty
-  # values are written - so re-running on an existing catalogue is safe.
-  echo "entrypoint: filling missing destination data (distances, nearest city/airport, city names)"
-  python manage.py enrich_destinations \
-    || echo "entrypoint: WARNING - destination enrichment skipped"
-  
-  # Recompute nearest hospital/police/hotel proximity from the service tables.
-  # - only right after a fresh seed, so curated values on later boots are
-  # never overwritten.
-  echo "entrypoint: computing nearest hospital/police/hotel for destinations"
-  python manage.py enrich_destination_nearby_services \
-    || echo "entrypoint: WARNING - nearby-service enrichment skipped"
+  # Heavy enrichment and media repair are deliberately opt-in on the small
+  # Render web instance. They can be run as a one-off task on a larger worker
+  # without competing with the public server.
+  if [ "${RUN_DATA_REPAIRS_ON_BOOT:-0}" = "1" ]; then
+    run_data_repairs
+  else
+    echo "entrypoint: heavy data repairs disabled on normal web boot"
+    run_if_table_empty tourist_budgetestimation "budget" python manage.py import_budget
+  fi
 
   # Data audit: intentionally fails the deploy instead of looking healthy
   # while a public catalogue table stayed empty.
