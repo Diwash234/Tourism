@@ -2554,6 +2554,62 @@ class AdminBrandingView(APIView):
             object_type="SiteSetting", object_id="branding", extra={"before": before, "after": after})
 
 
+def normalise_decimal_fields(model, payload):
+    """Convert JSON floats destined for DecimalField columns into Decimals.
+
+    Browsers send coordinates as JSON numbers, so a payload arrives as
+    ``{"latitude": 27.718}``. Django 5.1's DecimalField feeds that straight to
+    ``Decimal(27.718)``, which is the float's exact binary value --
+    ``Decimal('27.717999999999999971578290569595992565155029296875')`` -- and
+    ``full_clean()`` then rejects it with "Ensure that there are no more than
+    6 decimal places."
+
+    Net effect: the admin CMS could not save a coordinate for *any* model with
+    a DecimalField location column (Destination, Hotel, Hospital,
+    PoliceStation) -- every such save came back 400 with a message about
+    decimal places that the admin could do nothing about, because no number of
+    decimal places they typed would help. The value they typed was fine; the
+    transport was lossy.
+
+    Rounding through ``str(value)`` restores the literal digits the client
+    actually sent, then quantizes to the field's declared ``decimal_places`` so
+    the value is exactly what the schema wants. Non-finite values (NaN, Inf)
+    are passed through untouched so the field's own validators produce the
+    normal, correct error for them.
+    """
+    import decimal
+
+    from django.db.models import DecimalField
+
+    if not isinstance(payload, dict):
+        return payload
+    converted = dict(payload)
+    try:
+        field_names = {f.name: f for f in model._meta.get_fields() if isinstance(f, DecimalField)}
+    except Exception:  # noqa: BLE001 - never block a save on introspection
+        return converted
+    for name, field in field_names.items():
+        if name not in converted:
+            continue
+        value = converted[name]
+        if not isinstance(value, float):
+            continue
+        try:
+            as_float = decimal.Decimal(str(value))
+        except (decimal.InvalidOperation, ValueError):
+            continue
+        if not as_float.is_finite():
+            continue
+        quantum = decimal.Decimal(1).scaleb(-(field.decimal_places or 0))
+        try:
+            converted[name] = as_float.quantize(quantum, rounding=decimal.ROUND_HALF_UP)
+        except (decimal.InvalidOperation, ValueError):
+            # Genuinely out of range for max_digits; leave it alone so
+            # full_clean() reports the accurate field error.
+            continue
+    return converted
+
+
 PAGE_TEMPLATES = {
     "blank": {"label": "Blank", "sections": []},
     "destination": {"label": "Destination Page", "sections": [
@@ -3169,7 +3225,7 @@ class AdminCMSView(APIView):
             payload["updated_by"] = request.user
         from django.core.exceptions import ValidationError
         try:
-            obj = model(**payload)
+            obj = model(**normalise_decimal_fields(model, payload))
             obj.full_clean()
             obj.save()
         except ValidationError as exc:
@@ -3730,6 +3786,7 @@ class AdminCMSView(APIView):
                     return Response({"detail": "Navigation hierarchy cannot contain cycles"}, status=400)
                 cursor = cursor.parent
         old_values = self._snapshot(resource, obj)
+        payload = normalise_decimal_fields(model, payload)
         for key, value in payload.items():
             setattr(obj, key, value)
         if hasattr(obj, "updated_by"):

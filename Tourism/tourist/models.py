@@ -1453,6 +1453,14 @@ class PoliceStation(models.Model):
         related_name="police_stations"
     )
 
+    # Hospital has carried `district` since the start; PoliceStation did not,
+    # so the two sibling service models disagreed. Anything that grouped or
+    # filtered services by district worked for hospitals and silently omitted
+    # every police station, and the CMS could not show or edit the field at
+    # all. Nullable and blank rather than required, because the existing
+    # imported stations were matched by name/coordinate and never carried one.
+    district = models.CharField(max_length=100, blank=True, null=True, db_index=True)
+
     name = models.CharField(max_length=200)
 
     address = models.CharField(max_length=300)
