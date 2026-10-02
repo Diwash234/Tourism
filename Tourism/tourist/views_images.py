@@ -115,14 +115,16 @@ class DestinationImagesDiscoverView(APIView):
         _require_destination_access(request, destination, "images", "add")
 
         pipeline = ImageAcquisitionPipeline()
-        images = pipeline.acquire_images_for_destination(destination, limit=14, force_refresh=False)
+        source = (request.data.get("source") or "").strip().lower()
+        images = pipeline.acquire_images_for_destination(destination, limit=min(int(request.data.get("limit") or 14), 50), force_refresh=False, source=source)
         from audit.models import AuditLog
         AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="media", severity="info", source="backend", action="media.discover", message=f"Discovered {len(images)} image candidate(s) for {destination.name}", object_type="Destination", object_id=str(destination.id), extra={"candidate_count": len(images)})
         return Response({
             "destination": destination.name,
             "count": len(images),
             "images": images,
-            "message": "Multi-source image discovery completed.",
+            "source": source or "all",
+            "message": f"{source.title()} image discovery completed." if source else "Multi-source image discovery completed.",
         })
 
 
@@ -142,14 +144,16 @@ class DestinationImagesRefreshView(APIView):
         _require_destination_access(request, destination, "images", "add")
 
         pipeline = ImageAcquisitionPipeline()
-        images = pipeline.acquire_images_for_destination(destination, limit=14, force_refresh=True)
+        source = (request.data.get("source") or "").strip().lower()
+        images = pipeline.acquire_images_for_destination(destination, limit=min(int(request.data.get("limit") or 14), 50), force_refresh=True, source=source)
         from audit.models import AuditLog
         AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="media", severity="info", source="backend", action="media.refresh", message=f"Refreshed {len(images)} image candidate(s) for {destination.name}", object_type="Destination", object_id=str(destination.id), extra={"candidate_count": len(images)})
         return Response({
             "destination": destination.name,
             "count": len(images),
             "images": images,
-            "message": "Multi-source image collection refreshed.",
+            "source": source or "all",
+            "message": f"{source.title()} image collection refreshed." if source else "Multi-source image collection refreshed.",
         })
 
 
