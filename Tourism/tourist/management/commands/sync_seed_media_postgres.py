@@ -48,7 +48,7 @@ class Command(BaseCommand):
                         "destination__slug", "destination__name", "external_url",
                         "caption", "is_cover", "verification_status", "source",
                         "source_url", "source_platform", "photographer",
-                        "license_type", "copyright_status", "alt_text",
+                        "license_type", "copyright_status", "alt_text", "is_verified",
                     )
                 )
             finally:
@@ -85,6 +85,7 @@ class Command(BaseCommand):
                         caption=row["caption"] or destination.name,
                         is_cover=bool(row["is_cover"]),
                         verification_status=row["verification_status"] or DestinationImage.ImageStatus.APPROVED,
+                        is_verified=bool(row.get("is_verified", True)),
                         source=row["source"] or DestinationImage.Source.ADMIN,
                         source_url=row["source_url"] or "",
                         source_platform=row["source_platform"] or "",
