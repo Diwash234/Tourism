@@ -93,6 +93,8 @@ PY
   else
     echo "entrypoint: PostgreSQL database already has $DATA_EXISTS destinations - ensuring sequences are synchronized"
     python manage.py import_render_data --noinput --sync-sequences-only 2>/dev/null || true
+    echo "entrypoint: ensuring authentic media is backfilled for destinations lacking imagery"
+    python manage.py sync_seed_media_postgres || true
   fi
 else
   # SQLite: locate target database file
@@ -123,5 +125,8 @@ fi
 # Ensure signature curated travel plans, packages, and authentic images are populated
 echo "entrypoint: seeding curated travel plans, packages, and authentic landmark images"
 python manage.py seed_curated_travel_plans || true
+echo "entrypoint: auditing facility coordinates and authentic destination covers"
+python manage.py audit_and_mark_approximate_coordinates || true
+python manage.py cleanup_fake_covers || true
 
 exec "$@"

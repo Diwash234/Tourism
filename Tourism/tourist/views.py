@@ -2311,13 +2311,24 @@ class DestinationNearbyPOIsView(APIView):
                 for name, rlat, rlon, extra in pool:
                     d = haversine_distance(lat, lon, rlat, rlon)
                     if d is not None and d <= radius:
-                        found.append({"name": name, "distance_km": round(d, 2),
-                                      "latitude": rlat, "longitude": rlon,
-                                      "source": source_for.get(key,
-                                                              service_categories.get(key, ("", "Tourism database"))[1])})
-                        found[-1].update(extra or {})
+                        is_approx = bool(extra.get("is_approximate") or (round(rlat, 4) == round(lat, 4) and round(rlon, 4) == round(lon, 4)))
+                        dist_label = f"≈ {round(d, 2)} km (area point)" if is_approx else f"{round(d, 2)} km"
+                        row_item = {
+                            "name": name,
+                            "distance_km": round(d, 2),
+                            "distance_label": dist_label,
+                            "is_approximate": is_approx,
+                            "latitude": rlat,
+                            "longitude": rlon,
+                            "source": source_for.get(key, service_categories.get(key, ("", "Tourism database"))[1]),
+                        }
+                        if extra:
+                            row_item.update(extra)
+                        row_item["is_approximate"] = is_approx
+                        row_item["distance_label"] = dist_label
+                        found.append(row_item)
                 if found:
-                    found.sort(key=lambda row: row["distance_km"])
+                    found.sort(key=lambda row: (row.get("is_approximate", False), row["distance_km"]))
                     # Collapse same-site duplicates: the same facility is
                     # often recorded twice under slightly different names at
                     # identical coordinates (88 hospital / 222 police pairs
@@ -2945,9 +2956,7 @@ class MoodRecommendationsView(generics.ListAPIView):
 
         # The live database is the source of truth: newly approved admin/user
         # destinations automatically participate without retraining a CSV model.
-        qs = Destination.objects.filter(
-            is_active=True, status=Destination.SubmissionStatus.APPROVED
-        ).select_related("category", "risk_analysis").prefetch_related("transit_routes").annotate(
+        qs = Destination.sightseeing().select_related("category", "risk_analysis").prefetch_related("transit_routes").annotate(
             hospital_total=Count("hospitals", distinct=True),
             police_total=Count("police_stations", distinct=True),
             hotel_total=Count("hotels", distinct=True),

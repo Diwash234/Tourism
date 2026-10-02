@@ -171,7 +171,10 @@ def get_destination_image_url(dest: Destination) -> str:
 def generate_structured_itinerary(dest_name: str, days: int = 5, budget_npr: Optional[float] = None) -> Dict[str, Any]:
     """Generates day-by-day itinerary schedule with daily budgets and transit legs."""
     days = max(1, min(14, int(days)))
-    dest = Destination.objects.filter(name__icontains=dest_name).first() if dest_name else None
+    dest = (
+        Destination.sightseeing().filter(name__icontains=dest_name).first()
+        or Destination.publicly_visible().filter(name__icontains=dest_name).first()
+    ) if dest_name else None
 
     itinerary_days = []
 

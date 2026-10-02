@@ -706,6 +706,9 @@ class HotelSerializer(serializers.ModelSerializer):
     destination_context_image_url = serializers.SerializerMethodField()
     destination_name = serializers.CharField(source="destination.name", read_only=True)
     destination_slug = serializers.CharField(source="destination.slug", read_only=True)
+    is_approximate_coordinate = serializers.BooleanField(read_only=True)
+    distance_km = serializers.SerializerMethodField()
+    distance_label = serializers.SerializerMethodField()
 
     class Meta:
         model = Hotel
@@ -715,6 +718,9 @@ class HotelSerializer(serializers.ModelSerializer):
             "address",
             "latitude",
             "longitude",
+            "is_approximate_coordinate",
+            "distance_km",
+            "distance_label",
             "price_per_night",
             "currency",
             "rating",
@@ -724,6 +730,24 @@ class HotelSerializer(serializers.ModelSerializer):
             "image_url", "image_is_hotel_specific", "image_source", "destination_context_image_url",
             "source", "source_url", "is_verified", "verified_at", "is_active", "archived_at", "updated_at",
         ]
+
+    def get_distance_km(self, obj):
+        user_lat = self.context.get("user_lat")
+        user_lon = self.context.get("user_lon")
+        if user_lat is None or user_lon is None or obj.latitude is None or obj.longitude is None:
+            return getattr(obj, "distance_km", None)
+        try:
+            return round(haversine_distance(float(user_lat), float(user_lon), float(obj.latitude), float(obj.longitude)), 2)
+        except Exception:
+            return None
+
+    def get_distance_label(self, obj):
+        km = self.get_distance_km(obj)
+        if km is None:
+            return None
+        if getattr(obj, "is_approximate_coordinate", False):
+            return f"≈ {km} km (area point)"
+        return f"{km} km"
 
     def validate_external_image_url(self, value):
         if value and not value.startswith("https://"):
@@ -959,7 +983,12 @@ def is_destination_specific_image(destination, photo):
     local_image = str(getattr(photo, "image", "") or "")
     image_path = getattr(photo, "image_path", "") or ""
     evidence = " ".join([external_url, local_image, image_path, getattr(photo, "source_url", "") or ""]).lower()
-    if any(term in evidence for term in ["airlines_crash", "plane_crash", "accident_scene", "placeholder", "stock-photo"]):
+    if any(term in evidence for term in [
+        "airlines_crash", "plane_crash", "accident_scene", "placeholder",
+        "stock-photo", "stock_photo", "stockphoto",
+        "vintage_rotary", "rotary_dial", "rotary_phone", "dial_phone", "vintage_phone",
+        "shutterstock", "gettyimages", "istockphoto", "depositphotos",
+    ]):
         return False
     # A bundled stock asset is not a photograph of this place.
     if _is_bundled_placeholder_asset(photo, external_url, image_path,
@@ -998,6 +1027,20 @@ def is_destination_specific_image(destination, photo):
     conflicts = {place for place in known_places if place in evidence and place not in allowed}
     if conflicts and not own_match:
         return False
+
+    # Any photo shared across 3 or more destinations is a generic/reused asset
+    # and must have a verifiable place-token match for THIS destination to be shown.
+    shared_count = getattr(photo, "_shared_dest_count", None)
+    if shared_count is None and external_url:
+        from django.core.cache import cache
+        cache_k = f"img_shared:{hash(external_url)}"
+        shared_count = cache.get(cache_k)
+        if shared_count is None:
+            shared_count = DestinationImage.objects.filter(external_url=external_url).values("destination_id").distinct().count()
+            cache.set(cache_k, shared_count, 3600)
+    if shared_count and shared_count >= 3 and not own_match:
+        return False
+
     # Unknown/hash-based URLs remain visible only as a fallback. They are
     # never promoted over an exact verified place match.
     return True
@@ -1010,7 +1053,7 @@ def verified_destination_photos(destination):
     never appear publicly before an admin approves them; rejected never."""
     return [
         photo for photo in destination.gallery.all()
-        if photo.verification_status == DestinationImage.ImageStatus.APPROVED
+        if photo.verification_status in (DestinationImage.ImageStatus.APPROVED, "verified")
         and photo.is_verified
         and is_destination_specific_image(destination, photo)
     ]
@@ -1064,7 +1107,7 @@ def _destination_identity_tokens(destination):
 
 
 def _named_external_photo_title(url):
-    """Descriptive title of a named external photo (Wikimedia), or None.
+    """Descriptive title of a named external photo (Wikimedia Commons/Wikipedia), or None.
 
     Opaque/hash-based URLs carry no verifiable title and keep the legacy
     lenient treatment — we only make strong claims for named sources."""
@@ -1074,14 +1117,18 @@ def _named_external_photo_title(url):
         parts = urlparse(str(url or ""))
     except Exception:
         return None
-    if _WIKIMEDIA_HOST not in (parts.netloc or ""):
+    netloc = (parts.netloc or "").lower()
+    if not any(h in netloc for h in ("wikimedia.org", "wikipedia.org")):
         return None
-    path = unquote(parts.path)
+    path = unquote(parts.path or "")
     if not path:
         return None
     fn = path.split("/thumb/")[-1].split("/")[-1] if "/thumb/" in path else path.split("/")[-1]
     fn = re.sub(r"^\d+px-", "", fn)
     fn = re.sub(r"\.\w+$", "", fn)
+    # Pure numeric or generic hash IDs carry no place information
+    if not fn or fn.isdigit() or len(fn) < 3 or re.fullmatch(r"[a-f0-9]{16,}", fn):
+        return None
     return fn or None
 
 

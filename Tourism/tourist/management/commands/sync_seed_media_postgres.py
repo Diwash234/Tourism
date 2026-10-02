@@ -1,18 +1,20 @@
 """Backfill missing destination media from the verified public seed.
 
-Only destinations with no usable gallery image are changed. Matching is by
-stable slug first, then exact normalized name. Existing media and admin
-corrections are never overwritten.
+Extracts authentic imagery directly from the bundled seed archive using Python's
+built-in SQLite reader, avoiding engine conflicts on PostgreSQL deployments.
+Only destinations with no usable gallery image are changed.
+Matching is by stable slug first, then exact normalized name.
+Existing media and admin corrections are never overwritten.
 """
 from __future__ import annotations
 
 import gzip
+import sqlite3
 import tempfile
 from pathlib import Path
 
 from django.conf import settings
 from django.core.management import BaseCommand, CommandError
-from django.db import connection
 from tourist.models import Destination, DestinationImage
 
 
@@ -23,9 +25,6 @@ class Command(BaseCommand):
     help = "Backfill missing destination media from the verified public seed."
 
     def handle(self, *args, **options):
-        if connection.vendor != "postgresql":
-            self.stdout.write("Media seed sync is intended for PostgreSQL; skipping.")
-            return
         if not ARCHIVE.is_file():
             raise CommandError(f"Seed archive not found: {ARCHIVE}")
 
@@ -35,37 +34,45 @@ class Command(BaseCommand):
             with gzip.open(ARCHIVE, "rb") as src, sqlite_path.open("wb") as dst:
                 dst.write(src.read())
 
-            previous = connection.settings_dict.get("NAME")
-            connection.close()
-            settings.DATABASES["default"]["NAME"] = str(sqlite_path)
-            connection.settings_dict["NAME"] = str(sqlite_path)
-            try:
-                source_rows = list(
-                    DestinationImage.objects.filter(
-                        destination__isnull=False,
-                        external_url__gt="",
-                    ).values(
-                        "destination__slug", "destination__name", "external_url",
-                        "caption", "is_cover", "verification_status", "source",
-                        "source_url", "source_platform", "photographer",
-                        "license_type", "copyright_status", "alt_text",
-                    )
-                )
-            finally:
-                connection.close()
-                settings.DATABASES["default"]["NAME"] = previous
-                connection.settings_dict["NAME"] = previous
+            conn = sqlite3.connect(str(sqlite_path))
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT d.slug, d.name, di.external_url, di.caption, di.is_cover,
+                       di.verification_status, di.source, di.source_url, di.source_platform,
+                       di.photographer, di.license_type, di.copyright_status, di.alt_text
+                FROM tourist_destinationimage di
+                JOIN tourist_destination d ON di.destination_id = d.id
+                WHERE di.external_url IS NOT NULL AND di.external_url != ''
+            """)
+            raw_rows = cur.fetchall()
+            conn.close()
 
             by_slug = {}
             by_name = {}
-            for row in source_rows:
-                by_slug.setdefault(row["destination__slug"], []).append(row)
-                key = " ".join((row["destination__name"] or "").casefold().split())
-                by_name.setdefault(key, []).append(row)
+            for r in raw_rows:
+                slug, name, ext_url, caption, is_cover, ver_status, source, src_url, src_plat, photo_auth, lic, copyr, alt = r
+                row_dict = {
+                    "slug": slug,
+                    "name": name,
+                    "external_url": ext_url,
+                    "caption": caption,
+                    "is_cover": bool(is_cover),
+                    "verification_status": ver_status,
+                    "source": source,
+                    "source_url": src_url,
+                    "source_platform": src_plat,
+                    "photographer": photo_auth,
+                    "license_type": lic,
+                    "copyright_status": copyr,
+                    "alt_text": alt,
+                }
+                by_slug.setdefault(slug, []).append(row_dict)
+                key = " ".join((name or "").casefold().split())
+                by_name.setdefault(key, []).append(row_dict)
 
             created = 0
             covers = 0
-            for destination in Destination.objects.all().iterator():
+            for destination in Destination.objects.all().iterator(chunk_size=500):
                 has_media = destination.gallery.filter(
                     external_url__gt=""
                 ).exists() or destination.gallery.filter(
@@ -84,7 +91,8 @@ class Command(BaseCommand):
                         external_url=row["external_url"],
                         caption=row["caption"] or destination.name,
                         is_cover=bool(row["is_cover"]),
-                        verification_status=row["verification_status"] or DestinationImage.ImageStatus.APPROVED,
+                        is_verified=True,
+                        verification_status=DestinationImage.ImageStatus.APPROVED,
                         source=row["source"] or DestinationImage.Source.ADMIN,
                         source_url=row["source_url"] or "",
                         source_platform=row["source_platform"] or "",

@@ -796,7 +796,7 @@ def _nearest_for_itinerary(rows, lat, lon, mapper, limit=2):
             continue
         distance = haversine_distance(lat, lon, row.latitude, row.longitude)
         ranked.append((distance, row))
-    ranked.sort(key=lambda pair: pair[0])
+    ranked.sort(key=lambda pair: (getattr(pair[1], "is_approximate_coordinate", False), pair[0]))
     return [mapper(row, round(distance, 2)) for distance, row in dedupe_service_rows(ranked)[:limit]]
 
 
@@ -841,6 +841,8 @@ def enrich_itinerary_with_services(payload):
                 Hotel.objects.filter(is_active=True), lat, lon,
                 lambda row, distance: {
                     "id": row.id, "name": row.name, "distance_km": distance,
+                    "is_approximate": getattr(row, "is_approximate_coordinate", False),
+                    "distance_label": f"≈ {distance} km (area point)" if getattr(row, "is_approximate_coordinate", False) else f"{distance} km",
                     "is_verified": bool(row.is_verified), "source_name": row.get_source_display() if row.source else "",
                     "price_npr": float(row.price_per_night) if row.price_per_night is not None and row.currency == "NPR" else None,
                     "image_url": _safe_file_url(row.cover_image) or row.external_image_url or None,
@@ -848,13 +850,21 @@ def enrich_itinerary_with_services(payload):
             ),
             "hospitals": _nearest_for_itinerary(
                 Hospital.objects.filter(is_archived=False), lat, lon,
-                lambda row, distance: {"id": row.id, "name": row.name, "phone": clean_phone(row.phone, "")[0], "distance_km": distance,
-                                       "is_verified": bool(row.is_verified), "source_name": row.source_name or ""},
+                lambda row, distance: {
+                    "id": row.id, "name": row.name, "phone": clean_phone(row.phone, "")[0], "distance_km": distance,
+                    "is_approximate": getattr(row, "is_approximate_coordinate", False),
+                    "distance_label": f"≈ {distance} km (area point)" if getattr(row, "is_approximate_coordinate", False) else f"{distance} km",
+                    "is_verified": bool(row.is_verified), "source_name": row.source_name or "",
+                },
             ),
             "police": _nearest_for_itinerary(
                 PoliceStation.objects.filter(is_archived=False), lat, lon,
-                lambda row, distance: {"id": row.id, "name": row.name, "phone": clean_phone(row.phone, "")[0], "distance_km": distance,
-                                       "is_verified": bool(row.is_verified), "source_name": row.source_name or ""},
+                lambda row, distance: {
+                    "id": row.id, "name": row.name, "phone": clean_phone(row.phone, "")[0], "distance_km": distance,
+                    "is_approximate": getattr(row, "is_approximate_coordinate", False),
+                    "distance_label": f"≈ {distance} km (area point)" if getattr(row, "is_approximate_coordinate", False) else f"{distance} km",
+                    "is_verified": bool(row.is_verified), "source_name": row.source_name or "",
+                },
             ),
             "essentials": _nearest_for_itinerary(
                 OSMEssentialService.objects.filter(category__in=["bank", "pharmacy", "fire_station", "ambulance"], is_archived=False), lat, lon,
@@ -944,7 +954,7 @@ class ItineraryView(APIView):
         start_city = (data.get("start_city") or "Kathmandu").strip()
         district = (data.get("district") or "").strip()
 
-        qs = Destination.publicly_visible()
+        qs = Destination.sightseeing()
 
         # A typed place may be a district, city or province ("Rolpa" is a
         # district, not a city) — match every level so district requests

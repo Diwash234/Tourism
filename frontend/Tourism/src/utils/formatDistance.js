@@ -4,10 +4,13 @@
  *   - otherwise   -> km with 1 decimal ("12.3 km")
  * Accepts numbers or numeric strings. Returns "—" for invalid input.
  */
-export function formatDistance(km) {
+export function formatDistance(km, isApproximate = false) {
   if (km === null || km === undefined || km === "") return "—"
   const value = Number(km)
   if (Number.isNaN(value)) return "—"
+  if (isApproximate) {
+    return `≈ ${value.toFixed(1)} km (area point)`
+  }
   if (value < 1) {
     return `${Math.max(1, Math.round(value * 1000))} m`
   }

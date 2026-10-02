@@ -778,6 +778,37 @@ class Destination(TimeStampedModel):
         qs = queryset if queryset is not None else cls.objects.all()
         return qs.filter(is_active=True, status=cls.SubmissionStatus.APPROVED)
 
+    @classmethod
+    def sightseeing(cls, queryset=None):
+        """Filter destinations to genuine visitor sights, attractions and nature spots.
+
+        Excludes commercial lodging (hotels, lodges, guest houses, hostels, homestays),
+        restaurants, cafeterias, and municipal/commercial offices (schools, colleges, banks)
+        that were miscategorized as destinations.
+        """
+        qs = cls.publicly_visible(queryset)
+        excluded_q = (
+            models.Q(name__istartswith="hotel ") | models.Q(name__icontains=" hotel") |
+            models.Q(name__istartswith="lodge ") | models.Q(name__icontains=" lodge") |
+            models.Q(name__istartswith="hostel ") | models.Q(name__icontains=" hostel") |
+            models.Q(name__icontains="guest house") | models.Q(name__icontains="guesthouse") |
+            models.Q(name__icontains="homestay") | models.Q(name__icontains="home stay") |
+            models.Q(name__istartswith="restaurant ") | models.Q(name__icontains=" restaurant") |
+            models.Q(name__istartswith="cafe ") | models.Q(name__icontains=" cafe") |
+            models.Q(name__icontains="bhojanalaya") |
+            models.Q(name__istartswith="school ") | models.Q(name__icontains=" school") |
+            models.Q(name__icontains="college") | models.Q(name__icontains="campus") |
+            models.Q(name__icontains="consultancy")
+        )
+        safe_exceptions = (
+            models.Q(name__icontains="national park") | models.Q(name__icontains="conservation") |
+            models.Q(name__icontains="wildlife reserve") | models.Q(name__icontains="bungee") |
+            models.Q(category__slug__in=["wildlife", "adventure", "natural-wonders", "lakes"])
+        )
+        return qs.filter(~excluded_q | safe_exceptions).exclude(
+            category__slug__in=["hotels", "lodging", "accommodation"]
+        )
+
 
 class DestinationTranslation(models.Model):
     """Stores machine-translated copies of a destination's text fields."""
@@ -1367,6 +1398,24 @@ class Hotel(TimeStampedModel):
     is_active = models.BooleanField(default=True)
     archived_at = models.DateTimeField(null=True, blank=True)
 
+    # Coordinate provenance mirroring Destination and Hospital
+    coordinate_source = models.CharField(max_length=120, blank=True, default="")
+    coordinate_status = models.CharField(max_length=20, blank=True, default="")
+    coordinate_retrieved_at = models.DateTimeField(null=True, blank=True)
+
+    @property
+    def is_approximate_coordinate(self):
+        if self.coordinate_status == "APPROXIMATE":
+            return True
+        if self.coordinate_status in ("VERIFIED", "EXACT", "OFFICIAL"):
+            return False
+        if self.latitude is None or self.longitude is None:
+            return True
+        if self.destination and self.destination.latitude is not None:
+            if round(float(self.latitude), 4) == round(float(self.destination.latitude), 4) and round(float(self.longitude), 4) == round(float(self.destination.longitude), 4):
+                return True
+        return False
+
     class Meta:
         ordering = ["-rating", "name"]
 
@@ -1410,6 +1459,19 @@ class Hospital(models.Model):
     coordinate_status = models.CharField(max_length=20, blank=True, default="")
     coordinate_retrieved_at = models.DateTimeField(null=True, blank=True)
 
+    @property
+    def is_approximate_coordinate(self):
+        if self.coordinate_status == "APPROXIMATE":
+            return True
+        if self.coordinate_status in ("VERIFIED", "EXACT", "OFFICIAL"):
+            return False
+        if self.latitude is None or self.longitude is None:
+            return True
+        if self.destination and self.destination.latitude is not None:
+            if round(float(self.latitude), 4) == round(float(self.destination.latitude), 4) and round(float(self.longitude), 4) == round(float(self.destination.longitude), 4):
+                return True
+        return False
+
     def save(self, *args, **kwargs):
         # Imports left "nan" / templated filler in this column; store "" so
         # a missing number is never displayed as if it were callable.
@@ -1451,6 +1513,19 @@ class PoliceStation(models.Model):
     coordinate_source = models.CharField(max_length=120, blank=True, default="")
     coordinate_status = models.CharField(max_length=20, blank=True, default="")
     coordinate_retrieved_at = models.DateTimeField(null=True, blank=True)
+
+    @property
+    def is_approximate_coordinate(self):
+        if self.coordinate_status == "APPROXIMATE":
+            return True
+        if self.coordinate_status in ("VERIFIED", "EXACT", "OFFICIAL"):
+            return False
+        if self.latitude is None or self.longitude is None:
+            return True
+        if self.destination and self.destination.latitude is not None:
+            if round(float(self.latitude), 4) == round(float(self.destination.latitude), 4) and round(float(self.longitude), 4) == round(float(self.destination.longitude), 4):
+                return True
+        return False
 
     def save(self, *args, **kwargs):
         # Imports left "nan" / templated filler in this column; store "" so

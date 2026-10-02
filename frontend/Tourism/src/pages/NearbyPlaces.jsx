@@ -156,7 +156,12 @@ const NearbyPlaces = () => {
     if (sortBy === "name") {
       list.sort((a, b) => (a.name || "").localeCompare(b.name || ""))
     } else {
-      list.sort((a, b) => (Number(a.distance_km) || 0) - (Number(b.distance_km) || 0))
+      list.sort((a, b) => {
+        const approxA = a.is_approximate || a.is_approximate_coordinate ? 1 : 0
+        const approxB = b.is_approximate || b.is_approximate_coordinate ? 1 : 0
+        if (approxA !== approxB) return approxA - approxB
+        return (Number(a.distance_km) || 0) - (Number(b.distance_km) || 0)
+      })
     }
     return list
   }, [places, filterText, sortBy])
@@ -801,7 +806,7 @@ const NearbyPlaces = () => {
                     <div className="mt-2 flex flex-wrap items-center justify-between text-xs font-medium">
                       {h.distance_km != null && (
                         <span className="text-emerald-800 font-bold">
-                          {h.distance_km} km from {origin?.label}
+                          {h.distance_label || (h.is_approximate ? `≈ ${h.distance_km} km (area point)` : `${h.distance_km} km`)} from {origin?.label}
                         </span>
                       )}
                       <Link
@@ -827,7 +832,7 @@ const NearbyPlaces = () => {
                       </p>
                       <p className="text-xs text-gray-500 mt-0.5">
                         {[
-                          h.distance_km != null ? `${h.distance_km} km straight-line` : null,
+                          h.distance_label || (h.distance_km != null ? (h.is_approximate ? `≈ ${h.distance_km} km (area point)` : `${h.distance_km} km straight-line`) : null),
                           h.district,
                           h.address,
                         ]
