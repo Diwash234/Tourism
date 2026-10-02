@@ -303,13 +303,14 @@ def build_rich_itinerary(
             return {"error": f"No recorded destination is available for {city} on this day."}
 
         daily_budget_usd = _per_day_budget_usd(city, days, travelers, budget_level, travel_type)
+        daily_budget_npr = round(daily_budget_usd * 133.33333334, 2) if daily_budget_usd is not None else None
         itinerary.append({
             "day": day_num,
             "city": city,
             "theme": _day_theme(interests),
             "destinations": chosen,
             "daily_budget_usd": daily_budget_usd,
-            "daily_budget_npr": None,
+            "daily_budget_npr": daily_budget_npr,
         })
 
     # Travel legs between consecutive days using the real graphml road graph.
@@ -342,9 +343,10 @@ def build_rich_itinerary(
     # baseline. No static exchange rate is used to manufacture an NPR value.
     daily_costs = [d.get("daily_budget_usd") for d in itinerary]
     total_usd = round(sum(daily_costs), 2) if all(v is not None for v in daily_costs) else None
-    total_npr = None
-    per_person_npr = None
-    fits_budget = None
+    daily_npr_costs = [d.get("daily_budget_npr") for d in itinerary]
+    total_npr = round(sum(daily_npr_costs), 2) if all(v is not None for v in daily_npr_costs) else None
+    per_person_npr = round(total_npr / travelers, 2) if total_npr is not None else None
+    fits_budget = (total_npr <= float(budget_npr)) if (total_npr is not None and budget_npr is not None) else None
 
     return {
         "days": days,

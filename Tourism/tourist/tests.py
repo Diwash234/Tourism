@@ -3939,11 +3939,14 @@ class OpsLayerTests(TestCase):
         "DEFAULT_FROM_EMAIL": "no-reply@tourism.example.org",
         "ROUTING_BASE_URL": "https://router.example.org",
         "GOOGLE_CLIENT_ID": "google-client-id",
+        "GOOGLE_CLIENT_SECRET": "google-client-secret-production-grade",
         "GITHUB_CLIENT_ID": "github-client-id",
+        "GITHUB_CLIENT_SECRET": "github-client-secret-production-grade",
         "OPENWEATHER_API_KEY": "openweather-key",
         "DHM_FEED_URL": "https://dhm.example.org/feed",
         "DHM_API_KEY": "real-alert-key",
         "BIPAD_FEED_URL": "https://bipad.example.org/feed",
+        "BIPAD_API_KEY": "real-bipad-alert-key",
     }
     POSTGRES = {"default": {"ENGINE": "django.db.backends.postgresql", "NAME": "tourism"}}
 
@@ -3979,7 +3982,14 @@ class OpsLayerTests(TestCase):
         import io
         from django.core.management import call_command
         out = io.StringIO()
-        shape = {**self.PRODUCTION_SHAPE, "OPENWEATHER_API_KEY": "", "DHM_FEED_URL": "", "DHM_API_KEY": ""}
+        shape = {
+            **self.PRODUCTION_SHAPE,
+            "OPENWEATHER_API_KEY": "",
+            "DHM_FEED_URL": "",
+            "DHM_API_KEY": "",
+            "BIPAD_FEED_URL": "",
+            "BIPAD_API_KEY": "",
+        }
         with self.settings(**shape, DATABASES=self.POSTGRES):
             with self.assertRaises(SystemExit):
                 call_command("validate_production_config", stdout=out)
