@@ -191,7 +191,10 @@ export default function DestinationList() {
       const fallbackFetch = () => {
         if (!isCurrent()) return
         setIsGpsSorted(false)
-        const params = { page, limit: PAGE_SIZE, ...(type !== "all" ? { type } : {}), ordering: "name" }
+        // Curated featured destinations first (pinned by reconcile_catalogue),
+        // then A-Z. Previously plain `ordering=name`, which buried the
+        // curated set and let coverless junk rows own page 1.
+        const params = { page, limit: PAGE_SIZE, ...(type !== "all" ? { type } : {}), ordering: "-is_featured,name" }
         if (chipParams.category) params.category = chipParams.category
         if (query) {
           params.search = query
