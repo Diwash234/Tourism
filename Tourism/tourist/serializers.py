@@ -1028,8 +1028,16 @@ def is_destination_specific_image(destination, photo):
     if conflicts and not own_match:
         return False
 
+    # For accommodations (hotels, lodges, guest houses, hostels, resorts, homestays):
+    # A generic photo of a monument, garden, mountain, or district is not a photo of the property.
+    is_accom = any(h in destination_text for h in ("hotel", "lodge", "resort", "guesthouse", "guest house", "hostel", "homestay", "inn"))
+    if is_accom:
+        has_accom_token = any(term in evidence for term in ("hotel", "lodge", "resort", "guesthouse", "hostel", "homestay", "inn"))
+        if not has_accom_token:
+            return False
+
     # Any photo shared across 3 or more destinations is a generic/reused asset
-    # and must have a verifiable place-token match for THIS destination to be shown.
+    # and must have a verifiable place-token match for THIS destination's name to be shown.
     shared_count = getattr(photo, "_shared_dest_count", None)
     if shared_count is None and external_url:
         from django.core.cache import cache
@@ -1038,8 +1046,11 @@ def is_destination_specific_image(destination, photo):
         if shared_count is None:
             shared_count = DestinationImage.objects.filter(external_url=external_url).values("destination_id").distinct().count()
             cache.set(cache_k, shared_count, 3600)
-    if shared_count and shared_count >= 3 and not own_match:
-        return False
+    if shared_count and shared_count >= 3:
+        name_text = " ".join(filter(None, [destination.name, getattr(destination, "aliases", "")])).lower()
+        name_tokens = {t for t in re.findall(r"[a-z0-9]+", name_text) if len(t) >= 4 and t not in ignored}
+        if not any(token in evidence for token in name_tokens):
+            return False
 
     # Unknown/hash-based URLs remain visible only as a fallback. They are
     # never promoted over an exact verified place match.
