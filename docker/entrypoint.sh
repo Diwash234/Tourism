@@ -61,6 +61,16 @@ load_catalogue_if_empty() {
 # only writes empty values (or re-derives projections of tracked files), so
 # re-running on an existing catalogue is safe.
 run_data_repairs() {
+  # Hide OSM-CSV junk destinations (coverless, mojibake, type=node/way/
+  # relation) from every public surface and re-pin the curated featured set
+  # the homepage falls back to when the CMS FeaturedDestination table is
+  # empty. Deliberately FIRST: it is the fastest and highest-value repair,
+  # and running it before the slow enrichers means a redeploy cycle can
+  # never starve it. Idempotent; never reactivates or unfeatures anything.
+  echo "entrypoint: reconciling public catalogue (OSM junk rows + featured set)"
+  python manage.py reconcile_catalogue \
+    || echo "entrypoint: WARNING - catalogue reconcile skipped"
+
   # Repair external cover-image paths (media URLs rendered as local paths).
   echo "entrypoint: repairing external cover-image paths"
   python manage.py repair_cover_image_urls \
@@ -100,14 +110,6 @@ run_data_repairs() {
   echo "entrypoint: computing nearest hospital/police/hotel for destinations"
   python manage.py enrich_destination_nearby_services \
     || echo "entrypoint: WARNING - nearby-service enrichment skipped"
-
-  # Hide OSM-CSV junk destinations (coverless, mojibake, type=node/way/
-  # relation) from every public surface and re-pin the curated featured set
-  # the homepage falls back to when the CMS FeaturedDestination table is
-  # empty. Idempotent; never reactivates or unfeatures anything.
-  echo "entrypoint: reconciling public catalogue (OSM junk rows + featured set)"
-  python manage.py reconcile_catalogue \
-    || echo "entrypoint: WARNING - catalogue reconcile skipped"
 }
 
 # ------------------------------------------------- 1. schema / seed file
@@ -220,6 +222,14 @@ PY
     run_data_repairs
   else
     echo "entrypoint: heavy data repairs disabled on normal web boot"
+    # The public-catalogue reconcile is a couple of idempotent UPDATE passes
+    # (well under a second), so it belongs on the lightweight path too:
+    # RUN_DATA_REPAIRS_ON_BOOT=0 on Render, and without this line the OSM
+    # junk rows and the curated featured set would never be repaired on a
+    # normal web boot.
+    echo "entrypoint: reconciling public catalogue (OSM junk rows + featured set)"
+    python manage.py reconcile_catalogue \
+      || echo "entrypoint: WARNING - catalogue reconcile skipped"
     run_if_table_empty tourist_budgetestimation "budget" python manage.py import_budget
     echo "entrypoint: repairing public visibility for approved seed media"
     python manage.py repair_public_media_visibility \
