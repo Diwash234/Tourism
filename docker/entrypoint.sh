@@ -235,6 +235,8 @@ PY
     echo "entrypoint: repairing public visibility for approved seed media"
     python manage.py repair_public_media_visibility \
       || echo "entrypoint: WARNING - public media visibility repair skipped"
+    python manage.py repair_destination_names \
+      || echo "entrypoint: WARNING - destination name repair skipped"
   fi
 
   # Data audit: intentionally fails the deploy instead of looking healthy
