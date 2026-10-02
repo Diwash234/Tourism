@@ -624,15 +624,17 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
         else:
             qs = Destination.publicly_visible(qs)
 
-        # Default destination listing: return all publicly visible destinations.
-        # Specific filtering by category or type is applied when query params are provided.
+        # The public destination catalogue is for places to visit. Hotels,
+        # inns, hostels, restaurants and service points have their own APIs.
+        # Previously this filter only ran when type=attraction, so a category
+        # such as "mountains" could surface "The North Face Inn" and "1 Room".
         if self.action == "list":
             requested_type = (self.request.query_params.get("type") or "").lower()
-            if requested_type in ("attraction", "attractions"):
-                from .filters import (
-                    ACCOMMODATION_SLUGS, ACCOMMODATION_NAME_HINTS,
-                    NON_ATTRACTION_SLUGS, NON_ATTRACTION_NAME_HINTS,
-                )
+            from .filters import (
+                ACCOMMODATION_SLUGS, ACCOMMODATION_NAME_HINTS,
+                NON_ATTRACTION_SLUGS, NON_ATTRACTION_NAME_HINTS,
+            )
+            if requested_type not in ("hotel", "hotels", "accommodation"):
                 exclude_slugs = set(ACCOMMODATION_SLUGS) | set(NON_ATTRACTION_SLUGS)
                 qs = qs.exclude(category__slug__in=exclude_slugs)
                 for hint in ACCOMMODATION_NAME_HINTS:
