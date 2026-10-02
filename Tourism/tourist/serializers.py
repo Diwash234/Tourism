@@ -185,6 +185,41 @@ def _photo_url(photo, request=None):
     return ""
 
 
+def _cover_backed_by_unverified_media(destination, cover_value):
+    """True when ``cover_value`` is the URL of one of this destination's own
+    DestinationImage rows that has NOT been approved and verified.
+
+    ``Destination.cover_image`` is a denormalised column that admin commands
+    and importers write directly, so it is trusted by default -- but anything
+    that promotes a *pending* photo into that column (community uploads,
+    an auto-promotion heuristic, an import) also lands an unreviewed URL
+    directly on the public detail page. The moderation queue is bypassed
+    without ever touching the queue.
+
+    The check reuses the already-prefetched ``gallery`` relation, so it costs
+    no query. A cover that matches no DestinationImage row at all is a plain
+    admin-set URL and is left alone.
+    """
+    if not cover_value:
+        return False
+    try:
+        target = str(cover_value).strip().rstrip("/")
+    except Exception:  # noqa: BLE001
+        return False
+    if not target:
+        return False
+    for photo in destination.gallery.all():
+        for candidate in (photo.external_url, getattr(photo.image, "name", None)):
+            if candidate and str(candidate).strip().rstrip("/") == target:
+                approved = (
+                    photo.verification_status == DestinationImage.ImageStatus.APPROVED
+                    and photo.is_verified
+                )
+                if not approved:
+                    return True
+    return False
+
+
 def destination_cover_image(obj, request=None):
     """Resolve the cover URL: admin-set Destination.cover_image first (admin
     commands write URLs straight into that column), else the approved cover
@@ -195,10 +230,16 @@ def destination_cover_image(obj, request=None):
     photo attached to a Kaski trek must never surface as its cover
     (``test_cross_destination_image_is_not_used_as_fallback``).  None rather
     than "" so callers can assert true absence.
+
+    The admin-set column is skipped when it turns out to be one of this
+    destination's own *unverified* media rows -- see
+    ``_cover_backed_by_unverified_media``.
     """
     from .utils import resolve_image_url
 
-    if getattr(obj, "cover_image", None):
+    if getattr(obj, "cover_image", None) and not _cover_backed_by_unverified_media(
+        obj, obj.cover_image
+    ):
         resolved = resolve_image_url(obj.cover_image, request)
         if resolved:
             return resolved
@@ -351,6 +392,12 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
     # `marketplace_listings` (published stays/tours) straight from the payload.
     notices = serializers.SerializerMethodField()
     marketplace_listings = serializers.SerializerMethodField()
+    # "Where to stay here" is rendered inline on the destination detail page,
+    # and the archived flag is meaningful: a hotel an admin has taken down must
+    # not keep being advertised on the public page just because its row still
+    # exists. Archived rows are filtered out here rather than left for the
+    # client to hide, so no surface can leak one by forgetting to check.
+    hotels = serializers.SerializerMethodField()
 
     def _request(self):
         return self.context.get("request")
@@ -363,6 +410,28 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
 
     def get_image_url(self, obj):
         return _cover_cached(obj, self._request())
+
+    def get_hotels(self, obj):
+        """Active (non-archived) hotels at this destination, best-rated first.
+
+        Prefetched when the view supplies ``hotel_rows`` so a detail request is
+        not an extra query per destination in a list.
+        """
+        from .models import Hotel
+
+        rows = self.context.get("hotel_rows")
+        if rows is None:
+            rows = obj.hotels.filter(is_active=True)
+        rows = list(rows)
+        rows.sort(
+            key=lambda h: (
+                h.rating is None,
+                -(h.rating or 0),
+                h.name.lower(),
+            )
+        )
+        request = self._request()
+        return HotelSerializer(rows, many=True, context={"request": request}).data
 
     @extend_schema_field(serializers.FloatField(allow_null=True))
     def get_budget_estimate(self, obj):
@@ -482,7 +551,7 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
             "meta_robots", "search_visible",
             "budget_estimate", "risk_level", "recommended_season",
             "display_city", "has_map_pin",
-            "notices", "marketplace_listings",
+            "notices", "marketplace_listings", "hotels",
             "is_featured", "is_active", "status", "created_at", "updated_at",
         ]
 
@@ -1188,6 +1257,19 @@ class UserProfileSerializer(serializers.Serializer):
     is_staff = serializers.BooleanField(read_only=True)
     is_superuser = serializers.BooleanField(read_only=True)
     is_active = serializers.BooleanField(read_only=True)
+    # Read by frontend/Tourism/src/pages/DataDeletion.jsx to decide whether the
+    # "set a new password instead of deleting" option applies. It was never
+    # emitted, so the check always read `undefined`, which the client treats as
+    # "has a password" -- meaning an account that signed in with Google or
+    # GitHub, and so has no usable password to change, was offered exactly
+    # that option.
+    has_password = serializers.SerializerMethodField()
+
+    def get_has_password(self, obj):
+        try:
+            return bool(obj.has_usable_password())
+        except Exception:  # noqa: BLE001 - defensive: never break login on this
+            return False
 
     def get_full_name(self, obj):
         return f"{obj.first_name or ''} {obj.last_name or ''}".strip() or None

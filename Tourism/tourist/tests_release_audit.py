@@ -222,7 +222,15 @@ class SpaFallbackTests(TestCase):
                 response = spa_index(RequestFactory().get("/destinations/anything"), path="destinations/anything")
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response["Cache-Control"], "no-cache")
-                self.assertIn(b"root", b"".join(response.streaming_content))
+                body = b"".join(response.streaming_content)
+                # Release the FileWrapper's open handle on index.html before
+                # TemporaryDirectory tries to delete the directory. Iterating
+                # the stream does not close it, so on Windows the cleanup
+                # raised PermissionError and the test errored on teardown
+                # rather than on any real assertion -- a platform-only failure
+                # with nothing to do with the SPA fallback.
+                response.close()
+                self.assertIn(b"root", body)
 
     def test_missing_build_is_404(self):
         from django.http import Http404

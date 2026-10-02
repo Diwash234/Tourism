@@ -2493,6 +2493,14 @@ class AdminBrandingView(APIView):
                  **self.PRESETS[preset], "theme_preset": preset}
         setting.value = value; setting.is_public = True; setting.updated_by = request.user; setting.save()
         self._audit(request, "branding.settings.update", before, value)
+        # /config/public/ serves a version-keyed cached response, and the
+        # version is only bumped by cms_publishing. Saving the branding without
+        # invalidating it meant an admin changed the site title, colours, social
+        # links or contact address and the public site kept serving the old
+        # values until something else happened to publish a page.
+        from .cms_publishing import invalidate_public_config_cache
+
+        invalidate_public_config_cache()
         return Response({"message": "Branding published", "branding": value})
 
     def post(self, request):
