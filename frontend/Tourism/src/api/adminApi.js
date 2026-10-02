@@ -121,8 +121,8 @@ const adminApi = {
 
   // Multi-Source Image Acquisition & Provenance Pipeline API
   getDestinationImages: (slugOrId) => axiosClient.get(`/destinations/${slugOrId}/images/`),
-  discoverDestinationImages: (slugOrId) => axiosClient.post(`/destinations/${slugOrId}/images/discover/`),
-  refreshDestinationImages: (slugOrId) => axiosClient.post(`/destinations/${slugOrId}/images/refresh/`),
+  discoverDestinationImages: (slugOrId, payload = {}) => axiosClient.post(`/destinations/${slugOrId}/images/discover/`, payload),
+  refreshDestinationImages: (slugOrId, payload = {}) => axiosClient.post(`/destinations/${slugOrId}/images/refresh/`, payload),
   setDestinationCover: (slugOrId, imageId) => axiosClient.post(`/destinations/${slugOrId}/images/${imageId}/set-cover/`),
 
   // Free web image search + save (Wikimedia / DuckDuckGo / Openverse)
