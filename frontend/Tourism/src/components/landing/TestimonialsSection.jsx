@@ -7,7 +7,7 @@ import usePublicConfig from "../../hooks/usePublicConfig"
 export default function TestimonialsSection({ section = null }) {
   const { settings } = usePublicConfig()
   const [reviews, setReviews] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [remoteLoading, setRemoteLoading] = useState(true)
 
   const cmsTestimonials = settings?.cms_content_testimonials
   const cmsReviews = Array.isArray(cmsTestimonials)
@@ -25,10 +25,7 @@ export default function TestimonialsSection({ section = null }) {
   const visibleReviews = cmsReviews.length ? cmsReviews : reviews
 
   useEffect(() => {
-    if (cmsReviews.length > 0) {
-      setLoading(false)
-      return undefined
-    }
+    if (cmsReviews.length > 0) return undefined
 
     let active = true
     axiosClient
@@ -40,12 +37,14 @@ export default function TestimonialsSection({ section = null }) {
         if (active) setReviews([])
       })
       .finally(() => {
-        if (active) setLoading(false)
+        if (active) setRemoteLoading(false)
       })
     return () => {
       active = false
     }
   }, [cmsReviews.length])
+
+  const loading = cmsReviews.length === 0 && remoteLoading
 
   return (
     <section className="container-app section-space" aria-labelledby="traveler-stories-title">
