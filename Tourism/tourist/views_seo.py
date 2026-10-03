@@ -160,7 +160,7 @@ class HealthView(View):
     def get(self, request):
         cached = cache.get("health:root:v2")
         if cached is not None:
-            return JsonResponse(cached, status=cached.get("_http_status", 200))
+            return JsonResponse({k: v for k, v in cached.items() if k != "_http_status"}, status=cached.get("_http_status", 200))
         checks = {"application": {"status": "ok"}}
 
         db_status = "ok"
@@ -200,4 +200,4 @@ class HealthView(View):
         http_status = 200 if db_status == "ok" else 503
         payload = {"status": overall, "checks": checks, "_http_status": http_status}
         cache.set("health:root:v2", payload, 5)
-        return JsonResponse(payload, status=http_status)
+        return JsonResponse({k: v for k, v in payload.items() if k != "_http_status"}, status=http_status)
