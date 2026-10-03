@@ -18,7 +18,7 @@ export default function CmsGlobalSectionEditor({ sectionId, initialSettings = {}
   const [newPromptItem, setNewPromptItem] = useState("")
 
   const loadData = useCallback(async () => {
-    setLoading(true)
+    
     try {
       const res = await adminApi.getCMS("settings")
       const rows = res.data?.results || []
