@@ -25,7 +25,7 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Destination, Hotel, Hospital, MLInsight, OSMEssentialService, PoliceStation
+from .models import BudgetEstimation, Destination, Hotel, Hospital, MLInsight, OSMEssentialService, PoliceStation
 from .risk_views import RiskPredictionView, RouteRiskAssessmentView
 from .serializers import (
     DestinationListSerializer,
@@ -436,236 +436,63 @@ class SafetyPredictionView(APIView):
 
 
         if result is None:
-            # The AI safety microservice is optional and often not running —
-            # degrade to the honest rule-based estimate instead of a bare 503,
-            # so the Risk page always shows something real.
-            result = _rule_based_safety_fallback(latitude, longitude, destination)
-            if destination:
-                MLInsight.objects.create(
-                    destination=destination,
-                    insight_type=MLInsight.InsightType.CROWD_PREDICTION,
-                    label=result["risk_category"],
-                    score=result["tourism_risk_index"],
-                    raw_result=result,
-                )
-            return Response(result)
-
-
-
-        if destination:
-
-            MLInsight.objects.create(
-                destination=destination,
-                insight_type=MLInsight.InsightType.CROWD_PREDICTION,
-                label=result["risk_level"],
-                score=result["safety_score"],
-                raw_result=result,
-            )
-
-
-        return Response(result)
-
-
-
-
-def _official_budget_context(result, data, destination):
-    """NRB conversion + official fee lines for a USD-based ML estimate.
-
-    Nothing here is guessed: USD->NPR uses the NRB buying rate of the day
-    (or is reported unavailable), fee lines come from the cited
-    travel-requirements dataset, and the suggested contingency buffer is
-    explicitly labelled as a suggestion, not a cost.
-    """
-    from . import fx
-    from . import travel_requirements as tr
-
-    snap = fx.latest_snapshot()
-    rate = fx.npr_per_unit(snap, "USD") if snap else None
-    travelers = int(data.get("travelers") or 1)
-    days = int(data.get("days") or 1)
-    nationality = data.get("nationality") or "foreign"
-
-    def to_npr(usd):
-        if usd is None or rate is None:
-            return None
-        return round(float(usd) * float(rate), 2)
-
-    breakdown_usd = {k: v for k, v in (result.get("breakdown") or {}).items() if isinstance(v, (int, float))}
-    known_usd = result.get("known_cost_total_usd")
-    if known_usd is None and breakdown_usd:
-        known_usd = round(sum(breakdown_usd.values()), 2)
-
-    fee_lines = []
-    requirements = None
-    if destination is not None:
-        requirements = tr.destination_requirements(
-            destination, nationality=nationality, days=days, month=data.get("travel_month"), travelers=travelers)
-        fee_lines = list(requirements["fees"])
-    visa = tr.visa_summary(tr.normalize_nationality(nationality), days)
-    if data.get("include_visa", True) and visa.get("fee_usd_for_stay"):
-        tier = visa["fee_usd_for_stay"]
-        fee_lines.insert(0, {
-            "label": f"Nepal tourist visa on arrival ({tier['days']} days)", "currency": "USD",
-            "amount_per_person": tier["usd"], "basis": f"Trip of {days} day(s); Department of Immigration fee schedule.",
-            "source_key": "doi_visa", "estimate": False,
-        })
-    totals = tr.fee_totals(fee_lines, travelers, snap)
-    calibrated_npr = result.get("total_budget_npr") or result.get("known_cost_total_npr")
-    known_npr = calibrated_npr if calibrated_npr is not None else to_npr(known_usd)
-    grand_npr = round(known_npr + totals["group_npr"], 2) if known_npr is not None else None
-
-    res_breakdown_npr = {k: v for k, v in (result.get("breakdown_npr") or {}).items() if isinstance(v, (int, float))}
-    clean_breakdown_npr = {k: res_breakdown_npr.get(k) if res_breakdown_npr.get(k) is not None else to_npr(v) for k, v in breakdown_usd.items()}
-    if "emergency_reserve" in res_breakdown_npr:
-        clean_breakdown_npr["emergency_reserve"] = res_breakdown_npr["emergency_reserve"]
-
-    return {
-        "exchange_rate": fx.snapshot_meta(snap) | ({"usd_to_npr": float(rate)} if rate is not None else {}),
-        "known_cost_total_npr": known_npr,
-        "breakdown_npr": clean_breakdown_npr,
-        "official_fees": {
-            "lines": totals["lines"],
-            "per_person_npr": totals["per_person_npr"],
-            "group_npr": totals["group_npr"],
-            "unconverted": totals["unconverted"],
-            "nationality": tr.normalize_nationality(nationality),
-            "sources": (requirements or {}).get("sources", []),
-            "matching_note": (requirements or {}).get("matching_note", ""),
-            "insurance": (requirements or {}).get("insurance"),
-        },
-        "trip_total_npr": grand_npr,
-        "per_person_npr": round(grand_npr / travelers, 2) if grand_npr is not None else None,
-        "per_day_npr": round(grand_npr / days, 2) if grand_npr is not None else None,
-        "contingency_suggested_npr": round(grand_npr * 0.10, 2) if grand_npr is not None else None,
-        "contingency_note": "Suggested 10% buffer for delays, weather days and rescue excess — a planning suggestion, not a quoted cost.",
-    }
-
-
-class BudgetPredictionView(APIView):
-
-    permission_classes = [permissions.AllowAny]
-    serializer_class = BudgetPredictionRequestSerializer
-
-
-    def post(self, request):
-
-        data = request.data.copy()
-
-
-        if (
-            "budget_level" not in data
-            and "style" in data
-        ):
-            data["budget_level"] = {
-                "standard": "mid"
-            }.get(
-                data["style"],
-                data["style"]
-            )
-
-
-        destination_value = data.get("destination")
-        if destination_value:
-            dest_str = str(destination_value).strip()
-            if dest_str.isdigit():
-                match = Destination.objects.filter(pk=dest_str).first()
-                if match:
-                    data["destination"] = match.id
-                else:
+            # Render's free instance intentionally runs without the pandas/
+            # sklearn ML sidecar. The verified budget_features.csv is imported
+            # into BudgetEstimation, so use that recorded row instead of
+            # returning an "Unavailable" total or inventing a generic price.
+            if destination is not None:
+                recorded = BudgetEstimation.objects.filter(destination=destination).first()
+                if recorded is not None:
+                    days = max(1, int(data["days"]))
+                    travelers = max(1, int(data["travelers"]))
+                    daily = float(recorded.estimated_daily_budget or 0)
+                    accommodation = float(recorded.accommodation_per_night or 0)
+                    food = float(recorded.food_cost_per_day or 0)
+                    transport = float(recorded.transport_cost or 0) + float(recorded.local_transport or 0)
+                    total = daily * days * travelers
                     return Response({
-                        "detail": "Destination not found. Please select a valid Nepal destination.",
-                        "suggestions": ["Use a destination recorded in the catalogue."]
-                    }, status=status.HTTP_400_BAD_REQUEST)
-            elif len(dest_str) < 2 or re.fullmatch(r"[0-9\W]+", dest_str):
-                return Response({
-                    "detail": "Destination not found. Please select a valid Nepal destination.",
-                    "suggestions": ["Use a destination recorded in the catalogue."]
-                }, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                # Deterministic best match: exact name, then prefix, then
-                # substring -- among publicly visible places first. The
-                # matched place is echoed back so the UI can show it.
-                visible = Destination.publicly_visible()
-                match = (visible.filter(name__iexact=dest_str).first()
-                         or visible.filter(name__istartswith=dest_str).order_by("name").first()
-                         or visible.filter(name__icontains=dest_str).order_by("name").first()
-                         or Destination.objects.filter(name__iexact=dest_str).first())
-                if match:
-                    data["destination"] = match.id
-                else:
-                    data.pop("destination", None)
-                    data.setdefault("city", dest_str)
+                        "source": "dataset_csv",
+                        "baseline_source": "dataset_csv",
+                        "dataset": {"name": "budget_features.csv", "destinations": BudgetEstimation.objects.count()},
+                        "currency": "USD",
+                        "total_budget_usd": round(total, 2),
+                        "daily_cost_usd": round(daily * travelers, 2),
+                        "total": round(total, 2),
+                        "estimated_total": round(total, 2),
+                        "breakdown": {
+                            "accommodation": round(accommodation * days * travelers, 2),
+                            "food": round(food * days * travelers, 2),
+                            "transport": round(transport * travelers, 2),
+                            "activities": None,
+                            "shopping": None,
+                        },
+                        "living_costs_available": True,
+                        "living_costs_note": "Recorded baseline from the bundled Nepal travel-cost dataset; not a live hotel or operator quote.",
+                        "style_note": "The source dataset does not contain separate budget/mid/luxury bands; the recorded destination baseline is used.",
+                        "matched_destination": {"id": destination.id, "name": destination.name, "district": destination.district or ""},
+                        "days": days,
+                        "travelers": travelers,
+                        "official_fees_only": False,
+                        **_official_budget_context({}, data, destination),
+                    }, status=status.HTTP_200_OK)
 
-
-        serializer = BudgetPredictionRequestSerializer(
-            data=data
-        )
-
-        serializer.is_valid(
-            raise_exception=True
-        )
-
-        data = serializer.validated_data
-
-
-        destination = data.get(
-            "destination"
-        )
-
-
-        city = (
-            destination.city
-            if destination
-            else data.get("city")
-        )
-
-
-        country = (
-            destination.country
-            if destination
-            else data.get("country")
-        )
-
-        latitude = float(destination.latitude) if destination and destination.latitude else None
-        longitude = float(destination.longitude) if destination and destination.longitude else None
-
-        result = get_ml_budget_prediction(
-            city=city,
-            country=country,
-            days=data["days"],
-            travelers=data["travelers"],
-            budget_level=data["budget_level"],
-            latitude=latitude,
-            longitude=longitude,
-            user_latitude=data.get("user_latitude"),
-            user_longitude=data.get("user_longitude"),
-            district=getattr(destination, "district", None) if destination else data.get("district"),
-            province=getattr(destination, "province", None) if destination else data.get("province"),
-            destination_name=getattr(destination, "name", None) if destination else data.get("city"),
-        )
-
-
-        if result is None:
             if destination is None:
                 return Response(
-                    {"detail": "Budget prediction service unavailable."},
+                    {"detail": "No recorded budget row exists for that destination. Select a destination from the catalogue."},
                     status=status.HTTP_503_SERVICE_UNAVAILABLE,
                 )
-            # Living-cost model is down, but the official visa / park /
-            # permit fees do not depend on it -- still return them, and say
-            # plainly that living costs are missing (never invent them).
+
             partial = {"breakdown": {}, "known_cost_total_usd": None, "estimated_total": None, "total_budget_usd": None}
             body = {
                 **partial,
                 "living_costs_available": False,
-                "living_costs_note": "The living-cost estimate service is unavailable right now, so hotel, food and transport costs are not included.",
+                "living_costs_note": "No recorded destination budget row is available and the estimate service is unavailable.",
                 **_official_budget_context(partial, data, destination),
                 "matched_destination": {"id": destination.id, "name": destination.name, "district": destination.district or ""},
                 "days": data.get("days"), "travelers": data.get("travelers"),
             }
             body["official_fees_only"] = True
             return Response(body, status=status.HTTP_200_OK)
-
 
         flattened = dict(result)
         flattened.update(_official_budget_context(result, data, destination))
