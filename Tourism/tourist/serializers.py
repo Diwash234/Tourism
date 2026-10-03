@@ -2064,12 +2064,21 @@ def is_destination_specific_image(destination, photo):
         and (uploader.is_staff or uploader.is_superuser)
     ):
         return True
-    # Named external photos (e.g. Wikimedia titles) can be verified from the
-    # URL: a title that shares no place token with this destination is strong
-    # mismatch evidence and must not be displayed as its imagery.
+    # For approved + verified external photos, the moderation/source pipeline
+    # is the primary trust signal. Do not require the CDN/Wikimedia filename
+    # itself to contain the destination name: many legitimate Commons files
+    # use photographer IDs or generic filenames (for example IMG_2041.jpg).
+    # Keep the strong known-place conflict guard below so a clearly labelled
+    # Pokhara image cannot silently become an Everest/Lumbini cover.
     for candidate_url in (external_url, getattr(photo, "source_url", "") or ""):
         if image_url_matches_destination(destination, candidate_url) is False:
-            return False
+            evidence_lower = evidence
+            known_conflict = any(
+                place in evidence_lower and place not in allowed
+                for place in known_places
+            )
+            if known_conflict:
+                return False
     own_match = any(token in evidence for token in allowed)
     strict_subject = any(term in destination_text for term in ["cave", "gupha", "gufa", "balloon", "ultralight", "paragliding", "zipflyer", "zip flyer"])
     if strict_subject and not own_match:
