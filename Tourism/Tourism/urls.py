@@ -31,6 +31,7 @@ urlpatterns = [
     path("api/v1/models/", SpectacularAPIView.as_view(), name="api-v1-models"),
     # Also allow /v1/models/ without /api/ prefix for flexibility
     path("v1/models/", SpectacularAPIView.as_view(), name="api-v1-models-legacy"),
+    path("v1/models", SpectacularAPIView.as_view(), name="api-v1-models-legacy-noslash"),
     path("api/v1/docs/", SpectacularSwaggerView.as_view(url_name="api-v1-models"), name="api-v1-docs"),
     path("api/v1/redoc/", SpectacularRedocView.as_view(url_name="api-v1-models"), name="api-v1-redoc"),
     path("api/v1/health/", views_seo.HealthView.as_view(), name="health-v1"),
