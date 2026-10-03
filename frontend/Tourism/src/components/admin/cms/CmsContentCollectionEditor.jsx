@@ -56,7 +56,7 @@ export default function CmsContentCollectionEditor({
   const settingKey = COLLECTION_KEY_MAP[contentType] || `cms_content_${contentType}`
 
   const loadItems = useCallback(async () => {
-    setLoading(true)
+    
     try {
       const res = await adminApi.getCMS("settings")
       const rows = res.data?.results || []
