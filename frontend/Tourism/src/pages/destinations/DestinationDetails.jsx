@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import useSeo from "../../hooks/useSeo"
 import { useParams, useNavigate, Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
