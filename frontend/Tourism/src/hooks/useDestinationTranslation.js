@@ -9,7 +9,6 @@ import { useTranslation } from "./useTranslation"
 export function useDestinationTranslation(slug, enabled = true) {
   const { lang } = useTranslation()
   const [translated, setTranslated] = useState(null)
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
   const fetchTranslation = useCallback(async () => {
@@ -22,7 +21,6 @@ export function useDestinationTranslation(slug, enabled = true) {
       setError(err)
       setTranslated(null)
     } finally {
-      setLoading(false)
     }
   }, [slug, lang, enabled])
 
@@ -35,6 +33,8 @@ export function useDestinationTranslation(slug, enabled = true) {
   const refresh = useCallback(() => {
     fetchTranslation()
   }, [fetchTranslation])
+
+  const loading = Boolean(enabled && slug && !translated && !error)
 
   return { translated, loading, error, refresh }
 }
