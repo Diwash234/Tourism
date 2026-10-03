@@ -26,6 +26,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Destination, Hotel, Hospital, MLInsight, OSMEssentialService, PoliceStation
+from .risk_views import RiskPredictionView, RouteRiskAssessmentView
 from .serializers import (
     DestinationListSerializer,
     MLInsightSerializer,
@@ -851,23 +852,20 @@ def enrich_itinerary_with_services(payload):
         "id", "category", "name", "latitude", "longitude", "is_verified", "source_name", "phone"
     ))
 
-    def _nearby(rows, lat, lon, mapper, limit=2):
+    def _nearby(rows, lat, lon, mapper, lat_idx, lon_idx, limit=2):
         candidates = []
         for row in rows:
-            # Rows are tuples; lat/lon positions differ by model.
-            # Hotels/hospitals/police: id,name,lat,lon,...
-            # Essentials: id,category,name,lat,lon,...
-            if len(row) >= 4 and isinstance(row[2], (int, float)):
-                rlat, rlon = row[2], row[3]
-            elif len(row) >= 5 and isinstance(row[3], (int, float)):
-                rlat, rlon = row[3], row[4]
-            else:
-                continue
+            # Explicit indices per model (values_list returns Decimal coords,
+            # so we must not rely on isinstance(..., (int, float)) checks):
+            #   hotels/hospitals/police: id,name,lat,lon,...
+            #   essentials: id,category,name,lat,lon,...
             try:
-                dlat = float(rlat) - lat
-                dlon = float(rlon) - lon
-            except (TypeError, ValueError):
+                rlat = float(row[lat_idx])
+                rlon = float(row[lon_idx])
+            except (IndexError, TypeError, ValueError):
                 continue
+            dlat = rlat - lat
+            dlon = rlon - lon
             dist_sq = dlat * dlat + dlon * dlon
             if dist_sq < 100:  # ~10 degrees bounding box
                 candidates.append((dist_sq, row))
@@ -891,19 +889,19 @@ def enrich_itinerary_with_services(payload):
                 "is_verified": bool(row[4]), "source_name": row[5] or "",
                 "price_npr": float(row[6]) if row[6] is not None and row[7] == "NPR" else None,
                 "image_url": str(row[8]) if row[8] else (row[9] or None),
-            }),
+            }, 2, 3),
             "hospitals": _nearby(all_hospitals, lat, lon, lambda row, distance: {
                 "id": row[0], "name": row[1], "phone": clean_phone(row[6], "")[0], "distance_km": distance,
                 "is_verified": bool(row[4]), "source_name": row[5] or "",
-            }),
+            }, 2, 3),
             "police": _nearby(all_police, lat, lon, lambda row, distance: {
                 "id": row[0], "name": row[1], "phone": clean_phone(row[6], "")[0], "distance_km": distance,
                 "is_verified": bool(row[4]), "source_name": row[5] or "",
-            }),
+            }, 2, 3),
             "essentials": _nearby(all_essentials, lat, lon, lambda row, distance: {
                 "id": row[0], "type": row[1], "name": row[2], "phone": clean_phone(row[7], "")[0], "distance_km": distance,
                 "is_verified": bool(row[5]), "source_name": row[6] or "",
-            }),
+            }, 3, 4),
         }
     payload["service_data_source"] = "live_database_distance_ranking"
     return payload
