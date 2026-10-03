@@ -249,7 +249,7 @@ export default function DestinationList() {
         // Curated featured destinations first (pinned by reconcile_catalogue),
         // then A-Z. Previously plain `ordering=name`, which buried the
         // curated set and let coverless junk rows own page 1.
-        const params = { page, limit: PAGE_SIZE, ...(type !== "all" ? { type } : {}), ordering: "-is_featured,name" }
+        const params = { page, page_size: PAGE_SIZE, ...(type !== "all" ? { type } : {}), ordering: "-is_featured,name" }
         if (chipParams.category) params.category = chipParams.category
         if (query) {
           params.search = query
@@ -285,7 +285,7 @@ export default function DestinationList() {
 
       if (position?.lat && position?.lng && !query && !letter && !categoryChip && type !== "hotel") {
         setIsGpsSorted(true)
-        destinationApi.nearby(position.lat, position.lng, { radius_km: 250, page, limit: PAGE_SIZE, type })
+        destinationApi.nearby(position.lat, position.lng, { radius_km: 250, page, page_size: PAGE_SIZE, type })
           .then(({ data }) => {
             const list = data?.results || data || []
             if (Array.isArray(list) && list.length) applyResults(data, true)
