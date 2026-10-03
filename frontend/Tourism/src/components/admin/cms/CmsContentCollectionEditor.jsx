@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useCallback, useEffect, useState } from "react"
 import {
   FiPlus, FiTrash2, FiEdit2, FiCheck, FiSend, FiSave, FiSearch,
   FiFilter, FiRotateCcw, FiRefreshCw, FiExternalLink, FiCalendar,
@@ -55,7 +55,7 @@ export default function CmsContentCollectionEditor({
 
   const settingKey = COLLECTION_KEY_MAP[contentType] || `cms_content_${contentType}`
 
-  const loadItems = async () => {
+  const loadItems = useCallback(async () => {
     setLoading(true)
     try {
       const res = await adminApi.getCMS("settings")
@@ -69,11 +69,11 @@ export default function CmsContentCollectionEditor({
     } finally {
       setLoading(false)
     }
-  }
+  }, [contentType, onCountChange])
 
   useEffect(() => {
     loadItems()
-  }, [contentType])
+  }, [loadItems])
 
   const saveCollection = async (updatedItems, successMsg = "Saved successfully") => {
     setBusy(true)
