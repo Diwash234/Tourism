@@ -67,7 +67,7 @@ export default function CmsContentCollectionEditor({
     } catch {
       setItems([])
     } finally {
-      setLoading(false)
+      window.setTimeout(() => setLoading(false), 0)
     }
   }, [contentType, onCountChange])
 
