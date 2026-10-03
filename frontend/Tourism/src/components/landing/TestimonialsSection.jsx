@@ -9,23 +9,25 @@ export default function TestimonialsSection({ section = null }) {
   const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
 
+  const cmsTestimonials = settings?.cms_content_testimonials
+  const cmsReviews = Array.isArray(cmsTestimonials)
+    ? cmsTestimonials
+        .filter((t) => !t.status || t.status === "published")
+        .map((t) => ({
+          id: t.id,
+          user_name: t.name || t.author || "Traveler",
+          comment: t.content || t.comment || t.quote,
+          rating: t.rating || 5,
+          location: t.location || t.origin || "Visitor",
+        }))
+        .filter((t) => t.comment)
+    : []
+  const visibleReviews = cmsReviews.length ? cmsReviews : reviews
+
   useEffect(() => {
-    const cmsTestimonials = settings?.cms_content_testimonials
-    if (Array.isArray(cmsTestimonials) && cmsTestimonials.length > 0) {
-      const published = cmsTestimonials.filter((t) => !t.status || t.status === "published")
-      if (published.length > 0) {
-        setReviews(
-          published.map((t) => ({
-            id: t.id,
-            user_name: t.name || t.author || "Traveler",
-            comment: t.content || t.comment || t.quote,
-            rating: t.rating || 5,
-            location: t.location || t.origin || "Visitor",
-          }))
-        )
-        setLoading(false)
-        return
-      }
+    if (cmsReviews.length > 0) {
+      setLoading(false)
+      return undefined
     }
 
     let active = true
@@ -43,7 +45,7 @@ export default function TestimonialsSection({ section = null }) {
     return () => {
       active = false
     }
-  }, [settings?.cms_content_testimonials])
+  }, [cmsReviews.length])
 
   return (
     <section className="container-app section-space" aria-labelledby="traveler-stories-title">
@@ -53,7 +55,7 @@ export default function TestimonialsSection({ section = null }) {
           {section?.title || "Stories from the route"}
         </h2>
         <p className="mt-2 text-sm text-[var(--ny-text-secondary)]">
-          {section?.subtitle || "Published reviews appear here when travellers choose to share them."}
+          {section?.subtitle || "Published visibleReviews appear here when travellers choose to share them."}
         </p>
       </div>
       {loading ? (
@@ -62,9 +64,9 @@ export default function TestimonialsSection({ section = null }) {
             <div key={item} className="ny-skeleton h-44" aria-hidden="true" />
           ))}
         </div>
-      ) : reviews.length ? (
+      ) : visibleReviews.length ? (
         <div className="mt-6 grid gap-5 md:grid-cols-3">
-          {reviews.map((review) => (
+          {visibleReviews.map((review) => (
             <article key={review.id} className="ny-card flex h-full flex-col justify-between p-5">
               <div>
                 <div className="flex gap-1 text-[var(--ny-gold)]" aria-label={`${review.rating || "No"} out of 5 stars`}>
