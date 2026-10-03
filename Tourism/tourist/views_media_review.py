@@ -76,6 +76,7 @@ def _image_payload(image) -> dict:
 
 class MediaReviewCapabilitiesView(APIView):
     """Report what the calling user may do, and which gate is active."""
+    serializer_class = None
 
     permission_classes = [IsAdminOrStaff]
 
@@ -85,6 +86,7 @@ class MediaReviewCapabilitiesView(APIView):
 
 class MediaReviewQueueView(APIView):
     """Media awaiting a decision, with the reason each record is held back."""
+    serializer_class = None
 
     permission_classes = [IsAdminOrStaff]
 
@@ -137,6 +139,7 @@ class MediaReviewQueueView(APIView):
 
 class MediaReviewDetailView(APIView):
     """Full provenance for one image."""
+    serializer_class = None
 
     permission_classes = [IsAdminOrStaff]
 
@@ -160,6 +163,7 @@ class MediaReviewScoreView(APIView):
     No field is ever defaulted: omitting a score leaves it exactly as it was, so
     an unreviewed image keeps NULL scores and reports as awaiting review.
     """
+    serializer_class = None
 
     permission_classes = [IsMediaReviewer]
 
@@ -217,6 +221,7 @@ class MediaReviewDelegationView(APIView):
 
     Only a delegating role may call this, and the grant records who gave it.
     """
+    serializer_class = None
 
     permission_classes = [IsAdminOrStaff]
 

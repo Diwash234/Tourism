@@ -19,8 +19,10 @@ services:
         fromDatabase:
           name: tourism_db
           property: connectionString
-      - key: DATABASE_SSLMODE
-        value: "require"
+      # NO DATABASE_SSLMODE here: fromDatabase injects the *internal* URL,
+      # which is plain TCP on Render's private network and does not do SSL.
+      # Setting sslmode=require against it fails the handshake at boot.
+      # Only set DATABASE_SSLMODE=require when pointing at the *external* URL.
       - key: PUBLIC_SITE_URL
         sync: false
       - key: VITE_SITE_URL

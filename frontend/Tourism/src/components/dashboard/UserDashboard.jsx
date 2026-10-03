@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { FiMapPin, FiHeart, FiCalendar, FiTrendingUp, FiStar, FiArrowRight } from "react-icons/fi"
-import { useAuth } from "../../hooks/useAuth"
+import useAuth from "../../hooks/useAuth"
 import { useTranslation } from "../../hooks/useTranslation"
 import { destinationApi } from "../../services/destinationService"
 import StatCard from "../common/StatCard"

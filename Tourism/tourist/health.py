@@ -24,6 +24,7 @@ class DetailedHealthView(APIView):
     - Disk space
     - Response time
     """
+    serializer_class = None
     permission_classes = [AllowAny]
 
     def get(self, request):

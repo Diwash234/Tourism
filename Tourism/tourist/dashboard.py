@@ -17,6 +17,7 @@ class DashboardStatsView(APIView):
 
     Returns key metrics for the admin dashboard.
     """
+    serializer_class = None
     permission_classes = [permissions.IsAdminUser]
 
     def get(self, request):
@@ -80,6 +81,7 @@ class PublicStatsView(APIView):
 
     Public statistics for the homepage.
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):

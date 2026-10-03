@@ -76,6 +76,7 @@ def _compose_admin_summary(district, nearby):
 
 
 class ProvinceListView(APIView):
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
@@ -95,6 +96,7 @@ class ProvinceListView(APIView):
 
 
 class DistrictListView(APIView):
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
@@ -127,6 +129,7 @@ class DistrictListView(APIView):
 
 
 class DistrictDetailView(APIView):
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, slug):

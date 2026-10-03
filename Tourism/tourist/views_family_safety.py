@@ -94,6 +94,7 @@ class SharedTripPublicView(APIView):
     rather than distinguishing "wrong token" from "expired trip", so a
     guessed token can't be used to probe which trips exist.
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, token):
@@ -288,6 +289,7 @@ class FamilyMembersView(APIView):
     """GET /safety/family/members/  -- live status of every accepted
     family member: active trip + latest ping (live location), recent trip
     history and any ACTIVE SOS alerts."""
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
 

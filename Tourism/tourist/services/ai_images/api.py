@@ -100,6 +100,7 @@ def _dest_dict(d: Destination) -> dict:
 
 class DestinationListView(APIView):
     permission_classes = [permissions.AllowAny]
+    serializer_class = None
 
     def get(self, request):
         qs = Destination.objects.filter(
@@ -116,6 +117,7 @@ class DestinationListView(APIView):
 
 class DestinationDetailView(APIView):
     permission_classes = [permissions.AllowAny]
+    serializer_class = None
 
     def get(self, request, pk):
         d = Destination.objects.filter(
@@ -143,6 +145,7 @@ class DestinationDetailView(APIView):
 
 class DestinationImagesView(APIView):
     permission_classes = [permissions.AllowAny]
+    serializer_class = None
 
     def get(self, request, pk):
         d = Destination.objects.filter(
@@ -172,6 +175,7 @@ class DestinationImagesView(APIView):
 class GenerateImagesView(APIView):
     """Admin/staff only: trigger AI generation for a destination."""
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
 
     def post(self, request):
         _require_operator(request, "add")
@@ -204,6 +208,7 @@ class GenerateImagesView(APIView):
 
 class ImageModerateView(APIView):
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
 
     def post(self, request, pk):
         _require_operator(request, "approve")
@@ -241,6 +246,7 @@ class ImageModerateView(APIView):
 class ImageValidateView(APIView):
     """Re-run scoring (e.g. after prompt/metadata edit)."""
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
 
     def post(self, request, pk):
         _require_operator(request, "change")
@@ -268,6 +274,7 @@ class ImageValidateView(APIView):
 class ImageMatchView(APIView):
     """Given an image id, return the most likely destinations by embedding."""
     permission_classes = [permissions.AllowAny]
+    serializer_class = None
 
     def post(self, request, pk):
         img = DestinationImage.objects.filter(pk=pk).select_related("destination").first()
@@ -297,6 +304,7 @@ class ImageMatchView(APIView):
 
 class SemanticSearchView(APIView):
     permission_classes = [permissions.AllowAny]
+    serializer_class = None
 
     def get(self, request):
         q = (request.query_params.get("q") or "").strip()
@@ -351,6 +359,7 @@ class SemanticSearchView(APIView):
 
 class JobsListView(APIView):
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
 
     def get(self, request):
         _require_operator(request, "view")

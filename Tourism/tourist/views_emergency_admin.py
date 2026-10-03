@@ -106,6 +106,7 @@ def _submission_row(item):
 
 
 class AdminEmergencyDirectoryView(APIView):
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
@@ -350,6 +351,7 @@ class AdminNationalHotlinesView(APIView):
     a source or add an operator without a migration. The five documented
     Nepal emergency services remain protected fallbacks and cannot be deleted.
     """
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     @staticmethod

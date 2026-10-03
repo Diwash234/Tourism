@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react"
 import { FiCalendar, FiMapPin, FiClock, FiUsers, FiTrendingUp, FiPlus, FiX } from "react-icons/fi"
 import { useTranslation } from "../../hooks/useTranslation"
-import { useAuth } from "../../hooks/useAuth"
+import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
 import { destinationApi } from "../../services/destinationService"
 

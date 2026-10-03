@@ -30,6 +30,7 @@ class ImageResolveView(APIView):
     Staff-only candidate resolver. It never stores or publishes media; an
     administrator must acquire, verify, and approve a candidate separately.
     """
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
@@ -71,6 +72,7 @@ class DestinationImagesListView(APIView):
     GET /api/v1/destinations/<slug_or_id>/images/
     Returns full multi-source image collection with complete legal provenance.
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, slug):
@@ -105,6 +107,7 @@ class DestinationImagesDiscoverView(APIView):
     Manually triggers multi-source image discovery across Wikimedia Commons,
     Openverse, Unsplash, Pexels, Flickr, and Pixabay.
     """
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def post(self, request, slug):
@@ -138,6 +141,7 @@ class DestinationImagesRefreshView(APIView):
     POST /api/v1/destinations/<slug_or_id>/images/refresh/
     Manually triggers force refresh of image collection across all sources.
     """
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def post(self, request, slug):
@@ -175,6 +179,7 @@ class DestinationImageSetCoverView(APIView):
     authentication (any logged-in user can pick; full admin moderation is
     enforced separately in the admin panel).
     """
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def post(self, request, slug, image_id):

@@ -20,6 +20,7 @@ def _int(value, lo, hi):
 
 class ForexRatesView(APIView):
     """GET /api/v1/fx/rates/ -- latest official NRB rates (never a fixed fallback)."""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
@@ -32,6 +33,7 @@ class ForexRatesView(APIView):
 
 class TravelRequirementsView(APIView):
     """GET /api/v1/travel-requirements/?nationality=foreign|saarc|chinese|nepali"""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
@@ -42,6 +44,7 @@ class TravelRequirementsView(APIView):
 
 class DestinationRequirementsView(APIView):
     """GET /api/v1/travel-requirements/destination/<id>/?nationality=&days=&month=&travelers="""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
     authentication_classes = []

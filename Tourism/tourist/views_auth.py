@@ -247,6 +247,7 @@ class VerifyPhoneView(APIView):
     verification, which uses a token in a link) since the OTP alone is
     too short-lived/guessable to double as an auth credential on its own.
     """
+    serializer_class = None
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
@@ -283,6 +284,7 @@ class ResendPhoneOTPView(APIView):
     Rate limited to 1 send per 60 seconds per user -- Twilio charges per
     SMS, so this is cost control as much as abuse prevention.
     """
+    serializer_class = None
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):

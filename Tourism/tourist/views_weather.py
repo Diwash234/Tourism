@@ -19,6 +19,7 @@ class PublicWeatherView(APIView):
     Coordinates are optional: when omitted, the authenticated user's own stored
     position is used, and only if that position passed GPS validation.
     """
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -59,6 +60,7 @@ class PublicWeatherView(APIView):
 
 class WeatherProviderStatusView(APIView):
     """Whether a weather provider is configured, without exposing its key."""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 

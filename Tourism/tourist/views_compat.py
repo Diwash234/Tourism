@@ -63,6 +63,7 @@ class RecommendationsPersonalizedView(APIView):
     Returns AI personalized recommendations based on traveler interests,
     user history, and top rated destinations with similarity scores and images.
     """
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -115,6 +116,7 @@ class BudgetSummaryView(APIView):
     /api/v1/ml/budget/, which is a forward-looking ML *estimate* for a
     trip you haven't taken yet — this summarizes what you've already logged.)
     """
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -137,6 +139,7 @@ class EmergencyContactsCompatView(APIView):
     Alias for GET /api/v1/emergency-contacts/nearest/?latitude=&longitude=
     with the `lat`/`lng` param names your frontend already sends.
     """
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -186,6 +189,7 @@ def _nearby_query_coords(request):
 
 class NearbyHospitalsView(APIView):
     """GET /api/v1/nearby/hospitals?lat=&lng= — nearest recorded hospitals."""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -251,6 +255,7 @@ class NearbyHospitalsView(APIView):
 
 class NearbyPoliceView(APIView):
     """GET /api/v1/nearby/police?lat=&lng= — nearest recorded police stations."""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -429,6 +434,7 @@ class NavigationRouteView(APIView):
     (DevTools -> Network -> this request -> Payload) if this still 400s,
     and I'll match it exactly.
     """
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -800,6 +806,7 @@ class WeatherByCoordinatesView(APIView):
     widgets (like a dashboard) that show "current weather at my location"
     rather than weather for one specific destination.
     """
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -827,6 +834,7 @@ class NearbyPlacesCompatView(APIView):
     Universal nearby search provider combining Destination table, hospitals,
     police, banks, ATMs, pharmacies, stores, hotels, restaurants, and OSM places.
     """
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 

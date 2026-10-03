@@ -15,6 +15,7 @@ class SearchAutocompleteView(APIView):
 
     Returns matching destinations, categories, and districts for autocomplete.
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
@@ -70,6 +71,7 @@ class FacetedSearchView(APIView):
 
     Returns search results with facet counts for filtering.
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):

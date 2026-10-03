@@ -137,6 +137,7 @@ class ItineraryStopVisitView(APIView):
     visited as the trip actually happens, independent of the overall
     itinerary status above.
     """
+    serializer_class = None
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
@@ -193,6 +194,7 @@ class CuratedItineraryListView(APIView):
     Public curated itineraries tailored for Foreign, Domestic Nepali, and SAARC travelers.
     Query params: persona (nepali|foreign|saarc|all), category, days, q
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
@@ -275,6 +277,7 @@ class CuratedItineraryDetailView(APIView):
     ready to display in the frontend Travel Planner with altitude profile, maps,
     hospitals, police stations, hotels and permits checklist.
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, slug):
@@ -411,6 +414,7 @@ class CuratedItineraryCompareView(APIView):
     GET /api/v1/curated-itineraries/compare/?slugs=slug1,slug2&nationality=nepali&style=standard&travelers=1
     Returns side-by-side comparative matrix of up to 4 curated itineraries.
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
@@ -439,6 +443,7 @@ class CuratedItinerarySafetyView(APIView):
     GET /api/v1/curated-itineraries/<slug>/safety/
     Returns high-altitude risk evaluation, Lake Louise AMS rubric, and emergency rescue directory.
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, slug):
@@ -460,6 +465,7 @@ class CuratedItineraryPackingView(APIView):
     GET /api/v1/curated-itineraries/<slug>/packing/
     Returns structured gear checklist and local gear rental guidance (Kathmandu & Pokhara).
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, slug):

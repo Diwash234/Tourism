@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react"
 import { FiMessageCircle, FiSend, FiMoreVertical, FiTrash2, FiEdit2 } from "react-icons/fi"
-import { useAuth } from "../../hooks/useAuth"
+import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
 import Avatar from "./Avatar"
 

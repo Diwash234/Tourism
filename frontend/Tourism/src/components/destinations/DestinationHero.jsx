@@ -1,4 +1,4 @@
-﻿import { useState } from "react"
+import { useState } from "react"
 import { FiMapPin, FiCamera, FiHeart, FiShare2, FiNavigation, FiStar } from "react-icons/fi"
 import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"

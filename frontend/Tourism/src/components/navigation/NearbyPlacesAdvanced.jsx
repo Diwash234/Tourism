@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react"
 import { FiMapPin, FiNavigation, FiRefreshCw, FiAlertTriangle, FiStar } from "react-icons/fi"
 import { useTranslation } from "../../hooks/useTranslation"
-import { useAuth } from "../../hooks/useAuth"
+import useAuth from "../../hooks/useAuth"
 import { nearbyApi } from "../../api/nearbyApi"
 import DestinationMap from "../destinations/DestinationMap"
 import "../common/Badge"

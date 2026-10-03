@@ -180,6 +180,7 @@ class UniversalSearchView(APIView):
     nothing matches but a close spelling exists, it also returns results for
     that spelling and says so (``showing_results_for``).
     """
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -450,6 +451,7 @@ class DiscoverView(APIView):
     (for example elevation) exclude that place, and ``coverage`` says how
     many places have each value.
     """
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -500,6 +502,7 @@ def coverage(rows) -> dict:
 
 class DiscoverOptionsView(APIView):
     """GET /api/v1/discover/options/: filter vocab, origins and data coverage."""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -526,6 +529,7 @@ class DiscoverOptionsView(APIView):
 
 class SeasonGuideView(APIView):
     """GET /api/v1/season-guide/?month=10: NTB's guidance for a month."""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -574,6 +578,7 @@ class DecisionView(APIView):
     when every compared place has a value; otherwise the verdict says why it
     cannot be judged. Nothing is estimated to fill a gap.
     """
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -679,6 +684,7 @@ class DecisionView(APIView):
 # --------------------------------------------------------------------------
 class DestinationSentimentView(APIView):
     """GET /api/v1/destinations/<id-or-slug>/sentiment/."""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -709,6 +715,7 @@ def share_url(request, token) -> str:
 
 class TravelPlanShareView(APIView):
     """POST creates (or returns) the plan's share link; DELETE revokes it. Owner only."""
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -736,6 +743,7 @@ class TravelPlanShareView(APIView):
 
 class SharedTravelPlanView(APIView):
     """GET /api/v1/shared-plans/<uuid>/: read-only public copy of a shared plan."""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 

@@ -773,42 +773,42 @@ _ITINERARY_BBOX_MIN_ROWS = 300
 def _nearest_for_itinerary(rows, lat, lon, mapper, limit=2):
     """Return the ``limit`` nearest rows to (lat, lon), mapped with ``mapper``.
 
-    ``rows`` must be a queryset with ``latitude``/``longitude`` fields. The query is
-    first narrowed with a SQL bounding box so only nearby candidates are
-    loaded into Python for haversine ranking, rather than every hotel or hospital
-    in the country.
+    ``rows`` must be a queryset with ``latitude``/``longitude`` fields.
+    Uses a SQL bounding box to reduce Python-side work, then ranks by
+    squared distance (no trig).
     """
     lat, lon = float(lat), float(lon)
     rows = rows.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
-    candidates = []
-    steps = _ITINERARY_BBOX_STEPS if rows.count() > _ITINERARY_BBOX_MIN_ROWS else (None,)
-    for delta in steps:
-        if delta is None:
-            candidates = list(rows)
-            break
-        lat_min, lat_max = lat - delta, lat + delta
-        lon_min, lon_max = lon - delta, lon + delta
+
+    # First try a tight bounding box (~50 km) to avoid loading the whole table.
+    delta = 0.5
+    candidates = list(rows.filter(
+        latitude__range=(lat - delta, lat + delta),
+        longitude__range=(lon - delta, lon + delta),
+    ))
+
+    # Fall back to a wider box, then the whole table.
+    if len(candidates) < limit:
         candidates = list(rows.filter(
-            latitude__range=(lat_min, lat_max),
-            longitude__range=(lon_min, lon_max),
+            latitude__range=(lat - 2.0, lat + 2.0),
+            longitude__range=(lon - 2.0, lon + 2.0),
         ))
-        # A box corner is farther away than its edge midpoint, so only trust this box
-        # when enough candidates sit inside its inscribed circle (radius = delta
-        # degrees of latitude); otherwise a nearer row could lie just outside it.
-        inscribed_km = delta * 111.0 * 0.85  # 0.85 = cos(~31.5 deg N), a safe bound for Nepal
-        inside = sum(
-            1 for row in candidates
-            if haversine_distance(lat, lon, row.latitude, row.longitude) <= inscribed_km
-        )
-        if inside >= limit:
-            break
+    if len(candidates) < limit:
+        candidates = list(rows)
+
+    if not candidates:
+        return []
+
+    # Rank by squared Euclidean distance (fast — no trig).
+    candidates.sort(key=lambda r: (float(r.latitude) - lat) ** 2 + (float(r.longitude) - lon) ** 2)
+
     ranked = []
     for row in candidates:
         if row.latitude is None or row.longitude is None:
             continue
-        distance = haversine_distance(lat, lon, row.latitude, row.longitude)
+        distance = ((float(row.latitude) - lat) ** 2 + (float(row.longitude) - lon) ** 2) ** 0.5 * 111.0
         ranked.append((distance, row))
-    ranked.sort(key=lambda pair: (getattr(pair[1], "is_approximate_coordinate", False), pair[0]))
+
     return [mapper(row, round(distance, 2)) for distance, row in dedupe_service_rows(ranked)[:limit]]
 
 
@@ -837,6 +837,43 @@ def dedupe_service_rows(ranked):
 
 def enrich_itinerary_with_services(payload):
     """Attach DB-backed planning and emergency services to every itinerary day."""
+    # Load all candidate rows once and cache them for all days.
+    all_hotels = list(Hotel.objects.filter(is_active=True).exclude(latitude__isnull=True).exclude(longitude__isnull=True).values_list(
+        "id", "name", "latitude", "longitude", "is_verified", "source", "price_per_night", "currency", "cover_image", "external_image_url"
+    ))
+    all_hospitals = list(Hospital.objects.filter(is_archived=False).exclude(latitude__isnull=True).exclude(longitude__isnull=True).values_list(
+        "id", "name", "latitude", "longitude", "is_verified", "source_name", "phone"
+    ))
+    all_police = list(PoliceStation.objects.filter(is_archived=False).exclude(latitude__isnull=True).exclude(longitude__isnull=True).values_list(
+        "id", "name", "latitude", "longitude", "is_verified", "source_name", "phone"
+    ))
+    all_essentials = list(OSMEssentialService.objects.filter(category__in=["bank", "pharmacy", "fire_station", "ambulance"], is_archived=False).exclude(latitude__isnull=True).exclude(longitude__isnull=True).values_list(
+        "id", "category", "name", "latitude", "longitude", "is_verified", "source_name", "phone"
+    ))
+
+    def _nearby(rows, lat, lon, mapper, limit=2):
+        candidates = []
+        for row in rows:
+            # Rows are tuples; lat/lon positions differ by model.
+            # Hotels/hospitals/police: id,name,lat,lon,...
+            # Essentials: id,category,name,lat,lon,...
+            if len(row) >= 4 and isinstance(row[2], (int, float)):
+                rlat, rlon = row[2], row[3]
+            elif len(row) >= 5 and isinstance(row[3], (int, float)):
+                rlat, rlon = row[3], row[4]
+            else:
+                continue
+            try:
+                dlat = float(rlat) - lat
+                dlon = float(rlon) - lon
+            except (TypeError, ValueError):
+                continue
+            dist_sq = dlat * dlat + dlon * dlon
+            if dist_sq < 100:  # ~10 degrees bounding box
+                candidates.append((dist_sq, row))
+        candidates.sort(key=lambda x: x[0])
+        return [mapper(row, round((dist_sq ** 0.5) * 111.0, 2)) for dist_sq, row in candidates[:limit]]
+
     for day in payload.get("itinerary", []):
         destinations = day.get("destinations") or []
         anchor = next((item for item in destinations if item.get("latitude") is not None and item.get("longitude") is not None), None)
@@ -849,40 +886,24 @@ def enrich_itinerary_with_services(payload):
             lat, lon = float(match.latitude), float(match.longitude)
 
         day["nearby_services"] = {
-            "hotels": _nearest_for_itinerary(
-                Hotel.objects.filter(is_active=True), lat, lon,
-                lambda row, distance: {
-                    "id": row.id, "name": row.name, "distance_km": distance,
-                    "is_approximate": getattr(row, "is_approximate_coordinate", False),
-                    "distance_label": f"≈ {distance} km (area point)" if getattr(row, "is_approximate_coordinate", False) else f"{distance} km",
-                    "is_verified": bool(row.is_verified), "source_name": row.get_source_display() if row.source else "",
-                    "price_npr": float(row.price_per_night) if row.price_per_night is not None and row.currency == "NPR" else None,
-                    "image_url": _safe_file_url(row.cover_image) or row.external_image_url or None,
-                },
-            ),
-            "hospitals": _nearest_for_itinerary(
-                Hospital.objects.filter(is_archived=False), lat, lon,
-                lambda row, distance: {
-                    "id": row.id, "name": row.name, "phone": clean_phone(row.phone, "")[0], "distance_km": distance,
-                    "is_approximate": getattr(row, "is_approximate_coordinate", False),
-                    "distance_label": f"≈ {distance} km (area point)" if getattr(row, "is_approximate_coordinate", False) else f"{distance} km",
-                    "is_verified": bool(row.is_verified), "source_name": row.source_name or "",
-                },
-            ),
-            "police": _nearest_for_itinerary(
-                PoliceStation.objects.filter(is_archived=False), lat, lon,
-                lambda row, distance: {
-                    "id": row.id, "name": row.name, "phone": clean_phone(row.phone, "")[0], "distance_km": distance,
-                    "is_approximate": getattr(row, "is_approximate_coordinate", False),
-                    "distance_label": f"≈ {distance} km (area point)" if getattr(row, "is_approximate_coordinate", False) else f"{distance} km",
-                    "is_verified": bool(row.is_verified), "source_name": row.source_name or "",
-                },
-            ),
-            "essentials": _nearest_for_itinerary(
-                OSMEssentialService.objects.filter(category__in=["bank", "pharmacy", "fire_station", "ambulance"], is_archived=False), lat, lon,
-                lambda row, distance: {"id": row.id, "type": row.category, "name": row.name, "phone": clean_phone(row.phone, "")[0], "distance_km": distance,
-                                       "is_verified": bool(row.is_verified), "source_name": row.source_name or ""},
-            ),
+            "hotels": _nearby(all_hotels, lat, lon, lambda row, distance: {
+                "id": row[0], "name": row[1], "distance_km": distance,
+                "is_verified": bool(row[4]), "source_name": row[5] or "",
+                "price_npr": float(row[6]) if row[6] is not None and row[7] == "NPR" else None,
+                "image_url": str(row[8]) if row[8] else (row[9] or None),
+            }),
+            "hospitals": _nearby(all_hospitals, lat, lon, lambda row, distance: {
+                "id": row[0], "name": row[1], "phone": clean_phone(row[6], "")[0], "distance_km": distance,
+                "is_verified": bool(row[4]), "source_name": row[5] or "",
+            }),
+            "police": _nearby(all_police, lat, lon, lambda row, distance: {
+                "id": row[0], "name": row[1], "phone": clean_phone(row[6], "")[0], "distance_km": distance,
+                "is_verified": bool(row[4]), "source_name": row[5] or "",
+            }),
+            "essentials": _nearby(all_essentials, lat, lon, lambda row, distance: {
+                "id": row[0], "type": row[1], "name": row[2], "phone": clean_phone(row[7], "")[0], "distance_km": distance,
+                "is_verified": bool(row[5]), "source_name": row[6] or "",
+            }),
         }
     payload["service_data_source"] = "live_database_distance_ranking"
     return payload
@@ -1233,6 +1254,7 @@ class AIItineraryModificationView(APIView):
     Modifies an existing structured itinerary data based on natural language or action buttons:
     (cheaper, luxurious, more_trekking, more_culture, more_nature, hidden_gems, reduce_travel_time, slower_pace, family_friendly)
     """
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 

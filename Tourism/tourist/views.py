@@ -255,6 +255,7 @@ def _section_visible_for(vis, user, now):
 
 
 class PublicConfigView(APIView):
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
@@ -388,6 +389,7 @@ class PublicConfigView(APIView):
 
 class NewsletterSubscribeView(APIView):
     """Public footer newsletter signup — stores the email, never fakes success."""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -408,6 +410,7 @@ class NewsletterSubscribeView(APIView):
 
 class DiscoverNepalView(APIView):
     """Recorded destinations and published notices for the Discover Nepal page."""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
     PENDING = "Not recorded — we will update soon"
@@ -534,6 +537,7 @@ class TranslateTextView(APIView):
     crashed the whole `tourist.urls` import (AttributeError: module
     'tourist.views' has no attribute 'TranslateTextView').
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -931,6 +935,7 @@ class DestinationResearchView(APIView):
     close suggestions otherwise. It never creates or approves records -- new
     places go through the reviewed submission workflow with a real source.
     """
+    serializer_class = None
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
@@ -975,6 +980,7 @@ class DestinationSearchDiscoverView(APIView):
     Searches existing destinations by name, slug, aliases with fuzzy auto-correction.
     If no matches are found, returns can_research=True.
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
@@ -1590,6 +1596,7 @@ class NotificationViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin,
 
 
 class NotificationPreferenceView(APIView):
+    serializer_class = None
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -1679,6 +1686,7 @@ class RiskNewsReportViewSet(viewsets.ModelViewSet):
 
 
 class RecommendationEventView(APIView):
+    serializer_class = None
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
@@ -1991,6 +1999,7 @@ class HotelSearchView(generics.ListAPIView):
 
 
 class RouteMetricsView(APIView):
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -2004,6 +2013,7 @@ class RouteMetricsView(APIView):
 
 class NearbyEmergencyServicesView(APIView):
     """Nearest Nepal emergency services for raw GPS coordinates."""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -2028,6 +2038,7 @@ class NearbyEmergencyServicesView(APIView):
 
 class NationalEmergencyHotlinesView(APIView):
     """Return the verified national emergency contacts without requiring GPS."""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -2051,6 +2062,7 @@ class NearbyPOIsView(APIView):
     results with verified database destinations so admin-added places appear
     too (spec §9). Falls back honestly when the live provider is down (§60).
     """
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -2142,6 +2154,7 @@ class DestinationNearbyPOIsView(APIView):
     distance_km. Results are cached per rounded location so hot pages never
     hammer the free Overpass API. Provenance is always disclosed.
     """
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -2485,6 +2498,7 @@ class DestinationNearbyPOIsView(APIView):
 
 class DestinationEmergencyServicesView(APIView):
     """Nearest services plus destination risk for any approved Nepal place."""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -2544,6 +2558,7 @@ class DestinationEmergencyServicesView(APIView):
 
 class FeaturedGalleryView(APIView):
     """Named Nepal collections requested by the visual archive UI."""
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
@@ -2588,6 +2603,7 @@ class DistrictsListView(APIView):
     Counts come straight from the database; districts without verified
     data are reported honestly as no_verified_data — never padded.
     """
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -2657,6 +2673,7 @@ def _unique_places(rows):
 
 class DistrictDetailView(APIView):
     """Database-generated district page data (§16-17)."""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -2724,6 +2741,7 @@ class DistrictDetailView(APIView):
 
 class DistrictGalleryView(APIView):
     """Up to five destination-linked media items per represented Nepal district."""
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
@@ -2776,6 +2794,7 @@ class DistrictGalleryView(APIView):
 
 class DestinationRiskAssessmentView(APIView):
     """Risk evidence for any approved Nepal destination, resolved by slug/id/name."""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -3359,6 +3378,7 @@ class WeatherForecastView(APIView):
     5-day/3-hour forecast API. Falls back to current weather if forecast
     is unavailable. Results are cached for 30 minutes.
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
@@ -3507,6 +3527,7 @@ class BulkExportView(APIView):
     Exports data as CSV or JSON. Only accessible by admin users.
     Streams large datasets to avoid memory issues.
     """
+    serializer_class = None
     permission_classes = [permissions.IsAdminUser]
 
     def get(self, request):
@@ -3655,6 +3676,7 @@ class ReviewModerationView(APIView):
     Only accessible by admin/staff users.
     """
     permission_classes = [permissions.IsAdminUser]
+    serializer_class = None
 
     def get(self, request):
         pending_reviews = Review.objects.filter(
@@ -3720,6 +3742,7 @@ class HealthCheckView(APIView):
     Checks database connectivity, cache connectivity, and static files presence.
     Returns {"status": "healthy", "checks": {...}}
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
@@ -3778,6 +3801,7 @@ class LocationHistoryView(APIView):
     GET: Returns user's location history (paginated, last 100)
     POST: Records a new location (with validation)
     """
+    serializer_class = None
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -3880,6 +3904,7 @@ class EnhancedSearchView(APIView):
     - verified_only: Only show verified destinations
     - Sort by: relevance, rating, distance, popularity
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):

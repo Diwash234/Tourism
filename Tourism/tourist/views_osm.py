@@ -32,6 +32,7 @@ def _parse_coords(params):
 
 
 class OSMEssentialServiceSyncView(APIView):
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def post(self, request):
@@ -51,6 +52,7 @@ class OSMEssentialServiceSyncView(APIView):
 
 
 class OSMEssentialServiceNearbyView(APIView):
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
@@ -93,6 +95,7 @@ class OSMEssentialServiceNearbyView(APIView):
 
 
 class OSMTourismPlaceSyncView(APIView):
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def post(self, request):
@@ -112,6 +115,7 @@ class OSMTourismPlaceSyncView(APIView):
 
 
 class OSMTourismPlaceNearbyView(APIView):
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):

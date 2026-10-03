@@ -7,6 +7,16 @@ class StandardResultsPagination(PageNumberPagination):
     page_size_query_param = "page_size"
     max_page_size = 100
 
+    def get_next_link(self, obj):
+        if self.page.has_next():
+            return f"?page={self.page.next_page_number()}"
+        return None
+
+    def get_previous_link(self, obj):
+        if self.page.has_previous():
+            return f"?page={self.page.previous_page_number()}"
+        return None
+
     def get_paginated_response(self, data):
         return Response(
             {

@@ -37,6 +37,7 @@ class DiscoveryHealthReportView(APIView):
     GET /api/v1/admin/discovery/health-report/
     Generates full database health and deduplication audit report.
     """
+    serializer_class = None
     permission_classes = [permissions.IsAuthenticated, IsAdminOrStaff]
 
     def get(self, request):
@@ -90,6 +91,7 @@ class DiscoveryStatsView(APIView):
     GET /api/v1/admin/discovery/stats/
     Quick summary statistics for the Admin Discovery Dashboard.
     """
+    serializer_class = None
     permission_classes = [permissions.IsAuthenticated, IsAdminOrStaff]
 
     def get(self, request):
@@ -111,6 +113,7 @@ class DestinationCandidateListView(APIView):
     GET /api/v1/admin/discovery/candidates/
     Filterable & paginated candidate list with rich search, status, and duplicate filters.
     """
+    serializer_class = None
     permission_classes = [permissions.IsAuthenticated, IsAdminOrStaff]
 
     def get(self, request):
@@ -192,6 +195,7 @@ class RunDiscoveryJobView(APIView):
     POST /api/v1/admin/discovery/run-batch/
     Trigger discovery & deduplication batch job.
     """
+    serializer_class = None
     permission_classes = [permissions.IsAuthenticated, IsAdminOrStaff]
 
     def post(self, request):
@@ -217,6 +221,7 @@ class CandidateActionView(APIView):
     POST /api/v1/admin/discovery/candidates/<id>/action/
     Perform single candidate action (publish, merge_alias, reject, recheck).
     """
+    serializer_class = None
     permission_classes = [permissions.IsAuthenticated, IsAdminOrStaff]
 
     def post(self, request, pk):
@@ -261,6 +266,7 @@ class DiscoveryBulkActionView(APIView):
     POST /api/v1/admin/discovery/bulk-action/
     Bulk publish verified, bulk merge aliases, or bulk reject selected candidates.
     """
+    serializer_class = None
     permission_classes = [permissions.IsAuthenticated, IsAdminOrStaff]
 
     def post(self, request):

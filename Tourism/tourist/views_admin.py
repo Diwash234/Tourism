@@ -177,6 +177,7 @@ def _sync_destination_json(destination):
 
 class AdminStatsView(APIView):
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
 
     def get(self, request):
         _require_capability(request, "dashboard", "view")
@@ -228,6 +229,7 @@ class AdminStatsView(APIView):
 class AdminUsersView(APIView):
     """Filterable user directory. Unparameterized requests retain the legacy list shape."""
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
 
     @staticmethod
     def _row(u):
@@ -340,6 +342,7 @@ def _can_manage_user(actor, target, requested_role=None):
 
 class UpdateUserStatusView(APIView):
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
 
     def put(self, request, id):
         _require_capability(request, "users", "change")
@@ -394,6 +397,7 @@ class AdminUserTrackingView(APIView):
     navigation history, and medical emergency / SOS status.
     """
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
 
     def get(self, request):
         _require_capability(request, "users", "view")
@@ -475,6 +479,7 @@ class AdminPendingPlacesView(APIView):
     POST /api/v1/admin/pending-places/<id>/
     """
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
 
     def get(self, request):
         _require_capability(request, "destinations", "view")
@@ -617,6 +622,7 @@ class AdminPendingImagesView(APIView):
     POST /api/v1/admin/pending-images/<id>/
     """
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
 
     def get(self, request):
         _require_capability(request, "images", "view")
@@ -675,6 +681,7 @@ class AdminPendingImagesView(APIView):
 
 class AdminEmergenciesView(APIView):
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
 
     def get(self, request):
         _require_capability(request, "safety", "view")
@@ -724,6 +731,7 @@ class AdminDestinationsView(APIView):
       page (1-based) / page_size (default 50, max 200)
     """
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
 
     def get(self, request):
         from django.db.models import Q
@@ -913,6 +921,7 @@ class AdminDestinationsView(APIView):
 
 class AdminDestinationDetailView(APIView):
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
 
     def get(self, request, id):
         """Return full destination data, images, and edit history for admin."""
@@ -1234,6 +1243,7 @@ class AdminDestinationImageView(APIView):
     Changes are written straight to the database and reflected immediately.
     """
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def _dest(self, id):
@@ -1416,6 +1426,7 @@ class AdminDestinationImageView(APIView):
 class AdminDestinationVideoView(APIView):
     """Admin add / review / remove destination videos (25 MB file cap)."""
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
 
     def _dest(self, id):
         return Destination.objects.filter(id=id).first()
@@ -1518,6 +1529,7 @@ def _cover_of(destination):
 
 class AdminAlertsView(APIView):
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
 
     def get(self, request):
         _require_capability(request, "safety", "view")
@@ -1574,6 +1586,7 @@ class AdminAlertsView(APIView):
 class AdminUsersDetailView(APIView):
     """Security-conscious user profile, activity summary and role history."""
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
 
     def get(self, request, id):
         _require_capability(request, "users", "view")
@@ -1644,6 +1657,7 @@ class AdminUsersDetailView(APIView):
 
 class AdminUserAccessActionView(APIView):
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
 
     def post(self, request, id):
         action = request.data.get("action")
@@ -1678,6 +1692,7 @@ class AdminUserAccessActionView(APIView):
 class AdminSendVerificationView(APIView):
     """Send a verification reminder through configured channels."""
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
 
     def post(self, request, id):
         _require_capability(request, "users", "change")
@@ -1721,6 +1736,7 @@ class AdminSendVerificationView(APIView):
 
 
 class InfrastructureModerationView(APIView):
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request, id=None):
@@ -1762,6 +1778,7 @@ class InfrastructureModerationView(APIView):
 
 class AdminRateAdjustmentsView(APIView):
     """Admin studio for government CPI index, transport fare adjustments, and travel cost multipliers."""
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
@@ -1803,6 +1820,7 @@ class AdminRateAdjustmentsView(APIView):
 
 class MLDataPipelineView(APIView):
     """Approve feedback, synchronize CSVs, and optionally run whitelisted trainers."""
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
@@ -1899,6 +1917,7 @@ class MLDataPipelineView(APIView):
 
 class AdminDataExplorerView(APIView):
     """Searchable, paginated read view across admin-owned application models."""
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     RESOURCES = {
@@ -2189,6 +2208,7 @@ class AdminDataExplorerView(APIView):
 class StaffWorkspaceView(APIView):
     """Capability and assignment scoped operational queues for staff users."""
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
 
     def _districts(self, user):
         profile = getattr(user, "capability_profile", None)
@@ -2417,6 +2437,7 @@ class StaffWorkspaceView(APIView):
 
 class StaffCapabilityManagementView(APIView):
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
     def _admin(self, request):
         return request.user.is_superuser or request.user.role in {"admin","super_admin","tourism_admin"}
     def get(self, request):
@@ -2449,6 +2470,7 @@ class StaffCapabilityManagementView(APIView):
 
 class AdminBrandingView(APIView):
     """Safe branding assets and allowlisted theme presets; never accepts CSS or scripts."""
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
     PRESETS = {
         "himalayan": {"primary_color": "#0B3D91", "secondary_color": "#F59E0B", "background_color": "#F8FAFC", "surface_color": "#FFFFFF", "border_radius": "rounded", "density": "comfortable", "sidebar_style": "dark"},
@@ -2670,6 +2692,7 @@ PAGE_TEMPLATES = {
 
 class AdminCMSView(APIView):
     """Versioned CMS workflow: draft, preview, schedule, publish and rollback."""
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
     MODELS = {
         "settings": SiteSetting,
@@ -3831,6 +3854,7 @@ class AdminContentBlockView(APIView):
       DELETE /api/v1/admin/blocks/<block_id>/             -> delete block
       POST   /api/v1/admin/blocks/reorder/                -> reorder blocks [{id, position}]
     """
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     # ------------------------------------------------------------------
@@ -4183,6 +4207,7 @@ class AdminContentBlockView(APIView):
 class AdminReviewModerationView(APIView):
     """Unified, retention-safe moderation queue for destination and hotel reviews."""
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
 
     def get(self, request):
         _require_capability(request, "reviews", "view")
@@ -4253,6 +4278,7 @@ class AdminReviewModerationView(APIView):
 
 
 class AdminNotificationManagementView(APIView):
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
@@ -4322,6 +4348,7 @@ class AdminNotificationManagementView(APIView):
 
 class AdminTravelServicesView(APIView):
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
     RESOURCES = {"restaurants": (Restaurant, "restaurants"), "transportation": (DestinationTransitRoute, "transportation"), "travel_plans": (TravelPlan, "travel_plans")}
 
     def get(self, request):
@@ -4387,6 +4414,7 @@ class AdminTravelServicesView(APIView):
 
 class AdminRetentionPolicyView(APIView):
     permission_classes=[IsAdminOrStaff]
+    serializer_class = None
     FIELDS={"read_notification_days","location_ping_days","recommendation_event_days","resolved_sos_days","audit_log_days","preserve_official_risk_records"}
 
     def get(self,request):
@@ -4429,6 +4457,7 @@ class AdminRetentionPolicyView(APIView):
 
 class AdminReportsView(APIView):
     permission_classes=[IsAdminOrStaff]
+    serializer_class = None
     def get(self,request):
         _require_capability(request,"audit","view")
         if not _is_platform_admin(request.user):
@@ -4459,6 +4488,7 @@ class AdminReportsView(APIView):
 
 
 class AdminDatasetManagerView(APIView):
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
     DATASETS = {
         "destinations": "dataset/destinations_clean.csv",
@@ -4621,6 +4651,7 @@ class AdminTripInterestsView(APIView):
     """
 
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
 
     def get(self, request):
         _require_capability(request, "settings", "view")
@@ -4662,6 +4693,7 @@ class AdminTripInterestsView(APIView):
 
 class AdminPOICategoriesView(APIView):
     """Admin control for the nearby-places category catalogue (master spec §4)."""
+    serializer_class = None
 
     permission_classes = [IsAdminOrStaff]
 
@@ -4707,6 +4739,7 @@ PUBLIC_IMAGE_STATUSES = ("approved", "verified")
 
 
 class AdminMediaLibraryView(APIView):
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
@@ -4963,6 +4996,7 @@ class AdminMediaLibraryView(APIView):
 
 class AdminGlobalSearchView(APIView):
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
     def get(self, request):
         q=(request.query_params.get("q") or "").strip()
         if len(q)<2:return Response({"detail":"Enter at least 2 characters"},status=400)
@@ -4998,6 +5032,7 @@ class AdminGlobalSearchView(APIView):
 
 
 class FeedbackListView(APIView):
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
@@ -5031,6 +5066,7 @@ class FeedbackListView(APIView):
 
 
 class FeedbackReplyView(APIView):
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def patch(self, request, id):
@@ -5069,6 +5105,7 @@ class FeedbackReplyView(APIView):
 
 class PublicFeedbackCreateView(APIView):
     """Public 'Contact / communicate with admin' endpoint (login optional)."""
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
@@ -5156,6 +5193,7 @@ class PublicFeedbackCreateView(APIView):
 
 class UserFeedbackMessageView(APIView):
     """User endpoint to post a reply message into an existing support thread."""
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def post(self, request, id):
@@ -5206,6 +5244,7 @@ class UserFeedbackMessageView(APIView):
 class FetchWebImagesView(APIView):
     """Admin: search free sources (Wikimedia/DDG/Openverse) for real photos
     of a destination and save them directly into the gallery/cover."""
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def post(self, request):
@@ -5259,6 +5298,7 @@ class AdminMultiSourceImageSearchView(APIView):
 
     Calculates Location Match %, Keyword Match %, and Confidence Score.
     """
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def post(self, request):
@@ -5330,6 +5370,7 @@ class AdminImageImportMediaView(APIView):
       - confidence / match score
       - is_cover option
     """
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def post(self, request):
@@ -5648,6 +5689,7 @@ class AdminImageImportMediaView(APIView):
 
 
 class DeleteImageView(APIView):
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def delete(self, request, id):
@@ -5691,6 +5733,7 @@ class DeleteImageView(APIView):
 
 class GenerateAIImagesView(APIView):
     """Admin: generate AI (Flux) images for a destination in real time."""
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def post(self, request):
@@ -5744,6 +5787,7 @@ class GenerateAIImagesView(APIView):
 
 class DownloadAIImagesView(APIView):
     """Admin: download real AI images (actual files) for a destination."""
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def post(self, request):
@@ -5790,6 +5834,7 @@ class DownloadAIImagesView(APIView):
 class AdminServiceMediaView(APIView):
     """Admin photos for hospitals, police stations, fire stations and banks."""
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
     KINDS = {
         "hospital": Hospital,
         "police": PoliceStation,
@@ -5970,6 +6015,7 @@ def _featured_destination_row(destination):
 class AdminVisitorDeskView(APIView):
     """Owner desk: visitor notices (festivals, closures, permits) and featured-place pinning."""
     permission_classes = [IsAdminOrStaff]
+    serializer_class = None
     NOTICE_FIELDS = {"kind", "title", "body", "city", "district", "destination_id", "starts_at", "ends_at", "is_published"}
 
     def _apply_notice(self, notice, data, user):
@@ -6090,6 +6136,7 @@ class AdminFeaturedDestinationView(APIView):
     Admin Content Publishing Studio:
     Manage featured destination cards (create, list, update, delete/unfeature, reorder).
     """
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request, pk=None):
@@ -6197,6 +6244,7 @@ class PublicFeaturedDestinationView(APIView):
     Public API: Return active published featured destination cards for landing/discovery.
     Only published records within valid start/end schedule window are returned.
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
@@ -6267,6 +6315,7 @@ class AdminRedirectsView(APIView):
 
     Admin-only; every rule is exposed through the public config so the SPA
     can apply it immediately without a redeploy."""
+    serializer_class = None
 
     permission_classes = [IsAdminOrStaff]
 
@@ -6398,6 +6447,7 @@ def _dest_revision(d, action, actor):
 
 class AdminImportConflictsView(APIView):
     """GET: pending/resolved import conflicts. POST: resolve one."""
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
@@ -6486,6 +6536,7 @@ class AdminImportConflictsView(APIView):
 class AdminApprovalCenterView(APIView):
     """GET: everything waiting for approval, with field diffs.
     POST: id + action=approve|reject|send_back (+review_note)."""
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
@@ -6555,6 +6606,7 @@ class AdminApprovalCenterView(APIView):
 
 class AdminDestinationBulkView(APIView):
     """POST {action, ids[], reason, confirm?} — audited bulk lifecycle ops."""
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
     ACTIONS = {
         "publish": ("destinations", "approve"),
@@ -6641,6 +6693,7 @@ class AdminDestinationBulkView(APIView):
 
 class AdminDataIntegrityView(APIView):
     """Data-quality dashboard counts; each links to a filtered content view."""
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
@@ -6683,6 +6736,7 @@ class AdminDataIntegrityView(APIView):
 class AdminDuplicateCandidatesView(APIView):
     """GET ?confidence=high|medium|needs_review&district=&limit= — tiered
     duplicate candidates with live counts. Pairs already decided are excluded."""
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
@@ -6699,6 +6753,7 @@ class AdminDuplicateCandidatesView(APIView):
 
 class AdminDuplicateCompareView(APIView):
     """GET ?a=&b= — side-by-side evidence for a candidate pair."""
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
@@ -6734,6 +6789,7 @@ class AdminDuplicateDecisionView(APIView):
     verdict=merge: survivor_id picks the surviving record; the other is
     archived with a snapshot retained for recovery; reason required.
     """
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def post(self, request):
@@ -6806,6 +6862,7 @@ class AdminDuplicateDecisionView(APIView):
 class AdminDestinationRevisionsView(APIView):
     """GET ?destination=&revision_id= — list or diff revisions.
     POST {destination, action=snapshot|restore, revision_id?, reason}."""
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
@@ -6911,6 +6968,7 @@ class AdminDestinationLifecycleView(APIView):
     Publishing requires the mandatory public fields (name, description,
     coordinates) — a record can never go public half-empty.
     """
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
     CAPS = {
         "publish": ("destinations", "approve"),
@@ -6982,6 +7040,7 @@ class AdminDestinationPreviewView(APIView):
     """GET — admin-only preview: exactly what the public API would return for
     this record right now, plus whether it is actually public and why not.
     Previewing never changes publication state."""
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request, id):
@@ -7003,6 +7062,7 @@ class AdminDestinationPreviewView(APIView):
 
 class AdminAuditActivityView(APIView):
     """§25 publication activity panel — real audit events, newest first."""
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
@@ -7038,6 +7098,7 @@ class AdminRoutingProviderView(APIView):
     so the admin sees an honest verdict instead of guessing."""
 
     permission_classes = [permissions.IsAuthenticated, IsAdminOrStaff]
+    serializer_class = None
 
     def _setting(self):
         from .models import SiteSetting

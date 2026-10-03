@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { FiCalendar, FiClock, FiPlus, FiTrash2, FiEdit2, FiSave } from "react-icons/fi"
 import { useTranslation } from "../../hooks/useTranslation"
-import { useAuth } from "../../hooks/useAuth"
+import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
 
 /**

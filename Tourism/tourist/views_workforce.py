@@ -76,6 +76,7 @@ def _application_payload(a):
 
 class GuideDirectoryView(APIView):
     """GET /api/v1/workforce/guides/ — public directory of VERIFIED public guides."""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -98,6 +99,7 @@ class GuideDirectoryView(APIView):
 
 class GuideDetailView(APIView):
     """GET /api/v1/workforce/guides/<pk>/ — public detail; verified guides only."""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -114,6 +116,7 @@ class MyGuideProfileView(APIView):
 
     Verification fields are server-controlled; staff can never self-verify.
     """
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
     EDITABLE = {
@@ -156,6 +159,7 @@ class MyGuideProfileView(APIView):
 
 class GuideApplicationView(APIView):
     """POST /api/v1/workforce/guide-applications/ — apply; GET — own applications."""
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -204,6 +208,7 @@ class GuideApplicationView(APIView):
 
 class AdminGuideApplicationListView(APIView):
     """GET /api/v1/workforce/admin/applications/ — verification center queue."""
+    serializer_class = None
 
     permission_classes = [IsAdminOrStaff]
 
@@ -226,6 +231,7 @@ class AdminGuideApplicationActionView(APIView):
     Approval provisions/updates the GuideProfile as verified — the guide
     never self-verifies; every transition is notified and audited.
     """
+    serializer_class = None
 
     permission_classes = [IsAdminOrStaff]
     NEXT = {"review": "under_review", "verify_documents": "document_verification", "needs_info": "needs_info"}
@@ -291,6 +297,7 @@ class AdminGuideApplicationActionView(APIView):
 
 class AdminGuideProfileActionView(APIView):
     """POST /api/v1/workforce/admin/guides/<pk>/action/ — suspend / reinstate a verified guide."""
+    serializer_class = None
 
     permission_classes = [IsAdminOrStaff]
 
@@ -377,6 +384,7 @@ def _job_application_payload(a):
 
 class TourismJobListView(APIView):
     """GET public open jobs; POST creates a job (marketplace capability)."""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -429,6 +437,7 @@ class TourismJobListView(APIView):
 
 class TourismJobAdminView(APIView):
     """GET all jobs incl. non-open; PATCH <id> via POST action — pause/reopen/close/fill."""
+    serializer_class = None
 
     permission_classes = [IsAdminOrStaff]
 
@@ -447,6 +456,7 @@ class TourismJobAdminView(APIView):
 
 class TourismJobStatusView(APIView):
     """POST /api/v1/workforce/admin/jobs/<pk>/action/ — pause/reopen/close/fill/update."""
+    serializer_class = None
 
     permission_classes = [IsAdminOrStaff]
     NEXT = {"pause": "paused", "reopen": "open", "close": "closed", "fill": "filled"}
@@ -472,6 +482,7 @@ class TourismJobStatusView(APIView):
 
 class TourismJobApplicationView(APIView):
     """POST apply to a job; GET own applications."""
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -515,6 +526,7 @@ class TourismJobApplicationView(APIView):
 
 class AdminJobApplicationListView(APIView):
     """GET /api/v1/workforce/admin/job-applications/ — review queue."""
+    serializer_class = None
 
     permission_classes = [IsAdminOrStaff]
 
@@ -536,6 +548,7 @@ class AdminJobApplicationListView(APIView):
 
 class AdminJobApplicationActionView(APIView):
     """POST /api/v1/workforce/admin/job-applications/<pk>/action/ — shortlist/hire/reject."""
+    serializer_class = None
 
     permission_classes = [IsAdminOrStaff]
     NEXT = {"shortlist": "shortlisted", "hire": "hired", "reject": "rejected"}
@@ -596,6 +609,7 @@ def _booking_payload(b):
 
 class GuideBookingRequestView(APIView):
     """GET own requests (as tourist or as guide); POST create a request."""
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -660,6 +674,7 @@ class GuideBookingRequestView(APIView):
 
 class GuideBookingActionView(APIView):
     """POST /api/v1/workforce/guide-bookings/<pk>/action/ — accept/decline/complete/cancel."""
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
     GUIDE_ACTIONS = {"accept": "accepted", "decline": "declined"}
@@ -710,6 +725,7 @@ class GuideBookingActionView(APIView):
 
 class GuideReviewCreateView(APIView):
     """POST /api/v1/workforce/guide-bookings/<pk>/review/ — review a completed booking."""
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -744,6 +760,7 @@ class GuideReviewCreateView(APIView):
 
 class GuideReviewListView(APIView):
     """GET /api/v1/workforce/guides/<pk>/reviews/ — public reviews + aggregate."""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -770,6 +787,7 @@ class GuideReviewListView(APIView):
 class WorkforceOverviewView(APIView):
     """GET /api/v1/workforce/admin/overview/ — unified workforce roll-up
     across guide applications, jobs, job applications, bookings and guides."""
+    serializer_class = None
 
     permission_classes = [IsAdminOrStaff]
 
@@ -804,6 +822,7 @@ class GuideStatsView(APIView):
     """GET /api/v1/workforce/guide-stats/ — own guide stats: booking counts,
     reputation and an earnings ESTIMATE (daily rate × trip days; the platform
     does not process guide payments, so this is an estimate, clearly labelled)."""
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
 

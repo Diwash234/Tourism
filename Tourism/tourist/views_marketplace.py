@@ -208,6 +208,7 @@ def _listing_from_payload(data, partner, user, force_status=None, allow_featured
 
 
 class PublicMarketplaceView(APIView):
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, slug=None):
@@ -234,6 +235,7 @@ class PublicMarketplaceView(APIView):
 
 
 class PublicPartnerApplyView(APIView):
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -285,6 +287,7 @@ class PublicPartnerApplyView(APIView):
 
 
 class MarketplaceCheckoutView(APIView):
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     CARD_KEYS = CARD_KEYS
@@ -376,6 +379,7 @@ class MarketplaceCheckoutView(APIView):
 
 
 class AdminMarketplaceView(APIView):
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
@@ -602,6 +606,7 @@ class AdminMarketplaceView(APIView):
 
 class PartnerDeskView(APIView):
     """Approved partners add/edit packages. They cannot publish themselves."""
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -717,6 +722,7 @@ class PartnerDeskView(APIView):
 
 class MarketplaceOrderLookupView(APIView):
     """Travellers look up a request by reference + email, or list their own."""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 

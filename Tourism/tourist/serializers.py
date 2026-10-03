@@ -1781,16 +1781,25 @@ class DataReportSerializer(serializers.Serializer):
 
 
 class UserRouteSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    user = serializers.IntegerField()
-    start_latitude = serializers.FloatField()
-    start_longitude = serializers.FloatField()
-    end_latitude = serializers.FloatField()
-    end_longitude = serializers.FloatField()
-    distance_km = serializers.FloatField()
-    duration_minutes = serializers.FloatField()
-    transport_mode = serializers.CharField()
-    created_at = serializers.DateTimeField()
+    id = serializers.IntegerField(read_only=True)
+    user = serializers.IntegerField(read_only=True)
+    origin_name = serializers.CharField(required=False, allow_blank=True)
+    origin_latitude = serializers.FloatField(required=False, allow_null=True)
+    origin_longitude = serializers.FloatField(required=False, allow_null=True)
+    destination_name = serializers.CharField()
+    destination_latitude = serializers.FloatField(required=False, allow_null=True)
+    destination_longitude = serializers.FloatField(required=False, allow_null=True)
+    transport_mode = serializers.CharField(required=False, allow_blank=True)
+    distance_km = serializers.FloatField(required=False, allow_null=True)
+    duration_min = serializers.IntegerField(required=False, allow_null=True)
+    duration_source = serializers.CharField(required=False, allow_blank=True)
+    label = serializers.CharField(required=False, allow_blank=True)
+    is_saved = serializers.BooleanField(required=False, default=False)
+    created_at = serializers.DateTimeField(read_only=True)
+
+    def create(self, validated_data):
+        from .models import UserRoute
+        return UserRoute.objects.create(**validated_data)
 
 
 # ---------------------------------------------------------------------------

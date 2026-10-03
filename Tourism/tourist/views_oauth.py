@@ -55,6 +55,7 @@ class GoogleOAuthCallbackView(APIView):
     """
     POST /auth/google/callback/  {"code": "...", "redirect_uri": "..."}
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -111,6 +112,7 @@ class GithubOAuthCallbackView(APIView):
     POST /auth/github/callback/  {"code": "..."}
     """
     permission_classes = [permissions.AllowAny]
+    serializer_class = None
 
     def post(self, request):
         code = request.data.get("code", "")

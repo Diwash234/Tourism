@@ -43,6 +43,7 @@ class AccountDeletionView(APIView):
     """
 
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = None
 
     def post(self, request):
         user = request.user
@@ -107,6 +108,7 @@ class NewsletterUnsubscribeView(APIView):
     """POST /api/v1/newsletter/unsubscribe/ with ``{"token"}`` (from an email
     link) or ``{"email"}`` (typed). The reply is the same whether or not the
     address was subscribed, so the form cannot be used to test addresses."""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
     throttle_scope = "newsletter"
@@ -130,6 +132,7 @@ class NewsletterUnsubscribeView(APIView):
 class NewsletterExportView(APIView):
     """GET /api/v1/admin/newsletter/export.csv - active subscribers with their
     personal unsubscribe link, for the footer of any mailing."""
+    serializer_class = None
 
     permission_classes = [permissions.IsAdminUser]
 

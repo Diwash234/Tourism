@@ -52,6 +52,7 @@ class UserRouteCalculateView(APIView):
     when neither is available the response carries the straight line with
     ``confidence_level = "STRAIGHT_LINE"`` and no steps.
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -328,6 +329,7 @@ class UniversalPlaceSearchView(APIView):
     pharmacies, stores, hospitals, police, restaurants, hotels, gas stations, landmarks.
     Cached per (query, category, ~coords, radius).
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
@@ -361,6 +363,7 @@ class UniversalPlaceNearbyView(APIView):
     Nearby search for banks, ATMs, pharmacies, stores, hospitals, police, etc.
     Cached per (category, ~coords, radius).
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
@@ -396,6 +399,7 @@ class UserDataReportSubmitView(APIView):
     the Dashboard's "My reports" panel has a real endpoint instead of
     GETting a submit-only URL and swallowing a 405.
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
@@ -438,6 +442,7 @@ class UserDataReportSubmitView(APIView):
 
 class AdminDataHealthView(APIView):
     """Admin Data Quality & Health Dashboard endpoint."""
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
@@ -482,6 +487,7 @@ class AdminDataHealthView(APIView):
 
 class AdminReportManagementView(APIView):
     """Admin endpoint to search, filter, and resolve user data reports."""
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request, pk=None):
@@ -542,6 +548,7 @@ class AdminReportManagementView(APIView):
 
 class AdminCoordinateVerificationView(APIView):
     """Admin interactive map correction & coordinate verification tool."""
+    serializer_class = None
     permission_classes = [IsAdminOrStaff]
 
     def post(self, request):
@@ -626,6 +633,7 @@ class AdminNavigationAnalyticsView(APIView):
     counts. No numbers are invented — every figure is a query over logged
     route calculations.
     """
+    serializer_class = None
 
     permission_classes = [IsAdminOrStaff]
 
@@ -678,6 +686,7 @@ class RouteOptionsView(APIView):
     tourism graph yields a single option; we say so instead of inventing
     alternative paths.
     """
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -759,6 +768,7 @@ class UserRouteRecalculateView(APIView):
     Re-runs the routing engine over a saved route's stored coordinates and
     updates its distance/duration with fresh provenance. Owners only.
     """
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -791,6 +801,7 @@ class UserRouteRecalculateView(APIView):
 class ProvinceNavigationView(APIView):
     """GET /api/v1/navigation/provinces/ — Nepal's provinces with destination counts
     and a few navigable destinations each (province navigation data source)."""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -948,6 +959,7 @@ class TravelPlannerView(APIView):
     comparison table (measured vs honestly-labelled estimates), and a
     live-navigation session id for hand-off to /navigation.
     """
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
@@ -1143,6 +1155,7 @@ class TravelBetweenDestinationsView(APIView):
     category. Distances are straight-line by design — the response says
     so; road-true figures come from travel-plan on demand.
     """
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
     MAX_LIMIT = 60
@@ -1351,6 +1364,7 @@ class TravelOptionsView(APIView):
     Returns per-mode time/cost comparison, a recommendation, places along the
     way, "before you go" facts from the destination record, and turn-by-turn
     steps when a live routing provider is configured."""
+    serializer_class = None
 
     permission_classes = [permissions.AllowAny]
 
