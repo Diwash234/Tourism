@@ -5543,6 +5543,110 @@ class AdminImageImportMediaView(APIView):
 
 
 
+class AdminMultiSourceImageSearchView(APIView):
+    """Admin/staff search across configured image providers with provenance scoring."""
+    permission_classes = [IsAdminOrStaff]
+
+    def post(self, request):
+        from tourist.services.image_search.search import multi_source_image_search
+
+        destination_id = request.data.get("destination_id")
+        query = (request.data.get("query") or "").strip()
+        district = (request.data.get("district") or "").strip()
+        province = (request.data.get("province") or "").strip()
+        country = (request.data.get("country") or "Nepal").strip()
+        sources = request.data.get("sources") or [
+            "wikimedia", "openverse", "flickr", "unsplash", "pexels", "pixabay"
+        ]
+        try:
+            limit = max(4, min(int(request.data.get("limit", 24)), 60))
+        except (TypeError, ValueError):
+            limit = 24
+
+        dest = Destination.objects.filter(pk=destination_id).first() if destination_id else None
+        if dest:
+            query = query or dest.name
+            district = district or (dest.district or "")
+            province = province or (dest.province or "")
+        if not query:
+            return Response({"detail": "Query or destination_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        hits = multi_source_image_search(
+            query=query, destination=dest, district=district, province=province,
+            country=country, sources=sources, limit=limit,
+        )
+        return Response({
+            "query": query, "district": district, "province": province, "country": country,
+            "destination": {
+                "id": dest.id, "name": dest.name, "slug": dest.slug,
+                "district": dest.district, "province": dest.province,
+            } if dest else None,
+            "total_found": len(hits),
+            "results": [hit.to_dict() for hit in hits],
+        })
+
+
+class AdminImageImportMediaView(APIView):
+    """Admin/staff import a selected externally hosted image with provenance."""
+    permission_classes = [IsAdminOrStaff]
+
+    def post(self, request):
+        destination_id = request.data.get("destination_id")
+        image_url = (request.data.get("image_url") or "").strip()
+        if not destination_id:
+            return Response({"detail": "destination_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        if not image_url:
+            return Response({"detail": "image_url is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        dest = Destination.objects.filter(pk=destination_id).first()
+        if not dest:
+            return Response({"detail": "Destination not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        confidence = float(request.data.get("confidence_score") or 90) / 100.0
+        is_cover = bool(request.data.get("is_cover", False))
+        img = dest.gallery.filter(external_url=image_url).first()
+        if not img:
+            img = DestinationImage.objects.create(
+                destination=dest,
+                external_url=image_url,
+                thumbnail_url=(request.data.get("thumbnail_url") or image_url).strip(),
+                caption=(request.data.get("caption") or f"{dest.name} — {(request.data.get('source_platform') or 'web').title()}").strip(),
+                source=DestinationImage.Source.ADMIN,
+                source_platform=(request.data.get("source_platform") or "web"),
+                source_url=(request.data.get("source_url") or "").strip(),
+                photographer=(request.data.get("photographer") or "").strip()[:150],
+                license_type=(request.data.get("license_type") or "CC BY-SA").strip()[:100],
+                copyright_status="verified_reusable",
+                is_cover=is_cover,
+                destination_match_score=round(confidence, 3),
+                is_verified=True,
+                verification_status=DestinationImage.ImageStatus.APPROVED,
+                uploaded_by=request.user,
+            )
+        else:
+            img.is_verified = True
+            img.verification_status = DestinationImage.ImageStatus.APPROVED
+            if is_cover:
+                img.is_cover = True
+            img.save(update_fields=["is_verified", "verification_status", "is_cover", "updated_at"])
+
+        if is_cover or not dest.cover_image:
+            dest.gallery.exclude(pk=img.pk).filter(is_cover=True).update(is_cover=False)
+            dest.cover_image = image_url
+            dest.save(update_fields=["cover_image", "updated_at"])
+            _recompute_destination_cover(dest)
+
+        return Response({
+            "success": True,
+            "message": "Image successfully imported to destination gallery",
+            "image_id": img.id,
+            "image_url": image_url,
+            "is_cover": img.is_cover,
+            "destination_id": dest.id,
+            "destination_name": dest.name,
+        })
+
+
 class DeleteImageView(APIView):
     permission_classes = [IsAdminOrStaff]
 
