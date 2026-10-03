@@ -49,13 +49,30 @@ FREE_SOURCES = ["wikimedia", "openverse"]
 USER_AGENT = "NepalTourismPlatform/1.0 (destination image backfill; admin-triggered)"
 
 # Words that appear in generated display names but carry no identifying
-# information, so they are dropped when building a search query.
+# information. Two groups:
+#   * descriptors appended to real place names ("Namche Bazaar Sherpa
+#     Cultural Capital") which only dilute a search query;
+#   * generic structure/venue nouns ("House", "Hotel", "Museum", "Bazaar")
+#     which are so common that matching on them proves nothing. Without the
+#     second group the relevance guard happily matched "Kausaltar Aquarium
+#     House" to a photo titled "Tibet Peace Guest House" -- the only shared
+#     token was "House".
 _DESCRIPTOR_WORDS = {
+    # appended descriptors
     "sherpa", "cultural", "capital", "settlement", "valley", "region",
     "area", "zone", "hub", "gateway", "centre", "center", "sanctuary",
     "reserve", "conservation", "wilderness", "alpine", "plateau", "meadows",
     "highland", "lowland", "village", "town", "city", "district", "province",
-    "nepal", "the", "of", "and", "a", "an",
+    "nepal", "the", "of", "and", "a", "an", "panorama", "scenic",
+    # generic structures and venues
+    "house", "hotel", "guest", "guesthouse", "resort", "lodge", "inn",
+    "home", "homestay", "restaurant", "cafe", "temple", "monastery",
+    "museum", "gallery", "park", "garden", "lake", "river", "mountain",
+    "mountains", "hill", "hills", "view", "viewpoint", "tower", "station",
+    "school", "college", "hospital", "clinic", "market", "bazaar", "plaza",
+    "square", "gate", "gates", "bridge", "temple", "stupa", "durbar",
+    "national", "park", "wildlife", "trek", "trekking", "base", "camp",
+    "centre", "complex", "building", "hall", "office", "centre",
 }
 
 
@@ -138,7 +155,12 @@ def url_is_live(url, timeout=8):
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             content_type = (response.headers.get("Content-Type") or "").lower()
-            return response.status == 200 and content_type.startswith("image/")
+            # 200 OK, or 206 Partial Content -- most CDNs (upload.wikimedia.org
+            # among them) answer a ranged request with 206, and rejecting that
+            # marked every real Wikimedia photo as a dead link.
+            if response.status not in (200, 206):
+                return False
+            return content_type.startswith("image/")
     except (urllib.error.URLError, urllib.error.HTTPError, OSError, ValueError):
         return False
 
