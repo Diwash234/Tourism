@@ -36,6 +36,7 @@ export const ADMIN_NAV_GROUPS = [
     ["content_lifecycle", "Content Lifecycle", BsLayers],
     ["category_translations", "Categories", BsTranslate],
     ["content_translations", "Content Translations", BsGlobe],
+    ["ui_translations", "UI Strings & Languages", BsTranslate],
   ]},
   { label: "TRAVEL DATA", items: [
     ["hotel_bookings", "Hotels & Lodges", BsBuilding],
@@ -97,7 +98,7 @@ export const ADMIN_SECTION_CAPABILITIES = {
   redirects: "content", visitor_desk: "content", featured_destinations: "destinations",
   media_library: "images", images: "images", image_pipeline: "images", branding: "settings",
   header_navbar: "content", cookie_consent: "settings", category_translations: "destinations",
-  content_translations: "content", user_dashboard_control: "content", content_lifecycle: "destinations", ai_engine: "datasets",
+  content_translations: "content", ui_translations: "content", user_dashboard_control: "content", content_lifecycle: "destinations", ai_engine: "datasets",
   places: "destinations", destination_features: "destinations", research: "datasets",
   hotel_bookings: "hotels", marketplace: "marketplace", travel_services: ["restaurants", "transportation", "travel_plans"],
   transport_routes: "transportation", review_moderation: "reviews", guide_verification: "marketplace", expenses: "budget",

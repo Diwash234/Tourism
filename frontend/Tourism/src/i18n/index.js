@@ -1060,6 +1060,66 @@ const hi = {
 
 const DICTS = { en, ne, hi }
 
+// --- backend overrides (admin-editable UI strings) -------------------------
+// The backend serves admin-edited translations at
+// /api/v1/translation/ui-strings/?lang=XX. They are merged OVER the bundled
+// dictionaries so an admin edit applies instantly — no rebuild, no redeploy.
+// Cached in localStorage so the translated UI paints on first load even
+// before the network responds.
+const OVERRIDE_CACHE_PREFIX = "tourism_i18n_override_"
+
+function cachedOverrides(lang) {
+  try {
+    const raw = window.localStorage?.getItem(OVERRIDE_CACHE_PREFIX + lang)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+function applyOverrides(lang, strings) {
+  if (!DICTS[lang] || !strings || typeof strings !== "object") return
+  Object.assign(DICTS[lang], strings)
+  try {
+    window.localStorage?.setItem(OVERRIDE_CACHE_PREFIX + lang, JSON.stringify(strings))
+  } catch {
+    /* storage may be unavailable; ignore */
+  }
+}
+
+// Apply cached overrides immediately (synchronous, before first paint).
+if (typeof window !== "undefined") {
+  for (const code of Object.keys(DICTS)) {
+    if (code === "en") continue
+    applyOverrides(code, cachedOverrides(code))
+  }
+}
+
+let overridesInflight = {}
+
+export function fetchOverrideStrings(lang) {
+  if (typeof window === "undefined" || !DICTS[lang]) return Promise.resolve({})
+  if (overridesInflight[lang]) return overridesInflight[lang]
+  const base = (import.meta.env?.VITE_API_BASE_URL || "/api/v1").replace(/\/$/, "")
+  overridesInflight[lang] = fetch(`${base}/translation/ui-strings/?lang=${encodeURIComponent(lang)}`, {
+    headers: { Accept: "application/json" },
+  })
+    .then((res) => (res.ok ? res.json() : {}))
+    .then((strings) => {
+      applyOverrides(lang, strings)
+      // Re-render every subscribed component AND re-run the legacy DOM
+      // bridge so hardcoded page content picks up the fresh strings.
+      if (lang === currentLang) {
+        listeners.forEach((fn) => fn(lang))
+        if (lang !== "en") translateLegacyDom()
+      }
+      return strings
+    })
+    .catch(() => ({}))
+    .finally(() => { delete overridesInflight[lang] })
+  return overridesInflight[lang]
+}
+
 // --- reactive store -------------------------------------------------------
 let currentLang = detectLang()
 const listeners = new Set()
@@ -1147,6 +1207,9 @@ export function setLang(code) {
   currentLang = code
   persistLang(code)
   listeners.forEach((fn) => fn(code))
+  // Pull admin-edited strings for this language; the merge re-renders
+  // subscribers and re-runs the DOM bridge when it lands.
+  fetchOverrideStrings(code)
   enableLegacyTranslationBridge()
 }
 
@@ -1181,5 +1244,10 @@ export function useI18n() {
 if (typeof window !== "undefined") {
   persistLang(currentLang)
   if (currentLang !== "en") enableLegacyTranslationBridge()
+  // Fetch the active language AND English: the legacy DOM bridge
+  // reverse-maps English source text to keys, so it needs the full EN
+  // dictionary (including admin-added keys) to translate hardcoded pages.
+  fetchOverrideStrings("en")
+  fetchOverrideStrings(currentLang)
 }
 

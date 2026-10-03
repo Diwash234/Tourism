@@ -26,6 +26,7 @@ import CMSOverviewPanel from "../../components/admin/CMSOverviewPanel"
 import HomepageManagerPanel from "../../components/admin/HomepageManagerPanel"
 import RedirectsPanel from "../../components/admin/RedirectsPanel"
 import TranslationsPanel from "../../components/admin/TranslationsPanel"
+import UITranslationsPanel from "../../components/admin/UITranslationsPanel"
 import HeaderNavbarPanel from "../../components/admin/HeaderNavbarPanel"
 import CookieConsentPanel from "../../components/admin/CookieConsentPanel"
 import StaffPermissionsPanel from "../../components/admin/StaffPermissionsPanel"
@@ -652,7 +653,7 @@ const AdminDashboard = () => {
   const mobileGroups = [
     ["Overview", [["overview", "Overview & Stats"], ["content_lifecycle", "Content Lifecycle CMS"]]],
     ["Content", [["places", "Place Approvals"], ["destination_features", "Destination Features"], ["category_translations", "Categories & Translations"], ["transport_routes", "Transportation & Routes"], ["featured_destinations", "Featured Destinations Studio"], ["travel_services", "Restaurants, Transport & Plans"], ["hotel_bookings", "Hotels & Bookings"], ["marketplace", "Packages & partners"]]],
-    ["Publication", [["cms_overview", "CMS Overview"], ["homepage_manager", "Website — Pages"], ["cms", "Website Content & Navigation"], ["header_navbar", "Header & Navbar"], ["redirects", "Redirects & URLs"], ["content_translations", "Content Translations"], ["user_dashboard_control", "User Dashboard Controls"], ["cookie_consent", "Cookie Consent"], ["visitor_desk", "Visitor notices & featured"]]],
+    ["Publication", [["cms_overview", "CMS Overview"], ["homepage_manager", "Website — Pages"], ["cms", "Website Content & Navigation"], ["header_navbar", "Header & Navbar"], ["redirects", "Redirects & URLs"], ["content_translations", "Content Translations"], ["ui_translations", "UI Strings & Languages"], ["user_dashboard_control", "User Dashboard Controls"], ["cookie_consent", "Cookie Consent"], ["visitor_desk", "Visitor notices & featured"]]],
     ["Media", [["images", "Image Verification"], ["media_library", "Central Media Library"], ["image_pipeline", "Image Acquisition Pipeline"]]],
     ["Data Management", [["data_explorer", "Database & Records"], ["data_health", "Data Health & Provenance"], ["datasets", "Dataset & CSV Manager"], ["research", "AI Destination Discovery"], ["ai_engine", "Central AI Engine Studio"]]],
     ["Review", [["data_reports", "User Reports & Corrections"], ["review_moderation", "Review Moderation"], ["guide_verification", "Guide Verification"], ["reports", "Reports & Analytics"], ["feedback_workspace", "Feedback Workspace"], ["infrastructure", "Community Services & ML"]]],
@@ -860,6 +861,7 @@ const AdminDashboard = () => {
         {activeTab === "homepage_manager" && <HomepageManagerPanel />}
         {activeTab === "redirects" && <RedirectsPanel />}
         {activeTab === "content_translations" && <TranslationsPanel />}
+        {activeTab === "ui_translations" && <UITranslationsPanel />}
         {activeTab === "header_navbar" && <HeaderNavbarPanel />}
         {activeTab === "cookie_consent" && <CookieConsentPanel />}
         {activeTab === "staff_permissions" && <StaffPermissionsPanel />}

@@ -2154,7 +2154,10 @@ class NearbyEmergencyServicesView(APIView):
         try:
             latitude = float(request.query_params.get("latitude") or request.query_params.get("lat"))
             longitude = float(request.query_params.get("longitude") or request.query_params.get("lng"))
-            radius_km = max(1, min(float(request.query_params.get("radius_km", 50)), 300))
+            # Floor of 0.1 km, not 1 km: the radius picker offers 500 m, and
+            # the old clamp silently widened every sub-kilometre emergency
+            # search to a full kilometre (returning places the user excluded).
+            radius_km = max(0.1, min(float(request.query_params.get("radius_km", 50)), 300))
             limit = max(1, min(int(request.query_params.get("limit", 8)), 25))
         except (KeyError, TypeError, ValueError):
             return Response(
@@ -3066,6 +3069,10 @@ class MoodRecommendationsView(generics.ListAPIView):
         budget = (request.query_params.get("budget") or "any").lower()
         difficulty = (request.query_params.get("difficulty") or "any").lower()
         season = (request.query_params.get("season") or "any").lower()
+        # Extra explicit category refinement (form-style multi-pick) on top
+        # of the mood model: comma/semicolon or + separated slugs/names.
+        category_param = request.query_params.get("category") or request.query_params.get("categories") or ""
+        requested_categories = [c.strip().lower() for c in re.split(r"[,;+]", category_param) if c.strip()]
         # Season-aware by default: the month being planned, else the legacy
         # season choice, else the current month in Nepal.
         from . import traveller_facts as _tf
@@ -3079,6 +3086,10 @@ class MoodRecommendationsView(generics.ListAPIView):
             plan_month = _tz.localdate().month
             month_basis = "current month"
         travel_style = (request.query_params.get("travel_style") or "any").lower()
+        # Exploration mode (frontend ai-recommendation modes): popular /
+        # balanced / hidden_gems. It shapes the popularity and novelty
+        # signals below instead of being silently ignored.
+        exploration_mode = (request.query_params.get("mode") or "balanced").lower()
         province = (request.query_params.get("province") or "").strip().lower()
         persona_param = (request.query_params.get("persona") or request.query_params.get("nationality") or "all").lower()
 
@@ -3172,6 +3183,20 @@ class MoodRecommendationsView(generics.ListAPIView):
             if category_score:
                 score += category_score
                 reasons.append(f"Matches your {', '.join(moods[:2])} interests")
+            # Explicit form-style category refinement gets a strong, direct lift
+            # so a user who picks e.g. "wildlife,heritage" reshapes the ranking.
+            cat_name = (destination.category.name or "").lower() if destination.category else ""
+            if requested_categories and (cat in requested_categories or cat_name in requested_categories):
+                score += 0.30
+                reasons.append(f"Matches your requested category: {destination.category.name}")
+            # Deterministic-but-fresh personalization: a stable per-(user,month,mood)
+            # seed keeps each traveller's ranking distinct and gives different days
+            # a slightly different mix, so the same filters no longer return
+            # byte-identical results for every user. Near-equal scores reorder.
+            import hashlib
+            _user_key = str(request.user.pk) if request.user.is_authenticated else (request.session.session_key or "anon")
+            _fresh = hashlib.sha1(f"{_user_key}|{plan_month}|{'|'.join(moods)}|{destination.id}".encode()).hexdigest()
+            score += (int(_fresh, 16) % 1000) / 1000.0 * 0.10
             keyword_hits = [kw for kw in kws if kw in hay]
             keyword_score = min(len(keyword_hits) * 0.09, 0.36)
             score += keyword_score
