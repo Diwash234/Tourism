@@ -24,7 +24,7 @@ export default function CmsJournalsEditor({ journalType = "abstracts", onCountCh
   const settingKey = journalType === "abstracts" ? "cms_content_abstracts" : "cms_content_journals"
 
   const loadItems = useCallback(async () => {
-    setLoading(true)
+    
     try {
       const res = await adminApi.getCMS("settings")
       const rows = res.data?.results || []
