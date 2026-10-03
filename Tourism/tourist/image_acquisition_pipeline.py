@@ -9,8 +9,6 @@ Implements the Multi-Source Waterfall Provider Chain:
 4. Pexels API (Stock photography)
 5. Flickr API (Creative Commons photo collection)
 6. Pixabay API (Open media fallback)
-7. Dataset Seeding (Kaggle / Open Data verified seeds)
-8. AI Illustration Fallback (marked isAiGenerated=True)
 
 Calculates relevance scoring, filters duplicates, records full legal
 provenance (author, license, source_url), and stores into DestinationImage.
@@ -124,7 +122,6 @@ class ImageAcquisitionPipeline:
             self._search_pexels,
             self._search_flickr,
             self._search_pixabay,
-            self._search_dataset_seeds,
         ]
 
     def acquire_images_for_destination(self, destination: Destination, limit: int = 12, force_refresh: bool = False, source: str = "") -> List[Dict[str, Any]]:
