@@ -290,9 +290,11 @@ class DestinationListSerializer(serializers.ModelSerializer):
     display_city = serializers.SerializerMethodField()
     has_map_pin = serializers.SerializerMethodField()
 
+    @extend_schema_field(serializers.URLField(allow_null=True))
     def get_cover_image(self, obj):
         return _cover_cached(obj, self.context.get("request"))
 
+    @extend_schema_field(serializers.URLField(allow_null=True))
     def get_cover_image_url(self, obj):
         return _cover_cached(obj, self.context.get("request"))
 
@@ -350,6 +352,7 @@ class DestinationListSerializer(serializers.ModelSerializer):
     # unconditionally instead of KeyError-ing on non-geo listings.
     distance_km = serializers.SerializerMethodField()
 
+    @extend_schema_field(serializers.FloatField(allow_null=True))
     def get_distance_km(self, obj):
         user_lat = self.context.get("user_lat")
         user_lon = self.context.get("user_lon")
