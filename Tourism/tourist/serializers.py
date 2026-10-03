@@ -22,6 +22,10 @@ from .models import (
     RouteSegment,
     FeaturedDestination,
     MarketplaceListing,
+    UITranslation,
+    PriceComponent,
+    PriceComponentHistory,
+    DestinationBudgetProfile,
 )
 from .utils import haversine_distance, public_media_url, resolve_image_url
 
@@ -246,8 +250,20 @@ def destination_cover_image(obj, request=None):
     photos = verified_destination_photos(obj)
     cover = next((photo for photo in photos if photo.is_cover), None) or (photos[0] if photos else None)
     if cover:
-        return _photo_url(cover, request) or None
-    return None
+        url = _photo_url(cover, request)
+        if url:
+            return url
+    # No verified media yet: fall back to the deterministic generated
+    # postcard so the UI never renders a broken "image unavailable" card.
+    from urllib.parse import quote
+    cat = (getattr(getattr(obj, "category", None), "slug", "") or "general").strip() or "general"
+    name = (getattr(obj, "name", "") or "Nepal").strip() or "Nepal"
+    district = (getattr(obj, "district", "") or "").strip()
+    try:
+        path = f"/api/v1/postcard/{quote(cat.lower())}/{quote(name)}/{quote(district)}.svg"
+        return request.build_absolute_uri(path) if request is not None else path
+    except Exception:
+        return None
 
 
 def _cover_cached(obj, request=None):
@@ -291,11 +307,13 @@ class DestinationListSerializer(serializers.ModelSerializer):
     has_map_pin = serializers.SerializerMethodField()
 
     @extend_schema_field(serializers.URLField(allow_null=True))
-    def get_cover_image(self, obj):
+    def get_cover_image(self, obj) -> str:
+
         return _cover_cached(obj, self.context.get("request"))
 
     @extend_schema_field(serializers.URLField(allow_null=True))
-    def get_cover_image_url(self, obj):
+    def get_cover_image_url(self, obj) -> str:
+
         return _cover_cached(obj, self.context.get("request"))
 
     @extend_schema_field(serializers.FloatField(allow_null=True))
@@ -405,16 +423,20 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
     def _request(self):
         return self.context.get("request")
 
-    def get_cover_image(self, obj):
+    def get_cover_image(self, obj) -> str:
+
         return _cover_cached(obj, self._request())
 
-    def get_cover_image_url(self, obj):
+    def get_cover_image_url(self, obj) -> str:
+
         return _cover_cached(obj, self._request())
 
-    def get_image_url(self, obj):
+    def get_image_url(self, obj) -> str:
+
         return _cover_cached(obj, self._request())
 
-    def get_hotels(self, obj):
+    def get_hotels(self, obj) -> str:
+
         """Active (non-archived) hotels at this destination, best-rated first.
 
         Prefetched when the view supplies ``hotel_rows`` so a detail request is
@@ -503,10 +525,12 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
             "partner_name": item.partner.name, "is_featured": item.is_featured,
         } for item in listings]
 
-    def get_images(self, obj):
+    def get_images(self, obj) -> str:
+
         return destination_image_urls(obj, self._request())
 
-    def get_gallery(self, obj):
+    def get_gallery(self, obj) -> str:
+
         request = self._request()
         out = []
         for photo in _approved_gallery(obj):
@@ -635,7 +659,8 @@ class DestinationVideoSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["uploaded_by", "verification_status", "created_at"]
 
-    def get_display_url(self, obj):
+    def get_display_url(self, obj) -> str:
+
         request = self.context.get("request")
         if obj.video_file:
             try:
@@ -848,6 +873,21 @@ class TranslateRequestSerializer(serializers.Serializer):
     target_language = serializers.CharField()
 
 
+class UITranslationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UITranslation
+        fields = ["id", "key", "language", "value", "updated_at"]
+        read_only_fields = ["id", "updated_at"]
+
+
+class UITranslationBulkSerializer(serializers.Serializer):
+    """Admin upsert: [{key, language, value}, ...]."""
+
+    key = serializers.CharField(max_length=200)
+    language = serializers.CharField(max_length=10)
+    value = serializers.CharField(allow_blank=True)
+
+
 class PhotoUploadSerializer(serializers.ModelSerializer):
     """
     Used by the community photo-upload endpoint. Any authenticated user can
@@ -923,21 +963,25 @@ class HotelSerializer(serializers.ModelSerializer):
         obj._destination_context_image_cache = result
         return result
 
-    def get_image_url(self, obj):
+    def get_image_url(self, obj) -> str:
+
         # Compatibility display URL. `image_is_hotel_specific` tells clients
         # whether this is actual hotel media or an honestly-labelled area photo.
         return self._hotel_specific_url(obj) or self._destination_context_url(obj)
 
-    def get_image_is_hotel_specific(self, obj):
+    def get_image_is_hotel_specific(self, obj) -> str:
+
         return bool(self._hotel_specific_url(obj))
 
-    def get_image_source(self, obj):
+    def get_image_source(self, obj) -> str:
+
         if obj.cover_image: return "hotel_upload"
         if obj.external_image_url: return "hotel_external"
         if self._destination_context_url(obj): return "destination_context"
         return "unavailable"
 
-    def get_destination_context_image_url(self, obj):
+    def get_destination_context_image_url(self, obj) -> str:
+
         return self._destination_context_url(obj)
 
 
@@ -951,12 +995,6 @@ class OSMTourismPlaceSerializer(serializers.ModelSerializer):
     class Meta:
         model = OSMTourismPlace
         fields = ["id", "osm_id", "category", "name", "latitude", "longitude", "address"]
-
-
-class TravelExpenseFeedbackSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = TravelExpenseFeedback
-        fields = ["id", "user", "destination", "destination_name", "num_people", "num_days", "travel_mode", "accommodation_cost", "travel_cost", "entry_cost", "food_cost", "extra_cost"]
 
 
 class TravelRiskFeedbackSerializer(serializers.ModelSerializer):
@@ -989,7 +1027,8 @@ class InfrastructureMediaSerializer(serializers.ModelSerializer):
         fields = ["id", "media_type", "file", "file_url", "caption", "is_primary", "is_verified", "created_at"]
         read_only_fields = ["is_verified", "created_at"]
 
-    def get_file_url(self, obj):
+    def get_file_url(self, obj) -> str:
+
         request = self.context.get("request")
         try:
             return request.build_absolute_uri(obj.file.url) if request else obj.file.url
@@ -1268,13 +1307,15 @@ class UserProfileSerializer(serializers.Serializer):
     # that option.
     has_password = serializers.SerializerMethodField()
 
-    def get_has_password(self, obj):
+    def get_has_password(self, obj) -> str:
+
         try:
             return bool(obj.has_usable_password())
         except Exception:  # noqa: BLE001 - defensive: never break login on this
             return False
 
-    def get_full_name(self, obj):
+    def get_full_name(self, obj) -> str:
+
         return f"{obj.first_name or ''} {obj.last_name or ''}".strip() or None
 
     def to_representation(self, instance):
@@ -1510,10 +1551,12 @@ class InfrastructureSubmissionSerializer(serializers.ModelSerializer):
         except (ValueError, AttributeError):
             return None
 
-    def get_image_url(self, obj):
+    def get_image_url(self, obj) -> str:
+
         return self._url(obj.image)
 
-    def get_video_url(self, obj):
+    def get_video_url(self, obj) -> str:
+
         return self._url(obj.video)
 
     def create(self, validated_data):
@@ -1822,7 +1865,8 @@ class HospitalSerializer(UsablePhoneMixin, serializers.ModelSerializer):
         from .opening_hours import status as hours_status
         return hours_status(obj.opening_hours)
 
-    def get_image_url(self, obj):
+    def get_image_url(self, obj) -> str:
+
         if not obj.image:
             return None
         request = self.context.get("request")
@@ -1839,7 +1883,8 @@ class PoliceStationSerializer(UsablePhoneMixin, serializers.ModelSerializer):
         model = PoliceStation
         fields = ["id", "name", "address", "phone", "latitude", "longitude", "image_url", "opening_hours", "emergency_available", "source_name", "source_url", "is_verified", "verified_at", "updated_at"]
 
-    def get_image_url(self, obj):
+    def get_image_url(self, obj) -> str:
+
         if not obj.image:
             return None
         request = self.context.get("request")
@@ -2078,7 +2123,14 @@ def public_destination_cover(destination, request=None):
             return resolve_image_url(cover.image, request)
         except (ValueError, AttributeError):
             return None
-    return None
+    # Fallback: each destination always has a deterministic generated
+    # postcard so recommendation cards never render a broken image.
+    from urllib.parse import quote
+    cat = (getattr(getattr(destination, "category", None), "slug", "") or "general").strip() or "general"
+    name = (getattr(destination, "name", "") or "Nepal").strip() or "Nepal"
+    district = (getattr(destination, "district", "") or "").strip()
+    path = f"/api/v1/postcard/{quote(cat.lower())}/{quote(name)}/{quote(district)}.svg"
+    return request.build_absolute_uri(path) if request is not None else path
 
 
 def real_photo_url(photo, request=None):
@@ -2099,3 +2151,153 @@ def real_photo_url(photo, request=None):
 def resolve_authentic_destination_image(obj):
     """No cross-destination fallback: missing verified media stays unavailable."""
     return None
+
+
+# ---------------------------------------------------------------------------
+# Enhanced Budget & Price Serializers
+# ---------------------------------------------------------------------------
+
+class PriceComponentSerializer(serializers.ModelSerializer):
+    destination_name = serializers.CharField(source="destination.name", read_only=True)
+    source_type_display = serializers.CharField(source="get_source_type_display", read_only=True)
+    category_display = serializers.CharField(source="get_category_display", read_only=True)
+    verified_by_name = serializers.CharField(source="verified_by.full_name", read_only=True)
+    scope = serializers.SerializerMethodField()
+    is_current = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PriceComponent
+        fields = [
+            "id", "category", "category_display", "name", "unit",
+            "base_price_npr", "currency", "province", "district", "destination",
+            "destination_name", "scope", "effective_from", "effective_until",
+            "source_type", "source_type_display", "source_reference",
+            "source_document", "is_verified", "verified_by", "verified_by_name",
+            "verified_at", "is_active", "notes", "is_current",
+            "created_at", "updated_at"
+        ]
+        read_only_fields = ["created_at", "updated_at", "verified_by", "verified_at"]
+
+    def get_scope(self, obj):
+        if obj.destination:
+            return f"destination:{obj.destination.slug}"
+        elif obj.district:
+            return f"district:{obj.district}"
+        elif obj.province:
+            return f"province:{obj.province}"
+        return "national"
+
+    def get_is_current(self, obj):
+        today = timezone.now().date()
+        if obj.effective_until and obj.effective_until < today:
+            return False
+        return obj.effective_from <= today
+
+
+class PriceComponentHistorySerializer(serializers.ModelSerializer):
+    changed_by_name = serializers.CharField(source="changed_by.full_name", read_only=True)
+
+    class Meta:
+        model = PriceComponentHistory
+        fields = [
+            "id", "component", "changed_by", "changed_by_name",
+            "old_price_npr", "new_price_npr",
+            "old_effective_until", "new_effective_until",
+            "change_reason", "change_source",
+            "created_at"
+        ]
+        read_only_fields = ["created_at"]
+
+
+class DestinationBudgetProfileSerializer(serializers.ModelSerializer):
+    destination_name = serializers.CharField(source="destination.name", read_only=True)
+    destination_slug = serializers.CharField(source="destination.slug", read_only=True)
+    breakdown = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DestinationBudgetProfile
+        fields = [
+            "id", "destination", "destination_name", "destination_slug",
+            "budget_daily_npr", "standard_daily_npr", "premium_daily_npr",
+            "transport_intercity_npr", "transport_local_npr",
+            "accommodation_npr", "food_npr", "entry_fees_npr",
+            "guide_porter_npr", "permits_npr", "misc_npr",
+            "usd_rate_used", "budget_daily_usd", "standard_daily_usd", "premium_daily_usd",
+            "breakdown", "last_computed", "computation_version", "components_used",
+            "created_at", "updated_at"
+        ]
+        read_only_fields = ["last_computed", "computation_version", "components_used", "created_at", "updated_at"]
+
+    def get_breakdown(self, obj):
+        return {
+            "transport_intercity": {"npr": obj.transport_intercity_npr},
+            "transport_local": {"npr": obj.transport_local_npr},
+            "accommodation": {"npr": obj.accommodation_npr},
+            "food": {"npr": obj.food_npr},
+            "entry_fees": {"npr": obj.entry_fees_npr},
+            "guide_porter": {"npr": obj.guide_porter_npr},
+            "permits": {"npr": obj.permits_npr},
+            "misc": {"npr": obj.misc_npr},
+        }
+
+
+class TravelExpenseFeedbackSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source="user.full_name", read_only=True)
+    destination_name_display = serializers.CharField(source="destination.name", read_only=True)
+    verification_status_display = serializers.CharField(source="get_verification_status_display", read_only=True)
+    verified_by_name = serializers.CharField(source="verified_by.full_name", read_only=True)
+    daily_cost_npr = serializers.SerializerMethodField()
+    daily_cost_usd = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TravelExpenseFeedback
+        fields = [
+            "id", "user", "user_name", "destination", "destination_name", "destination_name_display",
+            "travel_dates", "num_people", "num_days", "travel_mode", "travel_style",
+            "transport_cost", "transport_details", "accommodation_cost", "accommodation_type",
+            "food_cost", "entry_cost", "guide_porter_cost", "permit_cost",
+            "local_transport_cost", "misc_cost", "total_cost",
+            "verification_status", "verification_status_display",
+            "is_employee_verified", "verified_by", "verified_by_name", "verified_at",
+            "verification_notes", "rejection_reason",
+            "aggregated_to_components", "aggregation_notes",
+            "route_details", "notes",
+            "daily_cost_npr", "daily_cost_usd",
+            "created_at", "updated_at"
+        ]
+        read_only_fields = [
+            "user", "verification_status", "is_employee_verified",
+            "verified_by", "verified_at", "aggregated_to_components",
+            "created_at", "updated_at"
+        ]
+
+    def get_daily_cost_npr(self, obj):
+        if obj.num_days > 0:
+            return float(obj.total_cost / obj.num_days)
+        return None
+
+    def get_daily_cost_usd(self, obj):
+        if obj.num_days > 0:
+            from django.conf import settings
+            rate = getattr(settings, 'USD_NPR_RATE', 132.0)
+            return round(float(obj.total_cost / obj.num_days / rate), 2)
+        return None
+
+
+class TravelExpenseFeedbackAdminSerializer(TravelExpenseFeedbackSerializer):
+    """Extended serializer for admin review actions."""
+    class Meta(TravelExpenseFeedbackSerializer.Meta):
+        fields = TravelExpenseFeedbackSerializer.Meta.fields + [
+            "rejection_reason", "verified_by", "verified_at"
+        ]
+        read_only_fields = TravelExpenseFeedbackSerializer.Meta.read_only_fields + [
+            "user", "destination", "destination_name"
+        ]
+
+
+class DestinationBudgetProfileAdminSerializer(serializers.ModelSerializer):
+    """For admin to manually trigger recomputation."""
+    class Meta:
+        model = DestinationBudgetProfile
+        fields = "__all__"
+        read_only_fields = ["last_computed", "computation_version", "components_used"]

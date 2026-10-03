@@ -8,8 +8,9 @@ from django.utils import timezone
 from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, permissions
+from rest_framework import status, permissions, viewsets, viewsets
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from .models import (
@@ -20,9 +21,17 @@ from .models import (
     SiteSetting, DataRetentionPolicy, BrandingAsset, CMSContentTranslation, ManagedPage, ContentSection, ContentBlock, ManagedNavigationItem, CMSRevision, FeedbackMessage, StaffCapabilityProfile, Notification, NotificationPreference,
     CurrentHazard, VisitorNotice, MarketplaceListing, MarketplacePartner, FeaturedDestination, RedirectRule,
     ImportConflict, ContentProposal, DuplicateDecision,
+    PriceComponent, PriceComponentHistory, DestinationBudgetProfile,
 )
+from .views import ScopedFieldFeedbackMixin
 from .permissions import IsAdminOrStaff
+from .views import ScopedFieldFeedbackMixin
 from .serializers import InfrastructureSubmissionSerializer, FeaturedDestinationSerializer, is_generated_postcard_url
+from .serializers import (
+    PriceComponentSerializer, PriceComponentHistorySerializer,
+    DestinationBudgetProfileSerializer, DestinationBudgetProfileAdminSerializer,
+    TravelExpenseFeedbackSerializer, TravelExpenseFeedbackAdminSerializer,
+)
 
 User = get_user_model()
 
@@ -7185,3 +7194,197 @@ class AdminRoutingProviderView(APIView):
             return Response({"ok": False, "error": str(exc)[:200]})
 
 
+# ---------------------------------------------------------------------------
+# Enhanced Budget & Price Management Views
+# ---------------------------------------------------------------------------
+
+class PriceComponentViewSet(viewsets.ModelViewSet):
+    """
+    Admin management of price components.
+    Public read for current prices; full CRUD for admins.
+    """
+    queryset = PriceComponent.objects.all()
+    serializer_class = PriceComponentSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrStaff]
+    filterset_fields = ["category", "province", "district", "destination", "is_active", "is_verified"]
+    search_fields = ["name", "source_reference", "district"]
+    ordering_fields = ["effective_from", "base_price_npr", "category"]
+    ordering = ["-effective_from", "category"]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        # Public read: only current, active, verified prices
+        if self.action == "list" and not self.request.user.is_staff:
+            today = timezone.now().date()
+            qs = qs.filter(is_active=True, is_verified=True, effective_from__lte=today).filter(
+                Q(effective_until__isnull=True) | Q(effective_until__gte=today)
+            )
+        return qs
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, IsAdminOrStaff])
+    def verify(self, request, pk=None):
+        """Mark a price component as verified."""
+        component = self.get_object()
+        component.is_verified = True
+        component.verified_by = request.user
+        component.verified_at = timezone.now()
+        component.save(update_fields=["is_verified", "verified_by", "verified_at", "updated_at"])
+        return Response({"message": "Price component verified"})
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, IsAdminOrStaff])
+    def deprecate(self, request, pk=None):
+        """Set effective_until to yesterday, effectively deprecating."""
+        component = self.get_object()
+        yesterday = timezone.now().date() - timedelta(days=1)
+        PriceComponentHistory.objects.create(
+            component=component,
+            changed_by=request.user,
+            old_price_npr=component.base_price_npr,
+            new_price_npr=component.base_price_npr,
+            old_effective_until=component.effective_until,
+            new_effective_until=yesterday,
+            change_reason="Deprecated via admin action",
+            change_source=PriceComponent.SourceType.ADMIN_MANUAL
+        )
+        component.effective_until = yesterday
+        component.is_active = False
+        component.save(update_fields=["effective_until", "is_active", "updated_at"])
+        return Response({"message": "Price component deprecated"})
+
+    @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated, IsAdminOrStaff])
+    def categories(self, request):
+        """Return all categories with counts."""
+        from django.db.models import Count
+        counts = PriceComponent.objects.values("category").annotate(count=Count("id"))
+        return Response({c["category"]: c["count"] for c in counts})
+
+
+class PriceComponentHistoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """Audit trail for price changes."""
+    queryset = PriceComponentHistory.objects.all()
+    serializer_class = PriceComponentHistorySerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrStaff]
+    filterset_fields = ["component", "changed_by"]
+
+
+class DestinationBudgetProfileViewSet(viewsets.ReadOnlyModelViewSet):
+    """Public read-only access to computed budget profiles."""
+    queryset = DestinationBudgetProfile.objects.select_related("destination")
+    serializer_class = DestinationBudgetProfileSerializer
+    permission_classes = [permissions.AllowAny]
+    filterset_fields = ["destination"]
+    lookup_field = "destination__slug"
+
+    def get_queryset(self):
+        return DestinationBudgetProfile.objects.select_related("destination").filter(
+            destination__is_active=True, destination__status=Destination.SubmissionStatus.APPROVED
+        )
+
+
+class DestinationBudgetProfileAdminViewSet(viewsets.ModelViewSet):
+    """Admin management of budget profiles - mainly for triggering recomputation."""
+    queryset = DestinationBudgetProfile.objects.select_related("destination")
+    serializer_class = DestinationBudgetProfileAdminSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrStaff]
+    lookup_field = "destination__slug"
+
+    @action(detail=True, methods=["post"])
+    def recompute(self, request, destination__slug=None):
+        """Trigger recomputation of this destination's budget profile."""
+        profile = self.get_object()
+        from .budget_services import compute_destination_budget_profile
+        compute_destination_budget_profile(profile.destination)
+        profile.refresh_from_db()
+        serializer = self.get_serializer(profile)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["post"])
+    def recompute_all(self, request):
+        """Trigger recomputation for all destinations (background task)."""
+        from .budget_services import recompute_all_budget_profiles
+        count = recompute_all_budget_profiles()
+        return Response({"message": f"Queued recomputation for {count} destinations"})
+
+
+class TravelExpenseFeedbackViewSet(ScopedFieldFeedbackMixin, viewsets.ModelViewSet):
+    """
+    Public submission + admin review workflow.
+    Users submit expenses; admins verify/reject/aggregate.
+    """
+    queryset = TravelExpenseFeedback.objects.all()
+    serializer_class = TravelExpenseFeedbackSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    filterset_fields = ["destination", "verification_status", "travel_style"]
+    search_fields = ["destination_name", "user__email"]
+    ordering_fields = ["created_at", "total_cost", "num_days"]
+    ordering = ["-created_at"]
+
+    def get_serializer_class(self):
+        if self.request.user.is_staff and self.action in ["update", "partial_update"]:
+            return TravelExpenseFeedbackAdminSerializer
+        return TravelExpenseFeedbackSerializer
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        # Users see their own + verified public ones; admins see all
+        if not self.request.user.is_staff:
+            qs = qs.filter(
+                Q(user=self.request.user) |
+                Q(verification_status=TravelExpenseFeedback.VerificationStatus.VERIFIED)
+            )
+        return qs
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, IsAdminOrStaff])
+    def verify(self, request, pk=None):
+        """Admin verifies and aggregates this expense to price components."""
+        feedback = self.get_object()
+        if feedback.verification_status == TravelExpenseFeedback.VerificationStatus.VERIFIED:
+            return Response({"detail": "Already verified"}, status=400)
+
+        from .budget_services import aggregate_expense_to_components
+        result = aggregate_expense_to_components(feedback, request.user)
+
+        feedback.verification_status = TravelExpenseFeedback.VerificationStatus.VERIFIED
+        feedback.is_employee_verified = True
+        feedback.verified_by = request.user
+        feedback.verified_at = timezone.now()
+        feedback.aggregated_to_components = True
+        feedback.save(update_fields=[
+            "verification_status", "is_employee_verified",
+            "verified_by", "verified_at", "aggregated_to_components"
+        ])
+
+        return Response({"message": "Expense verified and aggregated", **result})
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, IsAdminOrStaff])
+    def reject(self, request, pk=None):
+        """Admin rejects an expense submission."""
+        feedback = self.get_object()
+        reason = request.data.get("rejection_reason", "")
+        feedback.verification_status = TravelExpenseFeedback.VerificationStatus.REJECTED
+        feedback.rejection_reason = reason
+        feedback.verified_by = request.user
+        feedback.verified_at = timezone.now()
+        feedback.save(update_fields=[
+            "verification_status", "rejection_reason",
+            "verified_by", "verified_at"
+        ])
+        return Response({"message": "Expense rejected"})
+
+    @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated, IsAdminOrStaff])
+    def pending_count(self, request):
+        """Count of pending expense feedback for admin badge."""
+        count = TravelExpenseFeedback.objects.filter(
+            verification_status=TravelExpenseFeedback.VerificationStatus.PENDING
+        ).count()
+        return Response({"pending": count})
+
+
+# ---------------------------------------------------------------------------
+# Budget Computation Service (imported in views)
+# ---------------------------------------------------------------------------
+
+# We'll add the service functions in a separate file to keep views clean

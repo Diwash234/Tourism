@@ -1609,6 +1609,232 @@ class Budget(TimeStampedModel):
 
 
 # ---------------------------------------------------------------------------
+# Enhanced Budget & Price Management (Admin-controllable, versioned, government-linked)
+# ---------------------------------------------------------------------------
+
+class PriceComponent(TimeStampedModel):
+    """
+    Atomic price components that can be independently managed and versioned.
+    Each component represents a unit price (e.g., per km for transport, per night for accommodation).
+    """
+    class Category(models.TextChoices):
+        TRANSPORT_INTERCITY = "transport_intercity", "Intercity Transport (per km)"
+        TRANSPORT_LOCAL = "transport_local", "Local Transport (per km)"
+        TRANSPORT_FLIGHT = "transport_flight", "Domestic Flight (per route)"
+        ACCOMMODATION_BUDGET = "accommodation_budget", "Budget Accommodation (per night)"
+        ACCOMMODATION_STANDARD = "accommodation_standard", "Standard Accommodation (per night)"
+        ACCOMMODATION_LUXURY = "accommodation_luxury", "Luxury Accommodation (per night)"
+        FOOD_BUDGET = "food_budget", "Budget Meals (per day)"
+        FOOD_STANDARD = "food_standard", "Standard Meals (per day)"
+        FOOD_PREMIUM = "food_premium", "Premium Meals (per day)"
+        ENTRY_FEE_PARK = "entry_fee_park", "National Park/Protected Area Entry"
+        ENTRY_FEE_HERITAGE = "entry_fee_heritage", "Heritage Site Entry"
+        ENTRY_FEE_MUSEUM = "entry_fee_museum", "Museum Entry"
+        ENTRY_FEE_OTHER = "entry_fee_other", "Other Entry Fees"
+        GUIDE_PORTER = "guide_porter", "Guide/Porter (per day)"
+        PERMIT_TREK = "permit_trek", "Trekking Permit"
+        PERMIT_OTHER = "permit_other", "Other Permits"
+        MISC = "misc", "Miscellaneous"
+
+    class SourceType(models.TextChoices):
+        GOVERNMENT_GAZETTE = "government_gazette", "Government Gazette / Official Notification"
+        TOURISM_BOARD = "tourism_board", "Nepal Tourism Board"
+        NATIONAL_PARK = "national_park", "National Park Authority"
+        DOTM = "dotm", "Department of Transport Management"
+        AIRLINE = "airline", "Airline Official"
+        HOTEL_ASSOCIATION = "hotel_association", "Hotel Association"
+        RESTAURANT_ASSOCIATION = "restaurant_association", "Restaurant Association"
+        GUIDE_ASSOCIATION = "guide_association", "Guide Association"
+        USER_FEEDBACK = "user_feedback", "Verified User Feedback (aggregated)"
+        ADMIN_MANUAL = "admin_manual", "Admin Manual Entry"
+        ML_ESTIMATED = "ml_estimated", "ML Estimated"
+
+    # Geographic scope
+    province = models.CharField(max_length=100, blank=True, help_text="Leave blank for national default")
+    district = models.CharField(max_length=100, blank=True, help_text="Leave blank for province-wide")
+    destination = models.ForeignKey(
+        Destination, on_delete=models.CASCADE, null=True, blank=True,
+        related_name="price_components",
+        help_text="Specific destination override"
+    )
+
+    # Component definition
+    category = models.CharField(max_length=30, choices=Category.choices)
+    name = models.CharField(max_length=200, help_text="e.g., 'Kathmandu-Pokhara Tourist Bus', 'Chitwan Park Entry Foreigner'")
+    unit = models.CharField(max_length=50, help_text="e.g., 'per km', 'per night', 'per person', 'per day'")
+
+    # Price in NPR (base currency)
+    base_price_npr = models.DecimalField(max_digits=12, decimal_places=2)
+    currency = models.CharField(max_length=10, default="NPR")
+
+    # Validity period
+    effective_from = models.DateField(default=timezone.now)
+    effective_until = models.DateField(null=True, blank=True, help_text="Null = ongoing")
+
+    # Source & verification
+    source_type = models.CharField(max_length=30, choices=SourceType.choices, default=SourceType.ADMIN_MANUAL)
+    source_reference = models.CharField(max_length=500, blank=True, help_text="Gazette number, URL, document reference")
+    source_document = models.FileField(upload_to="price_sources/", null=True, blank=True)
+
+    # Verification workflow
+    is_verified = models.BooleanField(default=False)
+    verified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="verified_price_components"
+    )
+    verified_at = models.DateTimeField(null=True, blank=True)
+
+    # Status
+    is_active = models.BooleanField(default=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-effective_from", "category", "district"]
+        indexes = [
+            models.Index(fields=["category", "province", "district", "destination", "is_active", "effective_from"]),
+            models.Index(fields=["effective_from", "effective_until"]),
+        ]
+
+    def __str__(self):
+        scope = self.destination.name if self.destination else (self.district or self.province or "National")
+        return f"{self.get_category_display()} - {self.name} ({scope}) - NPR {self.base_price_npr}/{self.unit}"
+
+
+class PriceComponentHistory(TimeStampedModel):
+    """Full audit trail of price changes."""
+    component = models.ForeignKey(PriceComponent, on_delete=models.CASCADE, related_name="history")
+    changed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    old_price_npr = models.DecimalField(max_digits=12, decimal_places=2)
+    new_price_npr = models.DecimalField(max_digits=12, decimal_places=2)
+    old_effective_until = models.DateField(null=True, blank=True)
+    new_effective_until = models.DateField(null=True, blank=True)
+    change_reason = models.CharField(max_length=500)
+    change_source = models.CharField(max_length=30, choices=PriceComponent.SourceType.choices)
+
+
+class DestinationBudgetProfile(TimeStampedModel):
+    """
+    Computed budget profile for a destination, assembled from price components.
+    Auto-refreshed when underlying components change.
+    """
+    destination = models.OneToOneField(Destination, on_delete=models.CASCADE, related_name="budget_profile")
+
+    # Computed daily costs (NPR) for different travel styles
+    budget_daily_npr = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    standard_daily_npr = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    premium_daily_npr = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+
+    # Breakdown
+    transport_intercity_npr = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    transport_local_npr = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    accommodation_npr = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    food_npr = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    entry_fees_npr = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    guide_porter_npr = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    permits_npr = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    misc_npr = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+
+    # USD equivalents (for display)
+    usd_rate_used = models.DecimalField(max_digits=8, decimal_places=4, null=True, blank=True)
+    budget_daily_usd = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    standard_daily_usd = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    premium_daily_usd = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
+    # Metadata
+    last_computed = models.DateTimeField(auto_now=True)
+    computation_version = models.PositiveIntegerField(default=1)
+    components_used = models.JSONField(default=list)  # List of component IDs used
+
+    class Meta:
+        ordering = ["destination__name"]
+
+    def __str__(self):
+        return f"Budget Profile: {self.destination.name}"
+
+
+class TravelExpenseFeedback(TimeStampedModel):
+    """
+    Enhanced with admin review workflow and auto-aggregation to price components.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="expense_submissions"
+    )
+    destination = models.ForeignKey(
+        Destination, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="expense_feedbacks"
+    )
+    destination_name = models.CharField(max_length=200)
+    travel_dates = models.JSONField(default=dict, help_text="{start: '2024-10-01', end: '2024-10-05'}")
+    num_people = models.PositiveIntegerField(default=1)
+    num_days = models.PositiveIntegerField(default=1)
+    travel_mode = models.CharField(max_length=100, default="Tourist Bus")
+    travel_style = models.CharField(max_length=20, choices=[
+        ("budget", "Budget"), ("standard", "Standard"), ("premium", "Premium")
+    ], default="standard")
+
+    # Detailed breakdown
+    transport_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    transport_details = models.TextField(blank=True)
+    accommodation_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    accommodation_type = models.CharField(max_length=50, blank=True)
+    food_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    entry_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    guide_porter_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    permit_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    local_transport_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    misc_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    # Verification workflow
+    class VerificationStatus(models.TextChoices):
+        PENDING = "pending", "Pending Review"
+        VERIFIED = "verified", "Verified & Aggregated"
+        REJECTED = "rejected", "Rejected"
+        FLAGGED = "flagged", "Flagged for Review"
+
+    verification_status = models.CharField(
+        max_length=20, choices=VerificationStatus.choices, default=VerificationStatus.PENDING
+    )
+    is_employee_verified = models.BooleanField(default=False)
+    verified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="verified_expense_feedbacks"
+    )
+    verified_at = models.DateTimeField(null=True, blank=True)
+    verification_notes = models.TextField(blank=True)
+    rejection_reason = models.TextField(blank=True)
+
+    # Aggregation flag
+    aggregated_to_components = models.BooleanField(default=False)
+    aggregation_notes = models.TextField(blank=True)
+
+    route_details = models.TextField(blank=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["destination", "verification_status"]),
+            models.Index(fields=["verification_status", "created_at"]),
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self.total_cost or self.total_cost == 0:
+            self.total_cost = sum([
+                self.accommodation_cost or 0, self.travel_cost or 0,
+                self.entry_cost or 0, self.food_cost or 0,
+                self.extra_cost or 0, self.guide_porter_cost or 0,
+                self.permit_cost or 0, self.local_transport_cost or 0,
+                self.misc_cost or 0
+            ])
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.destination_name} - NPR {self.total_cost} ({self.num_days}d, {self.num_people}p) [{self.verification_status}]"
+
+
+# ---------------------------------------------------------------------------
 # Alerts & Emergency Information
 # ---------------------------------------------------------------------------
 class Alert(TimeStampedModel):
@@ -2147,52 +2373,6 @@ class DestinationAuditLog(TimeStampedModel):
 # ---------------------------------------------------------------------------
 # ML-Connected Traveler & Field Staff Feedback (Expenses & Risk)
 # ---------------------------------------------------------------------------
-class TravelExpenseFeedback(TimeStampedModel):
-    """
-    Field / traveler real expenditure records. Connects directly to the
-    ML budget estimation engine so subsequent calculations learn from
-    actual ground spending.
-    """
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name="expense_submissions"
-    )
-    destination = models.ForeignKey(
-        Destination, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name="expense_feedbacks"
-    )
-    destination_name = models.CharField(max_length=200)
-    num_people = models.PositiveIntegerField(default=1)
-    num_days = models.PositiveIntegerField(default=1)
-    travel_mode = models.CharField(max_length=100, default="Tourist Bus")
-    accommodation_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    travel_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    entry_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    food_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    extra_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    total_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    route_details = models.TextField(blank=True, help_text="Practical route or transit details taken")
-    is_employee_verified = models.BooleanField(default=False)
-    notes = models.TextField(blank=True)
-
-    class Meta:
-        ordering = ["-created_at"]
-
-    def save(self, *args, **kwargs):
-        if not self.total_cost or self.total_cost == 0:
-            self.total_cost = (
-                (self.accommodation_cost or 0) +
-                (self.travel_cost or 0) +
-                (self.entry_cost or 0) +
-                (self.food_cost or 0) +
-                (self.extra_cost or 0)
-            )
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.destination_name} - {self.total_cost} NPR ({self.num_days} days, {self.num_people} ppl)"
-
-
 class TravelRiskFeedback(TimeStampedModel):
     """
     Detailed traveler risk & safety feedback: altitude sickness, hazards,
@@ -4240,3 +4420,41 @@ class ForexRateSnapshot(models.Model):
 
     def __str__(self):
         return f"NRB rates {self.rate_date}"
+
+
+class UITranslation(models.Model):
+    """Admin-editable UI string translation.
+
+    `key` matches a `t("...")` key in the frontend i18n store
+    (frontend/Tourism/src/i18n/index.js). `language` is an ISO code
+    ("ne", "hi", ...). English ("en") is the source language and lives
+    in the frontend bundle; rows for "en" are allowed but ignored.
+
+    The frontend fetches all rows for its active language and merges
+    them OVER the bundled dictionary, so an admin edit applies to every
+    visitor the moment they switch language — no rebuild, no redeploy.
+    """
+
+    key = models.CharField(max_length=200, db_index=True)
+    language = models.CharField(max_length=10, db_index=True)
+    value = models.TextField()
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="ui_translations",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["key", "language"], name="unique_ui_translation_key_lang"),
+        ]
+        indexes = [
+            models.Index(fields=["language", "key"]),
+        ]
+        ordering = ["key"]
+
+    def __str__(self):
+        return f"{self.key} [{self.language}]"

@@ -61,8 +61,13 @@ router.register("safety/trusted-contacts", views_family_safety.TrustedContactVie
 router.register("safety/trips", views_family_safety.SharedTripViewSet, basename="shared-trip")
 router.register("safety/sos", views_family_safety.SOSAlertViewSet, basename="sos-alert")
 router.register("safety/family-links", views_family_safety.FamilyLinkViewSet, basename="family-link")
-router.register("expense-feedback", views.TravelExpenseFeedbackViewSet, basename="expense-feedback")
+router.register("expense-feedback", views_admin.TravelExpenseFeedbackViewSet, basename="expense-feedback")
 router.register("risk-feedback", views.TravelRiskFeedbackViewSet, basename="risk-feedback")
+
+router.register("price-components", views_admin.PriceComponentViewSet, basename="price-component")
+router.register("price-component-history", views_admin.PriceComponentHistoryViewSet, basename="price-component-history")
+router.register("budget-profiles", views_admin.DestinationBudgetProfileViewSet, basename="budget-profile")
+router.register("admin/budget-profiles", views_admin.DestinationBudgetProfileAdminViewSet, basename="admin-budget-profile")
 router.register("admin/destination-features", views.DestinationFeatureProfileViewSet, basename="admin-destination-features")
 router.register("admin/risk-incidents", views.RiskIncidentAdminViewSet, basename="admin-risk-incidents")
 router.register("admin/current-hazards", views.CurrentHazardAdminViewSet, basename="admin-current-hazards")
@@ -302,6 +307,8 @@ urlpatterns = [
     path("admin/newsletter/export.csv", views_account.NewsletterExportView.as_view(), name="admin-newsletter-export"),
     path("discover-nepal/", views.DiscoverNepalView.as_view(), name="discover-nepal"),
     path("translate/", views.TranslateTextView.as_view(), name="translate-text"),
+    path("translation/ui-strings/", views.UITranslationListView.as_view(), name="ui-strings"),
+    path("translation/ui-strings/bulk/", views.UITranslationBulkView.as_view(), name="ui-strings-bulk"),
     path("images/resolve/", views_images.ImageResolveView.as_view(), name="images-resolve"),
     # Multi-source Image Acquisition & Provenance Pipeline API
     path("destinations/<str:slug>/images", views_images.DestinationImagesListView.as_view(), name="destination-images-list-no-slash"),
