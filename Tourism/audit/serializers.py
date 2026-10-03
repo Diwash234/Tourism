@@ -36,7 +36,7 @@ class ErrorEventSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
-    def get_acknowledged_by_name(self, obj):
+    def get_acknowledged_by_name(self, obj) -> str | None:
         if obj.acknowledged_by:
             return getattr(obj.acknowledged_by, "full_name", None) or (f"{obj.acknowledged_by.first_name} {obj.acknowledged_by.last_name}".strip() if obj.acknowledged_by.first_name else "") or obj.acknowledged_by.email
         return None

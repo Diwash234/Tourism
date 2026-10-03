@@ -138,6 +138,7 @@ def get_nearest_facilities(latitude, longitude, category=None, limit=5):
 
 
 class NearbyEmergencyView(APIView):
+    serializer_class = None
 
     permission_classes = [AllowAny]
 
@@ -315,6 +316,7 @@ class ChatMessageView(APIView):
 
 class ChatHistoryView(APIView):
     """GET /api/v1/chatbot/history/ — the logged-in user's past conversations."""
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
 

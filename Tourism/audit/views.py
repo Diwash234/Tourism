@@ -17,6 +17,7 @@ from django.utils import timezone
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema
 
 from .models import ActionCategory, AuditLog, ErrorEvent, HealthSample, Severity, Source
 from .serializers import (
@@ -173,6 +174,7 @@ class HealthSampleViewSet(viewsets.ReadOnlyModelViewSet):
 # ---------------------------------------------------------------------------
 # Frontend error reporting (anonymous-safe; used by the React ErrorBoundary)
 # ---------------------------------------------------------------------------
+@extend_schema(request=FrontendErrorSerializer)
 @api_view(["POST"])
 @permission_classes([permissions.AllowAny])
 def report_frontend_error(request):

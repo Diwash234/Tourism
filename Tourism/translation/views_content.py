@@ -14,6 +14,7 @@ class GenerateDestinationContentView(APIView):
     saving by default (so a moderator can review) -- pass {"save": true}
     to write it directly onto the Destination.
     """
+    serializer_class = None
     permission_classes = [IsRoleOrAbove(User.Role.CONTENT_MODERATOR)]
 
     def post(self, request, slug):

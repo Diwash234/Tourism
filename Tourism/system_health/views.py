@@ -10,10 +10,12 @@ Two endpoints:
 from rest_framework import permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema
 
 from .checks import run_all_checks, write_snapshot
 
 
+@extend_schema(exclude=True)
 @api_view(["GET"])
 @permission_classes([permissions.AllowAny])
 def quick_health(_request):
@@ -29,12 +31,14 @@ def quick_health(_request):
     })
 
 
+@extend_schema(exclude=True)
 @api_view(["GET"])
 @permission_classes([permissions.IsAdminUser])
 def full_health(_request):
     return Response(run_all_checks())
 
 
+@extend_schema(exclude=True)
 @api_view(["POST", "GET"])
 @permission_classes([permissions.IsAdminUser])
 def sample_now(_request):

@@ -23,6 +23,7 @@ from .serializers import (ItineraryRouteRequestSerializer,
 
 
 class RoadRouteView(APIView):
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -69,6 +70,7 @@ class RoadRouteView(APIView):
 
 
 class NavigationProgressView(APIView):
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -113,6 +115,7 @@ class NavigationProgressView(APIView):
 
 
 class NavigationModesView(APIView):
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
@@ -127,6 +130,7 @@ class NavigationModesView(APIView):
 
 class NavigationDiagnosticsView(APIView):
     """Admin-only: are users getting real road routes or silent fallbacks?"""
+    serializer_class = None
     permission_classes = [permissions.IsAdminUser]
 
     def get(self, request):
@@ -168,6 +172,7 @@ class ItineraryRouteView(APIView):
     Tourism intelligence (which stops, in which order) stays OUT of the
     routing providers — the itinerary engine supplies coordinates only.
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -243,6 +248,7 @@ class ItineraryRouteView(APIView):
 
 class SelectAlternativeView(APIView):
     """Swap the active session to one of the alternatives returned earlier."""
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -289,6 +295,7 @@ class AlongRoutePlacesView(APIView):
     polyline), not straight-line-from-user — the navigation-aware nearby
     view. Straight-line values are included for honesty.
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
@@ -362,6 +369,7 @@ class RouteContextView(APIView):
     Context layers ONLY (safety, weather) — they annotate the route and
     never alter it; routing truth stays with the provider.
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
@@ -415,6 +423,7 @@ class RouteContextView(APIView):
 
 class NavigationEndView(APIView):
     """Mark a session ended (also called by the UI's End button)."""
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -428,6 +437,7 @@ class NavigationEndView(APIView):
 
 class ActiveSessionsView(APIView):
     """Most recent live session for 'Resume navigation?' recovery."""
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
@@ -453,6 +463,7 @@ class ActiveSessionsView(APIView):
 class GPSReplayView(APIView):
     """Deterministic GPS replay for testing the navigation state machine
     without a physical device. Dev/CI only (NAVIGATION_ALLOW_DEBUG)."""
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -487,6 +498,7 @@ class GPSReplayView(APIView):
 
 class NavigationHealthView(APIView):
     """Permanent routing health probe (admin/monitoring)."""
+    serializer_class = None
     permission_classes = [permissions.IsAdminUser]
 
     def get(self, request):

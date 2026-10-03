@@ -15,6 +15,7 @@ class ImageResolveView(APIView):
     and every result has already passed the relevance check in
     image_pipeline.py. Cached for 7 days per query.
     """
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):

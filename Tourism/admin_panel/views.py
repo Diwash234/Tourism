@@ -170,6 +170,7 @@ class MyHotelsView(APIView):
 
     Super admins receive all hotels.
     """
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -226,6 +227,7 @@ class AdminDashboardSummaryView(APIView):
         - destinations by category
         - monthly visitor statistics
     """
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -429,6 +431,7 @@ class AdminAnalyticsView(APIView):
         ?days=90
         ?days=365
     """
+    serializer_class = None
 
     permission_classes = [permissions.IsAdminUser]
 
@@ -711,6 +714,7 @@ class AdminTaskActionView(APIView):
     Every action writes an audit entry and notifies the counterpart, so the
     admin↔staff loop is fully traceable.
     """
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -830,6 +834,7 @@ class AdminTaskActionView(APIView):
 @extend_schema(responses=OpenApiTypes.OBJECT)
 class MyPerformanceView(APIView):
     """Aggregates the caller's own task record. Operational view only."""
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -908,6 +913,7 @@ class SupportTicketListView(APIView):
     Admins see every ticket. Staff see tickets assigned to them plus the
     unassigned pool they may claim — never another staff member's tickets.
     """
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -949,6 +955,7 @@ class SupportTicketActionView(APIView):
     Staff may claim unassigned tickets and act on their own tickets only
     (IDOR-guarded). Escalation notifies the admin team. Audited.
     """
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -1066,6 +1073,7 @@ def _booking_payload(b):
 @extend_schema(responses=OpenApiTypes.OBJECT)
 class MyBookingsView(APIView):
     """GET /api/v1/admin-panel/my-bookings/ — bookings inside the caller's hotel scope."""
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -1093,6 +1101,7 @@ class MyBookingsView(APIView):
 @extend_schema(responses=OpenApiTypes.OBJECT)
 class BookingActionView(APIView):
     """POST /api/v1/admin-panel/my-bookings/<pk>/action/ — confirm/cancel/complete within scope."""
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -1167,6 +1176,7 @@ def _entry_payload(d):
 
 class DataEntryListView(APIView):
     """GET/POST /api/v1/admin-panel/data-entry/ — staff drafts + submissions."""
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -1218,6 +1228,7 @@ class DataEntryListView(APIView):
 
 class DataEntryActionView(APIView):
     """POST /api/v1/admin-panel/data-entry/<pk>/action/ — submit/approve/reject/reopen."""
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
     ALLOWED = {"submit", "approve", "reject", "reopen"}
@@ -1300,6 +1311,7 @@ def _image_payload(img):
 @extend_schema(responses=OpenApiTypes.OBJECT)
 class MediaQueueView(APIView):
     """GET/POST /api/v1/admin-panel/media/ — destination image review queue."""
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -1348,6 +1360,7 @@ class MediaQueueView(APIView):
 @extend_schema(responses=OpenApiTypes.OBJECT)
 class MediaActionView(APIView):
     """POST /api/v1/admin-panel/media/<pk>/action/ — approve/reject an image."""
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -1403,6 +1416,7 @@ def _report_payload(r):
 @extend_schema(responses=OpenApiTypes.OBJECT)
 class SafetyOpsView(APIView):
     """GET /api/v1/admin-panel/safety/ — alerts, hazards and user reports in one queue."""
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -1430,6 +1444,7 @@ class SafetyOpsView(APIView):
 @extend_schema(responses=OpenApiTypes.OBJECT)
 class SafetyActionView(APIView):
     """POST /api/v1/admin-panel/safety/<kind>/<pk>/action/ — verify/deactivate/resolve/review/fix/reject."""
+    serializer_class = None
 
     permission_classes = [permissions.IsAuthenticated]
 
