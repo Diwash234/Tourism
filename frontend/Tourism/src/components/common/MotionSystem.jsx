@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react"
+﻿import { useRef, useState, useEffect } from "react"
 import { motion, useReducedMotion } from "framer-motion"
 
 // Smooth cubic bezier easing matching modern digital agency standards (Refero / Emil Kowalski)
@@ -14,7 +14,7 @@ export const TRANSITION_SPRING = {
 }
 
 /**
- * FadeIn — Smooth opacity and vertical reveal with reduced-motion support
+ * FadeIn ÔÇö Smooth opacity and vertical reveal with reduced-motion support
  */
 export const FadeIn = ({ children, delay = 0, y = 16, className = "" }) => {
   const shouldReduceMotion = useReducedMotion()
@@ -32,7 +32,7 @@ export const FadeIn = ({ children, delay = 0, y = 16, className = "" }) => {
 }
 
 /**
- * SlideUp — On-scroll viewport reveal
+ * SlideUp ÔÇö On-scroll viewport reveal
  */
 export const SlideUp = ({ children, delay = 0, className = "" }) => {
   const shouldReduceMotion = useReducedMotion()
@@ -91,7 +91,7 @@ export const StaggerItem = ({ children, className = "" }) => {
 }
 
 /**
- * HoverCard — Interactive card with Refero-grade scale, lift, and subtle glow
+ * HoverCard ÔÇö Interactive card with Refero-grade scale, lift, and subtle glow
  */
 export const HoverCard = ({ children, className = "", onClick }) => {
   const shouldReduceMotion = useReducedMotion()
@@ -110,7 +110,7 @@ export const HoverCard = ({ children, className = "", onClick }) => {
 }
 
 /**
- * MagneticButton — Refero / Emil Kowalski style magnetic attraction button
+ * MagneticButton ÔÇö Refero / Emil Kowalski style magnetic attraction button
  */
 export const MagneticButton = ({ children, onClick, className = "", disabled = false }) => {
   const ref = useRef(null)
@@ -153,9 +153,9 @@ export const MagneticButton = ({ children, onClick, className = "", disabled = f
 }
 
 /**
- * BurnGlowBadge — Luxury energy sweep glow pill
+ * BurnGlowBadge ÔÇö Luxury energy sweep glow pill
  */
-export const BurnGlowBadge = ({ text, icon: Icon = null, variant = "gold" }) => {
+export const BurnGlowBadge = ({ text, icon: Icon = null, variant: _variant = "gold" }) => {
   return (
     <div className="relative inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full overflow-hidden border border-amber-400/40 bg-gradient-to-r from-purple-950/80 via-purple-900/60 to-purple-950/80 text-amber-300 text-xs font-bold shadow-lg shadow-purple-950/40 backdrop-blur">
       <span className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-400/20 to-transparent -translate-x-full animate-[shimmer_2.5s_infinite]" />
@@ -166,7 +166,7 @@ export const BurnGlowBadge = ({ text, icon: Icon = null, variant = "gold" }) => 
 }
 
 /**
- * InteractiveHeroCanvas — Ambient interactive particle glow (Unicorn / WebGL style with zero crash risk)
+ * InteractiveHeroCanvas ÔÇö Ambient interactive particle glow (Unicorn / WebGL style with zero crash risk)
  */
 export const InteractiveHeroCanvas = () => {
   const canvasRef = useRef(null)
@@ -246,7 +246,7 @@ export const InteractiveHeroCanvas = () => {
 }
 
 /**
- * ElevationScrollProgress — Ambient Himalayan altitude tracker on scroll
+ * ElevationScrollProgress ÔÇö Ambient Himalayan altitude tracker on scroll
  */
 export const ElevationScrollProgress = () => {
   const [scrollPercent, setScrollPercent] = useState(0)
@@ -287,7 +287,7 @@ export const ElevationScrollProgress = () => {
 }
 
 /**
- * PrayerFlagsBanner — Subtle 5-color prayer flags (Wind, Space, Fire, Water, Earth)
+ * PrayerFlagsBanner ÔÇö Subtle 5-color prayer flags (Wind, Space, Fire, Water, Earth)
  */
 export const PrayerFlagsBanner = ({ className = "" }) => {
   const flags = [
@@ -330,12 +330,12 @@ export const PrayerFlagsBanner = ({ className = "" }) => {
 }
 
 /**
- * DokoMotifBadge — Subtle Nepalese Doko wicker travel emblem
+ * DokoMotifBadge ÔÇö Subtle Nepalese Doko wicker travel emblem
  */
 export const DokoMotifBadge = ({ label = "My Doko", count = null, className = "" }) => {
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-950/40 border border-amber-500/30 text-amber-300 backdrop-blur shadow-sm ${className}`}>
-      <span className="text-sm">🧺</span>
+      <span className="text-sm">­ƒº║</span>
       <span>{label}</span>
       {count !== null && (
         <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-200 text-xs">

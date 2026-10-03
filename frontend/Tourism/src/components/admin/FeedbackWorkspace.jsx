@@ -1,7 +1,7 @@
-import { useEffect, useState, useRef } from "react"
+﻿import { useEffect, useState, useRef } from "react"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
-import { FiSend, FiUser, FiShield, FiPaperclip, FiRefreshCw, FiCheckCircle } from "react-icons/fi"
+import { FiSend, FiUser, FiShield, FiPaperclip, FiRefreshCw } from "react-icons/fi"
 
 const statuses = ["new", "read", "in_progress", "waiting_user", "replied", "resolved", "closed", "archived"]
 
@@ -118,7 +118,7 @@ export default function FeedbackWorkspace() {
                     </span>
                   </div>
                   <p className={`text-[11px] truncate ${active ? "text-slate-900" : "text-slate-400"}`}>
-                    {r.name || r.email || "Visitor"} · {r.priority}
+                    {r.name || r.email || "Visitor"} ┬À {r.priority}
                   </p>
                 </button>
               )
@@ -135,7 +135,7 @@ export default function FeedbackWorkspace() {
             <div className="border-b border-slate-800 pb-3 flex justify-between items-start">
               <div>
                 <span className="text-xs uppercase font-bold text-amber-400 tracking-wider block mb-1">
-                  Support Ticket #{selected.id} · Category: {selected.category}
+                  Support Ticket #{selected.id} ┬À Category: {selected.category}
                 </span>
                 <h2 className="text-xl font-black text-white">{selected.subject}</h2>
                 <p className="text-xs text-slate-400 mt-1">
@@ -203,7 +203,7 @@ export default function FeedbackWorkspace() {
                       </a>
                     ) : (
                       <a key={item.id} href={item.url} target="_blank" rel="noreferrer" className="p-3 bg-slate-900 border border-slate-800 rounded-lg text-amber-300 text-xs block">
-                        📹 Video Evidence #{item.id}
+                        ­ƒô╣ Video Evidence #{item.id}
                       </a>
                     )
                   ))}
@@ -228,7 +228,7 @@ export default function FeedbackWorkspace() {
                 if (m.is_internal) {
                   return (
                     <div key={m.id} className="p-3 rounded-xl bg-amber-950/90 border border-amber-600/50 text-amber-200 text-xs space-y-1">
-                      <b className="text-amber-300 text-xs uppercase font-bold block">🔒 Internal Staff Note ({m.sender}):</b>
+                      <b className="text-amber-300 text-xs uppercase font-bold block">­ƒöÆ Internal Staff Note ({m.sender}):</b>
                       <p>{m.body}</p>
                     </div>
                   )
@@ -274,7 +274,7 @@ export default function FeedbackWorkspace() {
                     onChange={(e) => setInternal(e.target.checked)}
                     className="accent-amber-400 rounded"
                   />
-                  🔒 Mark as Internal Staff Note (hidden from traveler)
+                  ­ƒöÆ Mark as Internal Staff Note (hidden from traveler)
                 </label>
                 <button
                   type="submit"

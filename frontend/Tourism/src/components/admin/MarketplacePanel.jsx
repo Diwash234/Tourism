@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+﻿import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { FiCheck, FiPlus, FiRefreshCw, FiX } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
@@ -125,11 +125,11 @@ export default function MarketplacePanel() {
       <div className="rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-black uppercase tracking-wider text-emerald-700">Travel services</p>
+            <p className="text-[11px] font-black uppercase tracking-wider text-emerald-700">Travel services</p>
             <h2 className="text-2xl font-black text-slate-900">Packages, partners & trip requests</h2>
             <p className="text-sm text-slate-300 mt-1 max-w-3xl">
               Add packages from this desk or after a hotel / operator applies. Travellers request to book or continue
-              on the partner HTTPS site — card numbers are never stored here.
+              on the partner HTTPS site ÔÇö card numbers are never stored here.
             </p>
           </div>
           <div className="flex gap-2">
@@ -147,7 +147,7 @@ export default function MarketplacePanel() {
           ))}
         </div>
         <form className="flex gap-2 mt-3" onSubmit={(event) => { event.preventDefault(); load(tab, query) }}>
-          <input className="input-field" placeholder="Search titles, partners, emails…" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <input className="input-field" placeholder="Search titles, partners, emailsÔÇª" value={query} onChange={(e) => setQuery(e.target.value)} />
           <button type="submit" className="px-4 rounded-xl bg-emerald-700 text-white font-black">Search</button>
         </form>
       </div>
@@ -157,11 +157,11 @@ export default function MarketplacePanel() {
           <form onSubmit={saveListing} className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
             <h3 className="font-black text-slate-900">Add or publish an offer</h3>
             <select className="input-field" required value={listingForm.partner_id} onChange={(e) => setListingForm({ ...listingForm, partner_id: e.target.value })}>
-              <option value="">Approved partner…</option>
+              <option value="">Approved partnerÔÇª</option>
               {approvedPartners.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
             </select>
             <select className="input-field" value={listingForm.destination_id} onChange={(e) => setListingForm({ ...listingForm, destination_id: e.target.value })}>
-              <option value="">Optional destination…</option>
+              <option value="">Optional destinationÔÇª</option>
               {destinations.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
             </select>
             <select className="input-field" value={listingForm.kind} onChange={(e) => setListingForm({ ...listingForm, kind: e.target.value })}>
@@ -196,7 +196,7 @@ export default function MarketplacePanel() {
                 <div key={row.id} className={`rounded-xl border p-3 flex justify-between gap-3 ${row.status === "pending" ? "border-amber-300 bg-amber-50/60" : "border-slate-200"}`}>
                   <div>
                     <p className="font-bold text-slate-900">{row.title}</p>
-                    <p className="text-xs text-slate-500">{row.kind} · {row.partner_name} · NPR {row.price_npr} · {row.status}{row.is_featured ? " · featured" : " · normal"}</p>
+                    <p className="text-xs text-slate-500">{row.kind} ┬À {row.partner_name} ┬À NPR {row.price_npr} ┬À {row.status}{row.is_featured ? " ┬À featured" : " ┬À normal"}</p>
                     <p className="text-xs text-slate-300 mt-1 line-clamp-2">{row.summary}</p>
                   </div>
                   <div className="shrink-0 flex flex-col gap-1">
@@ -237,8 +237,8 @@ export default function MarketplacePanel() {
                 <div key={row.id} className="rounded-xl border border-slate-200 p-3 flex justify-between gap-3">
                   <div>
                     <p className="font-bold text-slate-900">{row.name}</p>
-                    <p className="text-xs text-slate-500">{row.kind} · {row.email} · {row.status} · {row.listing_count} offer(s)</p>
-                    <p className="text-xs text-slate-300 mt-1">{[row.city, row.district].filter(Boolean).join(" · ")}</p>
+                    <p className="text-xs text-slate-500">{row.kind} ┬À {row.email} ┬À {row.status} ┬À {row.listing_count} offer(s)</p>
+                    <p className="text-xs text-slate-300 mt-1">{[row.city, row.district].filter(Boolean).join(" ┬À ")}</p>
                   </div>
                   <div className="shrink-0 flex flex-col gap-1">
                     {["pending", "rejected", "suspended"].includes(row.status) && <button type="button" onClick={() => act({ resource: "partners", id: row.id, action: "review" }, "Under review")} className="text-xs font-bold text-slate-700">Under review</button>}
@@ -263,8 +263,8 @@ export default function MarketplacePanel() {
               <div key={row.id} className="rounded-xl border border-slate-200 p-3">
                 <div className="flex justify-between gap-3">
                   <div>
-                    <p className="font-bold text-slate-900">{row.reference} · NPR {row.total_npr}</p>
-                    <p className="text-xs text-slate-500">{row.guest_name} · {row.guest_email} · {row.status} · {row.payment_method}</p>
+                    <p className="font-bold text-slate-900">{row.reference} ┬À NPR {row.total_npr}</p>
+                    <p className="text-xs text-slate-500">{row.guest_name} ┬À {row.guest_email} ┬À {row.status} ┬À {row.payment_method}</p>
                   </div>
                   <div className="flex gap-2">
                     {["requested", "external"].includes(row.status) && <button type="button" onClick={() => act({ resource: "orders", id: row.id, action: "review" }, "Under review")} className="text-xs font-bold text-slate-700">Under review</button>}
@@ -273,7 +273,7 @@ export default function MarketplacePanel() {
                   </div>
                 </div>
                 <ul className="mt-2 text-xs text-slate-300 space-y-1">
-                  {(row.items || []).map((item) => <li key={item.id}>{item.quantity} × {item.title} — NPR {item.line_total_npr}</li>)}
+                  {(row.items || []).map((item) => <li key={item.id}>{item.quantity} ├ù {item.title} ÔÇö NPR {item.line_total_npr}</li>)}
                 </ul>
               </div>
             ))}

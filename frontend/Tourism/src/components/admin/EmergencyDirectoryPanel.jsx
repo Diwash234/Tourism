@@ -1,6 +1,6 @@
-import { useEffect, useState, useRef } from "react"
+﻿import { useEffect, useState, useRef } from "react"
 import { Link } from "react-router-dom"
-import { FiPlus, FiRefreshCw, FiRadio, FiShield, FiAlertTriangle, FiEdit3 } from "react-icons/fi"
+import { FiPlus, FiRefreshCw, FiRadio, FiAlertTriangle, FiEdit3 } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
 import NationalHotlinesPanel from "./NationalHotlinesPanel"
@@ -49,7 +49,7 @@ export default function EmergencyDirectoryPanel() {
       setCoverage(data.coverage || {})
 
       if (isBackground && newPending.length > prevPendingCount.current) {
-        showToast(`🚨 New community emergency submission received! (${newPending.length} pending)`, "warning")
+        showToast(`­ƒÜ¿ New community emergency submission received! (${newPending.length} pending)`, "warning")
       }
       prevPendingCount.current = newPending.length
       setLastUpdatedSec(0)
@@ -142,14 +142,14 @@ export default function EmergencyDirectoryPanel() {
             <div className="flex items-center gap-2">
               <p className="text-[11px] font-black uppercase tracking-wider text-rose-700">Safety</p>
               <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold flex items-center gap-1">
-                <FiRadio className="animate-pulse text-emerald-600" /> Live 5s Polling · Updated {lastUpdatedSec}s ago
+                <FiRadio className="animate-pulse text-emerald-600" /> Live 5s Polling ┬À Updated {lastUpdatedSec}s ago
               </span>
             </div>
             <h2 className="text-2xl font-black text-slate-900 mt-1">Emergency directory</h2>
             <p className="text-sm text-slate-500 mt-1 max-w-3xl">
               Add accurate hospitals, police, pharmacies or fire stations with coordinates.
               Saves to the database and appends the official CSV. This does not scrape Google or Facebook,
-              and it does not invent 50–60 pharmacies per ward.
+              and it does not invent 50ÔÇô60 pharmacies per ward.
             </p>
           </div>
           <button type="button" onClick={() => load(false)} className="px-4 py-2 rounded-xl border border-rose-200 text-rose-800 text-sm font-bold flex items-center gap-2">
@@ -157,13 +157,13 @@ export default function EmergencyDirectoryPanel() {
           </button>
         </div>
         <div className="flex flex-wrap gap-3 mt-4 text-xs font-bold text-slate-600">
-          <span>Hospitals: <b>{coverage.hospitals ?? "—"}</b></span>
-          <span>Police: <b>{coverage.police ?? "—"}</b></span>
-          <span>Pharmacies: <b>{coverage.pharmacy ?? "—"}</b></span>
-          <span>Fire & Rescue: <b>{coverage.fire_station ?? "—"}</b></span>
+          <span>Hospitals: <b>{coverage.hospitals ?? "ÔÇö"}</b></span>
+          <span>Police: <b>{coverage.police ?? "ÔÇö"}</b></span>
+          <span>Pharmacies: <b>{coverage.pharmacy ?? "ÔÇö"}</b></span>
+          <span>Fire & Rescue: <b>{coverage.fire_station ?? "ÔÇö"}</b></span>
         </div>
         <form className="flex gap-2 mt-3" onSubmit={(event) => { event.preventDefault(); load(false) }}>
-          <input className="input-field" placeholder="Search Dadeldhura, Amargadhi, pharmacy…" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <input className="input-field" placeholder="Search Dadeldhura, Amargadhi, pharmacyÔÇª" value={query} onChange={(e) => setQuery(e.target.value)} />
           <select className="input-field max-w-[180px]" value={kind} onChange={(e) => setKind(e.target.value)}>
             <option value="">All types</option>
             {KINDS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
@@ -180,7 +180,7 @@ export default function EmergencyDirectoryPanel() {
             {pending.map((row) => (
               <div key={row.id} className="rounded-xl border border-amber-200 bg-white p-3">
                 <p className="font-bold text-slate-900">{row.name}</p>
-                <p className="text-xs text-slate-500">{row.kind} · {row.district || "Nepal"} · {row.status} · {row.phone || "no phone"}</p>
+                <p className="text-xs text-slate-500">{row.kind} ┬À {row.district || "Nepal"} ┬À {row.status} ┬À {row.phone || "no phone"}</p>
               </div>
             ))}
           </div>
@@ -206,7 +206,7 @@ export default function EmergencyDirectoryPanel() {
             <input className="input-field" required placeholder="Longitude" value={form.longitude} onChange={(e) => setForm({ ...form, longitude: e.target.value })} />
           </div>
           <input type="file" accept="image/jpeg,image/png,image/webp" className="input-field" onChange={(e) => setFormImage(e.target.files?.[0] || null)} />
-          <input className="input-field" placeholder="Official website (https://…)" value={form.website || ""} onChange={(e) => setForm({ ...form, website: e.target.value })} />
+          <input className="input-field" placeholder="Official website (https://ÔÇª)" value={form.website || ""} onChange={(e) => setForm({ ...form, website: e.target.value })} />
           <input className="input-field" placeholder="HTTPS source URL (optional)" value={form.source_url} onChange={(e) => setForm({ ...form, source_url: e.target.value })} />
           <button type="submit" className="w-full rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black py-2 flex items-center justify-center gap-2">
             <FiPlus /> Save to database & CSV
@@ -219,9 +219,9 @@ export default function EmergencyDirectoryPanel() {
             {rows.map((row) => (
               <div key={`${row.kind}-${row.id}`} className="rounded-xl border border-slate-200 p-3">
                 <p className="font-bold text-slate-900">{row.name}</p>
-                <p className="text-xs text-slate-500">{row.kind} · {row.district || row.destination_name || "Nepal"} · {row.phone || "no phone"}{row.is_archived ? " · archived" : ""}{row.verified ? " · verified" : ""}</p>
+                <p className="text-xs text-slate-500">{row.kind} ┬À {row.district || row.destination_name || "Nepal"} ┬À {row.phone || "no phone"}{row.is_archived ? " ┬À archived" : ""}{row.verified ? " ┬À verified" : ""}</p>
                 <p className="text-xs text-slate-500">{row.latitude}, {row.longitude}</p>{row.website && <a href={row.website} target="_blank" rel="noreferrer" className="text-xs font-semibold text-blue-700 underline">Official website</a>}
-                 <p className="text-xs text-slate-400">Source: {row.source_name || "Not recorded"} · Updated {row.updated_at ? new Date(row.updated_at).toLocaleString() : "unknown"}</p>
+                 <p className="text-xs text-slate-400">Source: {row.source_name || "Not recorded"} ┬À Updated {row.updated_at ? new Date(row.updated_at).toLocaleString() : "unknown"}</p>
                  <div className="flex gap-2 mt-2">
                    <button type="button" onClick={() => openEdit(row)} className="inline-flex items-center gap-1 text-xs font-bold text-slate-700"><FiEdit3 /> Edit</button>
                   {!row.verified && <button type="button" onClick={() => act(row, "verify")} className="text-xs font-bold text-emerald-700">Verify</button>}

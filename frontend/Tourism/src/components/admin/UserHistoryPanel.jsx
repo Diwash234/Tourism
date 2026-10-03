@@ -1,4 +1,4 @@
-import { FiClock, FiMapPin, FiEye } from "react-icons/fi"
+﻿import { FiClock } from "react-icons/fi"
 
 export default function UserHistoryPanel({ history = [] }) {
   return (
@@ -15,7 +15,7 @@ export default function UserHistoryPanel({ history = [] }) {
           <div key={i} className="p-3 rounded-xl bg-orange-50/60 border border-orange-100 flex items-center justify-between text-xs">
             <div>
               <p className="font-bold text-gray-900">{h.destination__name || h.name}</p>
-              <p className="text-xs text-gray-500">📍 {h.destination__city || h.city || "Nepal"}</p>
+              <p className="text-xs text-gray-500">­ƒôì {h.destination__city || h.city || "Nepal"}</p>
             </div>
             <span className="text-xs font-semibold text-orange-700">
               {h.viewed_at ? new Date(h.viewed_at).toLocaleDateString() : "Recent"}

@@ -1,17 +1,17 @@
-import { useEffect, useState } from "react"
+﻿import { useEffect, useState } from "react"
 import { FiCheck, FiSave } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
 import { NAVBAR_FEATURES, resolveNavbarFeatures } from "../../utils/navbarFeatures"
 
 /**
- * Header & Navbar controls (CMS brief §5) — enable/disable the visitor
+ * Header & Navbar controls (CMS brief ┬º5) ÔÇö enable/disable the visitor
  * header features: Search, Language switcher, Profile menu, Notifications
  * bell, Theme toggle.
  *
  * Stored as the public `navbar_features` SiteSetting row through the same
  * CMS API the Pages panel uses, so switches apply to the live site with no
- * rebuild. Every switch defaults to ON; turning one off never breaks auth —
+ * rebuild. Every switch defaults to ON; turning one off never breaks auth ÔÇö
  * login, signup and role portals are not toggleable.
  */
 export default function HeaderNavbarPanel() {
@@ -62,7 +62,7 @@ export default function HeaderNavbarPanel() {
       setDraft(resolved)
       showToast(res.data?.message || "Header settings saved.", "success")
     } catch (err) {
-      showToast(err.response?.data?.detail || "Save failed — please try again.", "error")
+      showToast(err.response?.data?.detail || "Save failed ÔÇö please try again.", "error")
     } finally {
       setSaving(false)
     }
@@ -76,7 +76,7 @@ export default function HeaderNavbarPanel() {
         <div className="mr-auto">
           <h2 className="text-lg font-bold text-slate-900">Header &amp; Navbar</h2>
           <p className="text-xs text-slate-500">
-            Choose which features appear in the visitor header. Changes apply to the live site immediately — no rebuild needed.
+            Choose which features appear in the visitor header. Changes apply to the live site immediately ÔÇö no rebuild needed.
             Login, signup and staff portals always stay available.
           </p>
         </div>
@@ -85,19 +85,19 @@ export default function HeaderNavbarPanel() {
           disabled={saving || !dirty}
           className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-800 disabled:opacity-40"
         >
-          {saving ? "Saving…" : dirty ? <><FiSave /> Save changes</> : <><FiCheck /> Saved</>}
+          {saving ? "SavingÔÇª" : dirty ? <><FiSave /> Save changes</> : <><FiCheck /> Saved</>}
         </button>
       </div>
 
       <div className="rounded-xl border border-emerald-200 bg-white divide-y divide-emerald-100">
         {loading ? (
-          <p className="p-6 text-center text-sm text-slate-500">Loading header settings…</p>
+          <p className="p-6 text-center text-sm text-slate-500">Loading header settingsÔÇª</p>
         ) : (
           NAVBAR_FEATURES.map((feature) => (
             <div key={feature.key} className="flex items-center gap-3 px-4 py-3">
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold text-slate-800">{feature.label}</p>
-                <p className="text-xs text-slate-500">{feature.description}</p>
+                <p className="text-[11px] text-slate-500">{feature.description}</p>
               </div>
               <button
                 onClick={() => toggle(feature.key)}

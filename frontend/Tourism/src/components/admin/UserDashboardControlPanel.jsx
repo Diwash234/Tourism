@@ -1,18 +1,5 @@
-import { useEffect, useState } from "react"
-import {
-  FiSliders,
-  FiEye,
-  FiEyeOff,
-  FiVolume2,
-  FiCheck,
-  FiRefreshCw,
-  FiToggleLeft,
-  FiToggleRight,
-  FiSave,
-  FiLayout,
-  FiActivity,
-  FiZap,
-} from "react-icons/fi"
+﻿import { useEffect, useState } from "react"
+import { FiSliders, FiEye, FiEyeOff, FiVolume2, FiRefreshCw, FiToggleLeft, FiToggleRight, FiSave, FiLayout, FiZap } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import configApi from "../../api/configApi"
 import useToast from "../../hooks/useToast"
@@ -20,10 +7,10 @@ import { notifyCmsUpdated } from "../../hooks/usePublicConfig"
 
 const DEFAULT_BLOCKS = [
   { key: "national-symbols", name: "Nepal National Symbols & Identity", description: "Shows coat of arms, rhododendron, Himalayan peaks, and cultural heritage symbols.", defaultEnabled: true },
-  { key: "hero", name: "Welcome Hero & Search", description: "Personalized greeting with quick destination search bar.", defaultEnabled: true },
+  { key: "hero", name: "Welcome Hero & AI Search", description: "Personalized greeting with quick AI destination search bar.", defaultEnabled: true },
   { key: "weather-budget", name: "Live Weather & Budget Cards", description: "Real-time weather for current location and budget overview cards.", defaultEnabled: true },
   { key: "alerts", name: "Travel Alerts & Emergency Bulletins", description: "Active safety warnings, monsoon alerts, and road closures.", defaultEnabled: true },
-  { key: "recommendations", name: "Curated Personalized Recommendations", description: "Multi-stage recommendation engine cards with diversity reasons.", defaultEnabled: true },
+  { key: "recommendations", name: "AI Personalized Recommendations", description: "Multi-stage MMR recommendation engine cards with diversity reasons.", defaultEnabled: true },
   { key: "trending", name: "Trending Nepal Destinations", description: "Featured places grid with cover photos and quick explore actions.", defaultEnabled: true },
   { key: "favorites", name: "Favorite Saved Places", description: "User's bookmarked destinations and quick access cards.", defaultEnabled: true },
   { key: "hotels", name: "Recommended Hotels & Stays", description: "Curated hotel stays near user's targeted locations.", defaultEnabled: true },
@@ -148,7 +135,7 @@ export default function UserDashboardControlPanel() {
           </p>
           <p className="text-xs text-slate-400 mt-1 max-w-2xl">
             Scope: this panel controls the <b>user Dashboard page only</b> (the same dashboard every traveller sees).
-            To edit any other page of the website — sections, headings, images, CTAs — use <b>Website → Page Editor</b>;
+            To edit any other page of the website ÔÇö sections, headings, images, CTAs ÔÇö use <b>Website ÔåÆ Page Editor</b>;
             site-wide branding, theme and routing live under <b>Branding, Theme & Routing</b>.
           </p>
         </div>
@@ -187,7 +174,7 @@ export default function UserDashboardControlPanel() {
               type="text"
               value={announcement}
               onChange={(e) => setAnnouncement(e.target.value)}
-              placeholder="e.g. 🏔️ Autumn Trekking Season: Annapurna & Everest trails open with clear skies!"
+              placeholder="e.g. ­ƒÅö´©Å Autumn Trekking Season: Annapurna & Everest trails open with clear skies!"
               className="input-field text-xs"
             />
           </div>
@@ -198,10 +185,10 @@ export default function UserDashboardControlPanel() {
               onChange={(e) => setAnnouncementType(e.target.value)}
               className="input-field text-xs"
             >
-              <option value="info">ℹ️ Information (Blue)</option>
-              <option value="warning">⚠️ Warning / Hazard (Amber)</option>
-              <option value="success">🎉 Success / Festival (Green)</option>
-              <option value="danger">🚨 Urgent Emergency (Red)</option>
+              <option value="info">Ôä╣´©Å Information (Blue)</option>
+              <option value="warning">ÔÜá´©Å Warning / Hazard (Amber)</option>
+              <option value="success">­ƒÄë Success / Festival (Green)</option>
+              <option value="danger">­ƒÜ¿ Urgent Emergency (Red)</option>
             </select>
           </div>
         </div>
@@ -210,7 +197,7 @@ export default function UserDashboardControlPanel() {
       {/* Engagement Feature Flags */}
       <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm space-y-4">
         <h3 className="font-extrabold text-lg text-slate-900 flex items-center gap-2">
-          <FiZap className="text-emerald-700" /> Interactive Engagement & Feature Controls
+          <FiZap className="text-emerald-700" /> Interactive Engagement & AI Feature Controls
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div
@@ -220,13 +207,8 @@ export default function UserDashboardControlPanel() {
             }`}
           >
             <div>
-<<<<<<< HEAD
               <p className="font-bold text-xs text-slate-900">AI Itinerary Modification Bar</p>
               <p className="text-xs text-slate-500">Enable 1-click AI modification actions on user travel plans</p>
-=======
-              <p className="font-bold text-xs text-slate-900">Itinerary Adaptation Bar</p>
-              <p className="text-[11px] text-slate-500">Enable instant schedule & route adaptation actions on user travel plans</p>
->>>>>>> origin/arena/01a0ed99-tourism
             </div>
             {enableAIReplanning ? <FiToggleRight size={24} className="text-emerald-600" /> : <FiToggleLeft size={24} className="text-slate-400" />}
           </div>
@@ -327,7 +309,7 @@ export default function UserDashboardControlPanel() {
                 <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
                   <span className="font-mono text-slate-400">Block key: {block.key}</span>
                   <span className={`font-bold ${enabled ? "text-emerald-700" : "text-slate-500"}`}>
-                    {enabled ? "✓ Visible on Dashboard" : "Hidden"}
+                    {enabled ? "Ô£ô Visible on Dashboard" : "Hidden"}
                   </span>
                 </div>
               </div>

@@ -1,4 +1,4 @@
-import axiosClient from "./axiosClient"
+﻿import axiosClient from "./axiosClient"
 
 const adminApi = {
   getStats: () => axiosClient.get("/admin/stats"),
@@ -37,7 +37,7 @@ const adminApi = {
   getMediaUsage: (id) => axiosClient.get("/admin/media-library/", { params: { usage_of: id } }),
   getUsers: (params) => axiosClient.get("/admin/users", { params }),
   createUser: (payload) => axiosClient.post("/admin/users", payload),
-  // NOTE: the effective updateUser lives further below (PATCH — the backend
+  // NOTE: the effective updateUser lives further below (PATCH ÔÇö the backend
   // AdminUsersDetailView implements patch, not put). A duplicate PUT entry
   // used to sit here and was silently shadowed; removed (no-dupe-keys).
   updateUserStatus: (id, payload) => axiosClient.put(`/admin/users/${id}/status`, payload),
@@ -79,7 +79,7 @@ const adminApi = {
   getTranslations: (params) => axiosClient.get("/admin/destination-translations/", { params }),
   createTranslation: (payload) => axiosClient.post("/admin/destination-translations/", payload),
   updateTranslation: (id, payload) => axiosClient.patch(`/admin/destination-translations/${id}/`, payload),
-  // Redirects & URLs (CMS brief §14)
+  // Redirects & URLs (CMS brief ┬º14)
   getRedirects: () => axiosClient.get("/admin/redirects/"),
   createRedirect: (payload) => axiosClient.post("/admin/redirects/", payload),
   updateRedirect: (id, payload) => axiosClient.patch("/admin/redirects/", { id, ...payload }),
@@ -128,10 +128,6 @@ const adminApi = {
   // Free web image search + save (Wikimedia / DuckDuckGo / Openverse)
   fetchWebImages: (destination, num = 12) =>
     axiosClient.post("/admin/fetch-images/", { destination, num }),
-  searchMultiSourceImages: (payload) =>
-    axiosClient.post("/admin/images/multi-search/", payload),
-  importMediaImage: (payload) =>
-    axiosClient.post("/admin/images/import-media/", payload),
   generateAIImages: (destination, num = 12) =>
     axiosClient.post("/admin/generate-ai-images/", { destination, num }),
   deleteDestinationImage: (id, destinationId = null) => destinationId

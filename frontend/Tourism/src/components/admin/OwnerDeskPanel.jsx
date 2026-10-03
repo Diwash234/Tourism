@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+﻿import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import {
   FiAlertTriangle, FiCheck, FiImage, FiMapPin, FiMessageSquare, FiPlus, FiRefreshCw, FiStar, FiTrash2, FiX,
@@ -142,11 +142,11 @@ export default function OwnerDeskPanel() {
       <div className="rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-black uppercase tracking-wider text-emerald-700">Owner desk</p>
+            <p className="text-[11px] font-black uppercase tracking-wider text-emerald-700">Owner desk</p>
             <h2 className="text-2xl font-black text-slate-900">Visitor notices & featured places</h2>
             <p className="text-sm text-slate-300 mt-1 max-w-3xl">
-              Publish what a traveller actually needs before they go — festivals, trail closures, permits, seasonal
-              crowds — and pin the places your organisation wants on the homepage.
+              Publish what a traveller actually needs before they go ÔÇö festivals, trail closures, permits, seasonal
+              crowds ÔÇö and pin the places your organisation wants on the homepage.
             </p>
           </div>
           <button type="button" onClick={() => load()} className="px-4 py-2 rounded-xl border border-emerald-200 text-emerald-800 text-sm font-bold flex items-center gap-2">
@@ -219,8 +219,8 @@ export default function OwnerDeskPanel() {
                     <h4 className="font-bold text-slate-900">{notice.title}</h4>
                   </div>
                   <p className="text-xs text-slate-300 mt-1 line-clamp-2">{notice.body}</p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {[notice.destination_name, notice.city, notice.district].filter(Boolean).join(" · ") || "All Nepal"}
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    {[notice.destination_name, notice.city, notice.district].filter(Boolean).join(" ┬À ") || "All Nepal"}
                   </p>
                 </div>
                 <div className="shrink-0 flex flex-col gap-1">
@@ -240,7 +240,7 @@ export default function OwnerDeskPanel() {
             <p className="text-sm text-slate-300">Pinned places replace the rating heuristic on the landing page and traveller dashboard.</p>
           </div>
           <form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); load(search) }}>
-            <input className="input-field" placeholder="Search places to pin…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <input className="input-field" placeholder="Search places to pinÔÇª" value={search} onChange={(e) => setSearch(e.target.value)} />
             <button type="submit" className="px-4 rounded-xl bg-amber-400 text-gray-950 font-black">Search</button>
           </form>
         </div>
@@ -258,7 +258,7 @@ export default function OwnerDeskPanel() {
             <div key={place.id} className="rounded-xl border border-slate-200 p-3 flex items-start justify-between gap-2">
               <div>
                 <p className="font-bold text-slate-900">{place.name}</p>
-                <p className="text-xs text-slate-500">{[place.district, place.city].filter(Boolean).join(" · ") || "Nepal"} · {place.average_rating}★</p>
+                <p className="text-xs text-slate-500">{[place.district, place.city].filter(Boolean).join(" ┬À ") || "Nepal"} ┬À {place.average_rating}Ôÿà</p>
               </div>
               <button
                 type="button"

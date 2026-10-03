@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react"
+﻿import { useEffect, useState } from "react"
 import ConsentVideo from "../common/ConsentVideo"
 import { privacyEmbedUrl } from "../../utils/cookieConsent"
 import { Link } from "react-router-dom"
 import axiosClient from "../../api/axiosClient"
 import SafeHtml from "./SafeHtml"
 import VerificationBadge from "../common/VerificationBadge"
-import FAQAccordion from "../common/FAQAccordion"
 
 const safeHttpUrl = (value) => {
   const raw = String(value || "").trim()
@@ -64,7 +63,7 @@ function PackagesGridBlock({ data = {} }) {
             {listing.image_url ? (
               <img src={listing.image_url} alt={listing.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-slate-300 text-3xl">🎒</div>
+              <div className="w-full h-full flex items-center justify-center text-slate-300 text-3xl">­ƒÄÆ</div>
             )}
           </div>
           <div className="p-4">
@@ -72,7 +71,7 @@ function PackagesGridBlock({ data = {} }) {
             <h4 className="font-black text-slate-900 text-sm leading-snug mt-0.5 line-clamp-2">{listing.title}</h4>
             <p className="text-xs text-slate-500 mt-1">
               {listing.duration_days ? `${listing.duration_days} day${listing.duration_days === 1 ? "" : "s"}` : "Flexible"}
-              {listing.price_npr != null ? ` · NPR ${Number(listing.price_npr).toLocaleString()}` : ""}
+              {listing.price_npr != null ? ` ┬À NPR ${Number(listing.price_npr).toLocaleString()}` : ""}
             </p>
           </div>
         </Link>
@@ -90,14 +89,14 @@ const LIVE_GRID = {
     params: (d) => ({ district: d.district || undefined, search: d.search || undefined, category: d.category || undefined }),
     to: (r) => `/destinations/${r.slug}`,
     image: (r) => r.cover_image_url || null,
-    meta: (r) => [r.category_name, r.district].filter(Boolean).join(" · "),
+    meta: (r) => [r.category_name, r.district].filter(Boolean).join(" ┬À "),
   },
   hotel_grid: {
     url: "/hotels/",
     params: (d) => ({ search: d.search || d.district || undefined }),
     to: (r) => `/hotels/search?q=${encodeURIComponent(r.name)}`,
     image: (r) => r.image_url || r.cover_image_url || null,
-    meta: (r) => [r.destination_name, r.address].filter(Boolean).join(" · "),
+    meta: (r) => [r.destination_name, r.address].filter(Boolean).join(" ┬À "),
     badge: true,
   },
   restaurant_grid: {
@@ -105,7 +104,7 @@ const LIVE_GRID = {
     params: (d) => ({ search: d.search || d.district || undefined }),
     to: (r) => `/search?q=${encodeURIComponent(r.name)}`,
     image: () => null,
-    meta: (r) => [Array.isArray(r.cuisine_types) ? r.cuisine_types.join(", ") : r.cuisine_types, r.destination_name || r.address].filter(Boolean).join(" · "),
+    meta: (r) => [Array.isArray(r.cuisine_types) ? r.cuisine_types.join(", ") : r.cuisine_types, r.destination_name || r.address].filter(Boolean).join(" ┬À "),
     badge: true,
   },
 }
@@ -316,7 +315,7 @@ export function ContentBlockItem({ block, showEmpty = false }) {
       return (
         <blockquote className="mt-4 p-4 rounded-2xl bg-emerald-50/60 border-l-4 border-emerald-600 text-slate-800 italic space-y-1">
           <p className="text-sm font-medium">"{data.quote || title}"</p>
-          {data.author && <cite className="text-xs font-bold not-italic text-emerald-900 block">— {data.author}</cite>}
+          {data.author && <cite className="text-xs font-bold not-italic text-emerald-900 block">ÔÇö {data.author}</cite>}
         </blockquote>
       )
 
@@ -350,7 +349,7 @@ export function ContentBlockItem({ block, showEmpty = false }) {
               {!card.image && card.emoji && <span className="text-2xl block mb-2">{card.emoji}</span>}
               <h4 className="font-black text-slate-900 text-sm">{card.title}</h4>
               {card.description && <p className="text-xs text-slate-500 mt-1 leading-relaxed">{card.description}</p>}
-              <span className="inline-flex items-center gap-1 text-xs font-black text-emerald-700 mt-3 group-hover:gap-2 transition-all">Open →</span>
+              <span className="inline-flex items-center gap-1 text-xs font-black text-emerald-700 mt-3 group-hover:gap-2 transition-all">Open ÔåÆ</span>
               </div>
             </Link>
           ))}
@@ -360,35 +359,6 @@ export function ContentBlockItem({ block, showEmpty = false }) {
 
     case "packages":
       return <PackagesGridBlock data={data} />
-
-    case "faq":
-    case "accordion": {
-      const items = Array.isArray(data.items) ? data.items : []
-      if (!items.length) return null
-      return (
-        <div className="mt-4">
-          <FAQAccordion items={items} />
-        </div>
-      )
-    }
-
-    case "testimonials": {
-      const items = Array.isArray(data.items) ? data.items : []
-      if (!items.length) return null
-      return (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-4">
-          {items.map((t, idx) => (
-            <div key={idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-              <p className="text-xs text-slate-700 italic">"{t.content || t.quote || t.comment}"</p>
-              <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-[11px] font-bold text-slate-900">
-                <span>{t.name || t.author || "Traveler"}</span>
-                {t.location && <span className="text-slate-500 font-normal">{t.location}</span>}
-              </div>
-            </div>
-          ))}
-        </div>
-      )
-    }
 
     case "destination_grid":
     case "hotel_grid":
@@ -436,7 +406,7 @@ export default function CMSBlock({ section, preview = false }) {
   const layout = section.layout_variant === "split"
     ? `grid gap-6 md:grid-cols-2 rounded-3xl border ${bgClass} ${padClass}`
     : `rounded-3xl border ${bgClass} ${padClass}`
-  // Admin style controls (spec §47): text scale, alignment, background image —
+  // Admin style controls (spec ┬º47): text scale, alignment, background image ÔÇö
   // structured values only, never raw CSS/JS.
   const TEXT_SCALES = { sm: "text-sm", base: "text-base", lg: "text-lg", xl: "text-xl" }
   const scaleClass = TEXT_SCALES[config.text_scale] || ""

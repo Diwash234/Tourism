@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+﻿import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { Link } from "react-router-dom"
 import { FiCompass, FiCalendar } from "react-icons/fi"
@@ -9,7 +9,7 @@ const AUTHENTIC_FOODS = [
   {
     id: "momo",
     name: "Himalayan Steamed MoMo",
-    nepali: "मःमः",
+    nepali: "Óñ«ÓñâÓñ«Óñâ",
     image: "/images/destinations/food/momo.jpg",
     tagline: "Nepal's Most Loved Dumplings",
     region: "Nationwide (Thamel, Pokhara, Dharan)",
@@ -18,7 +18,7 @@ const AUTHENTIC_FOODS = [
   {
     id: "newari",
     name: "Newari Samay Baji & Bhoj",
-    nepali: "समय् बजि",
+    nepali: "Óñ©Óñ«Óñ»ÓÑì Óñ¼Óñ£Óñ┐",
     image: "/images/destinations/food/newari-bhoj.jpg",
     tagline: "Ceremonial Heritage Feast",
     region: "Kathmandu Valley (Patan & Bhaktapur)",
@@ -27,7 +27,7 @@ const AUTHENTIC_FOODS = [
   {
     id: "sel-roti",
     name: "Traditional Sel Roti",
-    nepali: "सेल रोटी",
+    nepali: "Óñ©ÓÑçÓñ▓ Óñ░ÓÑïÓñƒÓÑÇ",
     image: "/images/destinations/food/sel-roti.jpg",
     tagline: "Festive Ring Bread",
     region: "All Nepal (Dashain & Tihar Staple)",
@@ -36,7 +36,7 @@ const AUTHENTIC_FOODS = [
   {
     id: "juju-dhau",
     name: "Bhaktapur Juju Dhau",
-    nepali: "जुजु धौ",
+    nepali: "Óñ£ÓÑüÓñ£ÓÑü ÓñºÓÑî",
     image: "/images/destinations/food/juju-dhau.jpg",
     tagline: "King of Curds",
     region: "Bhaktapur Durbar Square",
@@ -45,7 +45,7 @@ const AUTHENTIC_FOODS = [
   {
     id: "masala-chiya",
     name: "Himalayan Masala Chiya",
-    nepali: "मसाला चिया",
+    nepali: "Óñ«Óñ©Óñ¥Óñ▓Óñ¥ ÓñÜÓñ┐Óñ»Óñ¥",
     image: "/images/destinations/food/masala-chiya.jpg",
     tagline: "Mountain Spiced Milk Tea",
     region: "Ilam & High Mountain Teahouses",
@@ -57,23 +57,23 @@ const AUTHENTIC_FESTIVALS = [
   {
     id: "dashain",
     name: "Bada Dashain",
-    nepali: "बडा दशैं",
+    nepali: "Óñ¼ÓñíÓñ¥ ÓñªÓñÂÓÑêÓñé",
     image: "/images/destinations/festivals/dashain-tika.jpg",
-    season: "September – October (Autumn)",
+    season: "September ÔÇô October (Autumn)",
     desc: "Nepal's greatest 15-day festival celebrating victory over evil. Families gather for red Tika blessings, Jamara barley shoots, flying kites, and bamboo swings.",
   },
   {
     id: "tihar",
     name: "Tihar & Deepawali",
-    nepali: "तिहार र दीपावली",
+    nepali: "ÓññÓñ┐Óñ╣Óñ¥Óñ░ Óñ░ ÓñªÓÑÇÓñ¬Óñ¥ÓñÁÓñ▓ÓÑÇ",
     image: "/images/destinations/festivals/tihar-diya.jpg",
-    season: "October – November (Autumn)",
+    season: "October ÔÇô November (Autumn)",
     desc: "The 5-day festival of lights honoring crows, dogs, cows, Goddess Laxmi, and Brothers (Bhai Tika). Streets glow with oil Diyas and vibrant Rangoli patterns.",
   },
   {
     id: "holi",
     name: "Fagu Purnima (Holi)",
-    nepali: "फागु पूर्णिमा (होली)",
+    nepali: "Óñ½Óñ¥ÓñùÓÑü Óñ¬ÓÑéÓñ░ÓÑìÓñúÓñ┐Óñ«Óñ¥ (Óñ╣ÓÑïÓñ▓ÓÑÇ)",
     image: "/images/destinations/festivals/holi-kathmandu.jpg",
     season: "March (Spring)",
     desc: "The joyous spring festival of colors. Kathmandu Durbar Square and Pokhara Lakeside burst with vibrant dry powders (Gulal), water balloons, and live music.",
@@ -185,8 +185,8 @@ export default function NepalExperienceSection({ section = null }) {
                   <h3 className="font-extrabold text-xl text-amber-300">{selectedTrek.name}</h3>
                   <p className="text-xs text-white/75">
                     Duration: <b>{selectedTrek.recommended_days ? `${selectedTrek.recommended_days} days` : "Not recorded"}</b>
-                    {" · "}Difficulty: <b>{selectedTrek.difficulty || "Not recorded"}</b>
-                    {" · "}Altitude: <b>{selectedTrek.altitude || "Not recorded"}</b>
+                    {" ┬À "}Difficulty: <b>{selectedTrek.difficulty || "Not recorded"}</b>
+                    {" ┬À "}Altitude: <b>{selectedTrek.altitude || "Not recorded"}</b>
                   </p>
                   <p className="text-xs text-[var(--ny-mint)] mt-1">{selectedTrek.city || selectedTrek.district || "Location not recorded"}</p>
                 </div>
@@ -199,7 +199,7 @@ export default function NepalExperienceSection({ section = null }) {
                     to={`/destinations/${selectedTrek.slug}`}
                     className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-gray-950 font-black text-xs inline-flex items-center gap-1 shadow"
                   >
-                    Open Destination Guide ➔
+                    Open Destination Guide Ô×ö
                   </Link>
                 )}
               </div>
@@ -220,14 +220,14 @@ export default function NepalExperienceSection({ section = null }) {
               <div className="space-y-3">
                 <div className="h-44 w-full relative overflow-hidden rounded-2xl bg-black">
                   <PlaceholderImage src={food.image} title={food.name} alt={food.name} className="h-full w-full transition-transform duration-500 hover:scale-105" />
-                  <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur text-amber-300 text-[10px] font-black uppercase">
+                  <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur text-amber-300 text-xs font-black uppercase">
                     {food.nepali}
                   </span>
                 </div>
                 <div>
                   <h3 className="text-lg font-black text-gray-900">{food.name}</h3>
                   <p className="text-xs font-bold text-amber-700 mt-0.5">{food.tagline}</p>
-                  <p className="text-[11px] text-slate-500 font-semibold mt-1">{food.region}</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold mt-1">{food.region}</p>
                 </div>
                 <p className="text-xs text-gray-600 leading-relaxed line-clamp-3">
                   {food.desc}

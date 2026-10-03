@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+﻿import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { FiCalendar, FiMessageSquare, FiThermometer } from "react-icons/fi"
 import exploreApi from "../../api/exploreApi"
@@ -37,7 +37,7 @@ const WhenToGo = ({ destinationKey }) => {
         {data.months.map((m) => (
           <button key={m.month} type="button" onClick={() => setSelected(m.month)} aria-pressed={selected === m.month}
             title={`${m.month_name}: ${m.label}`}
-            className={`rounded-md px-1 py-2 text-[11px] font-bold ${LEVEL_BG[m.level] || LEVEL_BG.fair} ${selected === m.month ? "ring-2 ring-offset-1 ring-[var(--ny-text)]" : ""}`}>
+            className={`rounded-md px-1 py-2 text-xs font-bold ${LEVEL_BG[m.level] || LEVEL_BG.fair} ${selected === m.month ? "ring-2 ring-offset-1 ring-[var(--ny-text)]" : ""}`}>
             {m.month_name.slice(0, 3)}
           </button>
         ))}
@@ -47,7 +47,7 @@ const WhenToGo = ({ destinationKey }) => {
       {t && (
         <p className="mt-2 flex items-start gap-1.5 text-xs text-[var(--ny-text-secondary)]">
           <FiThermometer className="mt-0.5 shrink-0" aria-hidden="true" />
-          Around {t.winter_min_c}–{t.winter_max_c} °C in winter and {t.summer_min_c}–{t.summer_max_c} °C in summer. {t.basis}
+          Around {t.winter_min_c}ÔÇô{t.winter_max_c} ┬░C in winter and {t.summer_min_c}ÔÇô{t.summer_max_c} ┬░C in summer. {t.basis}
         </p>
       )}
       {data.destination.elevation_m == null && (
@@ -90,7 +90,7 @@ const TravellerSentiment = ({ destinationKey }) => {
             <span className="bg-rose-400" style={{ width: pct(data.distribution.negative.share) }} />
           </div>
           <p className="text-xs text-[var(--ny-text-secondary)]">
-            {data.distribution.positive.count} positive · {data.distribution.neutral.count} neutral · {data.distribution.negative.count} negative
+            {data.distribution.positive.count} positive ┬À {data.distribution.neutral.count} neutral ┬À {data.distribution.negative.count} negative
           </p>
           {data.aspects?.length > 0 && (
             <ul className="flex flex-wrap gap-1.5" aria-label="What reviews mention">
@@ -101,8 +101,8 @@ const TravellerSentiment = ({ destinationKey }) => {
               ))}
             </ul>
           )}
-          {data.highlights?.positive && <blockquote className="border-l-4 border-emerald-300 pl-3 text-xs italic">“{data.highlights.positive}”</blockquote>}
-          {data.highlights?.negative && <blockquote className="border-l-4 border-rose-300 pl-3 text-xs italic">“{data.highlights.negative}”</blockquote>}
+          {data.highlights?.positive && <blockquote className="border-l-4 border-emerald-300 pl-3 text-xs italic">ÔÇ£{data.highlights.positive}ÔÇØ</blockquote>}
+          {data.highlights?.negative && <blockquote className="border-l-4 border-rose-300 pl-3 text-xs italic">ÔÇ£{data.highlights.negative}ÔÇØ</blockquote>}
         </div>
       )}
       {data.not_analysed_count > 0 && <p className="mt-2 text-xs text-[var(--ny-text-muted)]">{data.not_analysed_count} review(s) not analysed. {data.not_analysed_reason}</p>}
@@ -110,7 +110,7 @@ const TravellerSentiment = ({ destinationKey }) => {
         <p className="mt-2 text-xs text-[var(--ny-text-muted)]">
           Method: {typeof data.method === "string" ? data.method : data.method.name}
           {data.method.scope ? `. ${data.method.scope}` : ""}
-          {data.method.url && <> · <a href={data.method.url} target="_blank" rel="noreferrer" className="underline">{data.method.citation || "method paper"}</a></>}
+          {data.method.url && <> ┬À <a href={data.method.url} target="_blank" rel="noreferrer" className="underline">{data.method.citation || "method paper"}</a></>}
         </p>
       )}
     </section>
@@ -151,7 +151,7 @@ const Reviews = ({ destination }) => {
   return (
     <section id="reviews" aria-labelledby="reviews-h" className="card-base scroll-mt-24 border border-slate-200 bg-white p-5 lg:col-span-2">
       <h2 id="reviews-h" className="text-lg font-bold">Traveller reviews</h2>
-      {items === null ? <p className="mt-2 text-sm text-[var(--ny-text-secondary)]">Loading reviews…</p> : (
+      {items === null ? <p className="mt-2 text-sm text-[var(--ny-text-secondary)]">Loading reviewsÔÇª</p> : (
         items.filter((r) => r.moderation_status === "approved").length === 0
           ? <p className="mt-2 text-sm text-[var(--ny-text-secondary)]">No approved reviews yet.</p>
           : (
@@ -159,7 +159,7 @@ const Reviews = ({ destination }) => {
               {items.filter((r) => r.moderation_status === "approved").slice(0, 10).map((r) => (
                 <li key={r.id} className="py-3 text-sm">
                   <p className="whitespace-pre-line">{r.comment}</p>
-                  <p className="mt-1 text-xs text-[var(--ny-text-muted)]">{r.user_name || "Traveller"} · {new Date(r.created_at).toLocaleDateString()}</p>
+                  <p className="mt-1 text-xs text-[var(--ny-text-muted)]">{r.user_name || "Traveller"} ┬À {new Date(r.created_at).toLocaleDateString()}</p>
                 </li>
               ))}
             </ul>
@@ -170,9 +170,9 @@ const Reviews = ({ destination }) => {
         <form onSubmit={submit} className="mt-4 space-y-2">
           <label htmlFor="review-text" className="text-sm font-semibold">Share your experience</label>
           <textarea id="review-text" className="input-field min-h-24" maxLength={2000} value={text} onChange={(e) => setText(e.target.value)}
-            placeholder="What was it like? Access, safety, crowds, value, views…" />
+            placeholder="What was it like? Access, safety, crowds, value, viewsÔÇª" />
           <div className="flex flex-wrap items-center gap-3">
-            <button type="submit" className="ny-btn ny-btn-primary" disabled={status.kind === "busy"}>{status.kind === "busy" ? "Sending…" : "Submit review"}</button>
+            <button type="submit" className="ny-btn ny-btn-primary" disabled={status.kind === "busy"}>{status.kind === "busy" ? "SendingÔÇª" : "Submit review"}</button>
             <span className="text-xs text-[var(--ny-text-muted)]">Reviews are checked by a moderator before they appear.</span>
           </div>
         </form>

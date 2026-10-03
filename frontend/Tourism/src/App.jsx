@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react"
+﻿import { lazy, Suspense, useEffect } from "react"
 import { Routes, Route, Navigate } from "react-router-dom"
 import ErrorBoundary from "./components/common/ErrorBoundary"
 import { installGlobalErrorHandlers } from "./utils/errorLogger"
@@ -77,7 +77,7 @@ const HotelSearch = lazy(() => import("./pages/HotelSearch"))
 const Navigation = lazy(() => import("./pages/Navigation"))
 const DistancesExplorer = lazy(() => import("./pages/DistancesExplorer"))
 const TravelPlanner = lazy(() => import("./pages/TravelPlanner"))
-const Language = lazy(() => import("./pages/Language"))
+import Language from "./pages/Language.jsx"
 const Emergency = lazy(() => import("./pages/Emergency"))
 const NearbyPlaces = lazy(() => import("./pages/NearbyPlaces"))
 const Translation = lazy(() => import("./pages/Translation"))
@@ -122,7 +122,7 @@ const AdminTasks = lazy(() => import("./pages/admin/Tasks"))
 
 const RouteLoading = () => (
   <div className="container-app flex min-h-[320px] items-center justify-center py-12" role="status" aria-live="polite">
-    <div className="text-center"><span className="mx-auto block h-8 w-8 animate-spin rounded-full border-2 border-[var(--ny-border)] border-t-[var(--ny-green)]" aria-hidden="true" /><p className="mt-3 text-sm text-[var(--ny-text-secondary)]">Loading this part of your journey…</p></div>
+    <div className="text-center"><span className="mx-auto block h-8 w-8 animate-spin rounded-full border-2 border-[var(--ny-border)] border-t-[var(--ny-green)]" aria-hidden="true" /><p className="mt-3 text-sm text-[var(--ny-text-secondary)]">Loading this part of your journeyÔÇª</p></div>
   </div>
 )
 
@@ -152,10 +152,10 @@ function App() {
       <RedirectRules />
       <CommandPalette />
       <OfflineBanner />
-      <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-emerald-300">Loading…</div>}>
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-emerald-300">LoadingÔÇª</div>}>
       <Routes>
 
-      {/* Auth portals — no traveller navbar/sidebar so Admin, Staff and Traveller look different */}
+      {/* Auth portals ÔÇö no traveller navbar/sidebar so Admin, Staff and Traveller look different */}
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<UserLogin />} />
         <Route path="/login/user" element={<UserLogin />} />
@@ -164,7 +164,7 @@ function App() {
         <Route path="/portal" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        {/* The emailed links point here — these routes were missing, so
+        {/* The emailed links point here ÔÇö these routes were missing, so
             verification / password-reset links dead-ended (Round 21 fix). */}
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/reset-password" element={<ResetPassword />} />
@@ -234,7 +234,7 @@ function App() {
         <Route path="/plans/shared/:token" element={<SharedPlanPage />} />
         <Route path="/explore-map" element={<LazyRoute><ExploreNepalMap /></LazyRoute>} />
         <Route path="/hotels/search" element={<HotelSearch />} />
-        {/* Travel planner — real routes between any two destinations (public) */}
+        {/* Travel planner ÔÇö real routes between any two destinations (public) */}
         <Route path="/travel" element={<LazyRoute><TravelPlanner /></LazyRoute>} />
       </Route>
 
@@ -318,7 +318,7 @@ function App() {
         </Route>
 
 
-      {/* 404 Page — wrapped in MainLayout for consistent Navbar + Footer */}
+      {/* 404 Page ÔÇö wrapped in MainLayout for consistent Navbar + Footer */}
       <Route element={<MainLayout />}>
         <Route path="*" element={<NotFound />} />
       </Route>

@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react"
+﻿import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { FiActivity, FiCheckCircle, FiExternalLink, FiFileText, FiImage, FiLayers, FiRadio, FiXCircle } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import configApi from "../../api/configApi"
 
 /**
- * CMS Overview — the landing screen of Content & CMS.
+ * CMS Overview ÔÇö the landing screen of Content & CMS.
  * Every number and status here comes from a real request made on mount;
  * nothing is simulated and no status is green unless the actual call
  * succeeded (brief: "Do not display fake green statuses").
@@ -28,14 +28,14 @@ export default function CMSOverviewPanel() {
   const [counts, setCounts] = useState(null)
   const [recent, setRecent] = useState([])
   const [health, setHealth] = useState(null)
-  const [operational, setOperational] = useState({ hotels: null, hospitals: null, police_stations: null })
+  const [operational, _setOperational] = useState({ hotels: null, hospitals: null, police_stations: null })
 
   useEffect(() => {
     let cancelled = false
     const run = async () => {
       const mark = (key, ok) => { if (!cancelled) setChecks((prev) => ({ ...prev, [key]: ok })) }
 
-      // Real health probes — each status reflects an actual request result.
+      // Real health probes ÔÇö each status reflects an actual request result.
       configApi.getPublicConfig().then(() => mark("publicSite", true)).catch(() => mark("publicSite", false))
       adminApi.getMediaLibrary({ page_size: 12 })
         .then(({ data }) => { mark("media", true); if (!cancelled) setCounts((prev) => ({ ...(prev || {}), media: data.count ?? 0 })) })
@@ -49,7 +49,7 @@ export default function CMSOverviewPanel() {
         .catch(() => mark("notices", false))
 
       try {
-        const [pagesRes, sectionsRes, navRes, healthRes, hotelsRes, hospitalsRes, policeRes] = await Promise.all([
+        const [pagesRes, sectionsRes, navRes, healthRes, _hotelsRes, _hospitalsRes, _policeRes] = await Promise.all([
           adminApi.getCMS("pages"),
           adminApi.getCMS("sections"),
           adminApi.getCMS("navigation"),
@@ -71,7 +71,7 @@ adminApi.getCMS("police_stations").catch(() => null),
           sections: sections.length,
           navigation: nav.length,
         }))
-        // Recently changed — derived from real updated_at timestamps only.
+        // Recently changed ÔÇö derived from real updated_at timestamps only.
         const label = (kind, row) => ({
           label: `${row.title || row.label || row.key || row.route || `#${row.id}`}`,
           kind,
@@ -100,7 +100,7 @@ adminApi.getCMS("police_stations").catch(() => null),
   const statusPill = (state) =>
     state === null ? (
       <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-700/60 px-2.5 py-1 text-[11px] font-bold text-slate-300">
-        <FiActivity className="animate-pulse" /> Checking…
+        <FiActivity className="animate-pulse" /> CheckingÔÇª
       </span>
     ) : state ? (
       <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-2.5 py-1 text-[11px] font-black text-emerald-300">
@@ -117,7 +117,7 @@ adminApi.getCMS("police_stations").catch(() => null),
       <div className="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-300">{icon}</div>
       <div className="min-w-0">
         <p className="text-[11px] uppercase font-bold text-slate-300 truncate">{label}</p>
-        <p className="text-xl font-black text-white">{value ?? "—"}</p>
+        <p className="text-xl font-black text-white">{value ?? "ÔÇö"}</p>
       </div>
     </div>
   )
@@ -139,7 +139,7 @@ adminApi.getCMS("police_stations").catch(() => null),
         </a>
       </div>
 
-      {/* Website status — real request results only */}
+      {/* Website status ÔÇö real request results only */}
       <div className="bg-slate-900/70 border border-slate-600/40 rounded-2xl p-5">
         <h3 className="text-sm font-black uppercase tracking-wider text-slate-300 mb-3">Website status</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -184,24 +184,24 @@ adminApi.getCMS("police_stations").catch(() => null),
           )}
         </div>
 
-        {/* Content audit — from the real resource=health checks */}
+        {/* Content audit ÔÇö from the real resource=health checks */}
         <div className="bg-slate-900/70 border border-slate-600/40 rounded-2xl p-5">
           <h3 className="text-sm font-black uppercase tracking-wider text-slate-300 mb-3">Content audit</h3>
           {health === null ? (
-            <p className="text-xs text-slate-400">Loading audit…</p>
+            <p className="text-xs text-slate-400">Loading auditÔÇª</p>
           ) : (
             <>
               <p className="text-xs text-slate-300">
-                {health.pagesChecked} pages checked · <b className={health.warnings ? "text-amber-300" : "text-emerald-300"}>{health.warnings} open warnings</b>
+                {health.pagesChecked} pages checked ┬À <b className={health.warnings ? "text-amber-300" : "text-emerald-300"}>{health.warnings} open warnings</b>
               </p>
               <ul className="mt-3 space-y-2">
                 {health.worst.filter((row) => (row.warning_count || 0) > 0).map((row) => (
                   <li key={row.page_id} className="rounded-lg bg-slate-800/50 px-3 py-2">
                     <span className="block truncate text-xs font-bold text-white">{row.title} <span className="font-medium text-slate-400">({row.route})</span></span>
-                    <span className="text-[11px] text-amber-300/90">{(row.warnings || []).map((w) => w.message).join(" · ") || `${row.warning_count} warnings`}</span>
+                    <span className="text-[11px] text-amber-300/90">{(row.warnings || []).map((w) => w.message).join(" ┬À ") || `${row.warning_count} warnings`}</span>
                   </li>
                 ))}
-                {health.warnings === 0 && <li className="text-xs text-emerald-300">No content warnings — every page passed its checks.</li>}
+                {health.warnings === 0 && <li className="text-xs text-emerald-300">No content warnings ÔÇö every page passed its checks.</li>}
               </ul>
             </>
           )}

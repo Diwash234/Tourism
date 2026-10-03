@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+﻿import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import {
   FiArrowDown, FiArrowUp, FiCheckCircle, FiClock, FiEdit3, FiExternalLink,
@@ -24,13 +24,13 @@ const hasPendingChanges = (section) => {
 }
 
 /**
- * Homepage Editor (CMS prompt §4–§35) — manages the real homepage sections
+ * Homepage Editor (CMS prompt ┬º4ÔÇô┬º35) ÔÇö manages the real homepage sections
  * (ContentSection rows for the "/" ManagedPage) with the full
- * Edit → Save Draft → Preview → Publish flow:
+ * Edit ÔåÆ Save Draft ÔåÆ Preview ÔåÆ Publish flow:
  *   - Save Draft  PATCH {resource:"sections", id, ...fields}   (public unchanged)
  *   - Preview     renders the SAME CMSBlock component the public site uses,
  *                 at Desktop/Tablet/Mobile widths
- *   - Publish     PATCH {resource:"sections", id, action:"publish"} → the
+ *   - Publish     PATCH {resource:"sections", id, action:"publish"} ÔåÆ the
  *                 backend freezes a snapshot the public config serves
  *   - Show/Hide + reorder stay immediate (structural), as before
  *   - History/rollback via the existing CMSRevision endpoints
@@ -124,13 +124,13 @@ export default function HomepageManagerPanel() {
     if (!draft) return
     const payload = { resource: "sections", id: draft.id }
     for (const f of CONTENT_FIELDS) payload[f] = draft[f]
-    return mutate(payload, "Draft saved — public homepage unchanged until you Publish", "save")
+    return mutate(payload, "Draft saved ÔÇö public homepage unchanged until you Publish", "save")
   }
 
   const publish = () => {
     if (!draft) return
     return mutate({ resource: "sections", id: draft.id, action: "publish" },
-      `“${draft.title || draft.key}” published to the homepage`, "publish")
+      `ÔÇ£${draft.title || draft.key}ÔÇØ published to the homepage`, "publish")
   }
 
   const saveAndPublish = async () => {
@@ -139,7 +139,7 @@ export default function HomepageManagerPanel() {
 
   const toggleSection = (section) =>
     mutate({ resource: "sections", id: section.id, action: section.is_visible ? "unpublish" : "publish" },
-      section.is_visible ? `“${section.title || section.key}” hidden on the public site` : `“${section.title || section.key}” shown on the public site`,
+      section.is_visible ? `ÔÇ£${section.title || section.key}ÔÇØ hidden on the public site` : `ÔÇ£${section.title || section.key}ÔÇØ shown on the public site`,
       `vis-${section.id}`)
 
   const move = async (index, direction) => {
@@ -162,7 +162,7 @@ export default function HomepageManagerPanel() {
 
   const rollback = async (revision) => {
     const ok = await mutate({ resource: "sections", id: historyFor.id, action: "rollback", revision_id: revision.id },
-      `Rolled back to revision #${revision.revision_number} (draft) — Publish to make it public`, "rollback")
+      `Rolled back to revision #${revision.revision_number} (draft) ÔÇö Publish to make it public`, "rollback")
     if (ok) setHistoryFor(null)
   }
 
@@ -212,7 +212,7 @@ export default function HomepageManagerPanel() {
         await adminApi.updateCMS({ resource: "sections", id: sct.id, action: "publish" })
         ok += 1
       } catch (error) {
-        showToast(error.response?.data?.detail || `Could not publish “${sct.title || sct.key}”`, "error")
+        showToast(error.response?.data?.detail || `Could not publish ÔÇ£${sct.title || sct.key}ÔÇØ`, "error")
       }
     }
     await load()
@@ -223,14 +223,14 @@ export default function HomepageManagerPanel() {
   const schedulePublish = () => {
     if (!draft || !scheduleAt) return
     return mutate({ resource: "sections", id: draft.id, action: "schedule", scheduled_publish_at: new Date(scheduleAt).toISOString() },
-      `Scheduled “${draft.title || draft.key}” to publish at ${new Date(scheduleAt).toLocaleString()}`, "schedule")
+      `Scheduled ÔÇ£${draft.title || draft.key}ÔÇØ to publish at ${new Date(scheduleAt).toLocaleString()}`, "schedule")
   }
 
   const unpublish = () => {
     if (!draft) return
-    if (!window.confirm(`Unpublish “${draft.title || draft.key}”? It will disappear from the public homepage until published again.`)) return
+    if (!window.confirm(`Unpublish ÔÇ£${draft.title || draft.key}ÔÇØ? It will disappear from the public homepage until published again.`)) return
     return mutate({ resource: "sections", id: draft.id, action: "unpublish" },
-      `“${draft.title || draft.key}” unpublished — hidden from the public homepage`, "unpublish")
+      `ÔÇ£${draft.title || draft.key}ÔÇØ unpublished ÔÇö hidden from the public homepage`, "unpublish")
   }
 
   const saveSeo = () => {
@@ -249,9 +249,9 @@ export default function HomepageManagerPanel() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-black text-emerald-950">Page Editor — Homepage & All Pages</h2>
+          <h2 className="text-2xl font-black text-emerald-950">Page Editor ÔÇö Homepage & All Pages</h2>
           <p className="text-sm text-emerald-900/60">
-            Edit → Save Draft → Preview → Publish. Drafts never touch the public site; only Publish updates the page.
+            Edit ÔåÆ Save Draft ÔåÆ Preview ÔåÆ Publish. Drafts never touch the public site; only Publish updates the page.
           </p>
           {pages.length > 0 && (
             <label className="flex flex-wrap items-center gap-3 mt-3 text-sm font-semibold text-emerald-900/70">
@@ -265,7 +265,7 @@ export default function HomepageManagerPanel() {
                 className="rounded-lg border border-emerald-200 bg-white px-2.5 py-1.5 font-mono text-xs text-slate-800"
               >
                 {[...pages].sort((a, b) => (a.route === "/" ? -1 : b.route === "/" ? 1 : a.route.localeCompare(b.route))).map((p) => (
-                  <option key={p.id} value={p.id}>{p.route === "/" ? "/ (Homepage)" : p.route}{p.title ? ` — ${p.title}` : ""}</option>
+                  <option key={p.id} value={p.id}>{p.route === "/" ? "/ (Homepage)" : p.route}{p.title ? ` ÔÇö ${p.title}` : ""}</option>
                 ))}
               </select>
               <span className="text-xs text-emerald-800/60">{sections.filter((sec) => sec.status === "draft").length} draft(s) on this page</span>
@@ -274,7 +274,7 @@ export default function HomepageManagerPanel() {
                   type="button"
                   onClick={deletePage}
                   disabled={busy !== ""}
-                  className="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-black text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+                  className="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-black text-rose-700 hover:bg-rose-100 disabled:opacity-50"
                 >
                   Delete page
                 </button>
@@ -285,7 +285,7 @@ export default function HomepageManagerPanel() {
         <div className="flex flex-wrap items-center gap-2 self-start">
           {pendingSections.length > 0 && (
             <button type="button" onClick={publishAll} disabled={busy !== ""} className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-black text-slate-950 hover:bg-amber-400 disabled:opacity-50 whitespace-nowrap">
-              <FiSend size={14} /> {busy === "publish-all" ? "Publishing…" : `Publish All Changes (${pendingSections.length})`}
+              <FiSend size={14} /> {busy === "publish-all" ? "PublishingÔÇª" : `Publish All Changes (${pendingSections.length})`}
             </button>
           )}
           <button type="button" onClick={() => setFullPreview(true)} className="inline-flex items-center gap-2 rounded-xl bg-sky-600/90 px-4 py-2.5 text-sm font-black text-white hover:bg-sky-500 whitespace-nowrap">
@@ -300,7 +300,7 @@ export default function HomepageManagerPanel() {
         </div>
       </div>
 
-      {loading && <p className="text-sm text-slate-500">Loading homepage sections…</p>}
+      {loading && <p className="text-sm text-slate-500">Loading homepage sectionsÔÇª</p>}
       {!loading && !homePage && (
         <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
           No page with route <code>/</code> exists in the CMS yet. Create the Home page in <Link className="font-bold underline" to="/admin?section=cms">Pages, Sections &amp; Menus</Link> first.
@@ -322,17 +322,17 @@ export default function HomepageManagerPanel() {
             <textarea rows={2} className={`${field} mt-1`} value={seo.meta_description} onChange={(e) => setSeo({ ...seo, meta_description: e.target.value })} />
           </label>
           <label className="block text-xs font-bold text-slate-300">Social share (OG) image URL
-            <input className={`${field} mt-1`} value={seo.og_image_url} onChange={(e) => setSeo({ ...seo, og_image_url: e.target.value })} placeholder="https://…" />
+            <input className={`${field} mt-1`} value={seo.og_image_url} onChange={(e) => setSeo({ ...seo, og_image_url: e.target.value })} placeholder="https://ÔÇª" />
           </label>
           <button type="button" onClick={saveSeo} disabled={busy !== ""} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-black text-white hover:bg-emerald-500 disabled:opacity-50">
-            <FiSave size={14} /> {busy === "seo" ? "Saving…" : "Save SEO settings"}
+            <FiSave size={14} /> {busy === "seo" ? "SavingÔÇª" : "Save SEO settings"}
           </button>
         </div>
       )}
 
       {!loading && homePage && (
         <div className="grid gap-5 lg:grid-cols-5">
-          {/* ── Left: section list ─────────────────────────────── */}
+          {/* ÔöÇÔöÇ Left: section list ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */}
           <div className="lg:col-span-2 bg-slate-900/70 border border-slate-600/40 rounded-2xl p-4">
             <h3 className="text-sm font-black uppercase tracking-wider text-slate-300 mb-3 flex items-center gap-2"><FiLayers size={14} /> Homepage sections ({sections.length})</h3>
             <ul className="space-y-2">
@@ -342,28 +342,28 @@ export default function HomepageManagerPanel() {
                     <span className="w-6 text-center text-xs font-black text-slate-400">{String(index + 1).padStart(2, "0")}</span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-bold text-white">{section.title || section.key}</span>
-                      <span className="text-xs text-slate-400">{section.key} · {section.section_type || "section"}</span>
+                      <span className="text-[11px] text-slate-400">{section.key} ┬À {section.section_type || "section"}</span>
                     </span>
                     {statusChip(section)}
                   </div>
                   <div className="flex items-center gap-1.5 mt-2">
                     <button type="button" onClick={() => move(index, -1)} disabled={index === 0 || busy === "reorder"} aria-label={`Move ${section.title || section.key} up`} className="rounded-lg bg-slate-700/60 p-2 text-slate-200 hover:bg-slate-600 disabled:opacity-30"><FiArrowUp size={13} /></button>
                     <button type="button" onClick={() => move(index, 1)} disabled={index === sections.length - 1 || busy === "reorder"} aria-label={`Move ${section.title || section.key} down`} className="rounded-lg bg-slate-700/60 p-2 text-slate-200 hover:bg-slate-600 disabled:opacity-30"><FiArrowDown size={13} /></button>
-                    <button type="button" onClick={() => toggleSection(section)} disabled={busy === `vis-${section.id}`} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-700/60 px-2.5 py-2 text-xs font-bold text-slate-100 hover:bg-slate-600 disabled:opacity-50">
+                    <button type="button" onClick={() => toggleSection(section)} disabled={busy === `vis-${section.id}`} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-700/60 px-2.5 py-2 text-[11px] font-bold text-slate-100 hover:bg-slate-600 disabled:opacity-50">
                       {section.is_visible ? <FiEyeOff size={13} /> : <FiEye size={13} />}
                       {section.is_visible ? "Hide" : "Show"}
                     </button>
-                    <button type="button" onClick={() => { if (dirty && !window.confirm("You have unsaved changes in the editor. Discard them?")) return; setSelectedId(section.id) }} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600/80 px-2.5 py-2 text-xs font-bold text-white hover:bg-emerald-500">
+                    <button type="button" onClick={() => { if (dirty && !window.confirm("You have unsaved changes in the editor. Discard them?")) return; setSelectedId(section.id) }} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600/80 px-2.5 py-2 text-[11px] font-bold text-white hover:bg-emerald-500">
                       <FiEdit3 size={13} /> Edit
                     </button>
-                    <button type="button" onClick={() => openHistory(section)} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-700/60 px-2.5 py-2 text-xs font-bold text-slate-200 hover:bg-slate-600"><FiRotateCcw size={13} /> History</button>
+                    <button type="button" onClick={() => openHistory(section)} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-700/60 px-2.5 py-2 text-[11px] font-bold text-slate-200 hover:bg-slate-600"><FiRotateCcw size={13} /> History</button>
                   </div>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* ── Right: editor ──────────────────────────────────── */}
+          {/* ÔöÇÔöÇ Right: editor ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */}
           <div className="lg:col-span-3 space-y-4">
             {draft ? (
               <div className="bg-slate-900/70 border border-slate-600/40 rounded-2xl p-5 space-y-3">
@@ -399,7 +399,7 @@ export default function HomepageManagerPanel() {
                   </label>
                 </div>
                 <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3 space-y-2">
-                  <p className="text-xs font-black uppercase tracking-wide text-amber-400">Design & styles</p>
+                  <p className="text-[11px] font-black uppercase tracking-wide text-amber-400">Design & styles</p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     <label className="block text-xs font-bold text-slate-300">Background
                       <select className={`${field} mt-1`} value={draft.config?.background_style || "clean-white"} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), background_style: e.target.value } })}>
@@ -435,12 +435,12 @@ export default function HomepageManagerPanel() {
                     </label>
                   </div>
                   <label className="block text-xs font-bold text-slate-300">Background image (HTTPS, optional)
-                    <input className={`${field} mt-1`} value={draft.config?.bg_image || ""} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), bg_image: e.target.value } })} placeholder="https://…" />
+                    <input className={`${field} mt-1`} value={draft.config?.bg_image || ""} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), bg_image: e.target.value } })} placeholder="https://ÔÇª" />
                   </label>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-end">
                   <label className="block text-xs font-bold text-slate-300">Image URL
-                    <input className={`${field} mt-1`} value={draft.image_url || ""} onChange={(e) => setDraft({ ...draft, image_url: e.target.value })} placeholder="https://… or /media/…" />
+                    <input className={`${field} mt-1`} value={draft.image_url || ""} onChange={(e) => setDraft({ ...draft, image_url: e.target.value })} placeholder="https://ÔÇª or /media/ÔÇª" />
                   </label>
                   <button type="button" onClick={openMediaPicker} className="inline-flex items-center gap-2 rounded-xl bg-slate-700/70 px-4 py-2.5 text-xs font-bold text-slate-100 hover:bg-slate-600"><FiImage size={14} /> Media Library</button>
                 </div>
@@ -451,13 +451,13 @@ export default function HomepageManagerPanel() {
 
                 <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-700/50">
                   <button type="button" onClick={saveDraft} disabled={busy !== "" || !dirty} className="inline-flex items-center gap-2 rounded-xl bg-slate-700 px-4 py-2.5 text-xs font-black text-white hover:bg-slate-600 disabled:opacity-40">
-                    <FiSave size={14} /> {busy === "save" ? "Saving…" : "Save Draft"}
+                    <FiSave size={14} /> {busy === "save" ? "SavingÔÇª" : "Save Draft"}
                   </button>
                   <button type="button" onClick={() => setPreviewOpen(true)} className="inline-flex items-center gap-2 rounded-xl bg-sky-600/90 px-4 py-2.5 text-xs font-black text-white hover:bg-sky-500">
                     <FiEye size={14} /> Preview
                   </button>
                   <button type="button" onClick={saveAndPublish} disabled={busy !== ""} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-black text-white hover:bg-emerald-500 disabled:opacity-50">
-                    <FiSend size={14} /> {busy === "publish" ? "Publishing…" : "Save & Publish"}
+                    <FiSend size={14} /> {busy === "publish" ? "PublishingÔÇª" : "Save & Publish"}
                   </button>
                   <button type="button" onClick={publish} disabled={busy !== "" || !hasPendingChanges(selected || {})} className="inline-flex items-center gap-2 rounded-xl bg-emerald-800/80 px-4 py-2.5 text-xs font-black text-emerald-100 hover:bg-emerald-700 disabled:opacity-40">
                     Publish current draft
@@ -466,14 +466,14 @@ export default function HomepageManagerPanel() {
                 <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-700/50">
                   <input type="datetime-local" value={scheduleAt} onChange={(e) => setScheduleAt(e.target.value)}
                     className="rounded-xl border border-slate-600/50 bg-slate-800/60 px-3 py-2 text-xs text-white focus:border-emerald-500 focus:outline-none" aria-label="Schedule publish time" />
-                  <button type="button" onClick={schedulePublish} disabled={busy !== "" || !scheduleAt} className="inline-flex items-center gap-2 rounded-xl bg-slate-700 px-3 py-2 text-xs font-black text-slate-100 hover:bg-slate-600 disabled:opacity-40">
+                  <button type="button" onClick={schedulePublish} disabled={busy !== "" || !scheduleAt} className="inline-flex items-center gap-2 rounded-xl bg-slate-700 px-3 py-2 text-[11px] font-black text-slate-100 hover:bg-slate-600 disabled:opacity-40">
                     <FiClock size={13} /> Schedule publish
                   </button>
-                  <button type="button" onClick={unpublish} disabled={busy !== "" || draft.status !== "published"} className="inline-flex items-center gap-2 rounded-xl bg-rose-700/70 px-3 py-2 text-xs font-black text-rose-100 hover:bg-rose-600 disabled:opacity-40">
+                  <button type="button" onClick={unpublish} disabled={busy !== "" || draft.status !== "published"} className="inline-flex items-center gap-2 rounded-xl bg-rose-700/70 px-3 py-2 text-[11px] font-black text-rose-100 hover:bg-rose-600 disabled:opacity-40">
                     <FiEyeOff size={13} /> Unpublish
                   </button>
                 </div>
-                <p className="text-xs text-slate-500">
+                <p className="text-[11px] text-slate-500">
                   Hero visuals are driven by the hero slides system; the hero section&apos;s text fields still feed CMS-rendered hero blocks.
                 </p>
               </div>
@@ -483,8 +483,8 @@ export default function HomepageManagerPanel() {
 
             {selected && (
               <div className="bg-slate-900/70 border border-slate-600/40 rounded-2xl p-5">
-                <h3 className="text-sm font-black uppercase tracking-wider text-slate-300 mb-1">Cards / blocks inside “{selected.title || selected.key}”</h3>
-                <p className="text-xs text-slate-500 mb-3">Blocks are part of the draft: after editing them, press Publish in the editor above to push them live.</p>
+                <h3 className="text-sm font-black uppercase tracking-wider text-slate-300 mb-1">Cards / blocks inside ÔÇ£{selected.title || selected.key}ÔÇØ</h3>
+                <p className="text-[11px] text-slate-500 mb-3">Blocks are part of the draft: after editing them, press Publish in the editor above to push them live.</p>
                 <ContentBlocksBuilder key={selected.id} sectionId={selected.id} section={selected} onToast={(msg, kind) => showToast(msg, kind)} />
               </div>
             )}
@@ -492,16 +492,16 @@ export default function HomepageManagerPanel() {
         </div>
       )}
 
-      {/* ── Preview modal: the SAME CMSBlock component the public site renders ── */}
+      {/* ÔöÇÔöÇ Preview modal: the SAME CMSBlock component the public site renders ÔöÇÔöÇ */}
       {previewOpen && draft && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true">
           <div className="flex max-h-[92vh] w-full max-w-6xl flex-col rounded-2xl bg-slate-950 border border-slate-700">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 p-4">
-              <h3 className="text-sm font-black text-white">Preview — {draft.title || draft.key} <span className="text-slate-400 font-normal">(draft state, not yet public)</span></h3>
+              <h3 className="text-sm font-black text-white">Preview ÔÇö {draft.title || draft.key} <span className="text-slate-400 font-normal">(draft state, not yet public)</span></h3>
               <div className="flex items-center gap-2">
                 {Object.keys(PREVIEW_WIDTHS).map((w) => (
                   <button key={w} type="button" onClick={() => setPreviewWidth(w)}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-black ${previewWidth === w ? "bg-emerald-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}>{w}</button>
+                    className={`rounded-lg px-3 py-1.5 text-[11px] font-black ${previewWidth === w ? "bg-emerald-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}>{w}</button>
                 ))}
                 <button type="button" onClick={() => setPreviewOpen(false)} aria-label="Close preview" className="rounded-lg bg-slate-800 p-2 text-slate-300 hover:bg-slate-700"><FiX size={16} /></button>
               </div>
@@ -515,12 +515,12 @@ export default function HomepageManagerPanel() {
         </div>
       )}
 
-      {/* ── History / rollback ─────────────────────────────────── */}
+      {/* ÔöÇÔöÇ History / rollback ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */}
       {historyFor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true">
           <div className="w-full max-w-xl rounded-2xl bg-slate-950 border border-slate-700 p-5 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-black text-white">Revision history — {historyFor.title || historyFor.key}</h3>
+              <h3 className="text-sm font-black text-white">Revision history ÔÇö {historyFor.title || historyFor.key}</h3>
               <button type="button" onClick={() => setHistoryFor(null)} aria-label="Close history" className="rounded-lg bg-slate-800 p-2 text-slate-300 hover:bg-slate-700"><FiX size={16} /></button>
             </div>
             {!revisions.length && <p className="text-sm text-slate-400">No revisions recorded yet.</p>}
@@ -528,30 +528,30 @@ export default function HomepageManagerPanel() {
               {revisions.map((rev) => (
                 <li key={rev.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-700/60 bg-slate-800/50 px-4 py-3">
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-white">#{rev.revision_number} · {rev.action}</p>
-                    <p className="text-xs text-slate-400">{new Date(rev.created_at).toLocaleString()}{rev.created_by ? ` · ${rev.created_by}` : ""}</p>
+                    <p className="text-sm font-bold text-white">#{rev.revision_number} ┬À {rev.action}</p>
+                    <p className="text-[11px] text-slate-400">{new Date(rev.created_at).toLocaleString()}{rev.created_by ? ` ┬À ${rev.created_by}` : ""}</p>
                   </div>
-                  <button type="button" onClick={() => rollback(rev)} disabled={busy === "rollback"} className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600/90 px-3 py-2 text-xs font-black text-white hover:bg-amber-500 disabled:opacity-50">
+                  <button type="button" onClick={() => rollback(rev)} disabled={busy === "rollback"} className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600/90 px-3 py-2 text-[11px] font-black text-white hover:bg-amber-500 disabled:opacity-50">
                     <FiRotateCcw size={13} /> Roll back to this
                   </button>
                 </li>
               ))}
             </ul>
-            <p className="text-xs text-slate-500 mt-3">Rollback restores the revision as a DRAFT — press Publish afterwards to make it public.</p>
+            <p className="text-[11px] text-slate-500 mt-3">Rollback restores the revision as a DRAFT ÔÇö press Publish afterwards to make it public.</p>
           </div>
         </div>
       )}
 
-      {/* ── Full-page draft preview: every visible section stacked in order ── */}
+      {/* ÔöÇÔöÇ Full-page draft preview: every visible section stacked in order ÔöÇÔöÇ */}
       {fullPreview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true">
           <div className="flex max-h-[92vh] w-full max-w-6xl flex-col rounded-2xl bg-slate-950 border border-slate-700">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 p-4">
-              <h3 className="text-sm font-black text-white">Full homepage — draft state <span className="text-slate-400 font-normal">(specially-styled sections are approximated by the generic CMS renderer)</span></h3>
+              <h3 className="text-sm font-black text-white">Full homepage ÔÇö draft state <span className="text-slate-400 font-normal">(specially-styled sections are approximated by the generic CMS renderer)</span></h3>
               <div className="flex items-center gap-2">
                 {Object.keys(PREVIEW_WIDTHS).map((w) => (
                   <button key={w} type="button" onClick={() => setPreviewWidth(w)}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-black ${previewWidth === w ? "bg-emerald-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}>{w}</button>
+                    className={`rounded-lg px-3 py-1.5 text-[11px] font-black ${previewWidth === w ? "bg-emerald-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}>{w}</button>
                 ))}
                 <button type="button" onClick={() => setFullPreview(false)} aria-label="Close full preview" className="rounded-lg bg-slate-800 p-2 text-slate-300 hover:bg-slate-700"><FiX size={16} /></button>
               </div>
@@ -567,7 +567,7 @@ export default function HomepageManagerPanel() {
         </div>
       )}
 
-      {/* ── Media library picker ───────────────────────────────── */}
+      {/* ÔöÇÔöÇ Media library picker ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */}
       {mediaPicker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true">
           <div className="w-full max-w-3xl rounded-2xl bg-slate-950 border border-slate-700 p-5 max-h-[85vh] overflow-y-auto">
@@ -577,13 +577,13 @@ export default function HomepageManagerPanel() {
             </div>
             <div className="relative mb-3">
               <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input autoFocus value={mediaQ} onChange={(e) => searchMedia(e.target.value)} placeholder="Search media…"
+              <input autoFocus value={mediaQ} onChange={(e) => searchMedia(e.target.value)} placeholder="Search mediaÔÇª"
                 className="w-full rounded-xl border border-slate-600/50 bg-slate-800/60 py-2.5 pl-10 pr-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none" />
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {mediaRows.map((row) => (
                 <button key={row.id} type="button"
-                  onClick={() => { setDraft((d) => (d ? { ...d, image_url: row.url || row.external_url || "" } : d)); setMediaPicker(false); showToast("Image selected — remember to Publish", "success") }}
+                  onClick={() => { setDraft((d) => (d ? { ...d, image_url: row.url || row.external_url || "" } : d)); setMediaPicker(false); showToast("Image selected ÔÇö remember to Publish", "success") }}
                   className="group rounded-xl border border-slate-700/60 overflow-hidden text-left hover:border-emerald-500">
                   <img src={row.url} alt={row.caption || "Media"} loading="lazy" className="h-24 w-full object-cover" />
                   <span className="block truncate px-2 py-1.5 text-xs font-bold text-slate-300 group-hover:text-emerald-300">{row.caption || row.url}</span>

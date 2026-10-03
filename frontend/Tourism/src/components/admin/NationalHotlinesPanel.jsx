@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+﻿import { useEffect, useState } from "react"
 import { FiEdit3, FiPlus, FiRefreshCw, FiTrash2 } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
@@ -56,13 +56,13 @@ export default function NationalHotlinesPanel() {
 
   return <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-slate-900" data-testid="national-hotlines-panel">
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <div><p className="text-xs font-black uppercase tracking-wider text-amber-800">Owner-managed safety data</p><h3 className="text-xl font-black">National emergency hotlines</h3><p className="mt-1 text-xs text-slate-600">Edit sourced definitions or add a non-critical operator. Tourist Police 1144, Police 100, Ambulance 102, Fire 101 and Traffic 103 are protected from deletion.</p></div>
+      <div><p className="text-[11px] font-black uppercase tracking-wider text-amber-800">Owner-managed safety data</p><h3 className="text-xl font-black">National emergency hotlines</h3><p className="mt-1 text-xs text-slate-600">Edit sourced definitions or add a non-critical operator. Tourist Police 1144, Police 100, Ambulance 102, Fire 101 and Traffic 103 are protected from deletion.</p></div>
       <button type="button" onClick={refresh} className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-bold"><FiRefreshCw className={loading ? "animate-spin" : ""} /> Refresh</button>
     </div>
     <div className="mt-4 grid gap-3 md:grid-cols-2">
       {rows.map((row) => <article key={row.type} className="rounded-xl border border-amber-200 bg-white p-4">
         <div className="flex items-start justify-between gap-3"><div><h4 className="font-black">{row.name}</h4><p className="text-sm font-bold text-rose-700">{row.phone_number}</p><p className="text-xs text-slate-500">{row.description}</p></div><span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-black uppercase">{row.type}</span></div>
-        <p className="mt-2 text-xs text-slate-500">Source: {row.source_name} {row.source_url && <a className="underline" href={row.source_url} target="_blank" rel="noreferrer">(open)</a>}</p>
+        <p className="mt-2 text-[11px] text-slate-500">Source: {row.source_name} {row.source_url && <a className="underline" href={row.source_url} target="_blank" rel="noreferrer">(open)</a>}</p>
         <div className="mt-3 flex gap-2"><button type="button" onClick={() => startEdit(row)} className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-bold text-white"><FiEdit3 /> Edit</button>{!protectedTypes.includes(row.type) && <button type="button" onClick={() => remove(row.type)} className="inline-flex items-center gap-1 rounded-lg bg-rose-700 px-3 py-1.5 text-xs font-bold text-white"><FiTrash2 /> Delete</button>}</div>
       </article>)}
     </div>

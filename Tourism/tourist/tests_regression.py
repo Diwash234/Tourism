@@ -1,4 +1,4 @@
-"""
+﻿"""
 Regression suite for the Nepal Yatra fix pass (audit REQ-038).
 
 Each test pins one previously-fixed behavior so it cannot silently regress:
@@ -28,7 +28,6 @@ from .models import (
     StaffCapabilityProfile,
     Category,
     Destination,
-    DestinationImage,
     Province,
     District,
     Hospital,
@@ -251,7 +250,7 @@ class PlaceSubmissionFlowRegressionTests(TestCase):
         }, format="multipart")
         self.assertEqual(created.status_code, 201, created.content)
         # DestinationWriteSerializer returns id (slug is generated server-side
-        # and only exposed by the read serializers) — resolve it via the model.
+        # and only exposed by the read serializers) ÔÇö resolve it via the model.
         slug = Destination.objects.get(id=created.data["id"]).slug
 
         mine = client.get("/api/v1/destinations/my_submissions/")
@@ -270,7 +269,7 @@ class PlaceSubmissionFlowRegressionTests(TestCase):
 
 
 class RedirectRulesRegressionTests(TestCase):
-    """Redirects & URLs (CMS brief §14): admin CRUD + public exposure."""
+    """Redirects & URLs (CMS brief ┬º14): admin CRUD + public exposure."""
 
     def setUp(self):
         self.client_admin = APIClient()
@@ -307,7 +306,7 @@ class RedirectRulesRegressionTests(TestCase):
 
 
 class FooterSettingsRegressionTests(TestCase):
-    """Footer (§6): branding contact_address whitelist + newsletter store."""
+    """Footer (┬º6): branding contact_address whitelist + newsletter store."""
 
     def test_branding_accepts_contact_address(self):
         client = APIClient()
@@ -330,7 +329,7 @@ class FooterSettingsRegressionTests(TestCase):
 
 
 class NearbyResultsRegressionTests(TestCase):
-    """§23/§24: nearby results derive from the real Destination table —
+    """┬º23/┬º24: nearby results derive from the real Destination table ÔÇö
     nearest-first with distance_km, radius honoured, out-of-range coordinates
     rejected, origin switch changes the cluster, and an admin coordinate edit
     moves a destination between result sets (no separate nearby dataset)."""
@@ -398,8 +397,8 @@ class NearbyResultsRegressionTests(TestCase):
         self.assertEqual(bad_lng.status_code, 400, bad_lng.content)
 
     def test_admin_coordinate_edit_moves_destination_between_origins(self):
-        """§24: the admin edit path writes the same Destination row the nearby
-        query reads — moving coords moves the row across result sets."""
+        """┬º24: the admin edit path writes the same Destination row the nearby
+        query reads ÔÇö moving coords moves the row across result sets."""
         # Sanity: Pokhara origin sees the stupa, Kathmandu origin does not.
         self.assertNotIn(self.pkr_stupa.slug,
                          [r["slug"] for r in self._nearby(27.7172, 85.3240, 25)])
@@ -426,7 +425,7 @@ class NearbyResultsRegressionTests(TestCase):
 
 
 class HotelNearbyRegressionTests(TestCase):
-    """Nearby hotels derive from the real Hotel table via /hotels/nearby/ —
+    """Nearby hotels derive from the real Hotel table via /hotels/nearby/ ÔÇö
     haversine on stored coordinates, nearest-first with distance_km, radius
     honoured, inactive rows hidden, out-of-range coordinates rejected."""
 
@@ -482,7 +481,7 @@ class HotelNearbyRegressionTests(TestCase):
 
 
 class UserDataReportsRegressionTests(TestCase):
-    """The Dashboard's My-reports panel GETs /reports/submit/ — that used to
+    """The Dashboard's My-reports panel GETs /reports/submit/ ÔÇö that used to
     405 (submit-only view) and the frontend swallowed it. GET now returns the
     caller's own reports; anonymous callers get 401; POST stays the write path."""
 
@@ -512,7 +511,7 @@ class UserDataReportsRegressionTests(TestCase):
 
 
 class CategoryCrudRegressionTests(TestCase):
-    """§22: admin category CRUD rides the slug detail route and stays admin-only.
+    """┬º22: admin category CRUD rides the slug detail route and stays admin-only.
 
     CategoryViewSet uses lookup_field="slug", so the admin UI must address
     PATCH/DELETE by slug; a numeric id must NOT resolve (that mismatch was a
@@ -577,7 +576,7 @@ class CategoryCrudRegressionTests(TestCase):
 class DiscoverNepalCatalogRegressionTests(TestCase):
     """culture/cuisine/festivals groups must surface destinations recorded in
     the category taxonomy even when the long-form text fields and curated
-    festival notices are still empty — and "agriculture" must never leak into
+    festival notices are still empty ÔÇö and "agriculture" must never leak into
     the culture group via substring matching."""
 
     def setUp(self):
@@ -616,8 +615,8 @@ class DiscoverNepalCatalogRegressionTests(TestCase):
 
 
 class AdminDestinationCrudRegressionTests(TestCase):
-    """§33: routine destination create/archive must stay inside the custom
-    admin API — no raw Django admin, no mass-assignment 500s, soft archive
+    """┬º33: routine destination create/archive must stay inside the custom
+    admin API ÔÇö no raw Django admin, no mass-assignment 500s, soft archive
     that retains related records."""
 
     def setUp(self):
@@ -682,7 +681,7 @@ class AdminDestinationCrudRegressionTests(TestCase):
 
 
 class WardNumberRegressionTests(TestCase):
-    """§21 ward tier: the recorded ward_number must round-trip through the
+    """┬º21 ward tier: the recorded ward_number must round-trip through the
     admin destination API and reject junk without a 500."""
 
     def setUp(self):
@@ -900,7 +899,7 @@ class NavigationOriginResolutionTests(TestCase):
             content_type="application/json",
         )
         # 200 when the graph can route; 404 with an honest routing message
-        # when it cannot — but never a silent default-city route.
+        # when it cannot ÔÇö but never a silent default-city route.
         self.assertIn(resp.status_code, (200, 404, 503))
         if resp.status_code == 404:
             self.assertNotIn("matches origin", resp.json().get("detail", ""))
@@ -913,6 +912,92 @@ class NavigationOriginResolutionTests(TestCase):
         )
         self.assertEqual(resp.status_code, 404)
         self.assertIn("origin", resp.json()["detail"].lower())
+
+
+class NavigationRoutePayloadRobustnessTests(TestCase):
+    """Live production bugs found 2026-10-01:
+
+    1. The modern nested payload {"start": {latitude, longitude},
+       "destination": {latitude, longitude}} crashed with
+       AttributeError ('dict' object has no attribute 'lower') -> 500 on
+       every /navigation/route request in that shape (the compat handler
+       treated the nested "start"/"destination" objects as place names).
+    2. In production the ML service does not exist (ML_SERVICE_URL points
+       at localhost:8001, nothing listens) and its graph fallback needs
+       the ml_service/ tree the image does not ship - so the request must
+       still answer with DRAWABLE geometry via the navigation route
+       engine fallback, never 503 or an empty route array.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        from .models import Destination
+        cls.dest = Destination.objects.create(
+            name="Phewa Lake",
+            slug="phewa-lake-robust",
+            city="Pokhara",
+            latitude=28.2117,
+            longitude=83.9517,
+            is_active=True,
+        )
+
+    def test_nested_modern_payload_returns_drawable_route(self):
+        from django.test import override_settings
+        with override_settings(ROUTING_BASE_URL="", ROUTING_API_URL=""):
+            resp = self.client.post(
+                "/api/v1/navigation/route",
+                {
+                    "start": {"latitude": 27.7172, "longitude": 85.3240},
+                    "destination": {"latitude": 28.2117, "longitude": 83.9517},
+                    "mode": "driving",
+                },
+                content_type="application/json",
+            )
+        # Before the fix this was a hard 500 (AttributeError in pick()).
+        self.assertEqual(resp.status_code, 200, resp.content)
+        body = resp.json()
+        self.assertTrue(body.get("route"), "route geometry must be drawable")
+        self.assertGreater(body.get("distance_km") or 0, 0)
+
+    @patch("tourist.views_compat.get_ml_best_route", return_value=None)
+    def test_ml_down_falls_back_to_route_engine(self, _mock_ml):
+        from django.test import override_settings
+        with override_settings(ROUTING_BASE_URL="", ROUTING_API_URL=""):
+            resp = self.client.post(
+                "/api/v1/navigation/route",
+                {
+                    "start_latitude": "27.7172",
+                    "start_longitude": "85.3240",
+                    "destination_name": "Phewa Lake",
+                    "transport_mode": "driving",
+                },
+                content_type="application/json",
+            )
+        self.assertEqual(resp.status_code, 200, resp.content)
+        body = resp.json()
+        self.assertTrue(body.get("route"), "engine fallback must supply geometry")
+        self.assertGreater(body.get("distance_km") or 0, 0)
+        self.assertIn(
+            body.get("source"),
+            {"osrm", "graphml_fallback", "straight_line_fallback"},
+        )
+
+    @patch("tourist.views_compat.get_ml_best_route", return_value=None)
+    def test_ml_down_empty_geometry_upgraded_to_engine_route(self, _mock_ml):
+        """ML answering with NO drawable geometry (route: []) is as broken as
+        ML being down - the fallback must upgrade it to a real route."""
+        from django.test import override_settings
+        with override_settings(ROUTING_BASE_URL="", ROUTING_API_URL=""):
+            resp = self.client.post(
+                "/api/v1/navigation/route",
+                {
+                    "start": {"latitude": 27.7172, "longitude": 85.3240},
+                    "destination": {"latitude": 28.2117, "longitude": 83.9517},
+                },
+                content_type="application/json",
+            )
+        self.assertEqual(resp.status_code, 200, resp.content)
+        self.assertTrue(resp.json().get("route"))
 
 
 class TransportModeHonestyTests(TestCase):
@@ -965,7 +1050,7 @@ class TransportModeHonestyTests(TestCase):
         self.assertIn(resp.status_code, (200, 404, 503))
         if resp.status_code == 200 and resp.json().get("duration_min"):
             # Either the routing engine supplied it, or it is a labelled
-            # average-speed estimate — never an unexplained number.
+            # average-speed estimate ÔÇö never an unexplained number.
             self.assertIn(resp.json().get("duration_source"), ("estimated", "routing_engine"))
             self.assertTrue(resp.json().get("duration_note"))
 
@@ -1097,9 +1182,9 @@ class UserRouteHistoryTests(TestCase):
         self._auth()
         rid = self.client.post("/api/v1/navigation/routes/", self._payload(), format="json").json()["id"]
         self.client.post("/api/v1/navigation/routes/", self._payload(destination_name="Nagarkot"), format="json")
-        resp = self.client.patch(f"/api/v1/navigation/routes/{rid}/", {"is_saved": True, "label": "Home → Lakeside"}, format="json")
+        resp = self.client.patch(f"/api/v1/navigation/routes/{rid}/", {"is_saved": True, "label": "Home ÔåÆ Lakeside"}, format="json")
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.json()["label"], "Home → Lakeside")
+        self.assertEqual(resp.json()["label"], "Home ÔåÆ Lakeside")
         saved = self.client.get("/api/v1/navigation/routes/?saved=1").json()
         self.assertEqual(len(saved), 1)
         self.assertEqual(saved[0]["destination_name"], "Phewa Lake")
@@ -1120,7 +1205,7 @@ class UserRouteHistoryTests(TestCase):
 
 
 class NavigationAnalyticsTests(TestCase):
-    """Admin navigation analytics (spec item 24) — real aggregates only."""
+    """Admin navigation analytics (spec item 24) ÔÇö real aggregates only."""
 
     def setUp(self):
         self.admin = User.objects.create_superuser("analytics-admin@test.local", "Analytics!Pass1")
@@ -1268,17 +1353,17 @@ class SearchPlacesRadiusSliceTests(TestCase):
 
 class ChatbotNavigationWiringTests(TestCase):
     """The assistant must answer distance questions from the navigation
-    service — never from a hardcoded table or an LLM's imagination."""
+    service ÔÇö never from a hardcoded table or an LLM's imagination."""
 
     def test_distance_answer_uses_routing_engine_not_hardcoded_table(self):
         from chatbot.services import get_chatbot_reply
         result = get_chatbot_reply([{"role": "user", "content": "How far is Pokhara from Kathmandu?"}])
         reply = result["reply"]
         card = result.get("distance_cards")
-        # The old implementation hardcoded 204.5 km / "6 – 7 hours" for this
-        # exact pair — those fabricated values must never appear again.
+        # The old implementation hardcoded 204.5 km / "6 ÔÇô 7 hours" for this
+        # exact pair ÔÇö those fabricated values must never appear again.
         self.assertNotIn("204.5", reply)
-        self.assertNotIn("6 – 7 hours", reply)
+        self.assertNotIn("6 ÔÇô 7 hours", reply)
         self.assertNotIn("Domestic Flight Time", reply)
         self.assertIn("Pokhara", reply)
         self.assertIn("Kathmandu", reply)
@@ -1312,8 +1397,8 @@ class ChatbotNavigationWiringTests(TestCase):
 
 
 class StaffTaskWorkflowTests(TestCase):
-    """Assignment-driven staff workflow (Staff Ops spec §29): admin assigns →
-    staff starts → submits for review → admin approves, with notifications,
+    """Assignment-driven staff workflow (Staff Ops spec ┬º29): admin assigns ÔåÆ
+    staff starts ÔåÆ submits for review ÔåÆ admin approves, with notifications,
     audit entries, and IDOR guards at every step."""
 
     def setUp(self):
@@ -1357,7 +1442,7 @@ class StaffTaskWorkflowTests(TestCase):
         r = self._act(task, "complete")
         self.assertEqual(r.status_code, 400)
 
-        # submit for review instead → admin approves
+        # submit for review instead ÔåÆ admin approves
         r = self._act(task, "submit_review", "Updated description and facilities")
         self.assertEqual(r.status_code, 200)
         task.refresh_from_db()
@@ -1422,7 +1507,7 @@ class StaffTaskWorkflowTests(TestCase):
 
 
 class SupportTicketWorkflowTests(TestCase):
-    """Staff-scoped customer support center (Staff Ops spec §7-10)."""
+    """Staff-scoped customer support center (Staff Ops spec ┬º7-10)."""
 
     def setUp(self):
         self.admin = User.objects.create_superuser("sup-admin@test.local", "Sup!Pass123")
@@ -1472,7 +1557,7 @@ class SupportTicketWorkflowTests(TestCase):
         self.assertEqual(self._action(self.ticket, "claim", as_user=self.other).status_code, 400)
         # other staff cannot act on it
         self.assertEqual(self._action(self.ticket, "resolve", as_user=self.other).status_code, 400)
-        r = self._action(self.ticket, "resolve", "Your booking is confirmed — see email.")
+        r = self._action(self.ticket, "resolve", "Your booking is confirmed ÔÇö see email.")
         self.assertEqual(r.status_code, 200, r.content[:200])
         self.ticket.refresh_from_db()
         self.assertEqual(self.ticket.status, "resolved")
@@ -1484,7 +1569,7 @@ class SupportTicketWorkflowTests(TestCase):
     def test_escalation_requires_reason_and_notifies_admins(self):
         self._action(self.ticket, "claim")
         self.assertEqual(self._action(self.ticket, "escalate").status_code, 400)
-        r = self._action(self.ticket, "escalate", "Payment refund needed — finance must act.")
+        r = self._action(self.ticket, "escalate", "Payment refund needed ÔÇö finance must act.")
         self.assertEqual(r.status_code, 200, r.content[:200])
         self.ticket.refresh_from_db()
         self.assertTrue(self.ticket.is_escalated)
@@ -1503,7 +1588,7 @@ class SupportTicketWorkflowTests(TestCase):
         self.assertFalse(self.ticket.is_escalated)  # fresh reply de-escalates
 
 class HotelBookingScopeTests(TestCase):
-    """Staff see only assigned hotels + their bookings (Staff Ops spec §11-12)."""
+    """Staff see only assigned hotels + their bookings (Staff Ops spec ┬º11-12)."""
 
     def setUp(self):
         from tourist.models import Destination, Hotel
@@ -1568,7 +1653,7 @@ class HotelBookingScopeTests(TestCase):
 
 
 class DataEntryPipelineTests(TestCase):
-    """Destination data entry DRAFT → SUBMITTED → REVIEW → APPROVED (spec §13-14)."""
+    """Destination data entry DRAFT ÔåÆ SUBMITTED ÔåÆ REVIEW ÔåÆ APPROVED (spec ┬º13-14)."""
 
     def setUp(self):
         self.admin = User.objects.create_superuser("de-admin@test.local", "Sup!Pass123")
@@ -1632,7 +1717,7 @@ class DataEntryPipelineTests(TestCase):
 
 
 class MediaQueueTests(TestCase):
-    """Destination image review queue (spec §15)."""
+    """Destination image review queue (spec ┬º15)."""
 
     def setUp(self):
         from tourist.models import Destination
@@ -1673,7 +1758,7 @@ class MediaQueueTests(TestCase):
 
 
 class SafetyOpsTests(TestCase):
-    """Unified safety queue over Alert / CurrentHazard / DataReport (spec §16)."""
+    """Unified safety queue over Alert / CurrentHazard / DataReport (spec ┬º16)."""
 
     def setUp(self):
         from tourist.models import Alert, CurrentHazard, DataReport, Destination
@@ -1764,7 +1849,7 @@ class NavigationExtensionsTests(TestCase):
     def test_recalculate_owner_only(self):
         self.client.force_authenticate(self.other)
         resp = self.client.post(f"/api/v1/navigation/routes/{self.route.id}/recalculate/")
-        self.assertEqual(resp.status_code, 404)  # not the owner → not found
+        self.assertEqual(resp.status_code, 404)  # not the owner ÔåÆ not found
         self.client.force_authenticate(self.owner)
         resp = self.client.post(f"/api/v1/navigation/routes/{self.route.id}/recalculate/")
         self.assertEqual(resp.status_code, 200)
@@ -1797,7 +1882,7 @@ class NavigationExtensionsTests(TestCase):
 
 
 class StaffPermissionLockdownTests(TestCase):
-    """Spec §36 hard rule: staff can never change their own permissions."""
+    """Spec ┬º36 hard rule: staff can never change their own permissions."""
 
     def setUp(self):
         self.staff = User.objects.create_user(email="lock-staff@test.local", password="Staff!Pass123", role="staff", is_staff=True)
@@ -1913,7 +1998,7 @@ class CuratedRouteVerifyTests(TestCase):
 
 
 class WorkforceGuideTests(TestCase):
-    """Tourism workforce: guide profiles, applications, verification center (spec §2/§3/§10/§11)."""
+    """Tourism workforce: guide profiles, applications, verification center (spec ┬º2/┬º3/┬º10/┬º11)."""
 
     def setUp(self):
         from tourist.models import GuideProfile
@@ -2019,7 +2104,7 @@ class WorkforceGuideTests(TestCase):
 
 
 class TourismJobsTests(TestCase):
-    """Tourism work/gig marketplace (workforce spec §9)."""
+    """Tourism work/gig marketplace (workforce spec ┬º9)."""
 
     def setUp(self):
         from tourist.models import TourismJob
@@ -2028,7 +2113,7 @@ class TourismJobsTests(TestCase):
         StaffCapabilityProfile.objects.create(user=self.poster, capabilities={"marketplace": ["view", "add", "change"]})
         self.worker = User.objects.create_user(email="tj-worker@test.local", password="Work!Pass123", role="tourist", first_name="Job", last_name="Seeker")
         self.job = TourismJob.objects.create(
-            posted_by=self.poster, title="Trek Assistant — Annapurna Circuit", role_type="trek_assistant",
+            posted_by=self.poster, title="Trek Assistant ÔÇö Annapurna Circuit", role_type="trek_assistant",
             description="Carry equipment and assist guides on the Annapurna Circuit.",
             city="Pokhara", employment_type="seasonal", compensation="NPR 2,500/day",
         )
@@ -2046,7 +2131,7 @@ class TourismJobsTests(TestCase):
         TourismJob.objects.create(posted_by=self.poster, title="Closed Gig", description="x", status="closed")
         resp = self.client.get("/api/v1/workforce/jobs/")
         titles = [row["title"] for row in resp.json()["results"]]
-        self.assertIn("Trek Assistant — Annapurna Circuit", titles)
+        self.assertIn("Trek Assistant ÔÇö Annapurna Circuit", titles)
         self.assertNotIn("Closed Gig", titles)
 
     def test_apply_and_duplicate_guard(self):
@@ -2099,7 +2184,7 @@ class TourismJobsTests(TestCase):
 
 
 class GuideBookingReviewTests(TestCase):
-    """Tourist↔guide booking requests + reviews/reputation (workforce spec §12/§13)."""
+    """TouristÔåöguide booking requests + reviews/reputation (workforce spec ┬º12/┬º13)."""
 
     def setUp(self):
         from tourist.models import GuideProfile
@@ -2139,10 +2224,10 @@ class GuideBookingReviewTests(TestCase):
         self.assertTrue(Notification.objects.filter(user=self.guide_user, title="New booking request").exists())
         # tourist cannot accept own request
         self.assertEqual(self._act(booking_id, "accept", self.tourist).status_code, 403)
-        # review before completion → 400
+        # review before completion ÔåÆ 400
         self.client.force_authenticate(self.tourist)
         self.assertEqual(self.client.post(f"/api/v1/workforce/guide-bookings/{booking_id}/review/", {"rating": 5}, format="json").status_code, 400)
-        # guide accepts → complete
+        # guide accepts ÔåÆ complete
         self.assertEqual(self._act(booking_id, "accept", self.guide_user).json()["status"], "accepted")
         self.assertEqual(self._act(booking_id, "complete", self.guide_user).json()["status"], "completed")
         # tourist reviews once
@@ -2199,7 +2284,7 @@ class GuideBookingReviewTests(TestCase):
 
 
 class WorkforceOverviewStatsTests(TestCase):
-    """Workforce roll-up + guide earnings/stats (workforce spec §14)."""
+    """Workforce roll-up + guide earnings/stats (workforce spec ┬º14)."""
 
     def setUp(self):
         from datetime import date
@@ -2243,9 +2328,9 @@ class WorkforceOverviewStatsTests(TestCase):
         data = self.client.get("/api/v1/workforce/guide-stats/").json()
         self.assertEqual(data["booking_counts"]["completed"], 1)
         self.assertEqual(data["booking_counts"]["accepted"], 1)
-        # completed trip 10/01→10/05 = 5 days × 2000 = 10,000
+        # completed trip 10/01ÔåÆ10/05 = 5 days ├ù 2000 = 10,000
         self.assertEqual(data["completed_earnings_estimate_npr"], 10000.0)
-        # upcoming accepted trip 11/01→11/03 = 3 days × 2000 = 6,000
+        # upcoming accepted trip 11/01ÔåÆ11/03 = 3 days ├ù 2000 = 6,000
         self.assertEqual(len(data["upcoming_trips"]), 1)
         self.assertEqual(data["upcoming_earnings_estimate_npr"], 6000.0)
         self.assertIn("does not process", data["estimate_basis"])
@@ -2262,7 +2347,7 @@ class WorkforceOverviewStatsTests(TestCase):
         data = self.client.get("/api/v1/workforce/guide-stats/").json()
         self.assertEqual(data["rating_avg"], 4.0)
         self.assertEqual(data["review_count"], 1)
-        # single-day completed trip also counts: 1 × 2000 = 2000
+        # single-day completed trip also counts: 1 ├ù 2000 = 2000
         self.assertEqual(data["completed_earnings_estimate_npr"], 12000.0)
 
 
@@ -2288,7 +2373,7 @@ class DestinationCoverImagePriorityTests(TestCase):
 
     def test_cover_image_url_falls_back_to_cover_photo(self):
         data = self.client.get("/api/v1/destinations/bandipur-cover-test/").json()
-        # No Destination.cover_image set → cover photo drives cover_image_url
+        # No Destination.cover_image set ÔåÆ cover photo drives cover_image_url
         self.assertEqual(data["cover_image_url"], "https://new.example/cover.jpg")
 
     def test_admin_cover_url_update_visible_in_detail(self):
@@ -2303,7 +2388,7 @@ class DestinationCoverImagePriorityTests(TestCase):
 
 
 class HomepageCMSDraftPublishTests(TestCase):
-    """Draft/publish isolation for the homepage CMS (prompt §13/§32/§51):
+    """Draft/publish isolation for the homepage CMS (prompt ┬º13/┬º32/┬º51):
     editing a published section must NOT change the public homepage until
     Publish; preview serves the draft; legacy sections keep working."""
 
@@ -2343,7 +2428,7 @@ class HomepageCMSDraftPublishTests(TestCase):
         return self.client.patch("/api/v1/admin/cms/", {"resource": "sections", "id": self.section.id, **payload}, format="json")
 
     def test_edit_is_draft_until_publish(self):
-        # Save Draft: plain update → public unchanged
+        # Save Draft: plain update ÔåÆ public unchanged
         resp = self._patch({"title": "Plan Your Complete Nepal Adventure"})
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(self._public_section()["title"], "Why travel with Nepal Portal")
@@ -2351,7 +2436,7 @@ class HomepageCMSDraftPublishTests(TestCase):
         self.client.force_authenticate(self.admin)
         preview = self.client.get(f"/api/v1/admin/cms/?resource=sections&id={self.section.id}&preview=1").json()["preview"]
         self.assertEqual(preview["title"], "Plan Your Complete Nepal Adventure")
-        # Publish → public updates
+        # Publish ÔåÆ public updates
         self._patch({"action": "publish"})
         self.assertEqual(self._public_section()["title"], "Plan Your Complete Nepal Adventure")
 
@@ -2403,12 +2488,9 @@ class HomepageCMSDraftPublishTests(TestCase):
 
 class CMSBulkAndMediaTests(TestCase):
     def setUp(self):
-<<<<<<< HEAD
         # Plain TestCase gives a django.test.Client, which has no
         # force_authenticate() and no support for format="json" or
         # response.data. These tests need the DRF client.
-=======
->>>>>>> origin/arena/01a0ed99-tourism
         self.client = APIClient()
         self.admin = User.objects.create_superuser(email='cmsbulk@test.local', password='Pass@12345')
         self.client.force_authenticate(user=self.admin)
@@ -2428,16 +2510,10 @@ class CMSBulkAndMediaTests(TestCase):
         response = self.client.patch(reverse('admin-cms'), {'resource': 'media', 'id': self.media.id, 'external_url': 'http://bad.example/image.jpg'}, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-<<<<<<< HEAD
     def test_bulk_publish_succeeds_for_a_page_that_passes_the_gate(self):
         # self.page in setUp satisfies every hard blocker the publication gate
         # checks (title, key, internal route, meta description, one visible
         # published section), so a bulk publish of it must succeed.
-=======
-    def test_bulk_publish_uses_publication_gate(self):
-        self.page.title = ""
-        self.page.save()
->>>>>>> origin/arena/01a0ed99-tourism
         response = self.client.patch(reverse('admin-cms'), {'resource': 'pages', 'action': 'bulk', 'bulk_action': 'publish', 'ids': [self.page.id]}, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
         self.assertEqual(response.data["updated"], 1)
@@ -2465,11 +2541,8 @@ class CMSBulkAndMediaTests(TestCase):
 
 class CMSContentMapTests(TestCase):
     def setUp(self):
-<<<<<<< HEAD
         # Needs APIClient, not django.test.Client: force_authenticate() and
         # response.data are DRF-only.
-=======
->>>>>>> origin/arena/01a0ed99-tourism
         self.client = APIClient()
         self.admin = User.objects.create_superuser(email="cmsmap@test.local", password="Pass@12345")
         self.client.force_authenticate(user=self.admin)
@@ -2493,11 +2566,8 @@ class CMSContentMapTests(TestCase):
 
 class CMSWorkspaceMapTests(TestCase):
     def setUp(self):
-<<<<<<< HEAD
         # Needs APIClient, not django.test.Client: force_authenticate() and
         # response.data are DRF-only.
-=======
->>>>>>> origin/arena/01a0ed99-tourism
         self.client = APIClient()
         self.admin = User.objects.create_superuser(email="cmsworkspace@test.local", password="Pass@12345")
         self.client.force_authenticate(user=self.admin)
@@ -2519,7 +2589,7 @@ class CMSWorkspaceMapTests(TestCase):
 
 class HomepageCMSBlockTypesTests(TestCase):
     """card_grid + packages block types and the seeded draft homepage
-    sections (CMS prompt §8/§9): validation, draft gating, publish flow."""
+    sections (CMS prompt ┬º8/┬º9): validation, draft gating, publish flow."""
 
     def setUp(self):
         from tourist.models import ManagedPage
@@ -2566,7 +2636,7 @@ class HomepageCMSBlockTypesTests(TestCase):
         self.assertIn("internal routes", resp.json()["detail"])
         resp = self.client.post(f"/api/v1/admin/sections/{tp.id}/blocks/", {
             "block_type": "card_grid", "title": "Good cards",
-            "data": {"items": [{"emoji": "🗺️", "title": "Itinerary", "description": "Plan it", "url": "/travel-planning"}]},
+            "data": {"items": [{"emoji": "­ƒù║´©Å", "title": "Itinerary", "description": "Plan it", "url": "/travel-planning"}]},
         }, format="json")
         self.assertEqual(resp.status_code, 201)
 
@@ -2658,7 +2728,7 @@ class NearbyPOIsOverpassTests(TestCase):
     def setUp(self):
         from django.core.cache import cache
         from tourist.models import Destination
-        cache.clear()  # POI payloads are cached per location — isolate tests
+        cache.clear()  # POI payloads are cached per location ÔÇö isolate tests
         self.dest = Destination.objects.create(name="POI Town", slug="poi-town", latitude=28.2, longitude=83.99)
 
     def _fake_elements(self):
@@ -2695,10 +2765,10 @@ class NearbyPOIsOverpassTests(TestCase):
 
     def test_overpass_outage_is_honest_503(self):
         """When the live Overpass provider is down, the outage must be
-        honestly disclosed — never presented as live OSM data.
+        honestly disclosed ÔÇö never presented as live OSM data.
 
         Merged-design note: the current implementation is deliberately
-        kinder than a bare 503 — it serves admin-managed database places
+        kinder than a bare 503 ÔÇö it serves admin-managed database places
         (hospitals/police/stays) with clear provenance ("offline fallback",
         a provider_error note) so "nearby hospital" still answers. The
         honesty contract it pins is: the outage is disclosed, the source is
@@ -2822,7 +2892,7 @@ class CMSAdminControlTests(TestCase):
 
 
 class CoordinateNearbyPOIsTests(TestCase):
-    """Coordinate-first nearby places + admin-configurable categories (§2/§4/§9/§60)."""
+    """Coordinate-first nearby places + admin-configurable categories (┬º2/┬º4/┬º9/┬º60)."""
 
     def setUp(self):
         from django.core.cache import cache
@@ -2904,7 +2974,7 @@ class CoordinateNearbyPOIsTests(TestCase):
 
 
 class TripInterestsAndSectionStyleTests(TestCase):
-    """Admin-configurable trip interests (§22) + section style config (§47)."""
+    """Admin-configurable trip interests (┬º22) + section style config (┬º47)."""
 
     def setUp(self):
         from tourist.models import ManagedPage, ContentSection, SiteSetting
@@ -2917,9 +2987,9 @@ class TripInterestsAndSectionStyleTests(TestCase):
 
     def test_admin_updates_interests_and_public_config_exposes_them(self):
         resp = self.client.put("/api/v1/admin/trip-interests/", {"interests": [
-            {"key": "paragliding", "label": "Paragliding", "emoji": "🪂", "enabled": True, "order": 2},
-            {"key": " rafting ", "label": "Rafting", "emoji": "🚣", "enabled": True, "order": 1},  # trimmed -> valid
-            {"key": "yoga", "label": "", "emoji": "🧘"},  # missing label dropped
+            {"key": "paragliding", "label": "Paragliding", "emoji": "­ƒ¬é", "enabled": True, "order": 2},
+            {"key": " rafting ", "label": "Rafting", "emoji": "­ƒÜú", "enabled": True, "order": 1},  # trimmed -> valid
+            {"key": "yoga", "label": "", "emoji": "­ƒºÿ"},  # missing label dropped
         ]}, format="json")
         self.assertEqual(resp.status_code, 200)
         saved = resp.json()["interests"]
@@ -2951,7 +3021,7 @@ class TripInterestsAndSectionStyleTests(TestCase):
 
 
 class LocationAwareRecommendationTests(TestCase):
-    """Master spec §21/§119: opt-in traveller location for recommendations."""
+    """Master spec ┬º21/┬º119: opt-in traveller location for recommendations."""
 
     def setUp(self):
         from .models import Category, Destination
@@ -2993,13 +3063,13 @@ class LocationAwareRecommendationTests(TestCase):
         payload = resp.json()
         self.assertIsNone(payload["preferences"]["location"])
         # The serializer always exposes the distance_km key; without a valid
-        # location it must stay empty and the §21/§119 flag must be absent.
+        # location it must stay empty and the ┬º21/┬º119 flag must be absent.
         self.assertFalse(any(row.get("distance_km") is not None for row in payload["results"]))
         self.assertFalse(any("distance_is_straight_line" in row for row in payload["results"]))
 
 
 class RichTextBodySanitizationTests(TestCase):
-    """Master spec §46: javascript: URLs never survive into stored bodies."""
+    """Master spec ┬º46: javascript: URLs never survive into stored bodies."""
 
     def setUp(self):
         from .models import ManagedPage, ContentSection
@@ -3024,7 +3094,7 @@ class RichTextBodySanitizationTests(TestCase):
 
 
 class RoadDistanceProviderTests(TestCase):
-    """Master spec §6/§69: real road distance via an admin-configured provider."""
+    """Master spec ┬º6/┬º69: real road distance via an admin-configured provider."""
 
     def setUp(self):
         from django.core.cache import cache
@@ -3137,8 +3207,8 @@ class DistrictItineraryFallbackTests(TestCase):
         self.assertIn("No verified places", data["data_note"])
 
     def test_fallback_days_are_time_aware(self):
-        """§12: stops carry start/end times, travel legs and an honest
-        timing_note — estimates labelled as estimates, never exact fakes."""
+        """┬º12: stops carry start/end times, travel legs and an honest
+        timing_note ÔÇö estimates labelled as estimates, never exact fakes."""
         data = self._plan("Kaski", days=1)
         stops = [d for day in data["itinerary"] for d in day["destinations"]]
         self.assertGreaterEqual(len(stops), 2)
@@ -3177,10 +3247,10 @@ class SqliteLockHardeningTests(TestCase):
 
 
 class DistrictArchitectureTests(TestCase):
-    """Task-79 §5/§24: 77-district structure + province/district profile API.
+    """Task-79 ┬º5/┬º24: 77-district structure + province/district profile API.
 
 Merge note: the devin profile endpoints moved to /provinces/ and
-/district-profiles/ — /api/v1/districts/ is kept for the live
+/district-profiles/ ÔÇö /api/v1/districts/ is kept for the live
 frontend's destination-derived district listing (see urls.py)."""
 
 
@@ -3252,7 +3322,7 @@ frontend's destination-derived district listing (see urls.py)."""
 
 
 class TravelOptionsTests(TestCase):
-    """Task-79 §15/§16: destination navigation screen backend."""
+    """Task-79 ┬º15/┬º16: destination navigation screen backend."""
 
     def test_travel_options_compare_modes_honestly(self):
         res = self.client.post(
@@ -3270,10 +3340,10 @@ class TravelOptionsTests(TestCase):
         walk = next(o for o in data["options"] if o["mode"] == "walk")
         self.assertEqual(walk["cost_npr"], [0, 0])
         taxi = next(o for o in data["options"] if o["mode"] == "taxi")
-        # fare_card migration seeds admin-editable estimates → labelled estimate
+        # fare_card migration seeds admin-editable estimates ÔåÆ labelled estimate
         self.assertIsNotNone(taxi["cost_npr"])
         self.assertIn("fare card", taxi["cost_note"])
-        # No live routing provider in tests → turn-by-turn comes from the
+        # No live routing provider in tests ÔåÆ turn-by-turn comes from the
         # bundled graph, clearly labelled as not street-level (never faked).
         if data["turn_by_turn"] is not None:
             self.assertEqual(data["turn_by_turn"]["source"], "bundled_nepal_graphml")
@@ -3382,8 +3452,8 @@ class ItineraryMLGuardTests(TestCase):
         self.assertEqual(data["service_data_source"], "live_database_distance_ranking")
 
 class RoutingProviderStepsTests(TestCase):
-    """Task-79 §15: when an admin configures a live OSRM-compatible provider,
-    street-level turn-by-turn must come from it — parsed per the OSRM
+    """Task-79 ┬º15: when an admin configures a live OSRM-compatible provider,
+    street-level turn-by-turn must come from it ÔÇö parsed per the OSRM
     contract, using the provider's road names, never invented."""
 
     OSRM_ROUTE = {"code": "Ok", "routes": [{
@@ -3537,7 +3607,7 @@ class SectionTypographyConfigTests(TestCase):
 
 
 class RouteAlternativesTests(TestCase):
-    """Phase-2 alternatives selector: real alternatives only — provider
+    """Phase-2 alternatives selector: real alternatives only ÔÇö provider
     alternatives=true when configured, different graph weightings otherwise.
     Identical corridors are dropped; failures yield [] not padded variety."""
 
@@ -3583,7 +3653,7 @@ class RouteAlternativesTests(TestCase):
         fake.raise_for_status.return_value = None
         with patch("tourist.routing_service.requests.get", return_value=fake) as mocked:
             alts = route_alternatives(27.7172, 85.3240, 28.2096, 83.9856)
-        # routes[1:3] only — the primary is routes[0]
+        # routes[1:3] only ÔÇö the primary is routes[0]
         self.assertEqual(len(alts), 2)
         self.assertEqual(alts[0]["distance_km"], 215.0)
         self.assertEqual(alts[0]["duration_min"], 250)
@@ -3602,7 +3672,7 @@ class RouteAlternativesTests(TestCase):
         with patch("tourist.routing_service.requests.get", side_effect=requests_lib.RequestException("boom")):
             alts = route_alternatives(27.7172, 85.3240, 28.2096, 83.9856)
         # same degradation path as the primary route: bundled graph,
-        # explicitly labelled — never presented as provider routes
+        # explicitly labelled ÔÇö never presented as provider routes
         self.assertGreaterEqual(len(alts), 1)
         for alt in alts:
             self.assertEqual(alt["routing_engine"], "bundled_nepal_graphml")
@@ -3659,7 +3729,7 @@ class RouteAlternativesTests(TestCase):
 
 class RoutingProviderAdminTests(TestCase):
     """Phase 3: admins can configure the road-routing provider from the panel
-    — HTTPS-only, secret never echoed in full, honest connection test."""
+    ÔÇö HTTPS-only, secret never echoed in full, honest connection test."""
 
     URL = "/api/v1/admin/routing-provider/"
 
@@ -3734,7 +3804,7 @@ class RoutingProviderAdminTests(TestCase):
 
 
 class MultiStopRouteTests(TestCase):
-    """Phase 4: multi-stop routes — every leg through the same engine and
+    """Phase 4: multi-stop routes ÔÇö every leg through the same engine and
     honesty rules; totals are leg sums; unresolvable stops are rejected."""
 
     URL = "/api/v1/navigation/route"
@@ -3742,7 +3812,7 @@ class MultiStopRouteTests(TestCase):
     PKR = {"latitude": 28.2096, "longitude": 83.9856}
 
     def _route(self, payload):
-        # DRF client — Django's default test client would multipart-encode
+        # DRF client ÔÇö Django's default test client would multipart-encode
         # the payload and stringify the waypoints list.
         return APIClient().post(self.URL, payload, format="json")
 
@@ -3767,7 +3837,7 @@ class MultiStopRouteTests(TestCase):
         instructions = [s.get("instruction", "") for s in data.get("steps", [])]
         self.assertTrue(any("Waypoint 1: pass through Pokhara" in text for text in instructions))
         self.assertGreaterEqual(len(data["route"]), 4)
-        # alternatives are a single-stop concept — none fabricated here
+        # alternatives are a single-stop concept ÔÇö none fabricated here
         self.assertNotIn("alternatives", data)
 
     def test_named_waypoint_resolves_through_place_index(self):
@@ -3822,7 +3892,7 @@ class MultiStopRouteTests(TestCase):
 
 class TravelOptionsMultiStopTests(TestCase):
     """Phase 6+: travel-options gains the same waypoints contract as
-    /navigation/route — distances become leg sums, honestly labelled."""
+    /navigation/route ÔÇö distances become leg sums, honestly labelled."""
 
     URL = "/api/v1/navigation/travel-options/"
 
@@ -4083,7 +4153,7 @@ class DynamicPageFlowRegressionTests(TestCase):
 
 
 class RBACAttackRegressionTests(TestCase):
-    """Blueprint §9-10: backend enforcement, not hidden buttons. ID-swapping
+    """Blueprint ┬º9-10: backend enforcement, not hidden buttons. ID-swapping
     must never expose another user's private records."""
 
     def setUp(self):
@@ -4130,7 +4200,7 @@ class RBACAttackRegressionTests(TestCase):
 
 
 class ScheduledExpiryRegressionTests(TestCase):
-    """Blueprint §14: scheduled unpublish/expire executes automatically."""
+    """Blueprint ┬º14: scheduled unpublish/expire executes automatically."""
 
     def setUp(self):
         self.client = APIClient()
@@ -4208,24 +4278,24 @@ class SEOSitemapRegressionTests(TestCase):
 
 
 class LocalizationRegressionTests(TestCase):
-    """Blueprint §14: one record, many languages — ?lang=ne serves the
+    """Blueprint ┬º14: one record, many languages ÔÇö ?lang=ne serves the
     translation; English falls back to the source fields."""
 
     def test_translation_served_per_language(self):
         page = ManagedPage.objects.create(key="loc-page", route="/loc-page", title="Visit Nepal", status="published", is_enabled=True)
         sec = ContentSection.objects.create(page=page, key="intro", title="Welcome", body="Hello", section_type="text", status="published", is_visible=True)
         from .models import CMSContentTranslation
-        CMSContentTranslation.objects.create(target_resource="pages", object_id=page.pk, language_code="ne", content={"title": "नेपाल भ्रमण"})
-        CMSContentTranslation.objects.create(target_resource="sections", object_id=sec.pk, language_code="ne", content={"title": "स्वागत छ", "body": "नमस्ते"})
+        CMSContentTranslation.objects.create(target_resource="pages", object_id=page.pk, language_code="ne", content={"title": "Óñ¿ÓÑçÓñ¬Óñ¥Óñ▓ Óñ¡ÓÑìÓñ░Óñ«Óñú"})
+        CMSContentTranslation.objects.create(target_resource="sections", object_id=sec.pk, language_code="ne", content={"title": "Óñ©ÓÑìÓñÁÓñ¥ÓñùÓññ Óñø", "body": "Óñ¿Óñ«Óñ©ÓÑìÓññÓÑç"})
         en = self.client.get("/api/v1/config/public/").json()
         page_en = next(p for p in en["pages"] if p["key"] == "loc-page")
         self.assertEqual(page_en["title"], "Visit Nepal")
         ne = self.client.get("/api/v1/config/public/?lang=ne").json()
         page_ne = next(p for p in ne["pages"] if p["key"] == "loc-page")
-        self.assertEqual(page_ne["title"], "नेपाल भ्रमण")
+        self.assertEqual(page_ne["title"], "Óñ¿ÓÑçÓñ¬Óñ¥Óñ▓ Óñ¡ÓÑìÓñ░Óñ«Óñú")
         sec_ne = next(s for s in page_ne["sections"] if s["key"] == "intro")
-        self.assertEqual(sec_ne["title"], "स्वागत छ")
-        self.assertEqual(sec_ne["body"], "नमस्ते")
+        self.assertEqual(sec_ne["title"], "Óñ©ÓÑìÓñÁÓñ¥ÓñùÓññ Óñø")
+        self.assertEqual(sec_ne["body"], "Óñ¿Óñ«Óñ©ÓÑìÓññÓÑç")
         # untranslated language falls back to source, never to another translation
         hi = self.client.get("/api/v1/config/public/?lang=hi").json()
         page_hi = next(p for p in hi["pages"] if p["key"] == "loc-page")
@@ -4233,7 +4303,7 @@ class LocalizationRegressionTests(TestCase):
 
 
 class ReviewWorkflowRegressionTests(TestCase):
-    """Blueprint §7: draft -> in_review -> approved -> published, with
+    """Blueprint ┬º7: draft -> in_review -> approved -> published, with
     changes_requested loop; review states never public."""
 
     def setUp(self):
@@ -4297,7 +4367,7 @@ class RoleDifferentiatedApprovalTests(TestCase):
 
 class SectionConfigSanitizerRegressionTests(TestCase):
     """Panel saves must PRESERVE admin content collections (cards, badge,
-    section_titles, foods, all_symbols) while sanitizing them — the old
+    section_titles, foods, all_symbols) while sanitizing them ÔÇö the old
     whitelist silently destroyed them on every save."""
 
     def setUp(self):
@@ -4667,12 +4737,11 @@ class AdminOperationalCMSRegressionTests(TestCase):
         PoliceStation = __import__("tourist.models", fromlist=["PoliceStation"]).PoliceStation
         station = PoliceStation.objects.create(
             destination=self.destination, name="Test Police", address="Test address",
-            phone="100", latitude=27.7172, longitude=85.3240,
+            phone="100", latitude=27.7172, longitude=85.3240, district="Kathmandu",
         )
         resp = self.client_admin.get("/api/v1/admin/cms/", {"resource": "police_stations"})
         self.assertEqual(resp.status_code, 200)
         self.assertTrue(any(row["id"] == station.id for row in resp.json()["results"]))
-<<<<<<< HEAD
 
 
 class RenderHealthProbeExemptionTests(TestCase):
@@ -4775,7 +4844,7 @@ class ReconcileCatalogueCommandTests(TestCase):
     def test_seed_pk_rows_with_osm_signature_stay_active(self):
         # The load-bearing safety property: the importer's enrich path stamps
         # imported_at onto seed rows matched by external_id, and
-        # convert_dataset_to_fixture copies the CSV type into the same rows —
+        # convert_dataset_to_fixture copies the CSV type into the same rows ÔÇö
         # so seed rows can carry the FULL OSM marker signature and must still
         # never be hidden. pk=2 is owned by both tracked seed files.
         seed_row = self._dest(
@@ -4859,5 +4928,3 @@ class ReconcileCatalogueCommandTests(TestCase):
         visible = Destination.objects.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)
         public = Destination.publicly_visible(visible)
         self.assertEqual(list(public.values_list("slug", flat=True)), ["legit-place"])
-=======
->>>>>>> origin/arena/01a0ed99-tourism

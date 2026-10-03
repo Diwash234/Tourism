@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+﻿import { useEffect, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { FiZap, FiMap, FiCalendar, FiDollarSign, FiShield, FiMessageCircle, FiBook, FiNavigation } from "react-icons/fi"
 
@@ -7,13 +7,13 @@ const ACTIONS = [
   { to: "/budget-estimator", icon: FiDollarSign, label: "Budget", color: "bg-amber-500" },
   { to: "/emergency", icon: FiShield, label: "Emergency", color: "bg-red-500" },
   { to: "/navigation", icon: FiNavigation, label: "Navigate", color: "bg-blue-500" },
-  { to: "/chatbot", icon: FiMessageCircle, label: "Travel Guide", color: "bg-purple-500" },
+  { to: "/chatbot", icon: FiMessageCircle, label: "AI Assistant", color: "bg-purple-500" },
   { to: "/explore-map", icon: FiMap, label: "Explore Map", color: "bg-teal-500" },
   { to: "/language", icon: FiBook, label: "Phrasebook", color: "bg-pink-500" },
 ]
 
 /**
- * Quick Actions floating menu — provides one-click access to the most
+ * Quick Actions floating menu ÔÇö provides one-click access to the most
  * used features from any page.
  */
 export default function QuickActions() {

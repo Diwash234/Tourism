@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+﻿import { useEffect, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import useGeolocation from "../../hooks/useGeolocation"
 import { useI18n } from "../../i18n"
@@ -9,16 +9,16 @@ import { getDestinationImageUrl } from "../../utils/imageUtils"
 import { formatDistance, formatDuration } from "../../utils/formatDistance"
 
 /**
- * "Getting there" — real route FROM your location (or any other destination)
+ * "Getting there" ÔÇö real route FROM your location (or any other destination)
  * TO this destination. On-demand: the route is computed when the traveller
- * picks an origin, so the detail page stays fast — but when the page already
+ * picks an origin, so the detail page stays fast ÔÇö but when the page already
  * resolved your position, the route plans itself.
  */
 export default function GettingThereCard({ destination, userPosition }) {
   const { t } = useI18n()
   const { isAuthenticated } = useAuth() || {}
-  // auto: false — destination pages are public; GPS is only requested when
-  // the traveller presses "Use my location" (privacy/consent §22/58).
+  // auto: false ÔÇö destination pages are public; GPS is only requested when
+  // the traveller presses "Use my location" (privacy/consent ┬º22/58).
   const { position, locating, retry: retryGeo } = useGeolocation({ auto: false })
   const [gpsMode, setGpsMode] = useState(true)
   const [originQuery, setOriginQuery] = useState("")
@@ -75,7 +75,7 @@ export default function GettingThereCard({ destination, userPosition }) {
     }
   }
 
-  // Once a position is known, show the route without a second button press —
+  // Once a position is known, show the route without a second button press ÔÇö
   // "how do I get there" is the first question on a destination page. The ref
   // key makes this once per origin; a failed plan is not retried in a loop.
   const autoPlannedRef = useRef(null)
@@ -92,10 +92,10 @@ export default function GettingThereCard({ destination, userPosition }) {
 
   const badge = (grade) => {
     if (grade === "real-road") {
-      return <span className="rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 text-xs font-bold">✓ {t("tp.grade.real_road")}</span>
+      return <span className="rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 text-xs font-bold">Ô£ô {t("tp.grade.real_road")}</span>
     }
     if (grade === "corridor-estimate") {
-      return <span className="rounded-full bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 text-xs font-bold">⚠ {t("tp.grade.corridor")}</span>
+      return <span className="rounded-full bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 text-xs font-bold">ÔÜá {t("tp.grade.corridor")}</span>
     }
     return <span className="rounded-full bg-slate-100 text-slate-600 border border-slate-300 px-2 py-0.5 text-xs font-bold">{t("tp.grade.estimate")}</span>
   }
@@ -104,7 +104,7 @@ export default function GettingThereCard({ destination, userPosition }) {
     <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 dark:bg-emerald-950/40 dark:border-emerald-800 p-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-          {t("tp.title")} — {t("tp.get_route")}
+          {t("tp.title")} ÔÇö {t("tp.get_route")}
         </h4>
         <div className="flex items-center gap-2">
           <button
@@ -142,7 +142,7 @@ export default function GettingThereCard({ destination, userPosition }) {
                     onClick={() => { setOriginPick(row); setOriginQuery(row.name); setResult(null) }}
                     className="w-full text-left px-3 py-2 text-sm hover:bg-emerald-50 dark:hover:bg-slate-800 font-semibold text-slate-800 dark:text-slate-200"
                   >
-                    {row.name} <span className="text-[10px] text-slate-400">{row.district || row.province}</span>
+                    {row.name} <span className="text-xs text-slate-500 dark:text-slate-400">{row.district || row.province}</span>
                   </button>
                 </li>
               ))}
@@ -158,7 +158,7 @@ export default function GettingThereCard({ destination, userPosition }) {
           disabled={loading}
           className="rounded-xl bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white font-bold px-4 py-2 text-xs shadow"
         >
-          {loading ? "…" : t("tp.get_route")}
+          {loading ? "ÔÇª" : t("tp.get_route")}
         </button>
         {error && <span className="text-xs font-bold text-red-700 dark:text-red-300">{error}</span>}
       </div>
@@ -194,13 +194,13 @@ export default function GettingThereCard({ destination, userPosition }) {
               rel="noreferrer"
               className="rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold px-3 py-1.5 text-xs"
             >
-              Open road map &amp; turns ↗
+              Open road map &amp; turns Ôåù
             </a>
             <Link
               to={`/travel?dest=${encodeURIComponent(destination.slug)}`}
               className="rounded-lg border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 font-bold px-3 py-1.5 text-xs hover:bg-emerald-50 dark:hover:bg-slate-800"
             >
-              {t("tp.title")} ➔
+              {t("tp.title")} Ô×ö
             </Link>
             <Link
               to={isAuthenticated ? `/navigation?dest=${encodeURIComponent(destination.name)}` : `/login?next=${encodeURIComponent(`/navigation?dest=${encodeURIComponent(destination.name)}`)}`}

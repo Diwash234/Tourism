@@ -1,6 +1,6 @@
-import { useState } from "react"
+﻿import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { FiCheck, FiX, FiInfo, FiMapPin, FiCalendar, FiDollarSign } from "react-icons/fi"
+import { FiCheck, FiX, FiInfo } from "react-icons/fi"
 
 export default function PlaceApproval({ pendingPlaces = [], onApprove, onReject }) {
   const [inspectingPlace, setInspectingPlace] = useState(null)
@@ -27,15 +27,15 @@ export default function PlaceApproval({ pendingPlaces = [], onApprove, onReject 
             <div className="space-y-3">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-400 text-gray-950">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-400 text-gray-950">
                     {p.category_name}
                   </span>
                   <h4 className="text-xl font-bold text-white mt-1">{p.name}</h4>
                   <p className="text-xs text-orange-300">
-                    📍 {p.municipality || p.district} {p.ward_number ? `(Ward ${p.ward_number})` : ""}, {p.province}
+                    ­ƒôì {p.municipality || p.district} {p.ward_number ? `(Ward ${p.ward_number})` : ""}, {p.province}
                   </p>
                 </div>
-                <span className="text-[11px] text-orange-300 font-medium">By: {p.created_by}</span>
+                <span className="text-xs text-orange-300 font-medium">By: {p.created_by}</span>
               </div>
 
               {p.cover_image_url && (
@@ -98,7 +98,7 @@ export default function PlaceApproval({ pendingPlaces = [], onApprove, onReject 
                   </span>
                   <h2 className="text-2xl font-black text-white mt-1">{inspectingPlace.name}</h2>
                   <p className="text-xs text-orange-300">
-                    Submitted by: <b>{inspectingPlace.created_by}</b> · {new Date(inspectingPlace.created_at).toLocaleDateString()}
+                    Submitted by: <b>{inspectingPlace.created_by}</b> ┬À {new Date(inspectingPlace.created_at).toLocaleDateString()}
                   </p>
                 </div>
                 <button onClick={() => setInspectingPlace(null)} className="p-2 rounded-full bg-orange-900/60 hover:bg-orange-800 text-orange-200">

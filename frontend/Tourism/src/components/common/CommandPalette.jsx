@@ -1,22 +1,6 @@
-import React, { useState, useEffect } from "react"
+﻿import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import {
-  Compass,
-  MapPin,
-  Navigation as NavIcon,
-  Shield,
-  PhoneCall,
-  Heart,
-  Package,
-  Calendar,
-  MessageSquare,
-  Search,
-  SlidersHorizontal,
-  X,
-  Sparkles,
-  Command,
-  LayoutDashboard
-} from "lucide-react"
+import { Compass, MapPin, Navigation as NavIcon, Shield, PhoneCall, Heart, Package, Calendar, MessageSquare, Search, X, Sparkles, Command, LayoutDashboard } from "lucide-react"
 
 const COMMAND_ITEMS = [
   {
@@ -85,11 +69,11 @@ const COMMAND_ITEMS = [
   },
   {
     id: "chatbot",
-    title: "Himal Travel Guide",
-    category: "Guide",
+    title: "Himal AI Assistant",
+    category: "AI",
     path: "/chatbot",
     icon: MessageSquare,
-    description: "Ask questions about Nepal trekking routes, local etiquette, weather, and permits."
+    description: "Ask natural language questions about Nepal travel, weather, and permits."
   },
   {
     id: "admin",
@@ -247,12 +231,12 @@ export default function CommandPalette() {
         <div className="px-4 py-2 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-xs text-xs">↑</kbd>
-              <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-xs text-xs">↓</kbd>
+              <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-xs text-xs">Ôåæ</kbd>
+              <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-xs text-xs">Ôåô</kbd>
               Navigate
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-xs text-xs">↵</kbd>
+              <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-xs text-xs">ÔåÁ</kbd>
               Select
             </span>
             <span className="flex items-center gap-1">

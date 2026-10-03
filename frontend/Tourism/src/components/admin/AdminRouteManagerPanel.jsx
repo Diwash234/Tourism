@@ -1,8 +1,5 @@
-import { useEffect, useState } from "react"
-import {
-  FiTruck, FiPlus, FiEdit3, FiTrash2, FiSearch, FiCheckCircle,
-  FiMapPin, FiCompass, FiDollarSign, FiClock, FiX, FiCheck
-} from "react-icons/fi"
+﻿import { useEffect, useState } from "react"
+import { FiPlus, FiCompass } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import destinationApi from "../../api/destinationApi"
 import axiosClient from "../../api/axiosClient"
@@ -12,7 +9,7 @@ export default function AdminRouteManagerPanel() {
   const { showToast } = useToast()
 
   const [routes, setRoutes] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [_loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
 
   // Admin Route Calculator Test Tool
@@ -42,14 +39,14 @@ export default function AdminRouteManagerPanel() {
     try {
       const { data } = await adminApi.recalculateTransitRoute(r.id)
       const before = data.previous?.distance_km ? `${data.previous.distance_km} km` : "no stored distance"
-      showToast(`Recalculated: ${before} → ${data.current.distance_km} km (${data.routing_status}); needs re-verification`, "success")
+      showToast(`Recalculated: ${before} ÔåÆ ${data.current.distance_km} km (${data.routing_status}); needs re-verification`, "success")
       loadRoutes()
     } catch (e) { showToast(e.response?.data?.detail || "Recalculate failed", "error") }
     finally { setRowBusy(null) }
   }
 
   // Edit / Create Route Modal
-  const [showModal, setShowModal] = useState(false)
+  const [_showModal, setShowModal] = useState(false)
   const [editingRoute, setEditingRoute] = useState(null)
   const [form, setForm] = useState({
     destination_id: "",
@@ -113,7 +110,7 @@ export default function AdminRouteManagerPanel() {
     }
   }
 
-  const handleSaveRoute = async (e) => {
+  const _handleSaveRoute = async (e) => {
     e.preventDefault()
     try {
       const payload = {
@@ -261,7 +258,7 @@ export default function AdminRouteManagerPanel() {
         {calcResult && (
           <div className="p-4 rounded-2xl bg-slate-900 border border-blue-500/40 text-xs space-y-2">
             <div className="flex justify-between items-center font-bold text-white">
-              <span>{calcResult.origin_name} ➔ {calcResult.destination_name}</span>
+              <span>{calcResult.origin_name} Ô×ö {calcResult.destination_name}</span>
               <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 text-xs uppercase font-mono">{calcResult.confidence_level}</span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-slate-300">
@@ -291,7 +288,7 @@ export default function AdminRouteManagerPanel() {
           <table className="w-full text-left text-xs text-slate-300">
             <thead className="bg-slate-900 text-amber-300 font-bold uppercase text-xs">
               <tr>
-                <th className="p-3">Route (Origin ➔ Destination)</th>
+                <th className="p-3">Route (Origin Ô×ö Destination)</th>
                 <th className="p-3">Mode</th>
                 <th className="p-3">Distance</th>
                 <th className="p-3">Duration</th>
@@ -303,10 +300,10 @@ export default function AdminRouteManagerPanel() {
             <tbody className="divide-y divide-slate-800/80">
               {routes.map((r) => (
                 <tr key={r.id} className="hover:bg-slate-900/50">
-                  <td className="p-3 font-bold text-white">{r.origin} ➔ {r.destination_name}</td>
+                  <td className="p-3 font-bold text-white">{r.origin} Ô×ö {r.destination_name}</td>
                   <td className="p-3">{r.transport_mode}</td>
-                  <td className="p-3">{r.distance_km ? `${r.distance_km} km` : "—"}</td>
-                  <td className="p-3">{r.approx_duration || "—"}</td>
+                  <td className="p-3">{r.distance_km ? `${r.distance_km} km` : "ÔÇö"}</td>
+                  <td className="p-3">{r.approx_duration || "ÔÇö"}</td>
                   <td className="p-3 font-mono text-amber-300">{r.estimated_fare_npr ? `NPR ${r.estimated_fare_npr}` : "Information unavailable"}</td>
                   <td className="p-3"><span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-xs">{r.confidence_level || "CALCULATED"}</span></td>
                   <td className="p-3 text-right">
@@ -337,7 +334,7 @@ export default function AdminRouteManagerPanel() {
                       title="Re-run the routing engine over this route's coordinates"
                       className="px-2.5 py-1 rounded bg-blue-500 text-white font-bold text-[11px] mr-2 disabled:opacity-40"
                     >
-                      {rowBusy === `recalc-${r.id}` ? "…" : "Recalculate"}
+                      {rowBusy === `recalc-${r.id}` ? "ÔÇª" : "Recalculate"}
                     </button>
                     <button
                       onClick={() => verifyRoute(r)}
@@ -345,7 +342,7 @@ export default function AdminRouteManagerPanel() {
                       title="Stamp as admin-verified with provenance timestamp"
                       className="px-2.5 py-1 rounded bg-emerald-600 text-white font-bold text-[11px] disabled:opacity-40"
                     >
-                      {r.is_verified && r.confidence_level === "ADMIN_VERIFIED" ? "✓ Verified" : rowBusy === `verify-${r.id}` ? "…" : "Verify"}
+                      {r.is_verified && r.confidence_level === "ADMIN_VERIFIED" ? "Ô£ô Verified" : rowBusy === `verify-${r.id}` ? "ÔÇª" : "Verify"}
                     </button>
                   </td>
                 </tr>

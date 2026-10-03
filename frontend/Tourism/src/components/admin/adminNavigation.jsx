@@ -1,4 +1,4 @@
-import {
+﻿import {
   BsActivity, BsBarChart, BsBell, BsBriefcase, BsBuilding, BsChatDots, BsCollection,
   BsCookie, BsDatabase, BsExclamationTriangle, BsFileEarmarkText, BsGear, BsGeoAlt, BsHospital,
   BsGlobe, BsHouseDoor, BsImage, BsLayers, BsLayoutTextWindow, BsLink45Deg, BsMegaphone, BsPalette, BsPeople, BsPinMap, BsSearch, BsShieldLock, BsStar,
@@ -9,89 +9,82 @@ import {
 // admin (Content & CMS / Travel / People / Safety / System) instead of by
 // implementation detail. Section ids are unchanged so existing
 // /admin?section=... links and bookmarks keep working; no section was
-// removed — every previous entry is present exactly once.
+// removed ÔÇö every previous entry is present exactly once.
 export const ADMIN_NAV_GROUPS = [
-  { label: "Dashboard", items: [
-    ["overview", "Overview & Stats", BsHouseDoor],
+  { label: "OVERVIEW", items: [
+    ["overview", "Dashboard", BsHouseDoor],
   ]},
-  { label: "Content & CMS", items: [
-    ["cms_overview", "CMS Overview", BsSpeedometer2],
-    ["cms", "Pages, Sections & Menus", BsFileEarmarkText],
-    ["homepage_manager", "Homepage Manager", BsHouseDoor],
+  { label: "WEBSITE", items: [
+    ["cms", "Pages & Sections", BsFileEarmarkText],
+    ["homepage_manager", "Homepage", BsHouseDoor],
+    ["header_navbar", "Global Sections & Navigation", BsLayoutTextWindow],
+    ["branding", "Branding & Theme", BsPalette],
     ["redirects", "Redirects & URLs", BsLink45Deg],
     ["visitor_desk", "Announcements & Notices", BsMegaphone],
-     ["content_lifecycle", "Content Lifecycle & Quality", BsLayers],
-    ["featured_destinations", "Featured Content Studio", BsStar],
-    ["media_library", "Central Media Library", BsCollection, [
+    ["cookie_consent", "Cookie Consent", BsCookie],
+    ["cms_overview", "CMS Overview", BsSpeedometer2],
+  ]},
+  { label: "CONTENT", items: [
+    ["places", "Destinations", BsPinMap, [
+      { label: "Pending places", query: { status: "pending" } },
+      { label: "Approved", query: { status: "approved" } },
+    ]],
+    ["destination_features", "Featured Destinations", BsStar],
+    ["marketplace", "Travel Packages & Partners", BsBriefcase],
+    ["review_moderation", "Reviews & Ratings", BsStar],
+    ["feedback_workspace", "Feedback & Enquiries", BsChatDots],
+    ["content_lifecycle", "Content Lifecycle", BsLayers],
+    ["category_translations", "Categories", BsTranslate],
+    ["content_translations", "Content Translations", BsGlobe],
+  ]},
+  { label: "TRAVEL DATA", items: [
+    ["hotel_bookings", "Hotels & Lodges", BsBuilding],
+    ["travel_services", "Restaurants & Travel Services", BsTruck],
+    ["transport_routes", "Routes & Transportation", BsTruck],
+    ["expenses", "Budget & Cost Data", BsBarChart],
+    ["research", "Destination Research", BsSearch],
+    ["guide_verification", "Guide Verification", BsShieldLock],
+  ]},
+  { label: "MEDIA", items: [
+    ["media_library", "Media Library", BsCollection, [
       { label: "Pending", query: { status: "pending" } },
       { label: "Approved", query: { status: "approved" } },
       { label: "Rejected", query: { status: "rejected" } },
     ]],
-    ["images", "Image Verification", BsImage, [
+    ["images", "Image Review", BsImage, [
       { label: "Pending", query: { status: "pending" } },
       { label: "Approved", query: { section: "media_library", status: "approved" } },
       { label: "Rejected", query: { section: "media_library", status: "rejected" } },
     ]],
-    ["image_pipeline", "Image Acquisition Pipeline", BsTools],
-    ["branding", "Branding & Theme", BsPalette],
-    ["header_navbar", "Header & Navbar", BsLayoutTextWindow],
-    ["cookie_consent", "Cookie Consent", BsCookie],
-    ["category_translations", "Categories & Translations", BsTranslate],
-    ["content_translations", "Content Translations", BsGlobe],
-    ["user_dashboard_control", "User Dashboard Controls", BsSliders],
-    ["ai_engine", "Central AI Engine Studio", BsStar],
+    ["image_pipeline", "Image Acquisition", BsTools],
   ]},
-  { label: "Travel Management", items: [
-    ["places", "Place Approvals", BsPinMap, [
-      { label: "Pending places", query: { status: "pending" } },
-      { label: "Approved", query: { status: "approved" } },
-    ]],
-    ["curated_plans", "Curated Signature Itineraries", BsLayers],
-    ["destination_features", "Destination Features", BsStar],
-    ["research", "Destination Research & Discovery", BsSearch],
-    ["hotel_bookings", "Hotels & Bookings", BsBuilding],
-    ["marketplace", "Travel Packages & Partners", BsBriefcase],
-    ["travel_services", "Restaurants, Transport & Plans", BsTruck],
-    ["transport_routes", "Transportation & Routes", BsTruck],
-    ["review_moderation", "Review Moderation", BsStar],
-     ["guide_verification", "Guide Verification", BsShieldLock],
-    ["expenses", "Expense & Budget Data", BsBarChart],
+  { label: "SAFETY & EMERGENCY", items: [
+    ["emergency_directory", "Emergency Directory", BsHospital],
+    ["emergencies", "Medical SOS", BsExclamationTriangle],
+    ["safety_management", "Alerts & Safety Advisories", BsGeoAlt],
+    ["risks", "Hazards & Risk Data", BsShieldLock],
+    ["infrastructure", "Community Services", BsHospital],
+    ["tracking", "Live Tracking & SOS", BsActivity],
   ]},
-  { label: "People & Operations", items: [
+  { label: "PEOPLE", items: [
     ["users", "Users", BsPeople, [
       { label: "Pending verification", query: { verified: "false" } },
       { label: "Verified", query: { verified: "true" } },
       { label: "Active", query: { status: "active" } },
       { label: "Inactive", query: { status: "inactive" } },
     ]],
-    ["staff_permissions", "Staff", BsShieldLock, [
-      { label: "Pending verification", query: { section: "users", role: "staff", verified: "false" } },
-      { label: "Verified staff", query: { section: "users", role: "staff", verified: "true" } },
-      { label: "Active staff", query: { section: "users", role: "staff", status: "active" } },
-      { label: "Staff accounts", query: { section: "users", role: "staff" } },
-      { label: "Moderators", query: { section: "users", role: "content_moderator" } },
-      { label: "District managers", query: { section: "users", role: "district_manager" } },
-      { label: "Hotel managers", query: { section: "users", role: "hotel_manager" } },
-    ]],
-    ["data_reports", "User Reports & Corrections", BsExclamationTriangle],
-    ["feedback_workspace", "Feedback", BsChatDots],
-    ["tracking", "Live Tracking & SOS", BsActivity],
+    ["staff_permissions", "Staff & Permissions", BsShieldLock],
+    ["data_reports", "Reports & Corrections", BsExclamationTriangle],
     ["notification_settings", "Notifications", BsBell],
   ]},
-  { label: "Safety & Emergency", items: [
-    ["emergencies", "Medical SOS", BsExclamationTriangle],
-    ["emergency_directory", "Emergency directory", BsHospital],
-    ["infrastructure", "Community Services, Photos & ML", BsHospital],
-    ["risks", "Safety & Hazard ML", BsShieldLock],
-    ["safety_management", "Alerts & Safety", BsGeoAlt],
-  ]},
-  { label: "System & Data", items: [
+  { label: "SYSTEM", items: [
     ["reports", "Reports & Analytics", BsBarChart],
     ["data_health", "Data Health & Provenance", BsShieldLock],
     ["data_explorer", "Database & Records", BsDatabase],
-    ["datasets", "Dataset & CSV Manager", BsDatabase],
-     ["routing_provider", "Routing Provider", BsTruck],
+    ["datasets", "Datasets & CSV", BsDatabase],
+    ["routing_provider", "Routing Provider", BsTruck],
     ["retention", "Retention & Deletion", BsGear],
+    ["ai_engine", "AI Engine", BsStar],
   ]},
 ]
 

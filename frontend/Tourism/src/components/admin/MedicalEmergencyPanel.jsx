@@ -1,5 +1,5 @@
-import { motion } from "framer-motion"
-import { FiAlertTriangle, FiCheck, FiPhoneCall, FiMapPin, FiClock } from "react-icons/fi"
+﻿import { motion } from "framer-motion"
+import { FiAlertTriangle, FiCheck } from "react-icons/fi"
 
 export default function MedicalEmergencyPanel({ emergencies = [], onResolve }) {
   const activeEmergencies = emergencies.filter((e) => e.status === "active")
@@ -43,9 +43,9 @@ export default function MedicalEmergencyPanel({ emergencies = [], onResolve }) {
               </div>
               <p className="text-sm text-orange-100 font-medium">{e.message}</p>
               <div className="text-xs text-orange-300 flex flex-wrap items-center gap-4 pt-1">
-                {e.user_phone && <span className="flex items-center gap-1">📞 Phone: <b className="text-white">{e.user_phone}</b></span>}
-                {e.latitude && <span className="flex items-center gap-1">📍 Coordinates: <b className="text-amber-300">{e.latitude.toFixed(4)}, {e.longitude.toFixed(4)}</b></span>}
-                <span className="flex items-center gap-1">🕒 {new Date(e.triggered_at).toLocaleString()}</span>
+                {e.user_phone && <span className="flex items-center gap-1">­ƒô× Phone: <b className="text-white">{e.user_phone}</b></span>}
+                {e.latitude && <span className="flex items-center gap-1">­ƒôì Coordinates: <b className="text-amber-300">{e.latitude.toFixed(4)}, {e.longitude.toFixed(4)}</b></span>}
+                <span className="flex items-center gap-1">­ƒòÆ {new Date(e.triggered_at).toLocaleString()}</span>
               </div>
             </div>
 

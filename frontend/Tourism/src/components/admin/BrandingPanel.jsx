@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react"
+﻿import { useEffect, useState } from "react"
 import { notifyCmsUpdated } from "../../hooks/usePublicConfig"
-import { FiImage, FiSave, FiTrash2, FiUpload, FiCheck, FiSliders, FiSun, FiGlobe } from "react-icons/fi"
+import { FiImage, FiSave, FiTrash2, FiUpload, FiGlobe } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
 import TourismLogo, { NepalYatraSymbol } from "../branding/TourismLogo"
@@ -31,13 +31,13 @@ export default function BrandingPanel() {
     secondary_color: "#0B3D91",
   })
   const [assets, setAssets] = useState({})
-  const [presets, setPresets] = useState({})
+  const [_presets, setPresets] = useState({})
   const [busy, setBusy] = useState(false)
 
   const load = async () => {
     try {
       const { data } = await adminApi.getBranding()
-      setBranding((prev) => ({
+      setBranding((_prev) => ({
         site_title: "Nepal Yatra",
         tagline: "Himalayan Journeys & Travel Planning",
         ...data.branding,
@@ -133,7 +133,7 @@ export default function BrandingPanel() {
         </button>
       </div>
 
-      {/* Live Brand Preview Card — mirrors the published traveller header using
+      {/* Live Brand Preview Card ÔÇö mirrors the published traveller header using
           the draft values below, so admins see exactly what will ship. */}
       <div className="p-6 rounded-3xl bg-white border border-[#E5E0D5] space-y-3 shadow-xl">
         <span className="text-xs font-black uppercase text-[#697675] block tracking-wider">Live Logo & Header Preview</span>
@@ -230,7 +230,7 @@ export default function BrandingPanel() {
                   <div className="space-y-1">
                     <b className="capitalize text-white block text-sm">{kind === "logo" ? "Primary Brand Logo" : "Browser Favicon"}</b>
                     <p className="text-xs text-slate-400">
-                      {assets[kind] ? `${assets[kind].width}×${assets[kind].height} px` : "Using vector emblem"}
+                      {assets[kind] ? `${assets[kind].width}├ù${assets[kind].height} px` : "Using vector emblem"}
                     </p>
                     <div className="flex gap-2 pt-1">
                       <label className="cursor-pointer px-3 py-1.5 bg-sky-700 hover:bg-sky-600 rounded-xl text-xs font-bold text-white flex items-center gap-1">
@@ -259,7 +259,7 @@ export default function BrandingPanel() {
           </div>
 
           <p className="text-[11px] text-slate-400 bg-slate-900 p-3 rounded-2xl border border-slate-800 leading-relaxed">
-            💡 <b>Vector Guarantee:</b> When no custom image file is uploaded, the platform renders the geometric <b>Nepal Yatra</b> vector emblem (Himalayan peak + golden travel path + crimson flag accent).
+            ­ƒÆí <b>Vector Guarantee:</b> When no custom image file is uploaded, the platform renders the geometric <b>Nepal Yatra</b> vector emblem (Himalayan peak + golden travel path + crimson flag accent).
           </p>
         </section>
       </div>

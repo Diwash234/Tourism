@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import usePublicConfig from "../../hooks/usePublicConfig";
 import { Link } from "react-router-dom";
@@ -53,7 +53,7 @@ export const SUMMARY_SYMBOLS = [
   {
     image: RhododendronImg,
     label: "National Flower",
-    fact: "Lali Gurans — Nepal's national flower",
+    fact: "Lali Gurans ÔÇö Nepal's national flower",
   },
   {
     image: EmblemImg,
@@ -73,34 +73,34 @@ export const SUMMARY_SYMBOLS = [
 ];
 
 export const ALL_26_NATIONAL_SYMBOLS = [
-  { id: "flag", category: "National Flag", title: "National Flag", icon: "🏳️", nepali: "राष्ट्रिय झण्डा", value: "Unique double-triangle flag with sun and moon, symbolizing the Himalayas and eternal bravery.", image: FlagImg },
-  { id: "emblem", category: "National Emblem", title: "National Emblem / Coat of Arms", icon: "🪶", nepali: "राष्ट्रिय निशान छाप", value: "Features Mount Everest, green hills, rhododendron wreath, female/male hands shaking, and national motto.", image: EmblemImg },
-  { id: "animal", category: "National Animal", title: "National Animal", icon: "🐾", nepali: "गाय (Gai)", value: "The sacred Cow (Gai), symbolizing peace, prosperity, and motherly care.", image: CowImg },
-  { id: "bird", category: "National Bird", title: "National Bird", icon: "🐦", nepali: "डाँफे (Danphe)", value: "Himalayan Monal (Danphe), iridescent 9-colored high alpine pheasant living in high ranges.", image: DanpheImg },
-  { id: "flower", category: "National Flower", title: "National Flower", icon: "🌸", nepali: "लालीगुराँस (Lali Gurans)", value: "Rhododendron arboreum (Lali Gurans), blooming crimson across high hill forests in spring.", image: RhododendronImg },
-  { id: "dress", category: "National Dress", title: "National Dress / Costume", icon: "🎭", nepali: "दौरा सुरूवाल र ढाका टोपी / गुन्यू चोली", value: "Daura Suruwal with traditional Dhaka Topi for men & Gunyu Cholo for women.", image: TopiImg },
-  { id: "map", category: "Geographic Map", title: "Nepal Sovereign Territory", icon: "🗺️", nepali: "नेपालको नक्सा", value: "147,516 km² spanning Terai plains, mid-hill valleys, and high Himalayas across 7 provinces.", image: MapImg },
-  { id: "stupa", category: "Heritage Stupa", title: "Buddhist Stupa Heritage", icon: "☸️", nepali: "बौद्ध स्तुप सम्पदा", value: "Ancient stupa architecture representing enlightenment, peace, and wisdom (Swayambhu & Boudha).", image: StupaImg },
+  { id: "flag", category: "National Flag", title: "National Flag", icon: "­ƒÅ│´©Å", nepali: "Óñ░Óñ¥ÓñÀÓÑìÓñƒÓÑìÓñ░Óñ┐Óñ» ÓñØÓñúÓÑìÓñíÓñ¥", value: "Unique double-triangle flag with sun and moon, symbolizing the Himalayas and eternal bravery.", image: FlagImg },
+  { id: "emblem", category: "National Emblem", title: "National Emblem / Coat of Arms", icon: "­ƒ¬Â", nepali: "Óñ░Óñ¥ÓñÀÓÑìÓñƒÓÑìÓñ░Óñ┐Óñ» Óñ¿Óñ┐ÓñÂÓñ¥Óñ¿ ÓñøÓñ¥Óñ¬", value: "Features Mount Everest, green hills, rhododendron wreath, female/male hands shaking, and national motto.", image: EmblemImg },
+  { id: "animal", category: "National Animal", title: "National Animal", icon: "­ƒÉ¥", nepali: "ÓñùÓñ¥Óñ» (Gai)", value: "The sacred Cow (Gai), symbolizing peace, prosperity, and motherly care.", image: CowImg },
+  { id: "bird", category: "National Bird", title: "National Bird", icon: "­ƒÉª", nepali: "ÓñíÓñ¥ÓñüÓñ½ÓÑç (Danphe)", value: "Himalayan Monal (Danphe), iridescent 9-colored high alpine pheasant living in high ranges.", image: DanpheImg },
+  { id: "flower", category: "National Flower", title: "National Flower", icon: "­ƒî©", nepali: "Óñ▓Óñ¥Óñ▓ÓÑÇÓñùÓÑüÓñ░Óñ¥ÓñüÓñ© (Lali Gurans)", value: "Rhododendron arboreum (Lali Gurans), blooming crimson across high hill forests in spring.", image: RhododendronImg },
+  { id: "dress", category: "National Dress", title: "National Dress / Costume", icon: "­ƒÄ¡", nepali: "ÓñªÓÑîÓñ░Óñ¥ Óñ©ÓÑüÓñ░ÓÑéÓñÁÓñ¥Óñ▓ Óñ░ ÓñóÓñ¥ÓñòÓñ¥ ÓñƒÓÑïÓñ¬ÓÑÇ / ÓñùÓÑüÓñ¿ÓÑìÓñ»ÓÑé ÓñÜÓÑïÓñ▓ÓÑÇ", value: "Daura Suruwal with traditional Dhaka Topi for men & Gunyu Cholo for women.", image: TopiImg },
+  { id: "map", category: "Geographic Map", title: "Nepal Sovereign Territory", icon: "­ƒù║´©Å", nepali: "Óñ¿ÓÑçÓñ¬Óñ¥Óñ▓ÓñòÓÑï Óñ¿ÓñòÓÑìÓñ©Óñ¥", value: "147,516 km┬▓ spanning Terai plains, mid-hill valleys, and high Himalayas across 7 provinces.", image: MapImg },
+  { id: "stupa", category: "Heritage Stupa", title: "Buddhist Stupa Heritage", icon: "Ôÿ©´©Å", nepali: "Óñ¼ÓÑîÓñªÓÑìÓñº Óñ©ÓÑìÓññÓÑüÓñ¬ Óñ©Óñ«ÓÑìÓñ¬ÓñªÓñ¥", value: "Ancient stupa architecture representing enlightenment, peace, and wisdom (Swayambhu & Boudha).", image: StupaImg },
   
-  { id: "tree", category: "National Tree", title: "National Tree (Peepal)", icon: "🌳", nepali: "पीपल (Peepal / Sacred Fig)", value: "Peepal tree (Ficus religiosa), revered for providing shade, continuous oxygen, and spiritual sanctuary.", image: SYMBOL_VISUALS.tree },
-  { id: "fruit", category: "National Fruit", title: "National Fruit (Mango / Aap)", icon: "🍎", nepali: "आँप (Mango / Aap)", value: "Juicy Terai and mid-hill mangoes harvested during sunny summer months.", image: SYMBOL_VISUALS.fruit },
-  { id: "anthem", category: "National Anthem", title: "National Anthem (Sayaun Thunga)", icon: "🎵", nepali: "सयौं थुँगा फूलका हामी", value: "'Sayaun Thunga Phool Ka' is the national anthem associated with sovereignty and unity.", image: SYMBOL_VISUALS.anthem },
-  { id: "currency", category: "National Currency", title: "National Currency (NPR 1,000 Note)", icon: "💰", nepali: "नेपाली रुपैयाँ (NPR 1000)", value: "Nepali Rupee (NPR / Re / Rs), issued by Nepal Rastra Bank with Mt. Everest & twin elephants.", image: SYMBOL_VISUALS.currency },
-  { id: "language", category: "Official Language", title: "Official Language (Devanagari Script)", icon: "🗣️", nepali: "नेपाली भाषा (क, ख, ग, घ, ङ)", value: "Nepali (Devanagari script) is the official language; many communities use additional languages.", image: SYMBOL_VISUALS.language },
-  { id: "capital", category: "Capital City", title: "Capital City (Kathmandu Valley)", icon: "🏛️", nepali: "काठमाडौं (Kathmandu)", value: "Kathmandu Valley (1,400m altitude), historic City of Temples and cultural crossroads.", image: SYMBOL_VISUALS.capital },
-  { id: "governance", category: "Head of State / State", title: "State System & Governance", icon: "👑", nepali: "संघीय लोकतान्त्रिक गणतन्त्र", value: "Federal Democratic Republic of Nepal governed under the 2015 Constitution.", image: EmblemImg },
-  { id: "sport", category: "National Sport", title: "National Sport (Volleyball)", icon: "🏞️", nepali: "भलिबल (Volleyball)", value: "Volleyball, officially declared national sport played in mountain villages and valley courts.", image: SYMBOL_VISUALS.sport },
-  { id: "dish", category: "National Dish", title: "National Food / Dish", icon: "🍲", nepali: "दाल भात तरकारी", value: "Dal Bhat Tarkari (Steamed rice, lentil soup, seasonal curried vegetables, Gundruk, and pickle).", image: SYMBOL_VISUALS.dish },
-  { id: "fish", category: "National Fish", title: "National Fish (Sahar)", icon: "🐟", nepali: "सहर (Sahar / Golden Mahseer)", value: "Sahar (Tor putitora / Himalayan Golden Mahseer), king of fast-flowing snow-fed Himalayan rivers.", image: SYMBOL_VISUALS.river },
-  { id: "river", category: "National River", title: "Major Sacred River Systems", icon: "🌊", nepali: "सप्तकोशी, गण्डकी, कर्णाली", value: "Karnali (longest), Gandaki, and Koshi snow-fed Himalayan river basins.", image: SYMBOL_VISUALS.river },
-  { id: "mountain", category: "National Mountain", title: "National Mountain Peak", icon: "🏔️", nepali: "सगरमाथा (Mount Everest)", value: "Mount Everest / Sagarmatha (8,848.86 m), highest peak on Earth located in Mahalangur Himal.", image: SYMBOL_VISUALS.mountain },
-  { id: "dance", category: "National Dance", title: "National Heritage Dance", icon: "💃", nepali: "मारुनी र लाखे नाच", value: "Maruni, Lakhey, and Charya cultural dances celebrating harvests and spiritual myths.", image: SYMBOL_VISUALS.dance },
-  { id: "motto", category: "National Motto", title: "National Motto", icon: "🦅", nepali: "जननी जन्मभूमिश्च स्वर्गादपि गरीयसी", value: "'Janani Janmabhumischa Swargadapi Gariyasi' — Mother and motherland are dearer than heaven itself.", image: EmblemImg },
-  { id: "poet", category: "National Poet", title: "National Poet / Adikavi", icon: "✍️", nepali: "राष्ट्रकवि माधवप्रसाद घिमिरे / भानुभक्त", value: "Bhanubhakta Acharya (Adikavi) & Madhav Prasad Ghimire (Rashtrakavi).", image: SYMBOL_VISUALS.poet },
-  { id: "day", category: "Constitution / National Day", title: "National Constitution Day", icon: "📜", nepali: "संविधान दिवस (Ashoj 3 / Sept 20)", value: "Constitution Day celebrating democratic constitutional rule (Promulgated Sept 20, 2015).", image: SYMBOL_VISUALS.constitution },
-  { id: "gemstone", category: "Himalayan Gemstone", title: "National Gemstone", icon: "💎", nepali: "नेपाली काईनाइट र रुबी", value: "Ganesh Himal Quartz, Himalayan Kyanite, and Ruby mined in high altitudes.", image: SYMBOL_VISUALS.gemstone },
-  { id: "plant", category: "Sacred Medicinal Herb", title: "Sacred Plant / Herb", icon: "🌿", nepali: "यार्सागुम्बा / जिम्बु", value: "Yarsagumba (Cordyceps sinensis) & Himalayan Jimbu mountain herbs.", image: SYMBOL_VISUALS.plant },
-  { id: "insect", category: "National Butterfly", title: "National Insect / Butterfly", icon: "🐝", nepali: "कृष्णा कालीज (Kaiser-i-Hind)", value: "Kaiser-i-Hind & Himalayan Swallowtail butterflies in high forest reserves.", image: SYMBOL_VISUALS.insect },
+  { id: "tree", category: "National Tree", title: "National Tree (Peepal)", icon: "­ƒî│", nepali: "Óñ¬ÓÑÇÓñ¬Óñ▓ (Peepal / Sacred Fig)", value: "Peepal tree (Ficus religiosa), revered for providing shade, continuous oxygen, and spiritual sanctuary.", image: SYMBOL_VISUALS.tree },
+  { id: "fruit", category: "National Fruit", title: "National Fruit (Mango / Aap)", icon: "­ƒìÄ", nepali: "ÓñåÓñüÓñ¬ (Mango / Aap)", value: "Juicy Terai and mid-hill mangoes harvested during sunny summer months.", image: SYMBOL_VISUALS.fruit },
+  { id: "anthem", category: "National Anthem", title: "National Anthem (Sayaun Thunga)", icon: "­ƒÄÁ", nepali: "Óñ©Óñ»ÓÑîÓñé ÓñÑÓÑüÓñüÓñùÓñ¥ Óñ½ÓÑéÓñ▓ÓñòÓñ¥ Óñ╣Óñ¥Óñ«ÓÑÇ", value: "'Sayaun Thunga Phool Ka' is the national anthem associated with sovereignty and unity.", image: SYMBOL_VISUALS.anthem },
+  { id: "currency", category: "National Currency", title: "National Currency (NPR 1,000 Note)", icon: "­ƒÆ░", nepali: "Óñ¿ÓÑçÓñ¬Óñ¥Óñ▓ÓÑÇ Óñ░ÓÑüÓñ¬ÓÑêÓñ»Óñ¥Óñü (NPR 1000)", value: "Nepali Rupee (NPR / Re / Rs), issued by Nepal Rastra Bank with Mt. Everest & twin elephants.", image: SYMBOL_VISUALS.currency },
+  { id: "language", category: "Official Language", title: "Official Language (Devanagari Script)", icon: "­ƒùú´©Å", nepali: "Óñ¿ÓÑçÓñ¬Óñ¥Óñ▓ÓÑÇ Óñ¡Óñ¥ÓñÀÓñ¥ (Óñò, Óñû, Óñù, Óñÿ, ÓñÖ)", value: "Nepali (Devanagari script) is the official language; many communities use additional languages.", image: SYMBOL_VISUALS.language },
+  { id: "capital", category: "Capital City", title: "Capital City (Kathmandu Valley)", icon: "­ƒÅø´©Å", nepali: "ÓñòÓñ¥ÓñáÓñ«Óñ¥ÓñíÓÑîÓñé (Kathmandu)", value: "Kathmandu Valley (1,400m altitude), historic City of Temples and cultural crossroads.", image: SYMBOL_VISUALS.capital },
+  { id: "governance", category: "Head of State / State", title: "State System & Governance", icon: "­ƒææ", nepali: "Óñ©ÓñéÓñÿÓÑÇÓñ» Óñ▓ÓÑïÓñòÓññÓñ¥Óñ¿ÓÑìÓññÓÑìÓñ░Óñ┐Óñò ÓñùÓñúÓññÓñ¿ÓÑìÓññÓÑìÓñ░", value: "Federal Democratic Republic of Nepal governed under the 2015 Constitution.", image: EmblemImg },
+  { id: "sport", category: "National Sport", title: "National Sport (Volleyball)", icon: "­ƒÅ×´©Å", nepali: "Óñ¡Óñ▓Óñ┐Óñ¼Óñ▓ (Volleyball)", value: "Volleyball, officially declared national sport played in mountain villages and valley courts.", image: SYMBOL_VISUALS.sport },
+  { id: "dish", category: "National Dish", title: "National Food / Dish", icon: "­ƒì▓", nepali: "ÓñªÓñ¥Óñ▓ Óñ¡Óñ¥Óññ ÓññÓñ░ÓñòÓñ¥Óñ░ÓÑÇ", value: "Dal Bhat Tarkari (Steamed rice, lentil soup, seasonal curried vegetables, Gundruk, and pickle).", image: SYMBOL_VISUALS.dish },
+  { id: "fish", category: "National Fish", title: "National Fish (Sahar)", icon: "­ƒÉƒ", nepali: "Óñ©Óñ╣Óñ░ (Sahar / Golden Mahseer)", value: "Sahar (Tor putitora / Himalayan Golden Mahseer), king of fast-flowing snow-fed Himalayan rivers.", image: SYMBOL_VISUALS.river },
+  { id: "river", category: "National River", title: "Major Sacred River Systems", icon: "­ƒîè", nepali: "Óñ©Óñ¬ÓÑìÓññÓñòÓÑïÓñÂÓÑÇ, ÓñùÓñúÓÑìÓñíÓñòÓÑÇ, ÓñòÓñ░ÓÑìÓñúÓñ¥Óñ▓ÓÑÇ", value: "Karnali (longest), Gandaki, and Koshi snow-fed Himalayan river basins.", image: SYMBOL_VISUALS.river },
+  { id: "mountain", category: "National Mountain", title: "National Mountain Peak", icon: "­ƒÅö´©Å", nepali: "Óñ©ÓñùÓñ░Óñ«Óñ¥ÓñÑÓñ¥ (Mount Everest)", value: "Mount Everest / Sagarmatha (8,848.86 m), highest peak on Earth located in Mahalangur Himal.", image: SYMBOL_VISUALS.mountain },
+  { id: "dance", category: "National Dance", title: "National Heritage Dance", icon: "­ƒÆâ", nepali: "Óñ«Óñ¥Óñ░ÓÑüÓñ¿ÓÑÇ Óñ░ Óñ▓Óñ¥ÓñûÓÑç Óñ¿Óñ¥ÓñÜ", value: "Maruni, Lakhey, and Charya cultural dances celebrating harvests and spiritual myths.", image: SYMBOL_VISUALS.dance },
+  { id: "motto", category: "National Motto", title: "National Motto", icon: "­ƒªà", nepali: "Óñ£Óñ¿Óñ¿ÓÑÇ Óñ£Óñ¿ÓÑìÓñ«Óñ¡ÓÑéÓñ«Óñ┐ÓñÂÓÑìÓñÜ Óñ©ÓÑìÓñÁÓñ░ÓÑìÓñùÓñ¥ÓñªÓñ¬Óñ┐ ÓñùÓñ░ÓÑÇÓñ»Óñ©ÓÑÇ", value: "'Janani Janmabhumischa Swargadapi Gariyasi' ÔÇö Mother and motherland are dearer than heaven itself.", image: EmblemImg },
+  { id: "poet", category: "National Poet", title: "National Poet / Adikavi", icon: "Ô£ì´©Å", nepali: "Óñ░Óñ¥ÓñÀÓÑìÓñƒÓÑìÓñ░ÓñòÓñÁÓñ┐ Óñ«Óñ¥ÓñºÓñÁÓñ¬ÓÑìÓñ░Óñ©Óñ¥Óñª ÓñÿÓñ┐Óñ«Óñ┐Óñ░ÓÑç / Óñ¡Óñ¥Óñ¿ÓÑüÓñ¡ÓñòÓÑìÓññ", value: "Bhanubhakta Acharya (Adikavi) & Madhav Prasad Ghimire (Rashtrakavi).", image: SYMBOL_VISUALS.poet },
+  { id: "day", category: "Constitution / National Day", title: "National Constitution Day", icon: "­ƒô£", nepali: "Óñ©ÓñéÓñÁÓñ┐ÓñºÓñ¥Óñ¿ ÓñªÓñ┐ÓñÁÓñ© (Ashoj 3 / Sept 20)", value: "Constitution Day celebrating democratic constitutional rule (Promulgated Sept 20, 2015).", image: SYMBOL_VISUALS.constitution },
+  { id: "gemstone", category: "Himalayan Gemstone", title: "National Gemstone", icon: "­ƒÆÄ", nepali: "Óñ¿ÓÑçÓñ¬Óñ¥Óñ▓ÓÑÇ ÓñòÓñ¥ÓñêÓñ¿Óñ¥ÓñçÓñƒ Óñ░ Óñ░ÓÑüÓñ¼ÓÑÇ", value: "Ganesh Himal Quartz, Himalayan Kyanite, and Ruby mined in high altitudes.", image: SYMBOL_VISUALS.gemstone },
+  { id: "plant", category: "Sacred Medicinal Herb", title: "Sacred Plant / Herb", icon: "­ƒî┐", nepali: "Óñ»Óñ¥Óñ░ÓÑìÓñ©Óñ¥ÓñùÓÑüÓñ«ÓÑìÓñ¼Óñ¥ / Óñ£Óñ┐Óñ«ÓÑìÓñ¼ÓÑü", value: "Yarsagumba (Cordyceps sinensis) & Himalayan Jimbu mountain herbs.", image: SYMBOL_VISUALS.plant },
+  { id: "insect", category: "National Butterfly", title: "National Insect / Butterfly", icon: "­ƒÉØ", nepali: "ÓñòÓÑâÓñÀÓÑìÓñúÓñ¥ ÓñòÓñ¥Óñ▓ÓÑÇÓñ£ (Kaiser-i-Hind)", value: "Kaiser-i-Hind & Himalayan Swallowtail butterflies in high forest reserves.", image: SYMBOL_VISUALS.insect },
 ];
 
 export const EIGHT_THOUSANDERS = [
@@ -115,31 +115,31 @@ export const EIGHT_THOUSANDERS = [
 ];
 
 export const HIMALAYAN_RANGES = [
-  { range: "Mahalangur Himal", peaks: "Everest, Lhotse, Makalu, Cho Oyu, Ama Dablam", highest: "Mount Everest – 8,848.86 m", area: "Solukhumbu / Sankhuwasabha" },
-  { range: "Kanchenjunga Himal", peaks: "Kanchenjunga, Jannu (Kumbhakarna)", highest: "Kanchenjunga – 8,586 m", area: "Taplejung (Eastern Nepal)" },
-  { range: "Annapurna Himal", peaks: "Annapurna I, II, III, IV, Gangapurna, Machhapuchhre", highest: "Annapurna I – 8,091 m", area: "Kaski, Manang, Mustang" },
-  { range: "Dhaulagiri Himal", peaks: "Dhaulagiri I, II, III, IV, V", highest: "Dhaulagiri I – 8,167 m", area: "Myagdi / Mustang" },
-  { range: "Manaslu Himal", peaks: "Manaslu, Himalchuli, Ngadi Chuli", highest: "Manaslu – 8,163 m", area: "Gorkha / Manang" },
-  { range: "Langtang Himal", peaks: "Langtang Lirung, Dorje Lakpa, Langshisha Ri", highest: "Langtang Lirung – 7,227 m", area: "Rasuwa / Sindhupalchok" },
-  { range: "Ganesh Himal", peaks: "Yangra (Ganesh I), Ganesh II, III", highest: "Yangra – 7,422 m", area: "Gorkha / Dhading / Rasuwa" },
-  { range: "Rolwaling Himal", peaks: "Gauri Shankar, Melungtse, Dorje Phagmo", highest: "Melungtse – 7,181 m", area: "Dolakha" },
-  { range: "Api–Nampa Himal", peaks: "Api, Nampa, Byas Himal", highest: "Api – 7,132 m", area: "Darchula (Far-West Nepal)" },
-  { range: "Kanjiroba Himal", peaks: "Kanjiroba North, Kanjiroba South", highest: "Kanjiroba South – 6,883 m", area: "Dolpa" },
-  { range: "Jugal Himal", peaks: "Dorje Lakpa, Gyalzen Peak", highest: "Dorje Lakpa – 6,966 m", area: "Sindhupalchok" },
-  { range: "Damodar & Mustang Himal", peaks: "Tilicho Peak, Nilgiri North, Bhrikuti", highest: "Nilgiri North – 7,061 m", area: "Mustang / Manang" },
+  { range: "Mahalangur Himal", peaks: "Everest, Lhotse, Makalu, Cho Oyu, Ama Dablam", highest: "Mount Everest ÔÇô 8,848.86 m", area: "Solukhumbu / Sankhuwasabha" },
+  { range: "Kanchenjunga Himal", peaks: "Kanchenjunga, Jannu (Kumbhakarna)", highest: "Kanchenjunga ÔÇô 8,586 m", area: "Taplejung (Eastern Nepal)" },
+  { range: "Annapurna Himal", peaks: "Annapurna I, II, III, IV, Gangapurna, Machhapuchhre", highest: "Annapurna I ÔÇô 8,091 m", area: "Kaski, Manang, Mustang" },
+  { range: "Dhaulagiri Himal", peaks: "Dhaulagiri I, II, III, IV, V", highest: "Dhaulagiri I ÔÇô 8,167 m", area: "Myagdi / Mustang" },
+  { range: "Manaslu Himal", peaks: "Manaslu, Himalchuli, Ngadi Chuli", highest: "Manaslu ÔÇô 8,163 m", area: "Gorkha / Manang" },
+  { range: "Langtang Himal", peaks: "Langtang Lirung, Dorje Lakpa, Langshisha Ri", highest: "Langtang Lirung ÔÇô 7,227 m", area: "Rasuwa / Sindhupalchok" },
+  { range: "Ganesh Himal", peaks: "Yangra (Ganesh I), Ganesh II, III", highest: "Yangra ÔÇô 7,422 m", area: "Gorkha / Dhading / Rasuwa" },
+  { range: "Rolwaling Himal", peaks: "Gauri Shankar, Melungtse, Dorje Phagmo", highest: "Melungtse ÔÇô 7,181 m", area: "Dolakha" },
+  { range: "ApiÔÇôNampa Himal", peaks: "Api, Nampa, Byas Himal", highest: "Api ÔÇô 7,132 m", area: "Darchula (Far-West Nepal)" },
+  { range: "Kanjiroba Himal", peaks: "Kanjiroba North, Kanjiroba South", highest: "Kanjiroba South ÔÇô 6,883 m", area: "Dolpa" },
+  { range: "Jugal Himal", peaks: "Dorje Lakpa, Gyalzen Peak", highest: "Dorje Lakpa ÔÇô 6,966 m", area: "Sindhupalchok" },
+  { range: "Damodar & Mustang Himal", peaks: "Tilicho Peak, Nilgiri North, Bhrikuti", highest: "Nilgiri North ÔÇô 7,061 m", area: "Mustang / Manang" },
 ];
 
 export const DEFAULT_FOODS = [
-  { name: "Steamed MoMo", nepali: "मःमः", desc: "Handmade steamed dumplings filled with spiced vegetables or chicken, served with spicy tomato sesame chutney.", region: "Kathmandu & Pokhara", image: "/images/destinations/food/momo.jpg" },
-  { name: "Dal Bhat Tarkari", nepali: "दाल भात", desc: "Steamed rice served with yellow lentil soup, curried vegetables, Gundruk, and spicy golbheda pickle.", region: "All Nepal (National Staple)", image: "/images/destinations/food/dal-bhat.jpg" },
-  { name: "Newari Samay Baji", nepali: "समय् बजि", desc: "Beaten rice with smoked buffalo Choila, black beans, boiled eggs, and fermented Aila.", region: "Patan & Bhaktapur", image: "/images/destinations/food/newari-bhoj.jpg" },
-  { name: "Sel Roti & Achar", nepali: "सेल रोटी", desc: "Traditional ring-shaped fried rice-flour bread eaten during Dashain, Tihar, and morning tea.", region: "All Nepal", image: "/images/destinations/food/sel-roti.jpg" },
-  { name: "Bhaktapur Juju Dhau", nepali: "जुजु धौ", desc: "King of Curds — thick, sweet, rich buffalo-milk yogurt set in clay pots.", region: "Bhaktapur Durbar Square", image: "/images/destinations/food/juju-dhau.jpg" },
+  { name: "Steamed MoMo", nepali: "Óñ«ÓñâÓñ«Óñâ", desc: "Handmade steamed dumplings filled with spiced vegetables or chicken, served with spicy tomato sesame chutney.", region: "Kathmandu & Pokhara", image: "/images/destinations/food/momo.jpg" },
+  { name: "Dal Bhat Tarkari", nepali: "ÓñªÓñ¥Óñ▓ Óñ¡Óñ¥Óññ", desc: "Steamed rice served with yellow lentil soup, curried vegetables, Gundruk, and spicy golbheda pickle.", region: "All Nepal (National Staple)", image: "/images/destinations/food/dal-bhat.jpg" },
+  { name: "Newari Samay Baji", nepali: "Óñ©Óñ«Óñ»ÓÑì Óñ¼Óñ£Óñ┐", desc: "Beaten rice with smoked buffalo Choila, black beans, boiled eggs, and fermented Aila.", region: "Patan & Bhaktapur", image: "/images/destinations/food/newari-bhoj.jpg" },
+  { name: "Sel Roti & Achar", nepali: "Óñ©ÓÑçÓñ▓ Óñ░ÓÑïÓñƒÓÑÇ", desc: "Traditional ring-shaped fried rice-flour bread eaten during Dashain, Tihar, and morning tea.", region: "All Nepal", image: "/images/destinations/food/sel-roti.jpg" },
+  { name: "Bhaktapur Juju Dhau", nepali: "Óñ£ÓÑüÓñ£ÓÑü ÓñºÓÑî", desc: "King of Curds ÔÇö thick, sweet, rich buffalo-milk yogurt set in clay pots.", region: "Bhaktapur Durbar Square", image: "/images/destinations/food/juju-dhau.jpg" },
 ];
 
 export const DEFAULT_FESTIVALS = [
-  { title: "Bada Dashain", kind: "National Festival", body: "Nepal's major 15-day celebration of good over evil with Tika blessings, Jamara, and bamboo swings.", city: "All Nepal", date: "Sept – Oct" },
-  { title: "Tihar & Deepawali", kind: "Festival of Lights", body: "5-day light festival honoring dogs, crows, cows, Lakshmi, and Bhai Tika sister-brother bonds.", city: "All Nepal", date: "Oct – Nov" },
+  { title: "Bada Dashain", kind: "National Festival", body: "Nepal's major 15-day celebration of good over evil with Tika blessings, Jamara, and bamboo swings.", city: "All Nepal", date: "Sept ÔÇô Oct" },
+  { title: "Tihar & Deepawali", kind: "Festival of Lights", body: "5-day light festival honoring dogs, crows, cows, Lakshmi, and Bhai Tika sister-brother bonds.", city: "All Nepal", date: "Oct ÔÇô Nov" },
   { title: "Fagu Purnima (Holi)", kind: "Spring Festival", body: "Vibrant festival of dry gulal colors, water balloons, and music across Durbar Squares.", city: "Kathmandu & Pokhara", date: "March" },
   { title: "Bisket Jatra", kind: "Heritage Festival", body: "Huge chariot pulling festival in Bhaktapur celebrating the Newari New Year.", city: "Bhaktapur", date: "April" },
 ];
@@ -166,7 +166,7 @@ const MARQUEE_ITEMS = [
 const NationalSymbols = () => {
   const publicConfig = usePublicConfig();
   // Admin-editable symbol boxes: a published card_grid block on the
-  // discover-nepal page's `symbols` section replaces the built-in 8 boxes —
+  // discover-nepal page's `symbols` section replaces the built-in 8 boxes ÔÇö
   // any count, own names, images and facts, live after Publish.
   const symbolsSection = publicConfig.section("discover-nepal", "symbols");
   const symbolsGrid = (symbolsSection?.blocks || []).find((b) => b.type === "card_grid");
@@ -189,7 +189,7 @@ const NationalSymbols = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <span className="px-3 py-1 rounded-full ny-kicker !border !border-white/20 !bg-white/10 !text-[#BDEBD9]">
-              Discover Nepal — Beyond Everest
+              Discover Nepal ÔÇö Beyond Everest
             </span>
             <h2 className="text-2xl md:text-3xl font-extrabold text-white mt-1.5">
               Nepal's National Identity & Cultural Symbols
@@ -210,7 +210,7 @@ const NationalSymbols = () => {
 
             <Link
               to="/discover-nepal"
-              className="ny-btn min-h-11 justify-center border border-white/25 bg-white/10 px-4 text-xs text-white hover:bg-white/20 sm:text-sm"
+              className="ny-btn min-h-11 justify-center border border-white/25 bg-black/40 px-4 text-xs text-white hover:bg-black/60 sm:text-sm"
             >
               <FiCompass size={14} /> Discover Page
             </Link>
@@ -295,7 +295,7 @@ const NationalSymbols = () => {
                     activeModalTab === "symbols" ? "bg-amber-400 text-slate-950 font-black shadow" : "bg-slate-900 text-slate-300 hover:bg-slate-800"
                   }`}
                 >
-                  🇳🇵 Identity references
+                  ­ƒç│­ƒçÁ Identity references
                 </button>
                 <button
                   type="button"
@@ -304,7 +304,7 @@ const NationalSymbols = () => {
                     activeModalTab === "mountains" ? "bg-amber-400 text-slate-950 font-black shadow" : "bg-slate-900 text-slate-300 hover:bg-slate-800"
                   }`}
                 >
-                  🏔️ 8,000m Mountains & Ranges
+                  ­ƒÅö´©Å 8,000m Mountains & Ranges
                 </button>
                 <button
                   type="button"
@@ -313,7 +313,7 @@ const NationalSymbols = () => {
                     activeModalTab === "culture" ? "bg-amber-400 text-slate-950 font-black shadow" : "bg-slate-900 text-slate-300 hover:bg-slate-800"
                   }`}
                 >
-                  🍲 Food & Cultural Festivals
+                  ­ƒì▓ Food & Cultural Festivals
                 </button>
                 <button
                   type="button"
@@ -322,7 +322,7 @@ const NationalSymbols = () => {
                     activeModalTab === "provinces" ? "bg-amber-400 text-slate-950 font-black shadow" : "bg-slate-900 text-slate-300 hover:bg-slate-800"
                   }`}
                 >
-                  🗺️ 7 Provinces
+                  ­ƒù║´©Å 7 Provinces
                 </button>
               </div>
 
@@ -365,7 +365,7 @@ const NationalSymbols = () => {
                     {/* 8,000m Table */}
                     <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
                       <div className="flex justify-between items-center">
-                        <h4 className="text-base font-black text-amber-300">🏔️ Nepal's 8 Mountains Above 8,000 Meters</h4>
+                        <h4 className="text-base font-black text-amber-300">­ƒÅö´©Å Nepal's 8 Mountains Above 8,000 Meters</h4>
                         <span className="text-xs bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded-full font-bold border border-emerald-800">
                           8 of 14 Highest Peaks on Earth
                         </span>
@@ -405,7 +405,7 @@ const NationalSymbols = () => {
                             <p className="font-black text-amber-300 text-xs">{r.range}</p>
                             <p className="text-emerald-400 font-bold text-xs">Highest: {r.highest}</p>
                             <p className="text-slate-300 text-xs"><b>Peaks:</b> {r.peaks}</p>
-                            <p className="text-slate-400 text-xs">📍 {r.area}</p>
+                            <p className="text-slate-400 text-xs">­ƒôì {r.area}</p>
                           </div>
                         ))}
                       </div>
@@ -418,7 +418,7 @@ const NationalSymbols = () => {
                   <div className="space-y-6">
                     {/* Festivals */}
                     <div className="space-y-3">
-                      <h4 className="text-sm font-black text-amber-300">🎉 Vibrant Cultural Festivals</h4>
+                      <h4 className="text-sm font-black text-amber-300">­ƒÄë Vibrant Cultural Festivals</h4>
                       <div className="grid sm:grid-cols-2 gap-3">
                         {DEFAULT_FESTIVALS.map((fest, idx) => (
                           <div key={idx} className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1.5">
@@ -429,7 +429,7 @@ const NationalSymbols = () => {
                               </span>
                             </div>
                             <p className="text-slate-300 text-xs leading-relaxed">{fest.body}</p>
-                            <p className="text-xs font-bold text-emerald-400 pt-1">📍 {fest.city}</p>
+                            <p className="text-xs font-bold text-emerald-400 pt-1">­ƒôì {fest.city}</p>
                           </div>
                         ))}
                       </div>
@@ -437,7 +437,7 @@ const NationalSymbols = () => {
 
                     {/* Culinary */}
                     <div className="space-y-3 pt-3 border-t border-slate-800">
-                      <h4 className="text-sm font-black text-amber-300">🍲 Authentic Nepali Culinary Heritage</h4>
+                      <h4 className="text-sm font-black text-amber-300">­ƒì▓ Authentic Nepali Culinary Heritage</h4>
                       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {DEFAULT_FOODS.map((food, i) => (
                           <div key={i} className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2 flex flex-col overflow-hidden">
@@ -447,7 +447,7 @@ const NationalSymbols = () => {
                             <div className="flex-1 space-y-1">
                               <span className="text-xs font-black uppercase text-amber-400">{food.nepali}</span>
                               <h5 className="font-extrabold text-white text-xs">{food.name}</h5>
-                              <p className="text-xs text-slate-400">📍 {food.region}</p>
+                              <p className="text-xs text-slate-400">­ƒôì {food.region}</p>
                               <p className="text-slate-300 text-xs leading-relaxed">{food.desc}</p>
                             </div>
                           </div>
@@ -483,7 +483,7 @@ const NationalSymbols = () => {
                   onClick={() => setShowFullModal(false)}
                   className="text-amber-400 hover:underline font-bold text-xs flex items-center gap-1"
                 >
-                  Open Full Dedicated Discover Nepal Page ➔
+                  Open Full Dedicated Discover Nepal Page Ô×ö
                 </Link>
                 <button
                   type="button"

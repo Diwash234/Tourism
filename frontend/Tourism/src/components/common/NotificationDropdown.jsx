@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react"
+﻿import { useEffect, useRef, useState } from "react"
 import { Link } from "react-router-dom"
-import { FiBell, FiCheck, FiX, FiAlertTriangle, FiInfo, FiMapPin } from "react-icons/fi"
+import { FiBell, FiCheck, FiX, FiAlertTriangle, FiInfo } from "react-icons/fi"
 
 /**
  * Notification dropdown for the navbar. Shows recent notifications with

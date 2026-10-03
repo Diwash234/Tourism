@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+﻿import { useEffect, useMemo, useState } from "react"
 import { FiCheck, FiSave } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
@@ -12,12 +12,12 @@ import {
 } from "../../utils/translationHelpers"
 
 /**
- * Content Translations (brief §42) — the natural flow: Language → Search →
+ * Content Translations (brief ┬º42) ÔÇö the natural flow: Language ÔåÆ Search ÔåÆ
  * Edit. Translators pick a language, find a page/section/menu item, and fill
  * in fields next to the original text. Everything is stored through the same
  * CMS API as the Pages panel (resource: "translations", one row per
  * record + language) and the public site applies it the moment a visitor
- * switches language — no rebuild, no redeploy.
+ * switches language ÔÇö no rebuild, no redeploy.
  */
 export default function TranslationsPanel() {
   const { showToast } = useToast()
@@ -34,7 +34,7 @@ export default function TranslationsPanel() {
 
   const load = async () => {
     try {
-      const [pages, sections, navigation, translationsRes] = await Promise.all([
+      const [pages, sections, navigation, _translationsRes] = await Promise.all([
         adminApi.getCMS("pages"),
         adminApi.getCMS("sections"),
         adminApi.getCMS("navigation"),
@@ -42,7 +42,7 @@ export default function TranslationsPanel() {
       ])
       const flat = [
         ...(pages.data.results || []).map((r) => ({ type: "pages", id: r.id, title: r.title, hint: r.route, source: r })),
-        ...(sections.data.results || []).map((r) => ({ type: "sections", id: r.id, title: r.title || r.key, hint: `${r.page_title || "section"} · ${r.key}`, source: r })),
+        ...(sections.data.results || []).map((r) => ({ type: "sections", id: r.id, title: r.title || r.key, hint: `${r.page_title || "section"} ┬À ${r.key}`, source: r })),
         ...(navigation.data.results || []).map((r) => ({ type: "navigation", id: r.id, title: r.label, hint: `${r.location} menu`, source: r })),
       ]
       setRecords(flat)
@@ -99,7 +99,7 @@ export default function TranslationsPanel() {
       setDirty(false)
       showToast(res.data?.message || "Translation saved.", "success")
     } catch (err) {
-      showToast(err.response?.data?.detail || "Save failed — please try again.", "error")
+      showToast(err.response?.data?.detail || "Save failed ÔÇö please try again.", "error")
     } finally {
       setSaving(false)
     }
@@ -114,7 +114,7 @@ export default function TranslationsPanel() {
         <div className="mr-auto">
           <h2 className="text-lg font-bold text-slate-900">Content Translations</h2>
           <p className="text-xs text-slate-500">
-            Translate pages, sections and menu items. Visitors see the translation as soon as they switch the site language — no rebuild needed.
+            Translate pages, sections and menu items. Visitors see the translation as soon as they switch the site language ÔÇö no rebuild needed.
           </p>
         </div>
         <div className="flex gap-1.5">
@@ -136,7 +136,7 @@ export default function TranslationsPanel() {
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search pages, sections, menus…"
+              placeholder="Search pages, sections, menusÔÇª"
               aria-label="Search translatable content"
               className="w-full rounded-lg border border-emerald-200 px-2.5 py-1.5 text-xs focus:border-emerald-600 focus:outline-none"
             />
@@ -145,7 +145,7 @@ export default function TranslationsPanel() {
             </p>
           </div>
           <div className="max-h-[60vh] overflow-y-auto p-2 space-y-1">
-            {loading && <p className="p-6 text-center text-sm text-slate-500">Loading…</p>}
+            {loading && <p className="p-6 text-center text-sm text-slate-500">LoadingÔÇª</p>}
             {!loading && visible.length === 0 && <p className="p-6 text-center text-sm text-slate-500">Nothing matches the search.</p>}
             {visible.map((record) => {
               const key = buildTranslationKey(record.type, record.id, lang)
@@ -163,7 +163,7 @@ export default function TranslationsPanel() {
                   <span className="min-w-0 flex-1">
                     <span className={`block truncate font-bold ${isActive ? "text-white" : "text-slate-800"}`}>{record.title}</span>
                     <span className={`block truncate text-xs ${isActive ? "text-emerald-100" : "text-slate-500"}`}>
-                      {TYPE_LABELS[record.type]} · {record.hint}
+                      {TYPE_LABELS[record.type]} ┬À {record.hint}
                     </span>
                   </span>
                 </button>
@@ -182,21 +182,21 @@ export default function TranslationsPanel() {
               <div className="flex flex-wrap items-center gap-2">
                 <div className="mr-auto">
                   <h3 className="text-sm font-black text-slate-900">{selected.title}</h3>
-                  <p className="text-xs text-slate-500">{TYPE_LABELS[selected.type]} · {selected.hint} · into {langName}</p>
+                  <p className="text-xs text-slate-500">{TYPE_LABELS[selected.type]} ┬À {selected.hint} ┬À into {langName}</p>
                 </div>
                 <button
                   onClick={save}
                   disabled={saving || !dirty}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-800 disabled:opacity-40"
                 >
-                  <FiSave /> {saving ? "Saving…" : dirty ? "Save translation" : "Saved"}
+                  <FiSave /> {saving ? "SavingÔÇª" : dirty ? "Save translation" : "Saved"}
                 </button>
               </div>
               {fields.map((field) => (
                 <label key={field.name} className="block">
                   <span className="text-xs font-bold uppercase tracking-wide text-slate-600">{field.label}</span>
                   <span className="mt-1 block rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs text-slate-500">
-                    <b className="text-slate-400">Original:</b> {String(selected.source[field.name] || "—").slice(0, 180) || "—"}
+                    <b className="text-slate-400">Original:</b> {String(selected.source[field.name] || "ÔÇö").slice(0, 180) || "ÔÇö"}
                   </span>
                   {field.multiline ? (
                     <textarea

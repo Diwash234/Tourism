@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom"
+﻿import { Link } from "react-router-dom"
 import { FiArrowRight, FiHeart, FiMapPin, FiNavigation, FiShield, FiStar } from "react-icons/fi"
 import { motion } from "framer-motion"
 import PlaceholderImage from "../common/PlaceholderImage"
@@ -7,7 +7,7 @@ import { placeLocationLabel } from "../../utils/placeUtils"
 
 const RISK_LABELS = { low: "Low risk", moderate: "Moderate risk", high: "High risk", critical: "Critical risk" }
 
-const DestinationCard = ({ destination = {}, onToggleFavorite, isFavorite = false, onCompare, isCompared = false }) => {
+const DestinationCard = ({ destination = {}, onToggleFavorite, isFavorite = false }) => {
   const {
     id,
     name = "Unnamed destination",
@@ -48,19 +48,6 @@ const DestinationCard = ({ destination = {}, onToggleFavorite, isFavorite = fals
             <FiStar size={13} className="fill-[var(--ny-gold)] text-[var(--ny-warm-gold)]" aria-hidden="true" />
             {average_rating}
           </span>
-        )}
-        {onCompare && (
-          <button
-            type="button"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onCompare(destination) }}
-            className={`absolute right-16 top-3 grid h-11 w-11 place-items-center rounded-full text-xs font-black transition shadow-2xs ${
-              isCompared ? "bg-emerald-700 text-white" : "bg-white/95 text-slate-700 hover:text-emerald-700 hover:bg-white"
-            }`}
-            title={isCompared ? "Remove from comparison" : "Add to comparison"}
-            aria-label={isCompared ? `Remove ${name} from comparison` : `Compare ${name}`}
-          >
-            {isCompared ? "✓" : "⚖️"}
-          </button>
         )}
         {onToggleFavorite && (
           <button

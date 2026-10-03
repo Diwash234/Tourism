@@ -1,12 +1,9 @@
-import { useEffect, useState } from "react"
+﻿import { useEffect, useState } from "react"
 import { notifyCmsUpdated } from "../../hooks/usePublicConfig"
-import {
-  FiCpu, FiSliders, FiCheck, FiSave, FiSearch, FiShield,
-  FiZap, FiCompass, FiDollarSign, FiAlertTriangle, FiCheckCircle, FiLock
-} from "react-icons/fi"
+import { FiSave } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import destinationApi from "../../api/destinationApi"
-import axiosClient from "../../api/axiosClient"
+import "../../api/axiosClient"
 import useToast from "../../hooks/useToast"
 
 const TABS = [
@@ -159,8 +156,8 @@ export default function AIEnginePanel() {
                 onChange={(e) => setAiConfig({ ...aiConfig, ai_enabled: e.target.value === "true" })}
                 className="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white"
               >
-                <option value="true">🟢 AI Enabled (Live Dataset & ML Pipeline Active)</option>
-                <option value="false">🔴 AI Disabled (Strict Deterministic Ranking Fallback)</option>
+                <option value="true">­ƒƒó AI Enabled (Live Dataset & ML Pipeline Active)</option>
+                <option value="false">­ƒö┤ AI Disabled (Strict Deterministic Ranking Fallback)</option>
               </select>
             </label>
 
@@ -246,7 +243,7 @@ export default function AIEnginePanel() {
               <div className="p-3 rounded-2xl bg-purple-950/40 border border-[#1D5146]/40 flex items-center justify-between">
                 <div>
                   <p className="font-black text-sm text-white">{selectedDest.name}</p>
-                  <p className="text-[11px] text-purple-200">📍 {selectedDest.city || selectedDest.district}, {selectedDest.province}</p>
+                  <p className="text-[11px] text-purple-200">­ƒôì {selectedDest.city || selectedDest.district}, {selectedDest.province}</p>
                 </div>
                 <button type="button" onClick={() => setSelectedDest(null)} className="px-3 py-1 rounded-xl bg-slate-800 text-slate-300">Change</button>
               </div>
@@ -262,7 +259,7 @@ export default function AIEnginePanel() {
                 {destSearch.trim().length > 1 && destResults.length === 0 && (
                   <div className="absolute top-full left-0 right-0 mt-1 rounded-2xl bg-slate-900 border border-slate-700 z-20 p-4 text-sm text-slate-400">
                     No destinations match &ldquo;{destSearch.trim()}&rdquo;. AI overrides can only
-                    be set on destinations that exist in the catalog — check the spelling or
+                    be set on destinations that exist in the catalog ÔÇö check the spelling or
                     add the destination first.
                   </div>
                 )}
@@ -299,9 +296,9 @@ export default function AIEnginePanel() {
                       onChange={(e) => setOverrideStatus(e.target.value)}
                       className="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white"
                     >
-                      <option value="ALLOWED">🟢 ALLOWED (Normal Recommendation Pipeline)</option>
-                      <option value="BLOCKED">🔴 BLOCKED (Prevent AI from Recommending)</option>
-                      <option value="PRIORITY">⭐ PRIORITY (Boost in Top Results)</option>
+                      <option value="ALLOWED">­ƒƒó ALLOWED (Normal Recommendation Pipeline)</option>
+                      <option value="BLOCKED">­ƒö┤ BLOCKED (Prevent AI from Recommending)</option>
+                      <option value="PRIORITY">Ô¡É PRIORITY (Boost in Top Results)</option>
                     </select>
                   </label>
 

@@ -1,8 +1,5 @@
-import { useEffect, useState } from "react"
-import {
-  FiActivity, FiCheckCircle, FiAlertTriangle, FiRefreshCw, FiMapPin,
-  FiTruck, FiDollarSign, FiFileText, FiShield, FiX, FiTrendingUp, FiSave
-} from "react-icons/fi"
+﻿import { useEffect, useState } from "react"
+import { FiAlertTriangle, FiRefreshCw, FiMapPin, FiTruck, FiShield, FiTrendingUp, FiSave } from "react-icons/fi"
 import axiosClient from "../../api/axiosClient"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
@@ -25,7 +22,7 @@ export default function DataHealthPanel() {
       .catch(() => showToast("Could not load data health stats.", "error"))
       .finally(() => setLoading(false))
 
-    // Navigation usage analytics (spec item 24) — real aggregates of logged
+    // Navigation usage analytics (spec item 24) ÔÇö real aggregates of logged
     // route calculations; failures must never block the health metrics.
     axiosClient.get("/admin/navigation-analytics/")
       .then(({ data }) => setNavAnalytics(data))
@@ -111,8 +108,8 @@ export default function DataHealthPanel() {
           </div>
           <p className="text-2xl font-black text-white">{stats.destinations?.verified_coordinates} / {stats.destinations?.total}</p>
           <div className="text-[11px] text-slate-400 space-y-0.5">
-            <p>✓ Mapped: <span className="text-emerald-400 font-bold">{stats.destinations?.has_coordinates}</span></p>
-            <p>⚠️ Missing coords: <span className="text-amber-400 font-bold">{stats.destinations?.missing_coordinates}</span></p>
+            <p>Ô£ô Mapped: <span className="text-emerald-400 font-bold">{stats.destinations?.has_coordinates}</span></p>
+            <p>ÔÜá´©Å Missing coords: <span className="text-amber-400 font-bold">{stats.destinations?.missing_coordinates}</span></p>
           </div>
         </div>
 
@@ -124,8 +121,8 @@ export default function DataHealthPanel() {
           </div>
           <p className="text-2xl font-black text-white">{stats.transit_routes?.verified_routes} / {stats.transit_routes?.total}</p>
           <div className="text-[11px] text-slate-400 space-y-0.5">
-            <p>✓ Verified: <span className="text-blue-400 font-bold">{stats.transit_routes?.verified_routes}</span></p>
-            <p>⚠️ Missing fares: <span className="text-amber-400 font-bold">{stats.transit_routes?.missing_fares}</span></p>
+            <p>Ô£ô Verified: <span className="text-blue-400 font-bold">{stats.transit_routes?.verified_routes}</span></p>
+            <p>ÔÜá´©Å Missing fares: <span className="text-amber-400 font-bold">{stats.transit_routes?.missing_fares}</span></p>
           </div>
         </div>
 
@@ -137,7 +134,7 @@ export default function DataHealthPanel() {
           </div>
           <p className="text-2xl font-black text-white">{stats.data_reports?.open_reports}</p>
           <div className="text-[11px] text-slate-400 space-y-0.5">
-            <p>🔴 Critical severity: <span className="text-rose-400 font-bold">{stats.data_reports?.critical_reports}</span></p>
+            <p>­ƒö┤ Critical severity: <span className="text-rose-400 font-bold">{stats.data_reports?.critical_reports}</span></p>
             <p>Total reports filed: <span className="text-white font-bold">{stats.data_reports?.total_reports}</span></p>
           </div>
         </div>
@@ -154,7 +151,7 @@ export default function DataHealthPanel() {
         </div>
       </div>
 
-      {/* Navigation Usage Analytics — aggregates of real logged route calculations */}
+      {/* Navigation Usage Analytics ÔÇö aggregates of real logged route calculations */}
       {navAnalytics && (
         <div className="p-6 rounded-3xl bg-slate-950 border border-slate-800 space-y-4 shadow-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
@@ -164,7 +161,7 @@ export default function DataHealthPanel() {
               </span>
               <h3 className="text-lg font-black text-white mt-1">Route Calculation Usage</h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Aggregated from travellers' logged route calculations — no estimated or fabricated figures.
+                Aggregated from travellers' logged route calculations ÔÇö no estimated or fabricated figures.
               </p>
             </div>
             <div className="flex gap-4 text-right text-xs">
@@ -239,7 +236,7 @@ export default function DataHealthPanel() {
               </span>
               <h3 className="text-lg font-black text-white mt-1">Travel Cost & Inflation Rate Multipliers</h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Source: <b>{rates.last_synced_source || "MoCTCA / NRB Index"}</b> · Updated: {rates.last_updated ? new Date(rates.last_updated).toLocaleString() : "Recently"}
+                Source: <b>{rates.last_synced_source || "MoCTCA / NRB Index"}</b> ┬À Updated: {rates.last_updated ? new Date(rates.last_updated).toLocaleString() : "Recently"}
               </p>
             </div>
 

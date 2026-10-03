@@ -1,12 +1,11 @@
-import { useEffect, useState } from "react"
+﻿import { useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
-import { FiArrowDown, FiArrowUp, FiPlus, FiUpload, FiX, FiSearch } from "react-icons/fi"
+import { FiArrowDown, FiArrowUp, FiPlus, FiUpload, FiX } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import destinationApi from "../../api/destinationApi"
 import PlaceholderImage from "../common/PlaceholderImage"
 import useToast from "../../hooks/useToast"
 import ImageCropper from "./ImageCropper"
-import ImageSearchImportPanel from "./cms/ImageSearchImportPanel"
 
 const emptyUpload = { destination_id: "", caption: "", alt_text: "", external_url: "", source_url: "", license: "" }
 
@@ -81,7 +80,6 @@ export default function MediaLibraryPanel() {
   const [editingMedia, setEditingMedia] = useState(null)
   const [editForm, setEditForm] = useState({ caption: "", alt_text: "", external_url: "", photographer: "", license_type: "" })
   const [replacementFile, setReplacementFile] = useState(null)
-  const [showMultiSearch, setShowMultiSearch] = useState(false)
 
   const handleSetCover = async (image) => {
     try {
@@ -187,7 +185,7 @@ export default function MediaLibraryPanel() {
     try {
       const { data: created } = await adminApi.uploadMediaLibrary(body)
       const opt = created?.optimisation
-      const saved = opt?.optimised ? ` Optimised to WebP: ${Math.round(opt.original_bytes / 1024)} KB → ${Math.round(opt.stored_bytes / 1024)} KB.` : ""
+      const saved = opt?.optimised ? ` Optimised to WebP: ${Math.round(opt.original_bytes / 1024)} KB ÔåÆ ${Math.round(opt.stored_bytes / 1024)} KB.` : ""
       if (publishNow && created?.id) {
         // Approve + make it the cover in one step, so the photo is on the
         // public destination page immediately (otherwise it waits, pending,
@@ -237,32 +235,12 @@ export default function MediaLibraryPanel() {
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div>
           <h2 className="text-2xl font-black text-emerald-950">Central Media Library</h2>
-          <p className="text-sm text-slate-500">{data.count.toLocaleString()} database images. Upload local files, search 6 licensed media libraries, crop, reorder galleries and select covers.</p>
+          <p className="text-sm text-slate-500">{data.count.toLocaleString()} database images. Upload local files, add licensed external media, crop, reorder galleries and select covers.</p>
         </div>
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowMultiSearch(!showMultiSearch)}
-            className="flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-3 font-bold text-white shadow-md text-xs cursor-pointer"
-          >
-            <FiSearch /> {showMultiSearch ? "Close Image Search" : "Search 6 Image Providers"}
-          </button>
-          <button onClick={() => setShowUpload(true)} className="flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-3 font-bold text-white text-xs cursor-pointer"><FiPlus />Add image</button>
-        </div>
+        <button onClick={() => setShowUpload(true)} className="ml-auto flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-3 font-bold text-white"><FiPlus />Add image</button>
       </header>
-
-      {showMultiSearch && (
-        <div className="rounded-2xl border border-blue-500/30 bg-slate-950 p-4 shadow-xl">
-          <ImageSearchImportPanel
-            initialDestinationId={destinationFilter?.id}
-            onImageImported={() => {
-              load(data.page)
-            }}
-          />
-        </div>
-      )}
       <div className="flex flex-col gap-2 rounded-2xl border border-emerald-200 bg-white p-3 sm:flex-row">
-        <input className="input-field" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search destination, caption or URL…" />
+        <input className="input-field" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search destination, caption or URLÔÇª" />
         <select className="input-field sm:w-44" value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="">All status</option>
           <option>pending</option>
@@ -278,7 +256,7 @@ export default function MediaLibraryPanel() {
         </p>
       )}
       <div className="flex justify-between">
-        <p className="text-xs text-slate-500">Page {data.page} of {data.total_pages} · {selected.length} selected</p>
+        <p className="text-xs text-slate-500">Page {data.page} of {data.total_pages} ┬À {selected.length} selected</p>
         {selected.length > 0 && (
           <div>
             <button onClick={() => bulk("approve")} className="mr-3 font-bold text-emerald-700">Bulk approve</button>
@@ -305,8 +283,8 @@ export default function MediaLibraryPanel() {
                 {image.is_cover && <span className="rounded bg-amber-100 px-2 text-amber-800">Cover</span>}
               </div>
               <p className="truncate">{image.caption || "No caption"}</p>
-              {image.used_on?.length > 0 && <p className="mt-1 text-xs text-slate-500">Used on: {image.used_on.map((item) => item.label).join(" · ")}</p>}
-              <p>{image.source} · {image.status} · position {image.ordering + 1}</p>
+              {image.used_on?.length > 0 && <p className="mt-1 text-xs text-slate-500">Used on: {image.used_on.map((item) => item.label).join(" ┬À ")}</p>}
+              <p>{image.source} ┬À {image.status} ┬À position {image.ordering + 1}</p>
               <div className="mt-3 grid grid-cols-2 gap-1.5">
                 <button onClick={() => handleOpenEditMedia(image)} className={`${image.is_cover || !["approved", "verified"].includes(image.status) ? "col-span-2" : ""} rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-2 py-1.5 font-bold`}>Replace / Edit Image</button>
                 {!image.is_cover && ["approved", "verified"].includes(image.status) && (
@@ -370,7 +348,7 @@ export default function MediaLibraryPanel() {
             )}
             <div className="text-center text-xs font-bold text-slate-400">OR</div>
             <label className="block text-xs font-bold">External HTTPS image URL
-              <input type="url" className="input-field mt-1" value={upload.external_url} onChange={(e) => setUpload({ ...upload, external_url: e.target.value })} placeholder="https://…" />
+              <input type="url" className="input-field mt-1" value={upload.external_url} onChange={(e) => setUpload({ ...upload, external_url: e.target.value })} placeholder="https://ÔÇª" />
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="text-xs font-bold">Caption<input className="input-field mt-1" value={upload.caption} onChange={(e) => setUpload({ ...upload, caption: e.target.value })} /></label>
@@ -403,7 +381,7 @@ export default function MediaLibraryPanel() {
               <img loading="lazy" decoding="async" src={editingMedia.url} alt="Current" className="w-20 h-16 object-cover rounded-xl shrink-0" />
               <div className="text-xs text-slate-600">
                 <p className="font-bold text-slate-900">{editingMedia.caption || "Current image"}</p>
-                <p className="text-xs">Source: {editingMedia.source || "Database"}</p>
+                <p className="text-[11px]">Source: {editingMedia.source || "Database"}</p>
               </div>
             </div>
 
@@ -412,7 +390,7 @@ export default function MediaLibraryPanel() {
                 <input type="file" accept="image/*" onChange={(e) => setReplacementFile(e.target.files?.[0] || null)} className="block w-full mt-1 text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-700 file:text-white" />
               </label>
 
-              <div className="text-center text-xs font-bold text-slate-400">— OR —</div>
+              <div className="text-center text-xs font-bold text-slate-400">ÔÇö OR ÔÇö</div>
 
               <label className="block font-bold text-slate-800">Option 2: Replace Image URL
                 <input type="url" className="input-field mt-1" value={editForm.external_url} onChange={(e) => setEditForm({ ...editForm, external_url: e.target.value })} placeholder="https://..." />

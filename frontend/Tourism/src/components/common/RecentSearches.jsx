@@ -1,18 +1,25 @@
-import { useState, useEffect } from "react"
-import { FiClock, FiX, FiSearch } from "react-icons/fi"
+﻿import { useState } from "react"
+import { FiClock, FiX } from "react-icons/fi"
 import { useNavigate } from "react-router-dom"
 
 const STORAGE_KEY = "ny_recent_searches"
 const MAX_RECENT = 5
 
+/**
+ * Reads the persisted searches. Kept at module scope so the hook can
+ * initialise its state with a lazy initializer instead of a synchronous
+ * setState inside an effect (banned by react-hooks/set-state-in-effect).
+ */
+const readSearches = () => {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]")
+  } catch {
+    return []
+  }
+}
+
 export function useRecentSearches() {
-  const [searches, setSearches] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]")
-    } catch {
-      return []
-    }
-  })
+  const [searches, setSearches] = useState(readSearches)
 
   const addSearch = (query) => {
     if (!query?.trim()) return
@@ -38,7 +45,7 @@ export function useRecentSearches() {
 
 export default function RecentSearches({ onSelect, visible }) {
   const { searches, removeSearch, clearAll } = useRecentSearches()
-  const navigate = useNavigate()
+  const _navigate = useNavigate()
 
   if (!visible || searches.length === 0) return null
 

@@ -1,10 +1,6 @@
-import { useEffect, useState } from "react"
+﻿import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import {
-  FiStar, FiPlus, FiTrash2, FiEdit3, FiArrowUp, FiArrowDown,
-  FiCheck, FiX, FiSearch, FiEye, FiImage, FiExternalLink, FiCompass,
-  FiCalendar, FiCheckCircle, FiInfo, FiSliders
-} from "react-icons/fi"
+import { FiStar, FiPlus, FiTrash2, FiEdit3, FiArrowUp, FiArrowDown, FiCheck, FiX, FiSearch } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import destinationApi from "../../api/destinationApi"
 import useToast from "../../hooks/useToast"
@@ -318,7 +314,7 @@ export default function FeaturedDestinationsPanel() {
                   <span className={`px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
                     card.is_published ? "bg-emerald-500 text-slate-950" : "bg-amber-500 text-slate-950"
                   }`}>
-                    {card.is_published ? "✓ Published" : "Draft"}
+                    {card.is_published ? "Ô£ô Published" : "Draft"}
                   </span>
                   <span className="px-2.5 py-1 rounded-full bg-black/70 backdrop-blur text-amber-300 text-xs font-mono font-bold">
                     Order #{card.display_order ?? idx + 1}
@@ -348,7 +344,7 @@ export default function FeaturedDestinationsPanel() {
                 {/* Underlying Destination Tag */}
                 <div className="absolute bottom-3 left-3 right-3">
                   <span className="text-[11px] font-bold text-amber-300 block truncate">
-                    📍 {card.destination_name} ({card.destination_city || card.destination_district}, {card.destination_province})
+                    ­ƒôì {card.destination_name} ({card.destination_city || card.destination_district}, {card.destination_province})
                   </span>
                 </div>
               </div>
@@ -369,7 +365,7 @@ export default function FeaturedDestinationsPanel() {
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-[11px] font-bold text-slate-400">Call-to-Action:</span>
                     <span className="px-3 py-1 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-300 font-bold text-[11px]">
-                      {card.cta_label || "Explore Destination"} →
+                      {card.cta_label || "Explore Destination"} ÔåÆ
                     </span>
                   </div>
 
@@ -448,7 +444,7 @@ export default function FeaturedDestinationsPanel() {
                       <div className="p-3.5 rounded-2xl bg-amber-950/40 border border-amber-500/40 flex items-center justify-between">
                         <div>
                           <p className="font-black text-sm text-white">{selectedDest.name}</p>
-                          <p className="text-[11px] text-amber-200">📍 {selectedDest.city || selectedDest.district}, {selectedDest.province}</p>
+                          <p className="text-[11px] text-amber-200">­ƒôì {selectedDest.city || selectedDest.district}, {selectedDest.province}</p>
                         </div>
                         <button
                           type="button"
@@ -616,13 +612,13 @@ export default function FeaturedDestinationsPanel() {
                         className="w-full h-full object-cover"
                       />
                       <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/60 text-white text-xs font-bold">
-                        📍 {selectedDest?.name || "Selected Destination"}
+                        ­ƒôì {selectedDest?.name || "Selected Destination"}
                       </span>
                     </div>
                     <h4 className="font-bold text-sm text-slate-900">{form.title || selectedDest?.name || "Card Title"}</h4>
                     <p className="text-xs text-slate-600 line-clamp-2">{form.short_description || "Promotional card description..."}</p>
                     <button type="button" className="px-3 py-1.5 rounded-xl bg-[#102A2E] text-white text-xs font-bold">
-                      {form.cta_label || "Explore Destination"} →
+                      {form.cta_label || "Explore Destination"} ÔåÆ
                     </button>
                   </div>
                 </div>
