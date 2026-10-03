@@ -40,6 +40,14 @@ MOJIBAKE_MARKERS = (
     b"\xc3\x82\xc2",           # Â   (mis-decoded non-breaking space)
     b"\xc3\xaf\xc2\xbb\xc2\xbf",  # ï»¿ (a BOM that got double-encoded)
 )
+#
+# Not included: the bare "ÔÇ" byte pair (C3 94 C3 87), which is how a
+# mis-decoded en dash / ellipsis / arrow renders. Pagination.jsx really did
+# ship "Showing 1ÔÇô12 of 40" and "Jump toÔÇª", so the pattern is real --
+# but it is not distinguishable from legitimately-authored text, and it
+# matched 30 files that are fine. A guard with that false-positive rate would
+# train everyone to ignore it, which is worse than not having it. Those two
+# literals are fixed at source instead.
 
 # Directory names whose contents are produced by a build or a tool rather than
 # authored here. They are excluded from the encoding checks above -- see the
