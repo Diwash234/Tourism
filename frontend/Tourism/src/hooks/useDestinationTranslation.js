@@ -16,10 +16,8 @@ export function useDestinationTranslation(slug, enabled = true) {
     try {
       const response = await destinationApi.translate(slug, { language_code: lang })
       setTranslated(response.data)
-      setError(null)
     } catch (err) {
       setError(err)
-      setTranslated(null)
     } finally {
     }
   }, [slug, lang, enabled])
