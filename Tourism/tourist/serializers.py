@@ -225,19 +225,11 @@ def _cover_backed_by_unverified_media(destination, cover_value):
 
 
 def destination_cover_image(obj, request=None):
-    """Resolve the cover URL: admin-set Destination.cover_image first (admin
-    commands write URLs straight into that column), else the approved cover
-    photo, else the first approved photo, else None.
+    """Resolve only an approved, verified, destination-specific photograph.
 
-    The gallery fallback runs through ``verified_destination_photos`` so a
-    cover must be approved, verified AND destination-specific: a Rara Lake
-    photo attached to a Kaski trek must never surface as its cover
-    (``test_cross_destination_image_is_not_used_as_fallback``).  None rather
-    than "" so callers can assert true absence.
-
-    The admin-set column is skipped when it turns out to be one of this
-    destination's own *unverified* media rows -- see
-    ``_cover_backed_by_unverified_media``.
+    Never expose generated postcards as destination photography. If no real
+    verified photo exists, return None so the UI can show an honest
+    image-unavailable state while the media pipeline acquires a real photo.
     """
     from .utils import resolve_image_url
 
@@ -245,26 +237,18 @@ def destination_cover_image(obj, request=None):
         obj, obj.cover_image
     ):
         resolved = resolve_image_url(obj.cover_image, request)
-        if resolved:
+        if resolved and not is_generated_postcard_url(resolved):
             return resolved
+
     photos = verified_destination_photos(obj)
-    cover = next((photo for photo in photos if photo.is_cover), None) or (photos[0] if photos else None)
+    cover = next((photo for photo in photos if photo.is_cover), None) or (
+        photos[0] if photos else None
+    )
     if cover:
         url = _photo_url(cover, request)
-        if url:
+        if url and not is_generated_postcard_url(url):
             return url
-    # No verified media yet: fall back to the deterministic generated
-    # postcard so the UI never renders a broken "image unavailable" card.
-    from urllib.parse import quote
-    cat = (getattr(getattr(obj, "category", None), "slug", "") or "general").strip() or "general"
-    name = (getattr(obj, "name", "") or "Nepal").strip() or "Nepal"
-    district = (getattr(obj, "district", "") or "").strip()
-    try:
-        path = f"/api/v1/postcard/{quote(cat.lower())}/{quote(name)}/{quote(district)}.svg"
-        return request.build_absolute_uri(path) if request is not None else path
-    except Exception:
-        return None
-
+    return None
 
 def _cover_cached(obj, request=None):
     """Memoise the cover on the row so `cover_image` + `cover_image_url`
@@ -2113,29 +2097,17 @@ def verified_destination_photos(destination):
 
 
 def public_destination_cover(destination, request=None):
-    """Return only an approved, verified gallery cover."""
+    """Return only an approved, verified real photograph, or None."""
     photos = verified_destination_photos(destination)
-    cover = next((photo for photo in photos if photo.is_cover), None) or (photos[0] if photos else None)
+    cover = next((photo for photo in photos if photo.is_cover), None) or (
+        photos[0] if photos else None
+    )
     if not cover:
         return None
-    if cover.image_path:
-        return image_server_url(cover.image_path)
-    if cover.external_url:
-        return cover.external_url
-    if cover.image:
-        try:
-            return resolve_image_url(cover.image, request)
-        except (ValueError, AttributeError):
-            return None
-    # Fallback: each destination always has a deterministic generated
-    # postcard so recommendation cards never render a broken image.
-    from urllib.parse import quote
-    cat = (getattr(getattr(destination, "category", None), "slug", "") or "general").strip() or "general"
-    name = (getattr(destination, "name", "") or "Nepal").strip() or "Nepal"
-    district = (getattr(destination, "district", "") or "").strip()
-    path = f"/api/v1/postcard/{quote(cat.lower())}/{quote(name)}/{quote(district)}.svg"
-    return request.build_absolute_uri(path) if request is not None else path
-
+    url = _photo_url(cover, request)
+    if not url or is_generated_postcard_url(url):
+        return None
+    return url
 
 def real_photo_url(photo, request=None):
     """Resolve a verified photo to a display URL, or None when the media is
