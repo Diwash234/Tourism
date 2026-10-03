@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useCallback, useEffect, useState } from "react"
 import {
   FiSave, FiSend, FiEye, FiCheck, FiRefreshCw, FiPlus, FiTrash2,
   FiPhone, FiAlertCircle, FiCompass, FiShield, FiMessageSquare,
@@ -17,7 +17,7 @@ export default function CmsGlobalSectionEditor({ sectionId, initialSettings = {}
   const [newTickerItem, setNewTickerItem] = useState("")
   const [newPromptItem, setNewPromptItem] = useState("")
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true)
     try {
       const res = await adminApi.getCMS("settings")
@@ -37,11 +37,11 @@ export default function CmsGlobalSectionEditor({ sectionId, initialSettings = {}
     } finally {
       setLoading(false)
     }
-  }
+  }, [sectionId, initialSettings])
 
   useEffect(() => {
     loadData()
-  }, [sectionId])
+  }, [loadData])
 
   const saveRecord = async (targetStatus) => {
     setBusy(true)
