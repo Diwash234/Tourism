@@ -28,7 +28,12 @@ def custom_exception_handler(exc, context):
     """Custom DRF exception handler.
 
     Returns a consistent error format for all exceptions:
-        {"error": {"code": str, "message": str, "details": dict}}
+        {"error": {"code": str, "message": str, "details": dict}, "detail": str}
+
+``detail`` is emitted alongside ``error`` on purpose. The nested envelope is
+this project's convention, but DRF's contract -- and existing client code,
+including error helpers in the React frontend -- reads ``detail``. Carrying
+both means either convention works.
 
     Logs all errors with request context (path, method, user) for debugging.
     """
@@ -74,6 +79,21 @@ def _log_error(exc, request):
     )
 
 
+def _error_body(code, message, details=None):
+    """Build the error envelope, exposing the message under both conventions.
+
+    The project envelope is ``{"error": {...}}``, but DRF's own contract --
+    and a great deal of existing client code, including this repo's frontend
+    error helpers and several tests -- reads ``detail``. Emitting both means a
+    caller written against either convention gets a usable message instead of
+    rendering "undefined" or crashing on a missing key.
+    """
+    return {
+        "error": {"code": code, "message": message, "details": details or {}},
+        "detail": message,
+    }
+
+
 def _handle_validation_error(exc):
     """Handle DRF ValidationError."""
     if isinstance(exc.detail, dict):
@@ -87,7 +107,7 @@ def _handle_validation_error(exc):
         message = str(exc.detail)
 
     return Response(
-        {"error": {"code": "validation_error", "message": message, "details": details}},
+        _error_body("validation_error", message, details),
         status=status.HTTP_400_BAD_REQUEST,
     )
 
@@ -98,7 +118,7 @@ def _handle_permission_denied(exc):
     if not message or message == "Forbidden":
         message = "You do not have permission to perform this action."
     return Response(
-        {"error": {"code": "permission_denied", "message": message, "details": {}}},
+        _error_body("permission_denied", message),
         status=status.HTTP_403_FORBIDDEN,
     )
 
@@ -109,7 +129,7 @@ def _handle_not_found(exc):
     if not message or message == "Not found.":
         message = "The requested resource was not found."
     return Response(
-        {"error": {"code": "not_found", "message": message, "details": {}}},
+        _error_body("not_found", message),
         status=status.HTTP_404_NOT_FOUND,
     )
 
@@ -119,7 +139,7 @@ def _handle_api_exception(exc):
     message = str(exc.detail) if hasattr(exc, "detail") else str(exc)
     code = exc.__class__.__name__.lower().replace("exception", "")
     return Response(
-        {"error": {"code": code, "message": message, "details": {}}},
+        _error_body(code, message),
         status=exc.status_code,
     )
 
@@ -149,6 +169,6 @@ def _format_response(response, exc):
 
     code = exc.__class__.__name__.lower().replace("exception", "")
     return Response(
-        {"error": {"code": code, "message": message, "details": response.data if isinstance(response.data, dict) else {}}},
+        _error_body(code, message, response.data if isinstance(response.data, dict) else None),
         status=response.status_code,
     )
