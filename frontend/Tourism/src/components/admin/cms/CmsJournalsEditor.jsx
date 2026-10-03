@@ -35,7 +35,7 @@ export default function CmsJournalsEditor({ journalType = "abstracts", onCountCh
     } catch {
       setItems([])
     } finally {
-      window.setTimeout(() => setLoading(false), 0)
+      Promise.resolve().then(() => setLoading(false))
     }
   }, [journalType, onCountChange])
 
