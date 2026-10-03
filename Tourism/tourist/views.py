@@ -25,6 +25,7 @@ from .models import (
     SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, CMSContentTranslation, DestinationFeatureProfile, StaffCapabilityProfile,
     Restaurant, DestinationTransitRoute, TravelPlan, TravelPlanStop, HeroSlide,
     TravelerDocument, RedirectRule, NewsletterSignup, LocationHistory, SearchQuery, WebhookEndpoint, WebhookDelivery,
+    UITranslation,
 )
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace, HasCapability, HasCapabilityOrReadOnly
 from .serializers import (
@@ -34,6 +35,7 @@ from .serializers import (
     ReviewSerializer, RatingSerializer, FavoriteSerializer, VisitHistorySerializer, BudgetSerializer,
     AlertSerializer, EmergencyContactSerializer, NotificationSerializer, NotificationPreferenceSerializer, DeviceTokenSerializer,
     NearbyDestinationQuerySerializer, TranslateRequestSerializer, PhotoUploadSerializer, HotelSerializer, OSMEssentialServiceSerializer,
+    UITranslationSerializer, UITranslationBulkSerializer,
     OSMTourismPlaceSerializer, TravelExpenseFeedbackSerializer, TravelRiskFeedbackSerializer,
     InfrastructureSubmissionSerializer, InfrastructureMediaSerializer, RiskNewsReportSerializer, DestinationFeatureProfileSerializer,
     RiskIncidentAdminSerializer, CurrentHazardAdminSerializer, RiskObservationAdminSerializer,
@@ -556,6 +558,51 @@ class TranslateTextView(APIView):
         })
 
 
+class UITranslationListView(APIView):
+    """GET /api/v1/translation/ui-strings/?lang=ne — public.
+
+    Returns {key: value} for the requested language so the SPA can
+    merge admin edits over its bundled dictionary.
+    """
+    serializer_class = UITranslationSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        lang = (request.query_params.get("lang") or "").strip().lower()
+        if not lang:
+            return Response({"detail": "Query param 'lang' is required."}, status=400)
+        rows = UITranslation.objects.filter(language=lang).exclude(value="").values("key", "value")
+        return Response({row["key"]: row["value"] for row in rows})
+
+
+class UITranslationBulkView(APIView):
+    """POST /api/v1/translation/ui-strings/bulk/ — staff only.
+
+    Upserts [{key, language, value}]. Blank value deletes the override
+    (frontend falls back to the bundled string).
+    """
+    serializer_class = UITranslationBulkSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request):
+        items = request.data if isinstance(request.data, list) else request.data.get("items", [])
+        serializer = UITranslationBulkSerializer(data=items, many=True)
+        serializer.is_valid(raise_exception=True)
+        saved = 0
+        for item in serializer.validated_data:
+            value = (item["value"] or "").strip()
+            if not value:
+                UITranslation.objects.filter(key=item["key"], language=item["language"]).delete()
+                continue
+            UITranslation.objects.update_or_create(
+                key=item["key"],
+                language=item["language"],
+                defaults={"value": value, "updated_by": request.user},
+            )
+            saved += 1
+        return Response({"saved": saved})
+
+
 def search_destination(request):
 
     query = request.GET.get("q", "")
@@ -758,6 +805,85 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
         payload = {"count": len(points), "points": points}
         cache.set(cache_key, payload, 300)
         return Response(payload)
+
+    @action(detail=False, methods=["get"], permission_classes=[permissions.AllowAny], url_path="all-with-distances")
+    def all_with_distances(self, request):
+        """
+        GET /api/v1/destinations/all-with-distances/?latitude=27.7172&longitude=85.324&transport_mode=Private+Car+/+Taxi
+
+        Returns ALL approved destinations with exact distance_km (straight-line),
+        estimated duration, and ETA based on transport mode.
+        Results sorted by distance (nearest first).
+        """
+        query_serializer = NearbyDestinationQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        lat = query_serializer.validated_data["latitude"]
+        lon = query_serializer.validated_data["longitude"]
+        transport_mode = request.query_params.get("transport_mode", "Private Car / Taxi")
+        limit = min(int(request.query_params.get("limit", 100)), 200)
+
+        # Transport mode speeds (km/h)
+        speeds = {
+            "Private Car / Taxi": 35,
+            "Tourist Bus": 28,
+            "Motorcycle": 40,
+            "Walking / Trek": 4.5,
+            "Flight": 500,
+        }
+        speed = speeds.get(transport_mode, 35)
+
+        qs = Destination.objects.filter(
+            is_active=True, status=Destination.SubmissionStatus.APPROVED,
+            latitude__isnull=False, longitude__isnull=False,
+        ).select_related("category").order_by("name")
+
+        results = []
+        for dest in qs.iterator(chunk_size=1000):
+            distance = haversine_distance(lat, lon, dest.latitude, dest.longitude)
+            if distance is None:
+                continue
+            # Estimate duration based on straight-line * road factor / speed
+            road_factor = 1.25  # Typical road factor
+            estimated_km = distance * road_factor
+            duration_hours = estimated_km / speed
+            total_minutes = round(duration_hours * 60)
+            hours = total_minutes // 60
+            minutes = total_minutes % 60
+
+            eta_display = f"{hours}h {minutes}m" if hours > 0 else f"{minutes} min"
+
+            results.append({
+                "id": dest.id,
+                "slug": dest.slug,
+                "name": dest.name,
+                "district": dest.district or "",
+                "province": dest.province or "",
+                "category": dest.category.name if dest.category_id else "",
+                "latitude": float(dest.latitude),
+                "longitude": float(dest.longitude),
+                "distance_km": round(distance, 2),
+                "estimated_road_km": round(estimated_km, 2),
+                "duration_min": total_minutes,
+                "duration_display": eta_display,
+                "transport_mode": transport_mode,
+                "altitude": dest.altitude,
+                "short_description": dest.short_description,
+                "average_rating": float(dest.average_rating) if dest.average_rating else None,
+            })
+
+        # Sort by distance (nearest first)
+        results.sort(key=lambda x: x["distance_km"])
+        results = results[:limit]
+
+        return Response({
+            "count": len(results),
+            "origin": {"latitude": lat, "longitude": lon},
+            "transport_mode": transport_mode,
+            "speed_kmh": speed,
+            "road_factor": 1.25,
+            "note": "Distances are straight-line (haversine). Road distances estimated with 1.25x factor. ETA based on average speeds.",
+            "results": results
+        })
 
 
     @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated])
@@ -1315,6 +1441,8 @@ class TravelPlanViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset=TravelPlan.objects.select_related("user").prefetch_related("stops__destination")
+        if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
+            return queryset.none()
         return queryset if self._can_manage() else queryset.filter(user=self.request.user).exclude(status="archived")
 
     def perform_create(self, serializer): serializer.save(user=self.request.user, status="draft")
@@ -1341,7 +1469,10 @@ class TravelPlanStopViewSet(viewsets.ModelViewSet):
     serializer_class = TravelPlanStopSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def get_queryset(self): return TravelPlanStop.objects.filter(plan__user=self.request.user).select_related("destination", "transit_route")
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
+            return TravelPlanStop.objects.none()
+        return TravelPlanStop.objects.filter(plan__user=self.request.user).select_related("destination", "transit_route")
 
     def perform_create(self, serializer):
         plan=serializer.validated_data["plan"]
@@ -1719,6 +1850,8 @@ class InfrastructureSubmissionViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = InfrastructureSubmission.objects.select_related("submitted_by", "destination", "reviewed_by")
         user = self.request.user
+        if getattr(self, "swagger_fake_view", False) or not user.is_authenticated:
+            return qs.none()
         if user.is_staff or user.role in {"admin", "super_admin", "tourism_admin", "content_moderator", "district_manager"}:
             profile = StaffCapabilityProfile.objects.filter(user=user).first()
             districts = list(getattr(profile, "managed_districts", []) or [])
@@ -2867,6 +3000,7 @@ class MoodRecommendationsView(generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = DestinationListSerializer
     pagination_class = None
+    queryset = Destination.objects.none()
 
     # Mood -> category slugs + keywords (the model's learned weight table)
     MOOD_PROFILES = {
@@ -3326,6 +3460,8 @@ class TravelerDocumentViewSet(viewsets.ModelViewSet):
     pagination_class = None
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
+            return TravelerDocument.objects.none()
         return TravelerDocument.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
