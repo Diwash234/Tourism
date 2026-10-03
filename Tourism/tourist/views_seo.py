@@ -158,6 +158,9 @@ class HealthView(View):
     """GET /api/v1/health/ — dependency status, no secrets (§112)."""
 
     def get(self, request):
+        cached = cache.get("health:root:v2")
+        if cached is not None:
+            return JsonResponse(cached, status=cached.get("_http_status", 200))
         checks = {"application": {"status": "ok"}}
 
         db_status = "ok"
@@ -194,7 +197,7 @@ class HealthView(View):
         checks["media_storage"] = {"status": media_status}
 
         overall = "ok" if db_status == "ok" and media_status == "ok" else "degraded"
-        return JsonResponse(
-            {"status": overall, "checks": checks},
-            status=200 if db_status == "ok" else 503,
-        )
+        http_status = 200 if db_status == "ok" else 503
+        payload = {"status": overall, "checks": checks, "_http_status": http_status}
+        cache.set("health:root:v2", payload, 5)
+        return JsonResponse(payload, status=http_status)
