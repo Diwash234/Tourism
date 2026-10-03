@@ -6,6 +6,7 @@ from django.db.models import Avg, Count
 from rest_framework import viewsets, permissions, generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from drf_spectacular.utils import extend_schema, OpenApiTypes
 
 from tourist.models import (
     Hotel,
@@ -160,6 +161,7 @@ class AdminTaskViewSet(viewsets.ModelViewSet):
 # MY HOTELS
 # ============================================================
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class MyHotelsView(APIView):
     """
     GET /api/v1/admin-panel/my-hotels/
@@ -825,6 +827,7 @@ class AdminTaskActionView(APIView):
 # MY PERFORMANCE — operational productivity, staff-scoped
 # ============================================================
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class MyPerformanceView(APIView):
     """Aggregates the caller's own task record. Operational view only."""
 
@@ -898,6 +901,7 @@ def _ticket_payload(fb, request):
     }
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class SupportTicketListView(APIView):
     """Ticket queue scoped to the caller.
 
@@ -938,6 +942,7 @@ class SupportTicketListView(APIView):
         return Response({"counts": counts, "results": [_ticket_payload(fb, request) for fb in qs]})
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class SupportTicketActionView(APIView):
     """Ticket workflow actions: claim, escalate, waiting_user, resolve, reopen.
 
@@ -1058,6 +1063,7 @@ def _booking_payload(b):
     }
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class MyBookingsView(APIView):
     """GET /api/v1/admin-panel/my-bookings/ — bookings inside the caller's hotel scope."""
 
@@ -1084,6 +1090,7 @@ class MyBookingsView(APIView):
         return Response({"counts": counts, "results": [_booking_payload(b) for b in qs[:100]]})
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class BookingActionView(APIView):
     """POST /api/v1/admin-panel/my-bookings/<pk>/action/ — confirm/cancel/complete within scope."""
 
@@ -1290,6 +1297,7 @@ def _image_payload(img):
     }
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class MediaQueueView(APIView):
     """GET/POST /api/v1/admin-panel/media/ — destination image review queue."""
 
@@ -1337,6 +1345,7 @@ class MediaQueueView(APIView):
         return Response(_image_payload(img), status=201)
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class MediaActionView(APIView):
     """POST /api/v1/admin-panel/media/<pk>/action/ — approve/reject an image."""
 
@@ -1391,6 +1400,7 @@ def _report_payload(r):
             "created_at": r.created_at}
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class SafetyOpsView(APIView):
     """GET /api/v1/admin-panel/safety/ — alerts, hazards and user reports in one queue."""
 
@@ -1417,6 +1427,7 @@ class SafetyOpsView(APIView):
         })
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class SafetyActionView(APIView):
     """POST /api/v1/admin-panel/safety/<kind>/<pk>/action/ — verify/deactivate/resolve/review/fix/reject."""
 
