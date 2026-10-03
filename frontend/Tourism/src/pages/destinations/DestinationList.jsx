@@ -21,17 +21,18 @@ import useGeolocation from "../../hooks/useGeolocation"
 import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
 import usePublicConfig from "../../hooks/usePublicConfig"
+import { useI18n } from "../../i18n"
 import { CMSExtras } from "../../components/cms/CMSBlock"
 
 // Category values are sent to the existing catalogue API; the presentation
 // below deliberately uses one restrained visual language.
 const PAGE_SIZE = 12
 
-// Top-level type chips
+// Top-level type chips — labels are i18n keys resolved in the component.
 const TYPE_OPTIONS = [
-  { label: "Attractions", value: "attraction" },
-  { label: "Hotels & stays", value: "hotel" },
-  { label: "All places", value: "all" },
+  { key: "destlist.type_attractions", fallback: "Attractions", value: "attraction" },
+  { key: "destlist.type_hotels", fallback: "Hotels & stays", value: "hotel" },
+  { key: "destlist.type_all", fallback: "All places", value: "all" },
 ]
 
 const NEPAL_PROVINCES = [
@@ -105,6 +106,7 @@ function chipToQuery(chip) {
 }
 
 export default function DestinationList() {
+  const { t } = useI18n()
   const { isAuthenticated } = useAuth()
   const { showToast } = useToast()
   const { extras } = usePublicConfig().pageCMS("destinations", ["intro", "search", "featured"])
@@ -395,24 +397,24 @@ export default function DestinationList() {
             <span className="ny-kicker">Himalayan atlas</span>
             {isGpsSorted && <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--ny-soft-green)] px-3 py-1 text-xs font-semibold text-[var(--ny-green)]"><FiNavigation size={13} aria-hidden="true" /> Nearest first</span>}
           </div>
-          <h1 className="mt-3 flex items-center gap-2"><FiMapPin className="text-[var(--ny-green)]" aria-hidden="true" /> Explore Nepal destinations</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--ny-text-secondary)]">Discover recorded temples, lakes, Himalayan viewpoints, national parks and heritage places across Nepal's seven provinces.</p>
+          <h1 className="mt-3 flex items-center gap-2"><FiMapPin className="text-[var(--ny-green)]" aria-hidden="true" /> {t("destlist.title")}</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--ny-text-secondary)]">{t("destlist.subtitle")}</p>
         </div>
-        <Link to="/destinations/submit" className="ny-btn ny-btn-secondary shrink-0"><FiPlus size={16} aria-hidden="true" /> Submit a place</Link>
+        <Link to="/destinations/submit" className="ny-btn ny-btn-secondary shrink-0"><FiPlus size={16} aria-hidden="true" /> {t("destlist.submit_place")}</Link>
       </header>
 
-      <section className="ny-panel p-4 sm:p-5" aria-label="Destination filters">
-        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Place type">
+      <section className="ny-panel p-4 sm:p-5" aria-label={t("destlist.filters_label")}>
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t("destlist.type_label")}>
           {TYPE_OPTIONS.map((opt) => (
-            <button key={opt.value} type="button" onClick={() => { setType(opt.value); setPage(1); setCategoryChip("") }} className={`ny-btn min-h-11 px-4 text-sm ${type === opt.value ? "ny-btn-primary" : "ny-btn-secondary"}`} aria-pressed={type === opt.value}>{opt.label}</button>
+            <button key={opt.value} type="button" onClick={() => { setType(opt.value); setPage(1); setCategoryChip("") }} className={`ny-btn min-h-11 px-4 text-sm ${type === opt.value ? "ny-btn-primary" : "ny-btn-secondary"}`} aria-pressed={type === opt.value}>{t(opt.key) !== opt.key ? t(opt.key) : opt.fallback}</button>
           ))}
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-center">
-          <SearchBar className="min-w-0 md:col-span-2 lg:col-span-1" defaultValue={initialQuery} placeholder="Search destinations, districts or places" fetchSuggestions={fetchSuggestions} onSearch={(val) => { setQuery(val); setPage(1); setLetter("") }} />
-          {type !== "hotel" && <button type="button" onClick={() => setShowAllCategories((value) => !value)} className="ny-btn ny-btn-secondary min-h-11 justify-center whitespace-nowrap" aria-expanded={showAllCategories} aria-controls="destination-category-filters"><FiFilter size={16} aria-hidden="true" /> {showAllCategories ? "Fewer filters" : "More filters"} <FiChevronDown size={15} className={showAllCategories ? "rotate-180 transition" : "transition"} aria-hidden="true" /></button>}
-          <button type="button" onClick={position ? clearLocation : requestLocation} disabled={locating} className="ny-btn ny-btn-ghost min-h-11 justify-center whitespace-nowrap text-xs"><FiNavigation size={15} aria-hidden="true" />{locating ? "Finding location…" : position ? "Turn off nearby" : "Use my location"}</button>
+          <SearchBar className="min-w-0 md:col-span-2 lg:col-span-1" defaultValue={initialQuery} placeholder={t("destlist.search_placeholder")} fetchSuggestions={fetchSuggestions} onSearch={(val) => { setQuery(val); setPage(1); setLetter("") }} />
+          {type !== "hotel" && <button type="button" onClick={() => setShowAllCategories((value) => !value)} className="ny-btn ny-btn-secondary min-h-11 justify-center whitespace-nowrap" aria-expanded={showAllCategories} aria-controls="destination-category-filters"><FiFilter size={16} aria-hidden="true" /> {showAllCategories ? t("destlist.fewer_filters") : t("destlist.more_filters")} <FiChevronDown size={15} className={showAllCategories ? "rotate-180 transition" : "transition"} aria-hidden="true" /></button>}
+          <button type="button" onClick={position ? clearLocation : requestLocation} disabled={locating} className="ny-btn ny-btn-ghost min-h-11 justify-center whitespace-nowrap text-xs"><FiNavigation size={15} aria-hidden="true" />{locating ? t("destlist.finding_location") : position ? t("destlist.turn_off_nearby") : t("destlist.use_my_location")}</button>
         </div>
-        {locationError && <p className="mt-3 text-xs text-[var(--ny-text-muted)]">Location was not shared. You can browse all destinations or try again.</p>}
+        {locationError && <p className="mt-3 text-xs text-[var(--ny-text-muted)]">{t("destlist.location_not_shared")}</p>}
         {type !== "hotel" && <div id="destination-category-filters" className="mt-4 border-t border-[var(--ny-border)] pt-4"><div className={`${showAllCategories ? "max-w-full flex-nowrap overflow-x-auto no-scrollbar" : "flex flex-wrap"} gap-2`} role="group" aria-label="Destination categories">{visibleCategoryChips.map((c) => <button key={c.value} type="button" onClick={() => { setCategoryChip(c.value); setPage(1); setLetter("") }} className={`shrink-0 rounded-full border min-h-11 px-3.5 py-2 text-xs font-semibold transition ${categoryChip === c.value ? "border-[var(--ny-green)] bg-[var(--ny-green)] text-white" : "border-[var(--ny-border)] bg-white text-[var(--ny-text-secondary)] hover:border-[var(--ny-green)] hover:bg-[var(--ny-soft-green)] hover:text-[var(--ny-green)]"}`} aria-pressed={categoryChip === c.value}>{c.label}</button>)}</div>{!showAllCategories && <p className="mt-3 text-xs text-[var(--ny-text-muted)]">Showing the most useful categories first. Use More filters for the complete catalogue.</p>}</div>}
 
         {/* Province Quick Filter Bar */}
@@ -477,7 +479,7 @@ export default function DestinationList() {
         </div>
       </section>
 
-      {type === "attraction" && !query && <div className="ny-horizontal-scroll no-scrollbar -mx-1 w-full overflow-x-auto px-1 pb-1" aria-label="Browse destinations alphabetically"><div className="flex w-max items-center gap-1.5"><span className="mr-1 whitespace-nowrap text-xs font-bold uppercase tracking-[0.08em] text-[var(--ny-text-muted)]">A–Z</span><button type="button" onClick={() => { setLetter(""); setPage(1) }} className={`grid h-11 min-w-11 place-items-center rounded-[var(--ny-radius-sm)] px-2 text-xs font-semibold ${letter === "" ? "bg-[var(--ny-green)] text-white" : "text-[var(--ny-green)] hover:bg-[var(--ny-soft-green)]"}`} aria-label="Show all destinations">All</button>{ALPHABET.map((L) => <button key={L} type="button" onClick={() => { setLetter(L); setPage(1) }} className={`grid h-11 min-w-11 place-items-center rounded-[var(--ny-radius-sm)] px-2 text-xs font-semibold ${letter === L ? "bg-[var(--ny-green)] text-white" : "text-[var(--ny-green)] hover:bg-[var(--ny-soft-green)]"}`} aria-label={`Show destinations starting with ${L}`}>{L}</button>)}</div></div>}
+      {type === "attraction" && !query && <div className="ny-horizontal-scroll no-scrollbar -mx-1 w-full overflow-x-auto px-1 pb-1 sm:overflow-visible" aria-label="Browse destinations alphabetically"><div className="flex w-max items-center gap-1.5 sm:w-full sm:flex-wrap"><span className="mr-1 whitespace-nowrap text-xs font-bold uppercase tracking-[0.08em] text-[var(--ny-text-muted)]">A–Z</span><button type="button" onClick={() => { setLetter(""); setPage(1) }} className={`grid h-11 min-w-11 place-items-center rounded-[var(--ny-radius-sm)] px-2 text-xs font-semibold ${letter === "" ? "bg-[var(--ny-green)] text-white" : "text-[var(--ny-green)] hover:bg-[var(--ny-soft-green)]"}`} aria-label="Show all destinations">All</button>{ALPHABET.map((L) => <button key={L} type="button" onClick={() => { setLetter(L); setPage(1) }} className={`grid h-11 min-w-11 place-items-center rounded-[var(--ny-radius-sm)] px-2 text-xs font-semibold ${letter === L ? "bg-[var(--ny-green)] text-white" : "text-[var(--ny-green)] hover:bg-[var(--ny-soft-green)]"}`} aria-label={`Show destinations starting with ${L}`}>{L}</button>)}</div></div>}
 
       {!loading && !loadError && <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-[var(--ny-text-secondary)]"><span>Showing <strong className="text-[var(--ny-text)]">{totalCount.toLocaleString()}</strong> places{isGpsSorted ? " nearest to your location" : ""}{query ? ` for “${query}”` : ""}{letter ? ` starting with “${letter}”` : ""}</span>{(query || letter || categoryChip) && <button type="button" onClick={() => { setQuery(""); setLetter(""); setCategoryChip(""); setPage(1) }} className="inline-flex min-h-11 items-center gap-1 font-semibold text-[var(--ny-green)] hover:underline"><FiX size={14} aria-hidden="true" /> Clear filters</button>}</div>}
 
@@ -592,10 +594,12 @@ export default function DestinationList() {
           )}
 
           {totalPages > 1 && (
-            <div className="flex justify-center pt-4">
+            <div className="pt-4">
               <Pagination
-                currentPage={page}
+                page={page}
                 totalPages={totalPages}
+                pageSize={PAGE_SIZE}
+                totalItems={totalCount}
                 onPageChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }) }}
               />
             </div>
