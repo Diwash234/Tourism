@@ -189,17 +189,18 @@ class UserRouteCalculateView(APIView):
             routing_engine = "osrm_protocol_provider"
             route_note = "Route, distance and turn-by-turn steps supplied by the configured routing provider."
         else:
-            metrics = route_metrics(olat, olng, dlat, dlng)
-            distance_km = metrics.get("route_distance_km")
-            duration_min = metrics.get("duration_min")
-            geometry_coordinates = _normalise_route_points(metrics.get("route"))
+            # Do not expose the bundled coordinate graph as if it were road
+            # navigation. It is not street-level routing and previously
+            # produced plausible-looking but fabricated corridors. Without a
+            # configured routing provider, return only measured straight-line
+            # distance and no turn-by-turn instructions.
+            distance_km = straight_line_km
+            duration_min = None
+            geometry_coordinates = []
             steps = []
-            routing_engine = metrics.get("routing_engine")
-            route_note = metrics.get("note")
-            if distance_km is not None:
-                confidence = "GRAPH_APPROXIMATION"
-            else:
-                confidence = "STRAIGHT_LINE"
+            routing_engine = "straight_line_only"
+            confidence = "STRAIGHT_LINE"
+            route_note = "No live routing provider is available; only straight-line distance is shown."
 
         if not geometry_coordinates:
             geometry_coordinates = [[round(olat, 6), round(olng, 6)], [round(dlat, 6), round(dlng, 6)]]
@@ -210,7 +211,7 @@ class UserRouteCalculateView(APIView):
         # A distance is only ever reported as the route distance the engine
         # actually produced; the straight line is reported separately and
         # labelled as such.
-        if distance_km is not None and not duration_min:
+        if distance_km is not None and not duration_min and confidence == "ROUTED":
             duration_min = max(1, round(distance_km / 35.0 * 60))
             duration_source = "estimated"
             duration_note = "Estimated at ~35 km/h average; not a live traffic prediction."
@@ -221,7 +222,7 @@ class UserRouteCalculateView(APIView):
             duration_source = "unavailable"
             duration_note = "No routing engine available, so travel time is not estimated."
 
-        fare_npr = round(distance_km * 25, 2) if distance_km is not None else None
+        fare_npr = None
 
         # Legacy contract key alongside confidence_level: which engine the
         # geometry actually came from (labelled, never bare "CALCULATED").
@@ -276,8 +277,8 @@ class UserRouteCalculateView(APIView):
             "duration_note": duration_note,
             "fare_npr": fare_npr,
             "fare_currency": "NPR",
-            "fare_status": "Estimated" if fare_npr is not None else "Unavailable",
-            "fare_source": "Estimated at NPR 25/km of route distance — not a verified operator fare.",
+            "fare_status": "Unavailable",
+            "fare_source": "No verified operator fare was available for this route.",
             "confidence_level": confidence,
             "route_source": route_source,
             "routing_engine": routing_engine,
