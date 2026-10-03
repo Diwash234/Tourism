@@ -35,7 +35,7 @@ export default function CmsGlobalSectionEditor({ sectionId, initialSettings = {}
         setData(initialSettings[sectionId])
       }
     } finally {
-      window.setTimeout(() => setLoading(false), 0)
+      Promise.resolve().then(() => setLoading(false))
     }
   }, [sectionId, initialSettings])
 
