@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { FiPlus, FiTrash2, FiEdit2, FiFileText, FiBookOpen, FiCalendar, FiUser, FiExternalLink, FiRefreshCw } from "react-icons/fi"
 import adminApi from "../../../api/adminApi"
 import { notifyCmsUpdated } from "../../../hooks/usePublicConfig"
@@ -23,7 +23,7 @@ export default function CmsJournalsEditor({ journalType = "abstracts", onCountCh
 
   const settingKey = journalType === "abstracts" ? "cms_content_abstracts" : "cms_content_journals"
 
-  const loadItems = async () => {
+  const loadItems = useCallback(async () => {
     setLoading(true)
     try {
       const res = await adminApi.getCMS("settings")
@@ -37,11 +37,11 @@ export default function CmsJournalsEditor({ journalType = "abstracts", onCountCh
     } finally {
       setLoading(false)
     }
-  }
+  }, [journalType, onCountChange])
 
   useEffect(() => {
     loadItems()
-  }, [journalType])
+  }, [loadItems])
 
   const saveCollection = async (updatedItems, msg = "Saved") => {
     setBusy(true)
