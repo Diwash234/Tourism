@@ -14,7 +14,6 @@ export function useDestinationTranslation(slug, enabled = true) {
 
   const fetchTranslation = useCallback(async () => {
     if (!enabled || !slug) return
-    setLoading(true)
     try {
       const response = await destinationApi.translate(slug, { language_code: lang })
       setTranslated(response.data)
