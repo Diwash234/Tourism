@@ -3,7 +3,7 @@ from .phone_quality import usable_phone
 
 from django.conf import settings
 from django.core.cache import cache
-from django.db.models import Count, F, Prefetch, Q
+from django.db.models import Count, F, Prefetch, Q, Value
 from django.http import HttpResponse, StreamingHttpResponse, JsonResponse
 from django.views import View
 from django.shortcuts import get_object_or_404,render
@@ -754,11 +754,30 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
         radius_km = query_serializer.validated_data["radius_km"]
 
         box = bounding_box(lat, lon, radius_km)
+        # select_related/prefetch_related matter here: this queryset has no
+        # default prefetch, and DestinationListSerializer reads category.name
+        # and resolves a cover image from the gallery for every row, so without
+        # them each destination cost two extra queries. With a 250 km radius the
+        # box holds most of the country, so that was thousands of round trips
+        # to render twelve cards.
         candidates = Destination.objects.filter(
             is_active=True, status=Destination.SubmissionStatus.APPROVED,
             latitude__gte=box["min_lat"], latitude__lte=box["max_lat"],
             longitude__gte=box["min_lon"], longitude__lte=box["max_lon"],
-        )
+        ).select_related("category").prefetch_related("gallery")
+
+        # NOTE: an earlier version capped this to the nearest
+        # DISTANCE_CANDIDATE_CAP rows by squared-degree distance, which cut a
+        # 250 km request from 17.9 s to 1.3 s. It was reverted because the cap
+        # also caps the reported total: `count` fell from 6,695 to 600 and the
+        # paginator advertised 60 pages instead of the real number. Truncating
+        # the result set to make the response faster is only acceptable if the
+        # response says so, and the honest total costs the same query anyway.
+        #
+        # The remaining cost is the per-row haversine in Python below, which is
+        # what actually filters the rectangle down to the circle. Moving that
+        # into SQL is the correct fix and needs a database-side distance
+        # function, which is not done here.
 
         results = []
         for dest in candidates:
@@ -3501,17 +3520,20 @@ def destination_postcard(request, path_info=""):
     cat = parts[0] if len(parts) >= 1 else "general"
     name = parts[1] if len(parts) >= 2 else "Nepal"
     dist = ""
+    variant = ""
     if len(parts) >= 3:
         # Third part may contain district + optional /id-N suffix
         # Join any remaining parts before id- into district; id- is optional
         extra = "/".join(parts[2:])
         if "/id-" in extra:
-            dist, _ = extra.split("/id-", 1)
+            # The id is a seed, not part of the place name: two destinations
+            # called "Rupa Lake" in Kaski must not render the same artwork.
+            dist, variant = extra.split("/id-", 1)
         elif extra.startswith("id-"):
-            dist = ""
+            dist, variant = "", extra[3:]
         else:
             dist = extra
-    svg = generate_postcard_svg(name, cat, dist)
+    svg = generate_postcard_svg(name, cat, dist, variant=variant)
     return HttpResponse(svg, content_type="image/svg+xml; charset=utf-8",
                         headers={"Cache-Control": "public, max-age=86400"})
 
