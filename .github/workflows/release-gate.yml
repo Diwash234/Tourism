@@ -43,7 +43,7 @@ jobs:
         working-directory: Tourism
         env:
           DATABASE_URL: postgres://test:test@localhost:5432/test
-          SECRET_KEY: test-secret-key-for-ci
+          SECRET_KEY: ci-only-long-random-secret-key-2026-10-03-tourism-release-gate-7f2a9c
           DEBUG: "False"
         run: |
           python manage.py check --deploy
@@ -53,7 +53,7 @@ jobs:
         working-directory: Tourism
         env:
           DATABASE_URL: postgres://test:test@localhost:5432/test
-          SECRET_KEY: test-secret-key-for-ci
+          SECRET_KEY: ci-only-long-random-secret-key-2026-10-03-tourism-release-gate-7f2a9c
           DEBUG: "False"
         run: |
           python manage.py migrate
@@ -62,7 +62,7 @@ jobs:
         working-directory: Tourism
         env:
           DATABASE_URL: postgres://test:test@localhost:5432/test
-          SECRET_KEY: test-secret-key-for-ci
+          SECRET_KEY: ci-only-long-random-secret-key-2026-10-03-tourism-release-gate-7f2a9c
           DEBUG: "False"
         run: |
           python manage.py test --noinput
@@ -152,7 +152,7 @@ jobs:
         working-directory: Tourism
         env:
           DATABASE_URL: sqlite:///test.db
-          SECRET_KEY: test-secret-key-for-ci
+          SECRET_KEY: ci-only-long-random-secret-key-2026-10-03-tourism-release-gate-7f2a9c
           DEBUG: "False"
         run: |
           python manage.py validate_production_config || true
