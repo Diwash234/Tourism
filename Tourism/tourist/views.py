@@ -886,13 +886,29 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
         })
 
 
-    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=True, methods=["get", "post"], permission_classes=[permissions.AllowAny])
     def translate(self, request, slug=None):
-        """Auto-translates this destination's description/alerts into the requested language."""
+        """Translated name/description for this destination.
+
+        Cache-first: serves the stored DestinationTranslation when the
+        source text hasn't changed since it was made. Only machine-
+        translates (and stores) when missing or stale. Human-edited
+        rows (is_auto_generated=False) are never overwritten.
+        """
         destination = self.get_object()
-        target_lang = request.data.get("language_code") or request.data.get("target_language")
+        target_lang = (
+            request.query_params.get("language_code")
+            or request.data.get("language_code")
+            or request.data.get("target_language")
+        )
         if not target_lang:
             return Response({"detail": "language_code is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if target_lang == "en":
+            return Response({
+                "name": destination.name,
+                "description": destination.description,
+                "short_description": destination.short_description,
+            })
 
         language = get_object_or_404(Language, code=target_lang)
         translation, _ = DestinationTranslation.objects.get_or_create(
@@ -900,11 +916,24 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
             defaults={"name": destination.name, "description": destination.description,
                       "short_description": destination.short_description},
         )
-        translation.name = translate_text(destination.name, target_lang)
-        translation.description = translate_text(destination.description, target_lang)
-        translation.short_description = translate_text(destination.short_description, target_lang)
-        translation.is_auto_generated = True
-        translation.save()
+        source_sig = f"{destination.name}\n{destination.description}\n{destination.short_description}"
+        stored_sig = f"{translation.name}\n{translation.description}\n{translation.short_description}"
+        # Refresh when: never translated (still equal to source), source
+        # changed and row is auto-generated, or explicitly re-requested.
+        needs_refresh = (
+            request.query_params.get("refresh") == "1"
+            or stored_sig == f"{destination.name}\n{destination.description}\n{destination.short_description}"
+            and translation.is_auto_generated
+        )
+        if needs_refresh and translation.is_auto_generated:
+            try:
+                translation.name = translate_text(destination.name, target_lang) or destination.name
+                translation.description = translate_text(destination.description, target_lang) or destination.description
+                translation.short_description = translate_text(destination.short_description, target_lang) or destination.short_description
+                translation.is_auto_generated = True
+                translation.save()
+            except Exception:  # noqa: BLE001 - serve stale/source on MT failure
+                pass
         return Response(DestinationTranslationSerializer(translation).data)
 
     @action(detail=True, methods=["post"], permission_classes=[permissions.IsAdminUser])
@@ -3289,6 +3318,20 @@ class MoodRecommendationsView(generics.ListAPIView):
 
             popularity = float(destination.average_rating or 0) * 0.025 + min(math.log10((destination.views_count or 0) + 1) * 0.015, 0.05)
             behavior = min(affinity.get(cat, 0) * 0.025, 0.10)
+            # Exploration-mode weighting: leverage popularity/novelty explicitly.
+            if exploration_mode == "popular":
+                popularity = float(destination.average_rating or 0) * 0.05 + min(math.log10((destination.views_count or 0) + 1) * 0.03, 0.10)
+                reasons.append("Popular with travellers")
+            elif exploration_mode == "hidden_gems":
+                # Reward under-visited, well-kept places; down-weight crowd magnets.
+                popularity = float(destination.average_rating or 0) * 0.02
+                low_visibility = max(0.0, 0.12 - math.log10((destination.views_count or 0) + 1) * 0.03)
+                score += low_visibility
+                breakdown["hidden_gem_bonus"] = round(low_visibility, 3)
+                if low_visibility > 0:
+                    reasons.append("A quieter, less-visited gem")
+            else:  # balanced
+                popularity = popularity
             score += popularity + behavior
             breakdown["community"] = round(popularity + behavior, 3)
 
@@ -3430,7 +3473,7 @@ class MoodRecommendationsView(generics.ListAPIView):
 
         return Response({
             "source": "live_database_content_model", "model_version": "content-v3-season",
-            "preferences": {"moods": moods, "days": days, "budget": budget, "difficulty": difficulty, "season": season, "travel_style": travel_style, "province": province,
+            "preferences": {"moods": moods, "days": days, "budget": budget, "difficulty": difficulty, "season": season, "travel_style": travel_style, "province": province, "mode": exploration_mode, "category": requested_categories,
                             "month": plan_month, "month_basis": month_basis, "origin": origin,
                             "location": {"latitude": traveller_lat, "longitude": traveller_lng} if traveller_lat is not None else None},
             "season_source": _tf.season_source(),

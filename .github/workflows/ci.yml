@@ -185,6 +185,15 @@ jobs:
         run: node scripts/ci-layout-report.mjs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Report i18n string coverage
+        if: always()
+        run: |
+          python3 scripts/extract_ui_strings.py 2>&1 | head -5 || true
+          echo "---"
+          echo "New hardcoded UI strings must be added to the i18n bundle"
+          echo "(frontend/Tourism/src/i18n/index.js) or they stay English-only."
+          echo "Run: python3 scripts/extract_ui_strings.py --add-missing"
+          echo "Admin editors: /admin?section=ui_translations"
       - name: Fail job if layout tests failed
         if: always()
         working-directory: frontend/Tourism

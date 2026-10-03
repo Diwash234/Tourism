@@ -694,9 +694,13 @@ class DestinationVideoSerializer(serializers.ModelSerializer):
 
 
 class DestinationTranslationSerializer(serializers.ModelSerializer):
+    destination_name = serializers.CharField(source="destination.name", read_only=True)
+    destination_slug = serializers.CharField(source="destination.slug", read_only=True)
+
     class Meta:
         model = DestinationTranslation
-        fields = ["id", "destination", "language", "name", "description", "short_description", "is_auto_generated"]
+        fields = ["id", "destination", "destination_name", "destination_slug",
+                  "language", "name", "description", "short_description", "is_auto_generated"]
 
 
 class ReviewSerializer(serializers.ModelSerializer):
