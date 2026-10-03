@@ -23,6 +23,7 @@ import destinationApi from "../api/destinationApi"
 import axiosClient from "../api/axiosClient"
 import { formatDistance, formatDuration } from "../utils/formatDistance"
 import { RouteQualityBadge, routeQuality } from "../utils/routeQuality"
+import { useI18n } from "../i18n"
 import { formatCoords, hasValidCoords, minDistanceToPathKm } from "../utils/placeUtils"
 
 const AMENITY_TABS = [
@@ -116,6 +117,7 @@ const toAmenityCard = (row, origin) => {
 }
 
 export default function Navigation() {
+  const { t } = useI18n()
   const { position, error: geoError, locating, retry: retryGeo } = useGeolocation({ auto: false })
   const [searchParams] = useSearchParams()
   const requestedDest = searchParams.get("dest") || searchParams.get("destination") || ""
@@ -509,11 +511,11 @@ export default function Navigation() {
         <div>
           <div className="flex items-center gap-2">
             <span className="px-3 py-1 rounded-full bg-amber-400 text-gray-950 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md shadow-amber-400/20">
-              <FiRadio className="animate-pulse text-red-600" /> Live Nepal Navigation Engine
+              <FiRadio className="animate-pulse text-red-600" /> {t("nav.live_engine")}
             </span>
-            <span className="text-xs text-gray-500 font-medium">Any Origin ➔ Any Destination in 7 Provinces</span>
+            <span className="text-xs text-gray-500 font-medium">{t("nav.any_origin_dest")}</span>
           </div>
-          <PageHeader title="Maps & Navigation" icon={FiNavigation} />
+          <PageHeader title={t("nav.title")} icon={FiNavigation} />
         </div>
 
         {/* HUD & Map Tools Switcher */}
@@ -526,7 +528,7 @@ export default function Navigation() {
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
           >
-            <FiTarget /> {gameMode ? "🎮 Game HUD: ON" : "🗺️ Standard Map"}
+            <FiTarget /> {gameMode ? t("nav.game_hud_on") : t("nav.standard_map")}
           </button>
           <button
             onClick={() => setShowToolsDrawer(!showToolsDrawer)}
@@ -534,7 +536,7 @@ export default function Navigation() {
               showToolsDrawer ? "bg-amber-400 text-slate-950 font-black" : "bg-gray-100 text-gray-700"
             }`}
           >
-            <FiCompass /> 🛠️ Map Tools
+            <FiCompass /> {t("nav.map_tools")}
           </button>
           <button
             onClick={() => setSatelliteView(!satelliteView)}
@@ -542,7 +544,7 @@ export default function Navigation() {
               satelliteView ? "bg-emerald-700 text-white" : "bg-gray-100 text-gray-700"
             }`}
           >
-            <FiLayers /> {satelliteView ? "🛰️ Satellite" : "🗺️ Terrain"}
+            <FiLayers /> {satelliteView ? t("nav.satellite") : t("nav.terrain")}
           </button>
         </div>
       </div>
