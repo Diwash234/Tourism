@@ -14,7 +14,6 @@ const DiscoverNepal = () => {
 
   useEffect(() => {
     let active = true
-    setLoading(true)
     destinationApi.getAll({
       type: "attraction",
       page: 1,
