@@ -52,7 +52,7 @@ class UserRouteCalculateView(APIView):
     when neither is available the response carries the straight line with
     ``confidence_level = "STRAIGHT_LINE"`` and no steps.
     """
-    serializer_class = None
+    serializer_class = None  # No serializer needed — returns raw dict
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -329,7 +329,7 @@ class UniversalPlaceSearchView(APIView):
     pharmacies, stores, hospitals, police, restaurants, hotels, gas stations, landmarks.
     Cached per (query, category, ~coords, radius).
     """
-    serializer_class = None
+    serializer_class = None  # Returns raw dict, not a serializer
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
