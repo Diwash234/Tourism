@@ -15,26 +15,11 @@ import {
 } from "react-icons/fi"
 
 import budgetApi from "../api/budgetApi"
+import destinationApi from "../api/destinationApi"
 import PieChartCard from "../components/charts/PieChartCard"
 import useToast from "../hooks/useToast"
 import { useI18n } from "../i18n"
-
-const CURRENCIES = {
-  NPR: { symbol: "रू", labelKey: "budgetest.cur_npr", fallback: "Nepali Rupee" },
-  USD: { symbol: "$", labelKey: "budgetest.cur_usd", fallback: "US Dollar" },
-  INR: { symbol: "₹", labelKey: "budgetest.cur_inr", fallback: "Indian Rupee" },
-  EUR: { symbol: "€", labelKey: "budgetest.cur_eur", fallback: "Euro" },
-  GBP: { symbol: "£", labelKey: "budgetest.cur_gbp", fallback: "British Pound" },
-}
-
-const unavailableText = { current: "Unavailable" }
-
-const formatMoney = (amount, currency) => {
-  if (amount == null || !Number.isFinite(Number(amount))) return unavailableText.current
-  const c = CURRENCIES[currency]
-  if (!c) return unavailableText.current
-  return `${c.symbol}${Math.round(Number(amount)).toLocaleString()}`
-}
+import { DISPLAY_CURRENCIES, formatCurrency, fromNpr, nprPerUnit, rateLabel } from "../utils/currency"
 
 const CATEGORY_META = [
   {
@@ -76,11 +61,11 @@ const CATEGORY_META = [
 
 const BudgetEstimator = () => {
   const { t } = useI18n()
-  unavailableText.current = t("budgetest.unavailable")
   const {
     register,
     handleSubmit,
     control,
+    setValue,
     formState: { isSubmitting },
   } = useForm({
     defaultValues: {
@@ -97,12 +82,55 @@ const BudgetEstimator = () => {
   const [currency, setCurrency] = useState(
     () => localStorage.getItem("tourism_currency") || "USD"
   )
+  const [exchangeRates, setExchangeRates] = useState(null)
+  const [destinationSuggestions, setDestinationSuggestions] = useState([])
+  const [selectedDestination, setSelectedDestination] = useState(null)
+  const [searchingDestinations, setSearchingDestinations] = useState(false)
   const { showToast } = useToast()
   const debounceRef = useRef(null)
   const requestRef = useRef(0)
   const abortRef = useRef(null)
+  const destinationSearchRef = useRef(0)
 
   const watched = useWatch({ control })
+
+  useEffect(() => {
+    let active = true
+    budgetApi.getExchangeRates()
+      .then(({ data }) => { if (active) setExchangeRates(data) })
+      .catch((rateError) => {
+        if (active) setExchangeRates(rateError?.response?.data || { available: false })
+      })
+    return () => { active = false }
+  }, [])
+
+  useEffect(() => {
+    const query = String(watched?.destination || "").trim()
+    const requestId = ++destinationSearchRef.current
+    if (selectedDestination?.name?.toLowerCase() === query.toLowerCase() || query.length < 2) {
+      const clearTimer = setTimeout(() => {
+        setDestinationSuggestions([])
+        setSearchingDestinations(false)
+      }, 0)
+      return () => clearTimeout(clearTimer)
+    }
+
+    const timer = setTimeout(async () => {
+      setSearchingDestinations(true)
+      try {
+        const { data } = await destinationApi.autocomplete(query, { limit: 8, type: "attraction" })
+        if (requestId === destinationSearchRef.current) {
+          const rows = Array.isArray(data) ? data : data?.results || data?.data || []
+          setDestinationSuggestions(rows)
+        }
+      } catch {
+        if (requestId === destinationSearchRef.current) setDestinationSuggestions([])
+      } finally {
+        if (requestId === destinationSearchRef.current) setSearchingDestinations(false)
+      }
+    }, 250)
+    return () => clearTimeout(timer)
+  }, [watched?.destination, selectedDestination])
 
   useEffect(() => {
     if (!watched?.destination?.trim()) {
@@ -134,7 +162,12 @@ const BudgetEstimator = () => {
     setEstimate(null)
 
     try {
-      const { data: result } = await budgetApi.estimate(data, { signal: controller.signal })
+      const selectedName = selectedDestination?.name?.toLowerCase()
+      const inputName = String(data.destination || "").trim().toLowerCase()
+      const requestData = selectedName && selectedName === inputName
+        ? { ...data, destination: selectedDestination.id }
+        : data
+      const { data: result } = await budgetApi.estimate(requestData, { signal: controller.signal })
 
       if (requestId !== requestRef.current) return
 
@@ -158,7 +191,7 @@ const BudgetEstimator = () => {
       setEstimate({
         total: totalUsd,
         daily: dailyUsd,
-        nprTotal: totalNpr,
+        nprTotal: result.trip_total_npr ?? totalNpr,
         nprDaily: dailyNpr,
         source: result.baseline_source || result.source || "estimate",
         dataset: result.dataset || null,
@@ -193,28 +226,28 @@ const BudgetEstimator = () => {
     calculate(data)
   }
 
+  const convertBudgetAmount = (usdAmount, nprAmount) => {
+    if (currency === "NPR") {
+      if (nprAmount != null) return nprAmount
+      const usdRate = nprPerUnit(exchangeRates, "USD")
+      return usdAmount != null && usdRate != null ? Number(usdAmount) * usdRate : null
+    }
+    if (nprAmount != null) return fromNpr(nprAmount, currency, exchangeRates)
+    const usdRate = nprPerUnit(exchangeRates, "USD")
+    const amountNpr = usdAmount != null && usdRate != null ? Number(usdAmount) * usdRate : null
+    return amountNpr == null ? (currency === "USD" ? usdAmount : null) : fromNpr(amountNpr, currency, exchangeRates)
+  }
+
   const estimateValues = estimate
-    ? currency === "NPR"
-      ? {
-          total: estimate.nprTotal,
-          accommodation: estimate.nprAccommodation,
-          food: estimate.nprFood,
-          transport: estimate.nprTransport,
-          activities: estimate.nprActivities,
-          shopping: estimate.nprShopping,
-          emergencyReserve: estimate.nprEmergencyReserve,
-        }
-      : currency === "USD"
-        ? {
-            total: estimate.total,
-            accommodation: estimate.accommodation,
-            food: estimate.food,
-            transport: estimate.transport,
-            activities: estimate.activities,
-            shopping: estimate.shopping,
-            emergencyReserve: estimate.emergency_reserve,
-          }
-        : { total: null, accommodation: null, food: null, transport: null, activities: null, shopping: null, emergencyReserve: null }
+    ? {
+        total: convertBudgetAmount(estimate.total, estimate.nprTotal),
+        accommodation: convertBudgetAmount(estimate.accommodation, estimate.nprAccommodation),
+        food: convertBudgetAmount(estimate.food, estimate.nprFood),
+        transport: convertBudgetAmount(estimate.transport, estimate.nprTransport),
+        activities: convertBudgetAmount(estimate.activities, estimate.nprActivities),
+        shopping: convertBudgetAmount(estimate.shopping, estimate.nprShopping),
+        emergencyReserve: convertBudgetAmount(estimate.emergency_reserve, estimate.nprEmergencyReserve),
+      }
     : null
   const grandTotal = estimateValues?.total ?? null
   const emergencyReserve = estimateValues?.emergencyReserve ?? null
@@ -238,8 +271,40 @@ const BudgetEstimator = () => {
               <input
                 className="input-field mt-1"
                 placeholder={t("budgetest.destination_ph")}
-                {...register("destination", { required: true })}
+                autoComplete="off"
+                {...register("destination", {
+                  required: true,
+                  onChange: (event) => {
+                    if (event.target.value.trim().toLowerCase() !== selectedDestination?.name?.toLowerCase()) {
+                      setSelectedDestination(null)
+                    }
+                  },
+                })}
               />
+              {destinationSuggestions.length > 0 && (
+                <ul className="mt-1 max-h-52 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg" role="listbox" aria-label="Destination matches">
+                  {destinationSuggestions.map((place) => (
+                    <li key={place.id || place.slug}>
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected="false"
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-emerald-50"
+                        onClick={() => {
+                          setSelectedDestination(place)
+                          setValue("destination", place.name, { shouldDirty: true, shouldValidate: true })
+                          setDestinationSuggestions([])
+                        }}
+                      >
+                        <span className="block font-semibold text-slate-800">{place.name}</span>
+                        <span className="block text-xs text-slate-500">{[place.district, place.province].filter(Boolean).join(", ")}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {searchingDestinations && <p className="mt-1 text-xs text-slate-500">Searching the destination catalogue…</p>}
+              {selectedDestination && <p className="mt-1 text-xs font-medium text-emerald-700">Matched to catalogue: {selectedDestination.name}</p>}
             </div>
 
             <div>
@@ -298,13 +363,14 @@ const BudgetEstimator = () => {
                 localStorage.setItem("tourism_currency", e.target.value)
               }}
             >
-              {Object.entries(CURRENCIES).map(([code, c]) => (
+              {Object.entries(DISPLAY_CURRENCIES).map(([code, c]) => (
                 <option key={code} value={code}>
-                  {code} — {t(c.labelKey) !== c.labelKey ? t(c.labelKey) : c.fallback} ({c.symbol})
+                  {code} — {c.label} ({c.symbol})
                 </option>
               ))}
             </select>
             <p className="mt-2 text-xs leading-5 text-[var(--ny-text-muted)]">{t("budgetest.currency_note")}</p>
+            {exchangeRates && <p className="mt-1 text-xs leading-5 text-[var(--ny-text-muted)]">{rateLabel(exchangeRates)}</p>}
           </div>
 
           {loading && (
@@ -334,7 +400,7 @@ const BudgetEstimator = () => {
               <p className="text-sm text-gray-500">{t("budgetest.total")}</p>
 
               <p className="text-4xl font-extrabold text-saffron-600 my-1">
-                {formatMoney(grandTotal, currency)}
+                {formatCurrency(grandTotal, currency)}
               </p>
 
               <p className="text-xs text-gray-500">
@@ -363,7 +429,7 @@ const BudgetEstimator = () => {
                   <div>
                     <p className="text-xs text-gray-500">{t(labelKey) !== labelKey ? t(labelKey) : fallback}</p>
                     <p className="font-bold text-dark text-sm">
-                      {formatMoney(estimateValues?.[key], currency)}
+                      {formatCurrency(estimateValues?.[key], currency)}
                     </p>
                   </div>
                 </div>
@@ -376,7 +442,7 @@ const BudgetEstimator = () => {
                 <div>
                   <p className="text-xs text-gray-500 font-medium">{t("budgetest.emergency_reserve")}</p>
                   <p className="font-bold text-dark text-sm">
-                    {formatMoney(emergencyReserve, currency)}
+                    {formatCurrency(emergencyReserve, currency)}
                   </p>
                 </div>
               </div>

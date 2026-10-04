@@ -25,7 +25,7 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Destination, Hotel, Hospital, MLInsight, OSMEssentialService, PoliceStation
+from .models import Destination, Hotel, Hospital, MLInsight, OSMEssentialService, PoliceStation, BudgetEstimation
 from .risk_views import RiskPredictionView, RouteRiskAssessmentView
 from .serializers import (
     DestinationListSerializer,
@@ -383,72 +383,6 @@ def _rule_based_safety_fallback(latitude, longitude, destination=None):
     }
 
 
-class BudgetPredictionView(APIView):
-    """POST /ml/budget/ — budget estimate from verified CSV rows.
-
-    Uses the BudgetEstimation table (imported from budget_features.csv).
-    No invented prices: destinations without a recorded row get a 400
-    telling the user to pick a catalogue destination.
-    """
-
-    permission_classes = [permissions.AllowAny]
-    serializer_class = BudgetPredictionRequestSerializer
-
-    def post(self, request):
-        from .models import Destination as _Destination
-
-        data = request.data.copy() if hasattr(request.data, "copy") else dict(request.data)
-        # Frontend sends `style`; serializer expects `budget_level`.
-        if "budget_level" not in data and "style" in data:
-            data["budget_level"] = {"standard": "mid"}.get(data["style"], data["style"])
-        serializer = BudgetPredictionRequestSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-
-        destination = data.get("destination")
-        if destination is None:
-            # Allow lookup by name string for backwards compatibility.
-            name = str(request.data.get("destination") or request.data.get("city") or "").strip()
-            if name:
-                destination = _Destination.objects.filter(name__icontains=name).first()
-        if destination is None:
-            return Response(
-                {"detail": "No recorded budget row exists for that destination. Select a destination from the catalogue."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        recorded = BudgetEstimation.objects.filter(destination=destination).first()
-        if recorded is None:
-            return Response(
-                {"detail": "No recorded budget row exists for that destination. Select a destination from the catalogue."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        days = max(1, int(data.get("days") or 1))
-        travelers = max(1, int(data.get("travelers") or 1))
-        daily = float(recorded.estimated_daily_budget or 0)
-        accommodation = float(recorded.accommodation_per_night or 0)
-        food = float(recorded.food_cost_per_day or 0)
-        transport = float(recorded.transport_cost or 0) + float(recorded.local_transport or 0)
-        total = daily * days * travelers
-        return Response({
-            "source": "dataset_csv",
-            "baseline_source": "dataset_csv",
-            "dataset": {"name": "budget_features.csv", "destinations": BudgetEstimation.objects.count()},
-            "currency": "USD",
-            "total_budget_usd": round(total, 2),
-            "daily_cost_usd": round(daily * travelers, 2),
-            "total": round(total, 2),
-            "estimated_total": round(total, 2),
-            "breakdown": {
-                "accommodation": round(accommodation * days * travelers, 2),
-                "food": round(food * days * travelers, 2),
-                "transport": round(transport * travelers, 2),
-                "activities": None,
-                "shopping": None,
-            },
-            "living_costs_available": True,
-        })
-
-
 class SafetyPredictionView(APIView):
 
     permission_classes = [permissions.AllowAny]
@@ -607,6 +541,89 @@ def _official_budget_context(result, data, destination):
     }
 
 
+def _recorded_budget_baseline(destination):
+    """(row, scope) for the best recorded budget baseline of this destination.
+
+    scope is "destination" for the place's own row; otherwise the MEDIAN of the
+    recorded rows in the same district, then the same province ("district" /
+    "province"), so a place with no row of its own still gets a real,
+    dataset-derived figure that is labelled as an area baseline. (None, None)
+    when nothing in the dataset covers the area.
+
+    Recovered from views_ml.py.rej: this hunk was rejected during a merge, so
+    the whole CSV-baseline path vanished while tests_budget_baseline kept
+    asserting against it.
+    """
+    from types import SimpleNamespace
+    from statistics import median
+
+    own = BudgetEstimation.objects.filter(destination=destination).first()
+    if own is not None:
+        return own, "destination"
+    fields = ("estimated_daily_budget", "accommodation_per_night", "food_cost_per_day",
+              "transport_cost", "local_transport")
+    for scope, lookup in (("district", {"destination__district__iexact": destination.district}),
+                          ("province", {"destination__province__iexact": destination.province})):
+        value = next(iter(lookup.values()))
+        if not value:
+            continue
+        rows = list(BudgetEstimation.objects.filter(**lookup))
+        if rows:
+            return SimpleNamespace(**{f: median(float(getattr(r, f) or 0) for r in rows)
+                                      for f in fields}), scope
+    return None, None
+
+
+def _recorded_budget_response(recorded, data, destination, scope="destination"):
+    """Budget from the recorded dataset row (ML sidecar disabled).
+
+    Values are the dataset's per-person-per-day USD baselines scaled by days and
+    travellers; categories the dataset does not hold stay None (never invented).
+    The dataset has no budget/mid/luxury bands, and the response says so.
+    """
+    days = max(1, int(data["days"]))
+    travelers = max(1, int(data["travelers"]))
+    daily = float(recorded.estimated_daily_budget or 0)
+    accommodation = float(recorded.accommodation_per_night or 0)
+    food = float(recorded.food_cost_per_day or 0)
+    transport = float(recorded.transport_cost or 0) + float(recorded.local_transport or 0)
+    total = daily * days * travelers
+    result = {
+        "source": "dataset_csv",
+        "baseline_source": "dataset_csv",
+        "dataset": {"name": "budget_features.csv", "destinations": BudgetEstimation.objects.count()},
+        "currency": "USD",
+        "total_budget_usd": round(total, 2),
+        "daily_cost_usd": round(daily * travelers, 2),
+        "total": round(total, 2),
+        "estimated_total": round(total, 2),
+        "known_cost_total_usd": round(total, 2),
+        "breakdown": {
+            "accommodation": round(accommodation * days * travelers, 2),
+            "food": round(food * days * travelers, 2),
+            "transport": round(transport * travelers, 2),
+            "activities": None,
+            "shopping": None,
+        },
+        "living_costs_available": True,
+        "living_costs_note": (
+            "Recorded baseline from the bundled Nepal travel-cost dataset; not a live hotel or operator quote."
+            if scope == "destination" else
+            f"No cost row exists for {destination.name} itself, so this is the median of recorded places in the same "
+            f"{scope} of the bundled Nepal travel-cost dataset. Treat it as an area baseline, not this place's price."
+        ),
+        "baseline_scope": scope,
+        "style_note": "The source dataset has no separate budget/mid/luxury bands; the recorded destination baseline is used.",
+        "days": days,
+        "travelers": travelers,
+        "official_fees_only": False,
+    }
+    result.update(_official_budget_context(result, data, destination))
+    result["matched_destination"] = {"id": destination.id, "name": destination.name,
+                                      "district": destination.district or ""}
+    return result
+
+
 class BudgetPredictionView(APIView):
 
     permission_classes = [permissions.AllowAny]
@@ -717,9 +734,13 @@ class BudgetPredictionView(APIView):
                     {"detail": "Budget prediction service unavailable."},
                     status=status.HTTP_503_SERVICE_UNAVAILABLE,
                 )
-            # Living-cost model is down, but the official visa / park /
-            # permit fees do not depend on it -- still return them, and say
-            # plainly that living costs are missing (never invent them).
+            # Living-cost model is down. Prefer the verified CSV baseline
+            # recorded for this destination (or its district / province) over
+            # inventing living costs; only when the dataset has no coverage do
+            # we fall through to official fees with living costs unavailable.
+            recorded, scope = _recorded_budget_baseline(destination)
+            if recorded is not None:
+                return Response(_recorded_budget_response(recorded, data, destination, scope))
             partial = {"breakdown": {}, "known_cost_total_usd": None, "estimated_total": None, "total_budget_usd": None}
             body = {
                 **partial,
@@ -903,40 +924,48 @@ def dedupe_service_rows(ranked):
 
 
 def enrich_itinerary_with_services(payload):
-    """Attach DB-backed planning and emergency services to every itinerary day."""
-    # Load all candidate rows once and cache them for all days.
-    all_hotels = list(Hotel.objects.filter(is_active=True).exclude(latitude__isnull=True).exclude(longitude__isnull=True).values_list(
-        "id", "name", "latitude", "longitude", "is_verified", "source", "price_per_night", "currency", "cover_image", "external_image_url"
+    """Attach verified, sourced planning and emergency services to each day."""
+    # Only records explicitly reviewed as verified may be presented as
+    # real-world service recommendations. Existing unverified records remain
+    # in the database and can still be reviewed in the admin.
+    all_hotels = list(Hotel.objects.filter(
+        is_active=True, is_verified=True, archived_at__isnull=True
+    ).exclude(latitude__isnull=True).exclude(longitude__isnull=True).values_list(
+        "id", "name", "latitude", "longitude", "is_verified", "source", "price_per_night", "currency",
+        "cover_image", "external_image_url", "source_url", "website"
     ))
-    all_hospitals = list(Hospital.objects.filter(is_archived=False).exclude(latitude__isnull=True).exclude(longitude__isnull=True).values_list(
-        "id", "name", "latitude", "longitude", "is_verified", "source_name", "phone"
+    all_hospitals = list(Hospital.objects.filter(
+        is_archived=False, is_verified=True
+    ).exclude(latitude__isnull=True).exclude(longitude__isnull=True).values_list(
+        "id", "name", "latitude", "longitude", "is_verified", "source_name", "phone", "source_url", "website"
     ))
-    all_police = list(PoliceStation.objects.filter(is_archived=False).exclude(latitude__isnull=True).exclude(longitude__isnull=True).values_list(
-        "id", "name", "latitude", "longitude", "is_verified", "source_name", "phone"
+    all_police = list(PoliceStation.objects.filter(
+        is_archived=False, is_verified=True
+    ).exclude(latitude__isnull=True).exclude(longitude__isnull=True).values_list(
+        "id", "name", "latitude", "longitude", "is_verified", "source_name", "phone", "source_url", "website"
     ))
-    all_essentials = list(OSMEssentialService.objects.filter(category__in=["bank", "pharmacy", "fire_station", "ambulance"], is_archived=False).exclude(latitude__isnull=True).exclude(longitude__isnull=True).values_list(
-        "id", "category", "name", "latitude", "longitude", "is_verified", "source_name", "phone"
+    all_essentials = list(OSMEssentialService.objects.filter(
+        category__in=["bank", "pharmacy", "fire_station", "ambulance"],
+        is_archived=False,
+        is_verified=True,
+    ).exclude(latitude__isnull=True).exclude(longitude__isnull=True).values_list(
+        "id", "category", "name", "latitude", "longitude", "is_verified", "source_name", "phone",
+        "source_url", "website"
     ))
 
     def _nearby(rows, lat, lon, mapper, lat_idx, lon_idx, limit=2):
         candidates = []
         for row in rows:
-            # Explicit indices per model (values_list returns Decimal coords,
-            # so we must not rely on isinstance(..., (int, float)) checks):
-            #   hotels/hospitals/police: id,name,lat,lon,...
-            #   essentials: id,category,name,lat,lon,...
             try:
                 rlat = float(row[lat_idx])
                 rlon = float(row[lon_idx])
             except (IndexError, TypeError, ValueError):
                 continue
-            dlat = rlat - lat
-            dlon = rlon - lon
-            dist_sq = dlat * dlat + dlon * dlon
-            if dist_sq < 100:  # ~10 degrees bounding box
-                candidates.append((dist_sq, row))
-        candidates.sort(key=lambda x: x[0])
-        return [mapper(row, round((dist_sq ** 0.5) * 111.0, 2)) for dist_sq, row in candidates[:limit]]
+            distance = haversine_distance(lat, lon, rlat, rlon)
+            if distance <= 250:
+                candidates.append((distance, row))
+        candidates.sort(key=lambda candidate: (candidate[0], candidate[1][0]))
+        return [mapper(row, round(distance, 1)) for distance, row in candidates[:limit]]
 
     for day in payload.get("itinerary", []):
         destinations = day.get("destinations") or []
@@ -955,21 +984,26 @@ def enrich_itinerary_with_services(payload):
                 "is_verified": bool(row[4]), "source_name": row[5] or "",
                 "price_npr": float(row[6]) if row[6] is not None and row[7] == "NPR" else None,
                 "image_url": str(row[8]) if row[8] else (row[9] or None),
+                "source_url": row[10] or "", "website": row[11] or "",
             }, 2, 3),
             "hospitals": _nearby(all_hospitals, lat, lon, lambda row, distance: {
                 "id": row[0], "name": row[1], "phone": clean_phone(row[6], "")[0], "distance_km": distance,
                 "is_verified": bool(row[4]), "source_name": row[5] or "",
+                "source_url": row[7] or "", "website": row[8] or "",
             }, 2, 3),
             "police": _nearby(all_police, lat, lon, lambda row, distance: {
                 "id": row[0], "name": row[1], "phone": clean_phone(row[6], "")[0], "distance_km": distance,
                 "is_verified": bool(row[4]), "source_name": row[5] or "",
+                "source_url": row[7] or "", "website": row[8] or "",
             }, 2, 3),
             "essentials": _nearby(all_essentials, lat, lon, lambda row, distance: {
                 "id": row[0], "type": row[1], "name": row[2], "phone": clean_phone(row[7], "")[0], "distance_km": distance,
                 "is_verified": bool(row[5]), "source_name": row[6] or "",
+                "source_url": row[8] or "", "website": row[9] or "",
             }, 3, 4),
         }
     payload["service_data_source"] = "live_database_distance_ranking"
+    payload["service_distance_method"] = "haversine_straight_line"
     return payload
 
 
@@ -1005,29 +1039,39 @@ class ItineraryView(APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
+        # Use the city catalogue only to normalize the requested place. Stops,
+        # services and route details must come from live destination records.
+        candidate = ((data.get("start_city") or "").strip()) or (data.get("district") or "").strip()
+        city_entry = None
+        if candidate:
+            from .data_itineraries import get_city_profile
+            city_entry = get_city_profile(candidate)
+            if city_entry is not None:
+                data["start_city"] = city_entry.get("city") or candidate
+                data["district"] = city_entry.get("district") or data.get("district") or ""
+
         ml_payload = None
-        try:
-            response = requests.post(
-                f"{settings.ML_SERVICE_URL}/itinerary/build",
-                json={
-                    "days": data.get("days", 3),
-                    "travelers": data.get("travelers", 1),
-                    "budget_npr": data.get("budget_npr"),
-                    "budget_level": data.get("budget_level", "mid"),
-                    "travel_style": data.get("travel_style", "leisure"),
-                    "travel_type": data.get("travel_type", "solo"),
-                    "interests": data.get("interests", ["culture"]),
-                    "start_city": (data.get("start_city") or "").strip() or "Kathmandu",
-                },
-                # (connect, read): a down ML service fails fast and the DB planner answers; a
-                # slow one gets 2x the normal budget, keeping the whole request well
-                # inside the frontend's 45 s itinerary timeout.
-                timeout=(min(3, settings.ML_SERVICE_TIMEOUT), settings.ML_SERVICE_TIMEOUT * 2),
-            )
-            response.raise_for_status()
-            ml_payload = response.json()
-        except requests.RequestException as exc:
-            logger.warning("ML itinerary service unreachable: %s", exc)
+        if city_entry is None:
+            try:
+                response = requests.post(
+                    f"{settings.ML_SERVICE_URL}/itinerary/build",
+                    json={
+                        "days": data.get("days", 3),
+                        "travelers": data.get("travelers", 1),
+                        "budget_npr": data.get("budget_npr"),
+                        "budget_level": data.get("budget_level", "mid"),
+                        "travel_style": data.get("travel_style", "leisure"),
+                        "travel_type": data.get("travel_type", "solo"),
+                        "interests": data.get("interests", ["culture"]),
+                        "start_city": (data.get("start_city") or "").strip() or "Kathmandu",
+                    },
+                    # A down ML service fails fast; the DB planner remains available.
+                    timeout=(min(3, settings.ML_SERVICE_TIMEOUT), settings.ML_SERVICE_TIMEOUT * 2),
+                )
+                response.raise_for_status()
+                ml_payload = response.json()
+            except requests.RequestException as exc:
+                logger.warning("ML itinerary service unreachable: %s", exc)
 
         requested_place = ((data.get("district") or data.get("start_city")) or "").strip()
         if ml_payload is not None:
@@ -1076,7 +1120,14 @@ class ItineraryView(APIView):
         from django.db.models import Q
         place = district or start_city
         anchor_dest = None
-        exact_area = qs.filter(Q(district__iexact=place) | Q(city__iexact=place) | Q(province__iexact=place)).exists()
+        area_query = (
+            Q(district__iexact=place)
+            | Q(city__iexact=place)
+            | Q(city_english__iexact=place)
+            | Q(city_nepali__iexact=place)
+            | Q(province__iexact=place)
+        )
+        exact_area = qs.filter(area_query).exists()
         if not exact_area and place:
             # /itinerary?dest=<slug> and typed destination names ("Upper
             # Mustang", "chitwan national park birding"): plan around that real
@@ -1098,16 +1149,25 @@ class ItineraryView(APIView):
             scope_label = f"real places recorded around “{anchor_dest.name}”{where}, nearest first"
             scoped = True
         else:
-            scope = qs.filter(Q(district__icontains=place) | Q(city__icontains=place) | Q(province__icontains=place))
+            scope = qs.filter(
+                Q(district__icontains=place)
+                | Q(city__icontains=place)
+                | Q(city_english__icontains=place)
+                | Q(city_nepali__icontains=place)
+                | Q(province__icontains=place)
+            )
             scope_label = f"places recorded in “{place}”"
             scoped = scope.exists()
         if not scoped and district and district != start_city:
             scope = qs.filter(Q(district__icontains=start_city) | Q(city__icontains=start_city))
             scope_label = f"places recorded in “{start_city}”"
             scoped = scope.exists()
-        if not scoped:
+        if not scoped and city_entry is None:
             scope = qs
             scope_label = None
+        elif not scoped:
+            scope = qs.none()
+            scope_label = f"No approved places are recorded for “{place}” yet"
 
         def interest_score(dest):
             hay = " ".join(filter(None, [

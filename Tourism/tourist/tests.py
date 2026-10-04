@@ -529,7 +529,7 @@ class MLIntegrationTests(APITestCase):
 
     @patch("tourist.utils.requests.post")
     def test_ml_budget_pokhara_calibrated_ten_thousand_npr(self, mock_post):
-        """3 days in Pokhara for 1 traveler (mid-range) must calculate to ~10,000 NPR total ($75 USD)."""
+        """3 days in Pokhara for 1 traveler (mid-range) must calculate to ~11,400 NPR total ($85.50 USD)."""
         import sys
         import os
         sys.path.insert(0, os.path.join(settings.BASE_DIR, "..", "ml_service"))
@@ -547,14 +547,15 @@ class MLIntegrationTests(APITestCase):
         })
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.data
-        self.assertEqual(data.get("total_budget_npr"), 10000.0)
-        self.assertEqual(data.get("total_budget_usd"), 75.0)
-        self.assertEqual(data.get("daily_budget_npr"), 3333.33)
-        self.assertEqual(data.get("daily_cost_usd"), 25.0)
+        self.assertEqual(data.get("total_budget_npr"), 11400.0)
+        self.assertEqual(data.get("total_budget_usd"), 85.5)
+        self.assertEqual(data.get("daily_budget_npr"), 3800.0)
+        self.assertEqual(data.get("daily_cost_usd"), 28.5)
         npr_breakdown = data.get("breakdown_npr") or {}
         self.assertEqual(npr_breakdown.get("accommodation"), 4500.0)
         self.assertEqual(npr_breakdown.get("food"), 3300.0)
         self.assertEqual(npr_breakdown.get("transport"), 2200.0)
+        self.assertEqual(npr_breakdown.get("local_transport"), 1400.0)
 
     @patch("tourist.utils.requests.post")
     def test_ml_budget_across_nepal_destinations(self, mock_post):
@@ -565,10 +566,10 @@ class MLIntegrationTests(APITestCase):
         from api.budget import predict_budget, BudgetRequest
 
         for place, expected_npr in [
-            ("Kathmandu", 10000.0),
-            ("Chitwan", 10000.0),
-            ("Lumbini", 8500.0),
-            ("Mustang", 11000.0),
+            ("Kathmandu", 11400.0),
+            ("Chitwan", 11600.0),
+            ("Lumbini", 9700.0),
+            ("Mustang", 12600.0),
         ]:
             ml_res = predict_budget(BudgetRequest(city=place, days=3, travelers=1, budget_level="mid"))
             mock_resp = MagicMock()
@@ -1050,6 +1051,39 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         self.assertIsNone(result["difficulty"])
         self.assertIn("elevation", result["difficulty_basis"].lower())
         self.assertIn("risk_summary", result)
+
+    def test_recommendation_counts_services_without_changing_candidate_totals(self):
+        from .models import Hospital, Hotel, PoliceStation
+
+        for index in range(2):
+            Hospital.objects.create(
+                destination=self.trek, name=f"Test Hospital {index}",
+                address="Kaski", phone="", latitude=28.4, longitude=84.0,
+                district="Kaski", is_verified=True,
+            )
+        PoliceStation.objects.create(
+            destination=self.trek, name="Test Police Station",
+            address="Kaski", phone="", latitude=28.4, longitude=84.0,
+            is_verified=True,
+        )
+        Hotel.objects.create(
+            destination=self.trek, name="Test Trek Hotel", is_verified=True
+        )
+        Hospital.objects.create(
+            destination=self.trek, name="Unverified Hospital",
+            address="Kaski", phone="", latitude=28.4, longitude=84.0,
+            district="Kaski", is_verified=False,
+        )
+
+        response = self.client.get(reverse("mood-recommendations"), {
+            "mood": "trekking", "limit": 3,
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        result = next(row for row in response.data["results"] if row["id"] == self.trek.id)
+        self.assertEqual(result["safety_context"]["hospital_count"], 2)
+        self.assertEqual(result["safety_context"]["police_count"], 1)
+        self.assertEqual(result["safety_context"]["hotel_count"], 1)
 
     def test_risk_response_separates_history_current_and_prediction(self):
         from datetime import date

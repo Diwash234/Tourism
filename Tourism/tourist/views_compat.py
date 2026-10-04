@@ -424,6 +424,80 @@ def _nearest_contacts_response(request, contact_type):
     return Response(_attach_emergency_routes(request, all_contacts, lat, lon))
 
 
+_TURN_BY_MANEUVER = (
+    ("sharp-left", "sharp_left"), ("sharp-right", "sharp_right"),
+    ("slight-left", "slight_left"), ("slight-right", "slight_right"),
+    ("uturn", "uturn"), ("left", "left"), ("right", "right"),
+)
+
+
+def _normalise_route_steps(steps):
+    """Give engine steps the keys the Navigation page reads.
+
+    OSRM steps carry ``maneuver`` ("turn-left"), ``distance_m`` and the street
+    ``name``/manoeuvre ``location``. The page reads ``turn``, ``instruction`` and
+    ``distance_km``; without them a real street-level route rendered as an
+    unlabelled list. Existing keys are never removed.
+    """
+    out = []
+    for st in steps or []:
+        if not isinstance(st, dict):
+            continue
+        step = dict(st)
+        # OSRM modifiers contain spaces ("slight right"); keys use hyphens.
+        man = str(step.get("maneuver") or "").replace(" ", "-")
+        if not step.get("turn"):
+            step["turn"] = next((key for needle, key in _TURN_BY_MANEUVER if needle in man), "straight")
+        if step.get("distance_km") is None and step.get("distance_m") is not None:
+            step["distance_km"] = round(float(step["distance_m"]) / 1000, 2)
+        out.append(step)
+    return out
+
+
+def _street_level_route(start_lat, start_lon, end_lat, end_lon, transport_mode):
+    """A real street-level (OSRM) route for car/motorcycle, else None.
+
+    None means no street-level engine is configured or reachable, and the
+    caller keeps using the bundled-graph route exactly as before (still
+    labelled as an approximation, never as navigation-grade).
+    """
+    if transport_mode not in ("private car / taxi", "motorcycle"):
+        return None
+    try:
+        from navigation.osrm_provider import OSRMProvider
+        from navigation.route_engine import cached_route
+
+        if not OSRMProvider().supports("driving"):
+            return None
+        engine_route, _cached = cached_route(
+            (float(start_lat), float(start_lon)), (float(end_lat), float(end_lon)), "driving", request=None)
+    except Exception:  # noqa: BLE001 - an enhancement must never break routing
+        return None
+    route = (engine_route or {}).get("route") or {}
+    if route.get("source") != "osrm":
+        return None
+    coords = [
+        {"lat": float(pt[0]), "lng": float(pt[1])}
+        for pt in (route.get("geometry") or []) if isinstance(pt, (list, tuple)) and len(pt) >= 2
+    ]
+    if not coords:
+        return None
+    km = round(float(route.get("distance_m") or 0) / 1000.0, 2)
+    seconds = route.get("duration_s")
+    return {
+        "distance_km": km,
+        "duration_min": max(1, round(float(seconds) / 60)) if seconds else None,
+        "duration_source": "routing_engine",
+        "duration_note": "Duration from the street-level routing engine; not a live traffic prediction.",
+        "route": coords,
+        "steps": _normalise_route_steps(route.get("steps")),
+        "routing_engine": "road_provider:osrm",
+        "straight_line_km": round(haversine_distance(start_lat, start_lon, end_lat, end_lon), 2),
+        "road_distance_km": km,
+        "note": route.get("note"),
+    }
+
+
 class NavigationRouteView(APIView):
     """
     POST /api/v1/navigation/route
@@ -692,7 +766,9 @@ class NavigationRouteView(APIView):
                 "note": "Multi-stop route: every leg routed on the same engine as single-stop routes; totals are leg sums.",
             }
         else:
-            result = get_ml_best_route(start_lat, start_lon, end_lat, end_lon, route_type=mode_route_type or "fastest")
+            result = _street_level_route(start_lat, start_lon, end_lat, end_lon, transport_mode)
+            if result is None:
+                result = get_ml_best_route(start_lat, start_lon, end_lat, end_lon, route_type=mode_route_type or "fastest")
         if result is None:
             return Response(
                 {"detail": "Routing service is currently unavailable."},

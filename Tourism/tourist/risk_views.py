@@ -53,7 +53,6 @@ class RiskPredictionView(APIView):
     permission_classes = [permissions.AllowAny]
 
     @extend_schema(
-        operation_id="ml_risk_prediction",
         summary="Predict destination risk for the next N days",
         description=(
             "ML risk indicator for a destination. Weighted from verified "
@@ -153,7 +152,6 @@ class RouteRiskAssessmentView(APIView):
     permission_classes = [permissions.AllowAny]
 
     @extend_schema(
-        operation_id="ml_route_risk_assessment",
         summary="Assess risk along a route between two coordinates",
         description=(
             "Segments a route between two points and scores the hazard level of "

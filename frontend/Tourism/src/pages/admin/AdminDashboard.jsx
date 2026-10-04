@@ -1585,7 +1585,7 @@ const AdminDashboard = () => {
                   <FiImage className="text-pink-400" /> User-Submitted Image Verification ({pendingImages.length})
                 </h3>
                 <p className="text-xs text-slate-300">
-                  Verify authentic high-quality images. Approved images are permanently saved to database galleries and recommendation models.
+                  Check that each photo depicts the named destination and that its source and license allow reuse. Approval does not remove existing gallery images.
                 </p>
               </div>
             </div>
@@ -1610,7 +1610,16 @@ const AdminDashboard = () => {
                     <div className="p-4 space-y-3">
                       <div>
                         <p className="text-sm font-semibold text-white">{img.caption || "Community Photo"}</p>
-                        <p className="text-xs text-slate-300 mt-1">Uploaded by: {img.uploaded_by}</p>
+                        <p className="text-xs text-slate-300 mt-1">Source: {img.source} · Added by: {img.uploaded_by}</p>
+                        {img.photographer && <p className="text-xs text-slate-300">Photographer: {img.photographer}</p>}
+                        {img.license_type && <p className="text-xs text-slate-300">License: {img.license_type}</p>}
+                        {img.requested_cover && <p className="text-xs font-bold text-amber-300">Requested cover — stays inactive until approval</p>}
+                        {img.review_note && <p className="text-xs text-amber-200">{img.review_note}</p>}
+                        {img.source_url && (
+                          <a href={img.source_url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-emerald-300 underline">
+                            Open original source
+                          </a>
+                        )}
                       </div>
 
                       {/* RED and GREEN Buttons */}

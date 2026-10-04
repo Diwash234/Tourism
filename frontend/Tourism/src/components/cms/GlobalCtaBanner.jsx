@@ -4,10 +4,15 @@ import usePublicConfig from "../../hooks/usePublicConfig"
 
 export default function GlobalCtaBanner({ className = "" }) {
   const { settings } = usePublicConfig()
-  const cta = settings?.cta_banners
+  // `settings` is `{}` until /config/public resolves, so this section is
+  // normally absent on first render. Default it to an empty object: the
+  // guards below only opt the banner *out*, and every field falls back to
+  // the built-in copy below. Without the default the field reads below
+  // threw "Cannot read properties of undefined (reading 'badge')".
+  const cta = settings?.cta_banners ?? {}
 
-  const isPublished = cta?.status ? cta.status === "published" : true
-  const isEnabled = cta?.enabled !== false
+  const isPublished = cta.status ? cta.status === "published" : true
+  const isEnabled = cta.enabled !== false
 
   if (!isEnabled || !isPublished) {
     return null

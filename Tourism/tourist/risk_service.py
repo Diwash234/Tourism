@@ -63,7 +63,10 @@ def _calculate_trend(incidents, days=30):
         return {"direction": "stable", "change_pct": 0.0, "incidents_last_30d": 0}
     
     now = timezone.now()
-    cutoff = now - timedelta(days=days)
+    # EventIncident.event_date is a DateField, so the cutoff must be a date
+    # too -- comparing a date against a datetime raises TypeError and 500s
+    # the risk endpoint (same class of bug as _calculate_precise_score).
+    cutoff = (now - timedelta(days=days)).date()
     recent = [i for i in incidents if i.event_date and i.event_date >= cutoff]
     older = [i for i in incidents if i.event_date and i.event_date < cutoff]
     

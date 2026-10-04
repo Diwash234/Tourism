@@ -32,6 +32,7 @@ const Unsubscribe = lazy(() => import("./pages/Unsubscribe"))
 const CustomerSupport = lazy(() => import("./pages/CustomerSupport"))
 const ThankYou = lazy(() => import("./pages/ThankYou"))
 const NotFound = lazy(() => import("./pages/NotFound"))
+const TravelGuide = lazy(() => import("./pages/TravelGuide"))
 
 // Authentication
 const Login = lazy(() => import("./pages/auth/Login"))
@@ -199,6 +200,7 @@ function App() {
         <Route path="/compare" element={<CompareDestinations />} />
         <Route path="/destinations/compare" element={<CompareDestinations />} />
         <Route path="/gallery" element={<Gallery />} />
+        <Route path="/travel-guides/:slug" element={<TravelGuide />} />
         <Route path="/travel-toolkit" element={<LazyRoute><TravelToolkit /></LazyRoute>} />
         <Route path="/itinerary" element={<LazyRoute><Itinerary /></LazyRoute>} />
         <Route path="/trip-planner" element={<Navigate to="/itinerary" replace />} />

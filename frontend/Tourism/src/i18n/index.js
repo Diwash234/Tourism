@@ -530,6 +530,65 @@ const en = {
   "tp.plan_route": "Plan route",
   "tp.plan": "Plan",
 
+  // itinerary planner page
+  "itin.title": "Itinerary Planner",
+  "itin.subtitle": "Tell us your days, budget and interests, then press Generate. Plans include altitude checks, official permits & fees and a trip-readiness checklist.",
+  "itin.days": "Days",
+  "itin.budget_level": "Budget level",
+  "itin.budget_budget": "Budget",
+  "itin.budget_mid": "Mid-range",
+  "itin.budget_standard": "Standard",
+  "itin.budget_luxury": "Luxury",
+  "itin.style_leisure": "Leisure",
+  "itin.style_culture": "Culture",
+  "itin.style_nature": "Nature",
+  "itin.style_adventure": "Adventure",
+  "itin.style_city": "City",
+  "itin.type_solo": "Solo",
+  "itin.type_couple": "Couple",
+  "itin.type_family": "Family",
+  "itin.type_group": "Group",
+  "itin.budget_ph": "e.g. 50000",
+  "itin.start_city": "Start city",
+  "itin.start_city_ph": "Enter a start city",
+  "itin.nationality": "Nationality (official fees)",
+  "itin.travel_month": "Travel month",
+  "itin.not_decided": "Not decided",
+  "itin.generating": "Generating…",
+  "itin.generate": "Generate itinerary",
+  "itin.regenerate": "Regenerate itinerary",
+  "itin.generating_plan": "Generating your itinerary…",
+  "itin.inputs_changed": "Your inputs changed — press “Regenerate itinerary” to update the plan.",
+  "itin.tailor_hint": "Tailor this route dynamically according to your pace, preferences, and Himalayan trail conditions:",
+  "itin.mod_cheaper": "Budget-Friendly (कम खर्च)",
+  "itin.mod_luxurious": "Extra Comfort & Boutique (आरामदायी)",
+  "itin.mod_culture": "Deep Cultural Heritage (संस्कृति)",
+  "itin.mod_nature": "Scenic Viewpoints (प्रकृति दृश्य)",
+  "itin.mod_slower": "Gentle Acclimatization (सुस्त गति)",
+  "itin.mod_replan": "Trail & Weather Adapt (मौसम अनुकूल)",
+  "itin.planning_focus": "Planning focus",
+  "itin.notepad_title": "Trip Cost Notepad",
+  "itin.notepad_sub": "Add custom lodge rates or local flight quotes to your trip total.",
+  "itin.cost_category": "Cost category",
+  "itin.item_label": "Item, for example a lodge or flight",
+  "itin.item_ph": "e.g. Annapurna View Hotel",
+  "itin.amount_label": "Amount in rupees",
+  "itin.add_note": "Add cost note",
+  "itin.note_hotel": "Hotel",
+  "itin.note_transport": "Transport",
+  "itin.note_food": "Food",
+  "itin.note_activity": "Activity",
+  "itin.note_other": "Other",
+  "itin.notepad_total": "Notepad Total",
+  "itin.grand_total": "Grand Total (plan + notes)",
+  "itin.notes_label": "Notes",
+  "itin.saved_to_account": "Saved to your account",
+  "itin.share_readonly": "Share a read-only copy (no name, email or notes).",
+  "itin.save_plan": "Save this plan",
+  "itin.save_plan_sub": "Keep the generated itinerary in your account, then share it",
+  "itin.total_estimate": "Total estimate",
+  "itin.usd_unavailable": "USD estimate unavailable",
+
   // distances & directions explorer
   "sidebar.distances": "Distances & Directions",
   "dx.title": "Distances & Directions",
@@ -1757,7 +1816,7 @@ const nodeState = new WeakMap()
 let translationObserver = null
 let reverseDictionary = null
 
-const NEVER_TRANSLATE = "[data-no-translate],[translate='no'],script,style,code,pre,textarea,input,select,svg,[contenteditable='true'],.leaflet-container"
+const NEVER_TRANSLATE = "[data-no-translate],[translate='no'],script,style,code,pre,textarea,input,svg,[contenteditable='true'],.leaflet-container"
 
 function reverseLookup() {
   if (!reverseDictionary) reverseDictionary = new Map(Object.entries(en).map(([key, value]) => [value, key]))
@@ -1812,8 +1871,8 @@ function translateLegacyDom(root = document.body) {
   let node
   while ((node = walker.nextNode())) nodes.push(node)
   nodes.forEach(translateTextNode)
-  root.querySelectorAll?.("[placeholder],[title],[aria-label]").forEach((element) => {
-    for (const attribute of ["placeholder", "title", "aria-label"]) {
+  root.querySelectorAll?.("[placeholder],[title],[aria-label],[alt]").forEach((element) => {
+    for (const attribute of ["placeholder", "title", "aria-label", "alt"]) {
       if (!element.hasAttribute(attribute)) continue
       const storageKey = `i18nOriginal${attribute.replace(/-./g, (m) => m[1].toUpperCase())}`
       if (!element.dataset[storageKey]) element.dataset[storageKey] = element.getAttribute(attribute)
@@ -1839,7 +1898,7 @@ function translateLegacyDom(root = document.body) {
 
 function enableLegacyTranslationBridge() {
   if (typeof document === "undefined") return
-  queueMicrotask(() => translateLegacyDom())
+  queueMicrotask(() => translateLegacyDom(document.documentElement))
   if (!translationObserver) {
     translationObserver = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
@@ -1906,4 +1965,3 @@ if (typeof window !== "undefined") {
   fetchOverrideStrings("en")
   fetchOverrideStrings(currentLang)
 }
-

@@ -68,9 +68,9 @@ export default function AdminLayout() {
   }, [activeSection])
 
   return (
-    <div className="admin-green-theme min-h-screen bg-slate-50 text-slate-900">
+    <div className="admin-green-theme ny-app-shell flex min-h-screen w-full flex-col overflow-x-hidden bg-[var(--ny-bg)] text-[var(--ny-text)] dark:bg-[#0B1714] dark:text-[#EAF2EF]">
       <a href="#admin-main" className="admin-skip-link">Skip to admin content</a>
-      <header className="fixed inset-x-0 top-0 z-50 flex h-16 items-center gap-3 overflow-visible border-b border-slate-200 bg-white px-3 text-slate-900 shadow-sm sm:px-5">
+      <header className="fixed inset-x-0 top-0 z-50 flex h-16 items-center gap-3 overflow-visible border-b border-transparent bg-[var(--ny-green)] px-3 text-white shadow-sm sm:px-5">
         <button
           onClick={toggleSidebar}
           className="admin-icon-button !min-h-11 !min-w-11 !bg-emerald-50 !text-emerald-800"
@@ -91,7 +91,7 @@ export default function AdminLayout() {
                 key={section}
                 to={adminSectionHref(section)}
                 className={`flex items-center gap-1 whitespace-nowrap rounded-lg px-2.5 py-2 text-xs font-bold ${
-                  activeSection === section ? "bg-white text-emerald-900" : "text-slate-600 hover:bg-emerald-50"
+                  activeSection === section ? "bg-[var(--ny-green)] text-white shadow-sm" : "text-[var(--ny-text-secondary)] hover:bg-[var(--ny-soft-green)] hover:text-[var(--ny-green)]"
                 }`}
               >
                 <Icon />
@@ -112,7 +112,7 @@ export default function AdminLayout() {
         id="admin-navigation"
         aria-label="Admin navigation"
         aria-hidden={drawerHidden || undefined}
-        className={`fixed bottom-0 top-16 z-40 w-72 max-w-[90vw] overflow-y-auto overflow-x-hidden overscroll-contain border-r border-slate-200 bg-white text-slate-700 shadow-lg transition-[transform,width] ${drawerHidden ? "invisible" : "visible"} ${
+        className={`fixed bottom-0 top-16 z-40 w-72 max-w-[90vw] overflow-y-auto overflow-x-hidden overscroll-contain border-r border-[var(--ny-border)] bg-[var(--ny-soft-green)] text-[var(--ny-text)] shadow-lg transition-[transform,width] ${drawerHidden ? "invisible" : "visible"} ${
           open ? "translate-x-0" : "-translate-x-full"
         } lg:visible lg:translate-x-0 ${collapsed ? "lg:w-16" : "lg:w-72"}`}
         style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
@@ -128,15 +128,15 @@ export default function AdminLayout() {
           >
             <FiChevronRight className={`transition-transform ${collapsed ? "" : "rotate-180"}`} />
           </button>
-          <div className={`mb-4 rounded-xl bg-slate-50 p-3 text-white ${collapsed ? "lg:hidden" : ""}`}>
-            <FiShield className="inline text-slate-400" /> <b>Administrator workspace</b>
-            <p className="mt-1 text-xs text-slate-500">CMS, media, users, analytics and safety</p>
+          <div className={`mb-4 rounded-xl border border-[var(--ny-border)] bg-[var(--ny-white)] p-3 text-[var(--ny-text)] ${collapsed ? "lg:hidden" : ""}`}>
+            <FiShield className="inline text-[var(--ny-green)]" /> <b className="text-[var(--ny-text)]">Administrator workspace</b>
+            <p className="mt-1 text-xs text-[var(--ny-text-secondary)]">CMS, media, users, analytics and safety</p>
           </div>
           {visibleGroups.map((group) => (
             <section key={group.label} className="mb-2">
               <button
                 onClick={() => setExpanded((value) => ({ ...value, [group.label]: !value[group.label] }))}
-                className={`flex min-h-10 w-full items-center justify-between py-2 text-xs font-black uppercase tracking-widest text-slate-400 ${collapsed ? "lg:hidden" : ""}`}
+                className={`flex min-h-10 w-full items-center justify-between py-2 text-xs font-black uppercase tracking-[0.12em] text-[var(--ny-text-secondary)] ${collapsed ? "lg:hidden" : ""}`}
                 aria-expanded={expanded[group.label]}
               >
                 {group.label}
@@ -158,22 +158,22 @@ export default function AdminLayout() {
                           collapsed ? "lg:justify-center lg:px-1" : ""
                         } ${
                           activeSection === section
-                            ? "bg-white font-black text-emerald-900 shadow-sm"
-                            : "text-slate-600 hover:bg-slate-100 hover:text-white"
+                            ? "bg-[var(--ny-green)] font-black text-white shadow-sm"
+                            : "text-[var(--ny-text)] hover:bg-[var(--ny-white)] hover:text-[var(--ny-green)]"
                         }`}
                       >
                         <Icon aria-hidden="true" className="text-base shrink-0" />
                         <span className={`truncate ${collapsed ? "lg:hidden" : ""}`}>{label}</span>
                       </Link>
                       {children?.length > 0 && !collapsed && (activeSection === section || children.some((child) => (child.query?.section || section) === activeSection)) && (
-                        <div className="ml-8 mt-1 mb-2 space-y-1 text-xs text-slate-600">
+                        <div className="ml-8 mt-1 mb-2 space-y-1 text-xs text-[var(--ny-text-secondary)]">
                           {children.map((child) => {
                             const href = adminSectionHref(section, child.query)
                             const targetSection = child.query?.section || section
                             const current = targetSection === activeSection && Object.entries(child.query || {}).filter(([key]) => key !== "section").every(([key, value]) => new URLSearchParams(location.search).get(key) === String(value))
                             return (
-                              <Link key={child.label} to={href} onClick={closeMobile} className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${current ? "bg-emerald-50 text-white" : "hover:bg-slate-100"}`}>
-                                <span className={`inline-block h-3 w-3 rounded border ${current ? "border-white bg-amber-400" : "border-slate-300"}`} />
+                              <Link key={child.label} to={href} onClick={closeMobile} className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${current ? "bg-[var(--ny-soft-green)] text-[var(--ny-green)]" : "hover:bg-[var(--ny-white)] hover:text-[var(--ny-green)]"}`}>
+                                <span className={`inline-block h-3 w-3 rounded border ${current ? "border-[var(--ny-green)] bg-[var(--ny-gold)]" : "border-[var(--ny-border)]"}`} />
                                 {child.label}
                               </Link>
                             )
@@ -187,14 +187,14 @@ export default function AdminLayout() {
             </section>
           ))}
           <section className="mt-4 border-t border-slate-200 pt-4">
-            <p className={`mb-2 text-xs font-black uppercase text-slate-400 ${collapsed ? "lg:hidden" : ""}`}>Dedicated tools</p>
-            <Link to="/admin/diagnostics" onClick={closeMobile} title="Audit & Diagnostics" aria-label="Audit & Diagnostics" className={`flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 ${collapsed ? "lg:justify-center lg:px-1" : ""}`}>
+            <p className={`mb-2 text-xs font-black uppercase tracking-[0.12em] text-[var(--ny-text-secondary)] ${collapsed ? "lg:hidden" : ""}`}>Dedicated tools</p>
+            <Link to="/admin/diagnostics" onClick={closeMobile} title="Audit & Diagnostics" aria-label="Audit & Diagnostics" className={`flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm text-[var(--ny-text)] hover:bg-[var(--ny-white)] hover:text-[var(--ny-green)] ${collapsed ? "lg:justify-center lg:px-1" : ""}`}>
               <FiActivity className="shrink-0" /> <span className={collapsed ? "lg:hidden" : ""}>Audit & Diagnostics</span>
             </Link>
-            <Link to="/admin/hotel-assignments" onClick={closeMobile} title="Hotel Assignments" aria-label="Hotel Assignments" className={`flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 ${collapsed ? "lg:justify-center lg:px-1" : ""}`}>
+            <Link to="/admin/hotel-assignments" onClick={closeMobile} title="Hotel Assignments" aria-label="Hotel Assignments" className={`flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm text-[var(--ny-text)] hover:bg-[var(--ny-white)] hover:text-[var(--ny-green)] ${collapsed ? "lg:justify-center lg:px-1" : ""}`}>
               <FiShield className="shrink-0" /> <span className={collapsed ? "lg:hidden" : ""}>Hotel Assignments</span>
             </Link>
-            <Link to="/admin/tasks" onClick={closeMobile} title="Staff Tasks" aria-label="Staff Tasks" className={`flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 ${collapsed ? "lg:justify-center lg:px-1" : ""}`}>
+            <Link to="/admin/tasks" onClick={closeMobile} title="Staff Tasks" aria-label="Staff Tasks" className={`flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm text-[var(--ny-text)] hover:bg-[var(--ny-white)] hover:text-[var(--ny-green)] ${collapsed ? "lg:justify-center lg:px-1" : ""}`}>
               <FiUsers className="shrink-0" /> <span className={collapsed ? "lg:hidden" : ""}>Staff Tasks</span>
             </Link>
           </section>
@@ -205,7 +205,7 @@ export default function AdminLayout() {
           <FiX className="sr-only" />
         </button>
       )}
-      <main id="admin-main" tabIndex="-1" className={`min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 pt-16 transition-[padding] duration-300 ${collapsed ? "lg:pl-16" : "lg:pl-72"}`}>
+      <main id="admin-main" tabIndex="-1" className={`min-h-screen bg-[radial-gradient(circle_at_top,_rgba(20,83,45,0.08),_transparent_40%),linear-gradient(180deg,#f4fbf6_0%,#f8faf8_100%)] pt-16 text-[var(--ny-text)] transition-[padding] duration-300 ${collapsed ? "lg:pl-16" : "lg:pl-72"}`}>
         <div className="mx-auto w-full max-w-[1600px] p-3 pb-24 sm:p-6 lg:pb-6">
           <Suspense fallback={<div className="container-app flex min-h-[320px] items-center justify-center py-12" role="status" aria-live="polite"><span className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--ny-border)] border-t-[var(--ny-green)]" aria-hidden="true" /><span className="sr-only">Loading page</span></div>}><Outlet /></Suspense>
         </div>

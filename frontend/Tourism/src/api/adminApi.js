@@ -120,6 +120,8 @@ const adminApi = {
   candidateBulkAction: (payload) => axiosClient.post("/admin/discovery/bulk-action/", payload),
 
   // Multi-Source Image Acquisition & Provenance Pipeline API
+  searchMultiSourceImages: (payload) => axiosClient.post("/admin/images/multi-search/", payload),
+  importMediaImage: (payload) => axiosClient.post("/admin/images/import-media/", payload),
   getDestinationImages: (slugOrId) => axiosClient.get(`/destinations/${slugOrId}/images/`),
   discoverDestinationImages: (slugOrId, payload = {}) => axiosClient.post(`/destinations/${slugOrId}/images/discover/`, payload),
   refreshDestinationImages: (slugOrId, payload = {}) => axiosClient.post(`/destinations/${slugOrId}/images/refresh/`, payload),

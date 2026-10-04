@@ -408,7 +408,7 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PAGINATION_CLASS": "tourist.pagination.StandardResultsPagination",
     "PAGE_SIZE": 10,
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_SCHEMA_CLASS": "Tourism.schema.UniqueOperationIdSchema",
     "DEFAULT_THROTTLE_CLASSES": (
         "rest_framework.throttling.ScopedRateThrottle",
     ),
@@ -448,7 +448,7 @@ SPECTACULAR_SETTINGS = {
     "COMPONENT_NO_READ_ONLY_REQUIRED": False,
     "SORT_OPERATIONS": True,
     "SORT_OPERATION_PARAMETERS": True,
-    "PREPROCESSING_HOOKS": [],
+    "PREPROCESSING_HOOKS": ["Tourism.schema.drop_slash_alias_operations"],
     "POSTPROCESSING_HOOKS": [],
     "ENUM_NAME_OVERRIDES": {},
     # NOTE: GET_MOCK_REQUEST, AUTHENTICATION_WHITELIST, PARSER_WHITELIST,
@@ -645,7 +645,15 @@ ROUTING_API_URL = config("ROUTING_API_URL", default="")
 # unreachable the endpoints fall back to the bundled tourism graph and,
 # last, to an explicitly-labelled straight-line estimate.
 ROUTING_PROVIDER = config("ROUTING_PROVIDER", default="osrm")
-ROUTING_BASE_URL = config("ROUTING_BASE_URL", default=ROUTING_API_URL)
+# Default to the public OSRM server so real street-level, turn-by-turn routing
+# works out of the box. With no server configured every route fell back to the
+# bundled tourism graph ("navigation_grade": false), and the live navigation
+# panel disables "Start navigation" for such routes, so the page behaved like a
+# nearby-places list. The public demo hosts the driving profile only and is
+# rate limited: set ROUTING_BASE_URL to your own OSRM/compatible server for
+# production traffic. Tests stay hermetic (no outbound calls).
+_DEFAULT_ROUTING_BASE_URL = "" if "test" in sys.argv else "https://router.project-osrm.org"
+ROUTING_BASE_URL = config("ROUTING_BASE_URL", default=ROUTING_API_URL or _DEFAULT_ROUTING_BASE_URL)
 ROUTING_TIMEOUT = config("ROUTING_TIMEOUT", default=6, cast=float)
 ROUTING_MAX_RETRIES = config("ROUTING_MAX_RETRIES", default=2, cast=int)
 ROUTING_CACHE_TTL = config("ROUTING_CACHE_TTL", default=600, cast=int)

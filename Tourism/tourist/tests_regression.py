@@ -60,6 +60,30 @@ class NearbyEndpointRegressionTests(TestCase):
         )
         self.assertEqual(resp.status_code, 200)
 
+    def test_nearby_paginates_after_distance_sorting(self):
+        nearby = Destination.objects.create(
+            name="Nearby Regression Place", slug="nearby-regression-place",
+            latitude=27.72, longitude=85.324,
+            status=Destination.SubmissionStatus.APPROVED, is_active=True,
+        )
+        farther = Destination.objects.create(
+            name="Farther Regression Place", slug="farther-regression-place",
+            latitude=27.8, longitude=85.324,
+            status=Destination.SubmissionStatus.APPROVED, is_active=True,
+        )
+
+        response = self.client.get("/api/v1/destinations/nearby/", {
+            "latitude": 27.7172, "longitude": 85.3240,
+            "radius_km": 50, "page_size": 1,
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 2)
+        self.assertEqual([row["id"] for row in response.data["results"]], [nearby.id])
+        self.assertIn("page_size=1", response.data["next"])
+        self.assertIn("radius_km=50", response.data["next"])
+        self.assertNotEqual(nearby.id, farther.id)
+
 
 class PaginationRegressionTests(TestCase):
     def test_non_numeric_page_is_clean_404(self):

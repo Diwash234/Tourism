@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from . import views
+from translation import views as translation_views
 from . import views_auth
 from . import views_admin
 from . import views_compat
@@ -316,6 +317,8 @@ urlpatterns = [
     path("translate/", views.TranslateTextView.as_view(), name="translate-text"),
     path("translation/ui-strings/", views.UITranslationListView.as_view(), name="ui-strings"),
     path("translation/ui-strings/bulk/", views.UITranslationBulkView.as_view(), name="ui-strings-bulk"),
+    path("travel-guides/<str:slug>/", views.TravelGuideDetailView.as_view(), name="travel-guide-detail"),
+    path("translate/batch/", translation_views.TranslateBatchView.as_view(), name="translate-batch"),
     path("images/resolve/", views_images.ImageResolveView.as_view(), name="images-resolve"),
     # Multi-source Image Acquisition & Provenance Pipeline API
     path("destinations/<str:slug>/images", views_images.DestinationImagesListView.as_view(), name="destination-images-list-no-slash"),

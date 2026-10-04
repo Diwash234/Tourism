@@ -63,7 +63,7 @@ class MultiSourceImageSearchTests(APITestCase):
         res = self.client.post("/api/v1/admin/images/multi-search/", {}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_admin_can_import_image_to_destination(self):
+    def test_admin_imports_candidate_without_publishing_or_replacing_current_cover(self):
         self.client.force_authenticate(user=self.admin)
         res = self.client.post("/api/v1/admin/images/import-media/", {
             "destination_id": self.destination.id,
@@ -79,11 +79,58 @@ class MultiSourceImageSearchTests(APITestCase):
         }, format="json")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertTrue(res.data["success"])
+        self.assertTrue(res.data["needs_review"])
+        self.assertEqual(res.data["verification_status"], DestinationImage.ImageStatus.PENDING)
 
-        # Check DB state
+        # Search confidence is not verification. The candidate stays private
+        # until a reviewer checks both its subject match and its license.
         self.destination.refresh_from_db()
-        self.assertTrue(self.destination.gallery.filter(caption__icontains="Phewa Lake").exists())
-        self.assertTrue(bool(self.destination.cover_image))
+        image = self.destination.gallery.get(caption__icontains="Phewa Lake")
+        self.assertFalse(image.is_verified)
+        self.assertEqual(image.verification_status, DestinationImage.ImageStatus.PENDING)
+        self.assertIsNone(image.destination_match_score)
+        self.assertEqual(image.copyright_status, "pending_review")
+        self.assertEqual(image.source, DestinationImage.Source.WIKIMEDIA)
+        self.assertEqual(image.source_url, "https://commons.wikimedia.org/wiki/File:Phewa_Lake_Pokhara.jpg")
+        self.assertTrue(image.is_cover)  # cover request is held until approval
+        self.assertFalse(bool(self.destination.cover_image))
+        queue = self.client.get("/api/v1/admin/pending-images/")
+        self.assertEqual(queue.status_code, status.HTTP_200_OK)
+        queued_image = next(row for row in queue.data if row["id"] == image.id)
+        self.assertEqual(queued_image["source_url"], image.source_url)
+        self.assertEqual(queued_image["license_type"], image.license_type)
+        self.assertEqual(queued_image["copyright_status"], "pending_review")
+
+    def test_reimport_preserves_existing_approval_and_cover(self):
+        image_url = "https://upload.wikimedia.org/wikipedia/commons/phewa.jpg"
+        existing = DestinationImage.objects.create(
+            destination=self.destination,
+            external_url=image_url,
+            source=DestinationImage.Source.WIKIMEDIA,
+            source_url="https://commons.wikimedia.org/wiki/File:Phewa.jpg",
+            verification_status=DestinationImage.ImageStatus.APPROVED,
+            is_verified=True,
+            is_cover=True,
+        )
+        self.destination.cover_image = image_url
+        self.destination.save(update_fields=["cover_image"])
+        self.client.force_authenticate(user=self.admin)
+
+        response = self.client.post("/api/v1/admin/images/import-media/", {
+            "destination_id": self.destination.id,
+            "image_url": image_url,
+            "source_platform": "wikimedia",
+            "confidence_score": 99,
+        }, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["needs_review"])
+        self.assertEqual(self.destination.gallery.count(), 1)
+        existing.refresh_from_db()
+        self.destination.refresh_from_db()
+        self.assertTrue(existing.is_verified)
+        self.assertEqual(existing.verification_status, DestinationImage.ImageStatus.APPROVED)
+        self.assertEqual(self.destination.cover_image, image_url)
 
     def test_import_requires_image_url_and_destination(self):
         self.client.force_authenticate(user=self.admin)

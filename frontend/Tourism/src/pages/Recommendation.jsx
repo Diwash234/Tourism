@@ -93,6 +93,15 @@ export default function Recommendation() {
   const [categories, setCategories] = useState([])
 
   useEffect(() => {
+    // Stable guest id so every visitor gets their own ranking, not the same
+    // "anonymous" order as everyone else (see views.py MoodRecommendations jitter).
+    try {
+      const has = document.cookie.split("; ").some((c) => c.startsWith("ny_guest_id="))
+      if (!has) {
+        const uid = (crypto.randomUUID && crypto.randomUUID()) || Math.random().toString(36).slice(2) + Date.now().toString(36)
+        document.cookie = `ny_guest_id=${uid};path=/;max-age=31536000;SameSite=Lax`
+      }
+    } catch { /* ignore */ }
     let alive = true
     exploreApi.discoverOptions().then(({ data }) => { if (alive) setOrigins(data.origins || []) }).catch(() => {})
     return () => { alive = false }

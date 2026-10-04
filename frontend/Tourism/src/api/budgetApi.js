@@ -7,6 +7,7 @@ const budgetApi = {
   // cancelled instead of merely ignored when it lands.
   estimate: (data, config = {}) => axiosClient.post("/ml/budget/", data, config),
   getSummary: () => axiosClient.get("/budget/summary/"),
+  getExchangeRates: () => axiosClient.get("/fx/rates/"),
 }
 
 export default budgetApi

@@ -3,6 +3,7 @@ Tourism/tourist/serializers_itinerary.py -- kept separate from the
 already-700+-line serializers.py, same reasoning as the family-safety
 split earlier this session.
 """
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from .models import Itinerary, ItineraryDay, ItineraryStop, Destination, Category
@@ -30,14 +31,28 @@ class ItineraryDaySerializer(serializers.ModelSerializer):
         fields = ["id", "day_number", "date", "stops"]
 
 
+class ItineraryProgressSerializer(serializers.Serializer):
+    """Visit tally behind ``Itinerary.progress`` (``total`` / ``visited``)."""
+
+    total = serializers.IntegerField()
+    visited = serializers.IntegerField()
+
+
 class ItinerarySerializer(serializers.ModelSerializer):
     days = ItineraryDaySerializer(many=True, read_only=True)
-    progress = serializers.ReadOnlyField()
+    progress = serializers.SerializerMethodField()
     category_filter_names = serializers.SlugRelatedField(
         source="category_filter", slug_field="name", many=True, read_only=True
     )
     distance_type = serializers.SerializerMethodField()
     distance_note = serializers.SerializerMethodField()
+
+    @extend_schema_field(ItineraryProgressSerializer)
+    def get_progress(self, obj):
+        # Mirrors the ``Itinerary.progress`` property. It counts its own stops
+        # with a query, so it is a method field rather than a plain attribute
+        # passthrough only to give the return shape a documented component.
+        return obj.progress
 
     def get_distance_type(self, obj) -> str:
 

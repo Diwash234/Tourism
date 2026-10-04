@@ -4,7 +4,11 @@ import usePublicConfig from "../../hooks/usePublicConfig"
 
 export default function GlobalActionButtons() {
   const { settings } = usePublicConfig()
-  const actionsConfig = settings?.action_buttons
+  // Same first-render gap as GlobalCtaBanner: `settings` is `{}` until
+  // /config/public resolves, so this section is usually undefined here.
+  // Default to an empty object -- the guards only opt the buttons *out*,
+  // and the labels below fall back to their built-in copy.
+  const actionsConfig = settings?.action_buttons ?? {}
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -18,8 +22,8 @@ export default function GlobalActionButtons() {
     return null
   }
 
-  const isPublished = actionsConfig?.status ? actionsConfig.status === "published" : true
-  const isEnabled = actionsConfig?.enabled !== false
+  const isPublished = actionsConfig.status ? actionsConfig.status === "published" : true
+  const isEnabled = actionsConfig.enabled !== false
 
   if (!isEnabled || !isPublished) {
     return null

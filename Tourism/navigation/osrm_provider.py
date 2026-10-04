@@ -111,11 +111,17 @@ class OSRMProvider(RoutingProvider):
         steps = []
         for leg in osrm_route.get("legs", []):
             for st in leg.get("steps", []):
+                loc = (st.get("maneuver") or {}).get("location") or []
                 steps.append({
                     "instruction": _step_instruction(st),
                     "distance_m": round(float(st.get("distance", 0)), 1),
                     "duration_s": round(float(st.get("duration", 0)), 1),
                     "maneuver": _maneuver_key(st),
+                    # Street name and where the manoeuvre happens (lat, lng),
+                    # so the UI can show "Turn left onto X" and highlight the
+                    # turn on the map.
+                    "name": (st.get("name") or "").strip(),
+                    "location": [loc[1], loc[0]] if len(loc) == 2 else None,
                 })
         return {
             "source": "osrm",

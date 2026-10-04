@@ -18,7 +18,7 @@ from .filters import DestinationFilter, AlertFilter, EmergencyContactFilter, Bud
 from .models import (
     Language, Category, Destination, DestinationImage, DestinationVideo,
     DestinationTranslation, Review, Rating, Favorite, VisitHistory, Budget,
-    Alert, EmergencyContact, Notification, NotificationPreference, DeviceToken, Hotel,
+    Alert, EmergencyContact, Notification, NotificationPreference, DeviceToken, Hotel, Hospital, PoliceStation,
     OSMEssentialService, OSMTourismPlace, DestinationAuditLog,
     TravelExpenseFeedback, TravelRiskFeedback, InfrastructureSubmission, InfrastructureMedia,
     CurrentHazard, RiskIncident, RiskObservation, RecommendationEvent, RiskNewsReport,
@@ -603,6 +603,88 @@ class UITranslationBulkView(APIView):
         return Response({"saved": saved})
 
 
+class TravelGuideDetailView(APIView):
+    """GET /api/v1/travel-guides/<slug>/ — public.
+
+    Returns the guide with all days, linked hotels, hospitals and
+    attractions (names, slugs, coordinates) so the frontend can render
+    a full itinerary page with real data.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, slug):
+        from .models import Destination, TravelGuide
+
+        guide = TravelGuide.objects.select_related("destination").filter(
+            slug=slug,
+            is_published=True,
+            destination__is_active=True,
+            destination__status=Destination.SubmissionStatus.APPROVED,
+        ).first()
+        if not guide:
+            return Response({"detail": "Guide not found."}, status=404)
+
+        days = []
+        for day in guide.days.all():
+            days.append({
+                "day_number": day.day_number,
+                "title": day.title,
+                "description": day.description,
+                "route": day.route,
+                "travel_distance": day.travel_distance,
+                "travel_time": day.travel_time,
+                "overnight_stay": day.overnight_stay,
+                "morning": day.morning,
+                "afternoon": day.afternoon,
+                "evening": day.evening,
+                "practical_notes": day.practical_notes,
+                "hotels": [
+                    {"id": h.id, "name": h.name, "address": h.address,
+                     "price_per_night": str(h.price_per_night) if h.price_per_night else None,
+                     "rating": h.rating, "booking_status": h.booking_status,
+                     "source_url": h.source_url, "website": h.website}
+                    for h in day.hotels.filter(
+                        is_verified=True,
+                        is_active=True,
+                        archived_at__isnull=True,
+                    ).exclude(source_url="")
+                ],
+                "hospitals": [
+                    {"id": h.id, "name": h.name, "address": h.address,
+                     "phone": h.phone, "opening_hours": h.opening_hours,
+                     "source_url": h.source_url, "website": h.website}
+                    for h in day.hospitals.filter(
+                        is_verified=True,
+                        is_archived=False,
+                    ).exclude(source_url="")
+                ],
+                "attractions": [
+                    {"id": a.id, "name": a.name, "slug": a.slug,
+                     "latitude": str(a.latitude) if a.latitude is not None else None,
+                     "longitude": str(a.longitude) if a.longitude is not None else None}
+                    for a in day.attractions.filter(
+                        is_active=True,
+                        status=Destination.SubmissionStatus.APPROVED,
+                    )
+                ],
+            })
+
+        return Response({
+            "slug": guide.slug,
+            "title": guide.title,
+            "subtitle": guide.subtitle,
+            "days_count": guide.days_count,
+            "pace": guide.pace,
+            "best_for": guide.best_for,
+            "destination": {
+                "id": guide.destination.id,
+                "name": guide.destination.name,
+                "slug": guide.destination.slug,
+            },
+            "days": days,
+        })
+
+
 def search_destination(request):
 
     query = request.GET.get("q", "")
@@ -754,42 +836,34 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
         radius_km = query_serializer.validated_data["radius_km"]
 
         box = bounding_box(lat, lon, radius_km)
-        # select_related/prefetch_related matter here: this queryset has no
-        # default prefetch, and DestinationListSerializer reads category.name
-        # and resolves a cover image from the gallery for every row, so without
-        # them each destination cost two extra queries. With a 250 km radius the
-        # box holds most of the country, so that was thousands of round trips
-        # to render twelve cards.
+        # Filter/rank lightweight coordinate rows first. Loading each model's
+        # gallery before pagination made a normal 12-card page prefetch photos
+        # for thousands of destinations in the 250 km bounding box.
         candidates = Destination.objects.filter(
             is_active=True, status=Destination.SubmissionStatus.APPROVED,
             latitude__gte=box["min_lat"], latitude__lte=box["max_lat"],
             longitude__gte=box["min_lon"], longitude__lte=box["max_lon"],
-        ).select_related("category").prefetch_related("gallery")
-
-        # NOTE: an earlier version capped this to the nearest
-        # DISTANCE_CANDIDATE_CAP rows by squared-degree distance, which cut a
-        # 250 km request from 17.9 s to 1.3 s. It was reverted because the cap
-        # also caps the reported total: `count` fell from 6,695 to 600 and the
-        # paginator advertised 60 pages instead of the real number. Truncating
-        # the result set to make the response faster is only acceptable if the
-        # response says so, and the honest total costs the same query anyway.
-        #
-        # The remaining cost is the per-row haversine in Python below, which is
-        # what actually filters the rectangle down to the circle. Moving that
-        # into SQL is the correct fix and needs a database-side distance
-        # function, which is not done here.
+        ).values_list("id", "latitude", "longitude")
 
         results = []
-        for dest in candidates:
-            distance = haversine_distance(lat, lon, dest.latitude, dest.longitude)
+        for destination_id, dest_lat, dest_lon in candidates.iterator(chunk_size=1000):
+            distance = haversine_distance(lat, lon, dest_lat, dest_lon)
             if distance <= radius_km:
-                results.append((distance, dest))
-        results.sort(key=lambda pair: pair[0])
-        destinations = [dest for _, dest in results]
+                results.append((distance, destination_id))
+        results.sort(key=lambda pair: (pair[0], pair[1]))
+        destination_ids = [destination_id for _, destination_id in results]
 
-        page = self.paginate_queryset(destinations)
+        page = self.paginate_queryset(destination_ids)
+        page_ids = list(page if page is not None else destination_ids)
+        destinations_by_id = {
+            destination.pk: destination
+            for destination in Destination.objects.filter(pk__in=page_ids)
+            .select_related("category")
+            .prefetch_related("gallery")
+        }
+        destinations = [destinations_by_id[pk] for pk in page_ids if pk in destinations_by_id]
         serializer = DestinationListSerializer(
-            page or destinations, many=True, context={"request": request, "user_lat": lat, "user_lon": lon}
+            destinations, many=True, context={"request": request, "user_lat": lat, "user_lon": lon}
         )
         if page is not None:
             return self.get_paginated_response(serializer.data)
@@ -2505,12 +2579,24 @@ class DestinationNearbyPOIsView(APIView):
             pool = candidate_pool(key)
             if not pool:
                 return [], radii[-1]
+            # Directory rows imported from district lists carry a town-centre point
+            # rather than the building's coordinates (28 Biratnagar hospitals share
+            # ONE point, and coordinate_source/status are blank on every row).
+            # Three or more rows on the same 4-decimal point is that signature, so
+            # their distance is only good to a few km and is labelled as an area
+            # point instead of a metre-precise figure.
+            from collections import Counter
+            shared_points = Counter((round(r[1], 4), round(r[2], 4)) for r in pool)
             for radius in radii:
                 found = []
                 for name, rlat, rlon, extra in pool:
                     d = haversine_distance(lat, lon, rlat, rlon)
                     if d is not None and d <= radius:
-                        is_approx = bool(extra.get("is_approximate") or (round(rlat, 4) == round(lat, 4) and round(rlon, 4) == round(lon, 4)))
+                        is_approx = bool(
+                            extra.get("is_approximate")
+                            or (round(rlat, 4) == round(lat, 4) and round(rlon, 4) == round(lon, 4))
+                            or shared_points[(round(rlat, 4), round(rlon, 4))] >= 3
+                        )
                         dist_label = f"≈ {round(d, 2)} km (area point)" if is_approx else f"{round(d, 2)} km"
                         row_item = {
                             "name": name,
@@ -3170,11 +3256,30 @@ class MoodRecommendationsView(generics.ListAPIView):
 
         # The live database is the source of truth: newly approved admin/user
         # destinations automatically participate without retraining a CSV model.
-        qs = Destination.sightseeing().select_related("category", "risk_analysis").prefetch_related("transit_routes").annotate(
-            hospital_total=Count("hospitals", distinct=True),
-            police_total=Count("police_stations", distinct=True),
-            hotel_total=Count("hotels", distinct=True),
-        )
+        qs = Destination.sightseeing().select_related("category", "risk_analysis").prefetch_related("transit_routes")
+
+        # Aggregate each service relation independently. Joining all three
+        # one-to-many tables into the destination query multiplies their rows
+        # together (hospitals × police × hotels) while scanning the catalogue.
+        service_counts = {}
+        for key, model in (
+            ("hospital", Hospital),
+            ("police", PoliceStation),
+            ("hotel", Hotel),
+        ):
+            service_rows = model.objects.order_by()
+            if key in {"hospital", "police"}:
+                service_rows = service_rows.filter(is_verified=True, is_archived=False)
+            else:
+                service_rows = service_rows.filter(
+                    is_verified=True, is_active=True, archived_at__isnull=True
+                )
+            service_counts[key] = dict(
+                service_rows
+                .values("destination_id")
+                .annotate(total=Count("id"))
+                .values_list("destination_id", "total")
+            )
 
         exclude_slugs = set(ACCOMMODATION_SLUGS) | set(NON_ATTRACTION_SLUGS)
         qs = qs.exclude(category__slug__in=exclude_slugs)
@@ -3184,6 +3289,12 @@ class MoodRecommendationsView(generics.ListAPIView):
             qs = qs.exclude(name__icontains=hint)
         if province:
             qs = qs.filter(province__icontains=province)
+        if requested_categories:
+            # Explicit category pick is a real filter, not just a score bump:
+            # what you select is what you can get, so different categories can
+            # never return the identical top set.
+            from django.db.models import Q as _Q
+            qs = qs.filter(_Q(category__slug__in=requested_categories) | _Q(category__name__in=requested_categories))
 
         # Existing user behaviour adds a small category-affinity signal; it
         # never replaces the current content model or explicit form choices.
@@ -3242,7 +3353,8 @@ class MoodRecommendationsView(generics.ListAPIView):
             # a slightly different mix, so the same filters no longer return
             # byte-identical results for every user. Near-equal scores reorder.
             import hashlib
-            _user_key = str(request.user.pk) if request.user.is_authenticated else (request.session.session_key or "anon")
+            _guest_id = request.COOKIES.get("ny_guest_id") or request.session.session_key or "anon"
+            _user_key = str(request.user.pk) if request.user.is_authenticated else _guest_id
             _fresh = hashlib.sha1(f"{_user_key}|{plan_month}|{'|'.join(moods)}|{destination.id}".encode()).hexdigest()
             score += (int(_fresh, 16) % 1000) / 1000.0 * 0.10
             keyword_hits = [kw for kw in kws if kw in hay]
@@ -3375,14 +3487,16 @@ class MoodRecommendationsView(generics.ListAPIView):
                 score += current_warning_adjustment
             breakdown["current_warning_adjustment"] = current_warning_adjustment
 
-            service_count = destination.hospital_total + destination.police_total + destination.hotel_total
+            hospital_total = service_counts["hospital"].get(destination.id, 0)
+            police_total = service_counts["police"].get(destination.id, 0)
+            hotel_total = service_counts["hotel"].get(destination.id, 0)
+            service_count = hospital_total + police_total + hotel_total
             emergency_score = min(service_count * 0.015, 0.09)
             score += emergency_score
             breakdown["services"] = round(emergency_score, 3)
             hospital = facts_row["nearest_hospital"]
-            if hospital and hospital["km"] <= 10:
-                reasons.append(f"Hospital on record {hospital['km']} km away"
-                               + ("" if hospital["verified"] else " (unverified listing)"))
+            if hospital and hospital["verified"] and hospital["km"] <= 10:
+                reasons.append(f"Verified hospital on record {hospital['km']} km away")
 
             elevation_m = facts_row["elevation_m"]
             if elevation_m is not None and elevation_m >= 4000:
@@ -3408,9 +3522,9 @@ class MoodRecommendationsView(generics.ListAPIView):
             breakdown["route_condition"] = route_penalty
             recorded_condition = next((r.road_condition for r in route_records if r.road_condition), None)
             safety_context = {
-                "hospital_count": destination.hospital_total,
-                "police_count": destination.police_total,
-                "hotel_count": destination.hotel_total,
+                "hospital_count": hospital_total,
+                "police_count": police_total,
+                "hotel_count": hotel_total,
                 "route_condition": recorded_condition or "Route condition not on record",
                 "route_condition_recorded": bool(recorded_condition),
                 "availability": availability,

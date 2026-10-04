@@ -275,12 +275,20 @@ export default function DestinationList() {
                 .catch(() => {})
             }
           })
-          .catch(() => {
+          .catch((error) => {
             if (!isCurrent()) return
             setDestinations([])
             setTotalPages(1)
             setTotalCount(0)
-            setLoadError("We couldn't load destinations right now. Check your connection and try again.")
+            const status = error?.response?.status
+            const timedOut = error?.code === "ECONNABORTED" || /timeout/i.test(String(error?.message || ""))
+            if (status) {
+              setLoadError(`The destination service returned an error (HTTP ${status}). Please try again.`)
+            } else if (timedOut || error?.apiUnreachable) {
+              setLoadError(error.message || "The destination service is unreachable. Check your connection and try again.")
+            } else {
+              setLoadError("We couldn't load destinations right now. Check your connection and try again.")
+            }
             setLoading(false)
           })
       }
@@ -484,14 +492,18 @@ export default function DestinationList() {
       {!loading && !loadError && <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-[var(--ny-text-secondary)]"><span>Showing <strong className="text-[var(--ny-text)]">{totalCount.toLocaleString()}</strong> places{isGpsSorted ? " nearest to your location" : ""}{query ? ` for “${query}”` : ""}{letter ? ` starting with “${letter}”` : ""}</span>{(query || letter || categoryChip) && <button type="button" onClick={() => { setQuery(""); setLetter(""); setCategoryChip(""); setPage(1) }} className="inline-flex min-h-11 items-center gap-1 font-semibold text-[var(--ny-green)] hover:underline"><FiX size={14} aria-hidden="true" /> Clear filters</button>}</div>}
 
       {/* Results View */}
-      {loading ? (
+      {/* Skeletons only for the first load. On a page change the current page stays
+          mounted (dimmed) until the next one arrives: swapping the whole grid and the
+          pager for skeletons made every Next/Previous/Jump look like a full reload,
+          dropped the typed page number, and lost keyboard focus. */}
+      {loading && destinations.length === 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 min-[1240px]:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => <DestinationCardSkeleton key={i} />)}
         </div>
       ) : loadError ? (
         <ErrorState title="Could not load destinations" message={loadError} onRetry={() => setReloadNonce((value) => value + 1)} />
       ) : displayedDestinations.length > 0 ? (
-        <div className="space-y-8">
+        <div className={`space-y-8 transition-opacity duration-150 ${loading ? "opacity-60 pointer-events-none" : ""}`} aria-busy={loading}>
           <div className="flex flex-wrap items-end justify-between gap-2">
             <h2 className="text-xl sm:text-2xl font-black">
               {query ? `Results for “${query}”` : letter ? `Destinations starting with “${letter}”` : "All Nepal destinations"}

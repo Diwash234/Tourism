@@ -5,7 +5,7 @@ import re
 import sys
 from decimal import Decimal, ROUND_HALF_UP
 
-from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 
 from .image_server import image_server_url
@@ -1878,11 +1878,21 @@ class BestRouteResponseSerializer(serializers.Serializer):
     steps = serializers.ListField(required=False)
 
 
+@extend_schema_serializer(component_name="ItineraryBuild")
 class ItineraryRequestSerializer(serializers.Serializer):
     """
     Rich, dataset-driven itinerary builder request. Sent when the
     traveller presses "Generate"; nationality / travel_month drive the
     official permit, fee and visa checks in the trip-readiness section.
+
+    The explicit ``component_name`` is required, not cosmetic. This is the
+    POST /ml/itinerary/ body, while ``serializers_itinerary.ItinerarySerializer``
+    is the stored-itinerary resource. With COMPONENT_SPLIT_REQUEST enabled the
+    library derives a name per direction, and both classes landed on
+    "ItineraryRequest" -- one by stripping "Serializer" off this class name,
+    the other by appending "Request" to "Itinerary" -- so one silently
+    overwrote the other in the schema. Naming this one "ItineraryBuild" keeps
+    every direction distinct ("ItineraryBuildRequest" / "ItineraryBuild").
     """
 
     nationality = serializers.ChoiceField(choices=["foreign", "saarc", "chinese", "nepali"], default="foreign")
@@ -2435,6 +2445,7 @@ class PriceComponentSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["created_at", "updated_at", "verified_by", "verified_at"]
 
+    @extend_schema_field(serializers.CharField())
     def get_scope(self, obj):
         if obj.destination:
             return f"destination:{obj.destination.slug}"
@@ -2444,6 +2455,7 @@ class PriceComponentSerializer(serializers.ModelSerializer):
             return f"province:{obj.province}"
         return "national"
 
+    @extend_schema_field(serializers.BooleanField())
     def get_is_current(self, obj):
         today = timezone.now().date()
         if obj.effective_until and obj.effective_until < today:
@@ -2466,6 +2478,30 @@ class PriceComponentHistorySerializer(serializers.ModelSerializer):
         read_only_fields = ["created_at"]
 
 
+class BudgetBreakdownLineSerializer(serializers.Serializer):
+    """One category of a destination budget profile, in NPR.
+
+    ``npr`` is nullable: a category the profile does not price is reported as
+    null rather than back-filled with a guess, so a client can tell "not
+    covered" apart from "zero".
+    """
+
+    npr = serializers.FloatField(allow_null=True)
+
+
+class DestinationBudgetProfileBreakdownSerializer(serializers.Serializer):
+    """The per-category cost map returned by ``get_breakdown``."""
+
+    transport_intercity = BudgetBreakdownLineSerializer()
+    transport_local = BudgetBreakdownLineSerializer()
+    accommodation = BudgetBreakdownLineSerializer()
+    food = BudgetBreakdownLineSerializer()
+    entry_fees = BudgetBreakdownLineSerializer()
+    guide_porter = BudgetBreakdownLineSerializer()
+    permits = BudgetBreakdownLineSerializer()
+    misc = BudgetBreakdownLineSerializer()
+
+
 class DestinationBudgetProfileSerializer(serializers.ModelSerializer):
     destination_name = serializers.CharField(source="destination.name", read_only=True)
     destination_slug = serializers.CharField(source="destination.slug", read_only=True)
@@ -2485,6 +2521,7 @@ class DestinationBudgetProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["last_computed", "computation_version", "components_used", "created_at", "updated_at"]
 
+    @extend_schema_field(DestinationBudgetProfileBreakdownSerializer)
     def get_breakdown(self, obj):
         return {
             "transport_intercity": {"npr": obj.transport_intercity_npr},
@@ -2528,11 +2565,13 @@ class TravelExpenseFeedbackSerializer(serializers.ModelSerializer):
             "created_at", "updated_at"
         ]
 
+    @extend_schema_field(serializers.FloatField(allow_null=True))
     def get_daily_cost_npr(self, obj):
         if obj.num_days > 0:
             return float(obj.total_cost / obj.num_days)
         return None
 
+    @extend_schema_field(serializers.FloatField(allow_null=True))
     def get_daily_cost_usd(self, obj):
         if obj.num_days > 0:
             from django.conf import settings

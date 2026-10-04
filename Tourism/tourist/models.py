@@ -4475,3 +4475,59 @@ class UITranslation(models.Model):
 
     def __str__(self):
         return f"{self.key} [{self.language}]"
+
+
+class TravelGuide(models.Model):
+    """A curated multi-day travel guide (e.g. "15-Day Pokhara")."""
+
+    slug = models.SlugField(unique=True)
+    title = models.CharField(max_length=200)
+    subtitle = models.CharField(max_length=400, blank=True)
+    destination = models.ForeignKey(
+        Destination, on_delete=models.CASCADE, related_name="travel_guides"
+    )
+    days_count = models.PositiveIntegerField(default=1)
+    pace = models.CharField(max_length=50, default="Relaxed")
+    best_for = models.CharField(max_length=300, blank=True)
+    cover_image = models.ImageField(upload_to="travel_guides/", blank=True, null=True)
+    is_published = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.title
+
+
+class TravelGuideDay(models.Model):
+    """One day within a travel guide, linked to real DB records."""
+
+    guide = models.ForeignKey(TravelGuide, on_delete=models.CASCADE, related_name="days")
+    day_number = models.PositiveIntegerField()
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    route = models.CharField(max_length=400, blank=True)
+    travel_distance = models.CharField(max_length=100, blank=True)
+    travel_time = models.CharField(max_length=100, blank=True)
+    overnight_stay = models.CharField(max_length=300, blank=True)
+    morning = models.TextField(blank=True)
+    afternoon = models.TextField(blank=True)
+    evening = models.TextField(blank=True)
+    practical_notes = models.TextField(blank=True)
+    primary_destination = models.ForeignKey(
+        Destination, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="travel_guide_days_primary",
+    )
+    hotels = models.ManyToManyField(Hotel, blank=True, related_name="travel_guide_days")
+    hospitals = models.ManyToManyField(Hospital, blank=True, related_name="travel_guide_days")
+    attractions = models.ManyToManyField(
+        Destination, blank=True, related_name="travel_guide_days_attractions"
+    )
+
+    class Meta:
+        ordering = ["day_number"]
+        unique_together = ("guide", "day_number")
+
+    def __str__(self):
+        return f"Day {self.day_number}: {self.title}"

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { notifyCmsUpdated } from "../../hooks/usePublicConfig"
 import { diffSnapshots, formatSnapshotValue } from "../../utils/revisionDiff"
-import { FiActivity, FiClock, FiExternalLink, FiEye, FiFilePlus, FiRefreshCw, FiRotateCcw, FiSave, FiSend, FiX } from "react-icons/fi"
+import { FiActivity, FiClock, FiExternalLink, FiEye, FiFilePlus, FiLayers, FiRefreshCw, FiRotateCcw, FiSave, FiSend, FiX } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
 import RichTextEditor from "./RichTextEditor"
@@ -457,6 +457,7 @@ export default function CMSPanel({ defaultResource = "pages" }) {
                 <button type="button" onClick={undo} disabled={!histCounts.past} title="Undo (draft edits)" aria-label="Undo" className="px-2.5 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 disabled:opacity-30">↶</button>
                 <button type="button" onClick={redo} disabled={!histCounts.future} title="Redo" aria-label="Redo" className="px-2.5 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 disabled:opacity-30">↷</button>
                 {resource === "pages" && <button type="button" onClick={() => setSeoPreview(true)} className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-bold flex gap-1 whitespace-nowrap"><FiEye /> SEO preview</button>}
+                {resource === "pages" && selected.id && <button type="button" onClick={() => { setSectionPageId(String(selected.id)); setResource("sections"); setSelected(null); }} className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg text-xs font-bold flex gap-1 whitespace-nowrap" title="View this page's sections in the Sections tab"><FiLayers /> View sections</button>}
                 {resource === "pages" && selected.route && (
                   <a
                     href={selected.route.includes(":") ? selected.route.split("/:")[0] : selected.route}

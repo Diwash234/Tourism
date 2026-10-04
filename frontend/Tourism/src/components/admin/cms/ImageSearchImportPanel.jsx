@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { FiSearch, FiCheck, FiExternalLink, FiImage, FiEye, FiDownload, FiStar, FiFilter, FiRefreshCw } from "react-icons/fi"
 import adminApi from "../../../api/adminApi"
 import destinationApi from "../../../api/destinationApi"
@@ -29,6 +29,7 @@ export default function ImageSearchImportPanel({ initialDestinationId = null, on
   const [hasSearched, setHasSearched] = useState(false)
   const [previewItem, setPreviewItem] = useState(null)
   const [importingUrl, setImportingUrl] = useState(null)
+  const destinationSearchSequence = useRef(0)
 
   // Load destination options for the picker
   useEffect(() => {
@@ -48,6 +49,22 @@ export default function ImageSearchImportPanel({ initialDestinationId = null, on
       })
       .catch(() => {})
   }, [initialDestinationId])
+
+  useEffect(() => {
+    const query = destName.trim()
+    const sequence = ++destinationSearchSequence.current
+    if (query.length < 2) return undefined
+    const timer = setTimeout(() => {
+      destinationApi.getDestinations({ search: query, page_size: 30 })
+        .then(({ data }) => {
+          if (sequence !== destinationSearchSequence.current) return
+          const list = data.results || data || []
+          setDestinations(list)
+        })
+        .catch(() => {})
+    }, 250)
+    return () => clearTimeout(timer)
+  }, [destName])
 
   const handleDestinationSelect = (e) => {
     const val = e.target.value
@@ -131,7 +148,12 @@ export default function ImageSearchImportPanel({ initialDestinationId = null, on
         is_cover: asCover,
       }
       const { data } = await adminApi.importMediaImage(payload)
-      showToast(asCover ? "Image saved and set as primary destination cover!" : "Image added to destination gallery!", "success")
+      showToast(
+        data.needs_review
+          ? "Image candidate queued for accuracy and license review. Existing photos are unchanged."
+          : data.message || "Existing image review status was preserved.",
+        "success",
+      )
       if (onImageImported) {
         onImageImported(data)
       }
@@ -216,7 +238,7 @@ export default function ImageSearchImportPanel({ initialDestinationId = null, on
 
           <div>
             <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-              Link To DB Destination
+              Match from destination catalogue
             </label>
             <select
               value={selectedDestId}
@@ -230,6 +252,7 @@ export default function ImageSearchImportPanel({ initialDestinationId = null, on
                 </option>
               ))}
             </select>
+            <p className="mt-1 text-[10px] text-slate-400">Type at least 2 characters in Destination / Sight to search the full catalogue.</p>
           </div>
         </div>
 
@@ -438,14 +461,14 @@ export default function ImageSearchImportPanel({ initialDestinationId = null, on
                 onClick={() => { handleImport(previewItem, false); setPreviewItem(null) }}
                 className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold cursor-pointer"
               >
-                Add to Destination Gallery
+                Add to Review Queue
               </button>
               <button
                 type="button"
                 onClick={() => { handleImport(previewItem, true); setPreviewItem(null) }}
                 className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black cursor-pointer"
               >
-                Set as Primary Cover
+                Request Cover After Review
               </button>
             </div>
           </div>

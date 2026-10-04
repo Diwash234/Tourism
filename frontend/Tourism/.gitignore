@@ -19,3 +19,5 @@ playwright/.cache
 tests-nav/nav-test-bundle.cjs
 .layout-failed
 test-results.json
+tests-pagination/bundle.cjs
+tests-i18n/bundle.cjs

@@ -143,6 +143,8 @@ export default function Navigation() {
   const [featuredDests, setFeaturedDests] = useState([])
   const [nearbyPlaces, setNearbyPlaces] = useState([])
   const [nearbyLoading, setNearbyLoading] = useState(false)
+  const [nearbyError, setNearbyError] = useState("")
+  const nearbyRequestId = useRef(0)
 
   // HUD & Tools Drawer State
   // Standard turn-by-turn map is the default experience; the Game HUD is opt-in (brief item).
@@ -447,27 +449,40 @@ export default function Navigation() {
   useEffect(() => {
     // Deferred one tick: keeps synchronous setState out of the effect
     // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const requestId = ++nearbyRequestId.current
     const t = setTimeout(() => {
     if (!nearbyCenter) {
       setNearbyPlaces([])
       setEmergencyDir(null)
       setNearbyLoading(false)
+      setNearbyError("Share your location or calculate a route to find nearby places.")
       return
     }
     setNearbyLoading(true)
+    setNearbyError("")
     emergencyApi.nearby(nearbyCenter.lat, nearbyCenter.lng, { radius_km: 50, limit: 8 })
-      .then(({ data }) => setEmergencyDir(data))
-      .catch(() => setEmergencyDir(null))
+      .then(({ data }) => { if (requestId === nearbyRequestId.current) setEmergencyDir(data) })
+      .catch(() => { if (requestId === nearbyRequestId.current) setEmergencyDir(null) })
 
     nearbyApi.getNearbyPlaces({ lat: nearbyCenter.lat, lng: nearbyCenter.lng, category: amenityTab, radius_km: nearbyRadiusKm })
       .then(({ data }) => {
         const list = data.items || data.results || data || []
-        setNearbyPlaces(Array.isArray(list) ? list : [])
+        if (requestId === nearbyRequestId.current) {
+          setNearbyPlaces(Array.isArray(list) ? list : [])
+        }
       })
-      .catch(() => setNearbyPlaces([]))
-      .finally(() => setNearbyLoading(false))
+      .catch((nearbyFetchError) => {
+        if (requestId === nearbyRequestId.current) {
+          setNearbyPlaces([])
+          setNearbyError(nearbyFetchError.response?.data?.detail || "Nearby places could not be loaded. Please try again.")
+        }
+      })
+      .finally(() => { if (requestId === nearbyRequestId.current) setNearbyLoading(false) })
     }, 0)
-    return () => clearTimeout(t)
+    return () => {
+      clearTimeout(t)
+      nearbyRequestId.current += 1
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [position, amenityTab, destination?.id, nearbyRadiusKm])
 
@@ -1023,11 +1038,13 @@ export default function Navigation() {
           })}
           {!nearbyPlaces.length && (
             <p className="sm:col-span-4 text-center py-4 text-xs text-slate-500">
-              {nearbyLoading
-                ? `Searching for ${amenityTab} ${nearbyCenter ? nearbyCenter.label : ""}…`
-                : nearbyCenter
-                  ? `No ${amenityTab} with recorded coordinates were found within ${nearbyRadiusKm} km of ${nearbyCenter.label}. Try a larger radius or another category.`
-                  : 'Share your location ("Use My Location") or calculate a route first — nearby services are searched around a real position, never an assumed city.'}
+              {nearbyError
+                ? nearbyError
+                : nearbyLoading
+                  ? `Searching for ${amenityTab} ${nearbyCenter ? nearbyCenter.label : ""}…`
+                  : nearbyCenter
+                    ? `No ${amenityTab} with recorded coordinates were found within ${nearbyRadiusKm} km of ${nearbyCenter.label}. Try a larger radius or another category.`
+                    : 'Share your location ("Use My Location") or calculate a route first — nearby services are searched around a real position, never an assumed city.'}
             </p>
           )}
         </div>

@@ -661,6 +661,12 @@ class AdminPendingImagesView(APIView):
                 "image_url": img_url,
                 "caption": img.caption or "",
                 "source": img.source,
+                "source_url": img.source_url or "",
+                "photographer": img.photographer or "",
+                "license_type": img.license_type or "",
+                "copyright_status": img.copyright_status,
+                "requested_cover": img.is_cover,
+                "review_note": img.review_note or "",
                 "uploaded_by": img.uploaded_by.email if img.uploaded_by else "Community User",
                 "verification_status": img.verification_status,
                 "created_at": img.created_at,
@@ -5649,7 +5655,6 @@ class AdminMultiSourceImageSearchView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     @extend_schema(
-        operation_id="admin_image_multi_source_search",
         summary="Search image providers for a destination or free-text query",
         description=(
             "Queries Wikimedia, Openverse, Flickr, Unsplash, Pexels and Pixabay in "
@@ -5707,12 +5712,11 @@ class AdminImageImportMediaView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     @extend_schema(
-        operation_id="admin_image_import_media",
         summary="Import an externally hosted image into a destination gallery",
         description=(
-            "Stores the chosen external image URL as an approved DestinationImage "
-            "with full provenance (author, license, source page). Re-importing the "
-            "same URL re-verifies the existing row instead of duplicating it."
+            "Stages the selected external image as a pending DestinationImage "
+            "with source provenance. A reviewer must approve it before public use. "
+            "Re-importing the same URL preserves its existing review state."
         ),
         request=ImageImportRequestSerializer,
         responses={
@@ -5733,46 +5737,43 @@ class AdminImageImportMediaView(APIView):
         if not dest:
             return Response({"detail": "Destination not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        confidence = float(request.data.get("confidence_score") or 90) / 100.0
         is_cover = bool(request.data.get("is_cover", False))
         img = dest.gallery.filter(external_url=image_url).first()
         if not img:
+            source_platform = (request.data.get("source_platform") or "web").strip()
+            source_key = source_platform.lower()
+            valid_sources = {choice for choice, _label in DestinationImage.Source.choices}
             img = DestinationImage.objects.create(
                 destination=dest,
                 external_url=image_url,
                 thumbnail_url=(request.data.get("thumbnail_url") or image_url).strip(),
-                caption=(request.data.get("caption") or f"{dest.name} — {(request.data.get('source_platform') or 'web').title()}").strip(),
-                source=DestinationImage.Source.ADMIN,
-                source_platform=(request.data.get("source_platform") or "web"),
+                caption=(request.data.get("caption") or f"{dest.name} — {source_platform.title()}").strip(),
+                source=source_key if source_key in valid_sources else DestinationImage.Source.ADMIN,
+                source_platform=source_platform,
                 source_url=(request.data.get("source_url") or "").strip(),
                 photographer=(request.data.get("photographer") or "").strip()[:150],
                 license_type=(request.data.get("license_type") or "CC BY-SA").strip()[:100],
-                copyright_status="verified_reusable",
+                copyright_status="pending_review",
                 is_cover=is_cover,
-                destination_match_score=round(confidence, 3),
-                is_verified=True,
-                verification_status=DestinationImage.ImageStatus.APPROVED,
+                review_note="Imported candidate; verify subject match and reuse rights before approval.",
+                is_verified=False,
+                verification_status=DestinationImage.ImageStatus.PENDING,
                 uploaded_by=request.user,
             )
-        else:
-            img.is_verified = True
-            img.verification_status = DestinationImage.ImageStatus.APPROVED
-            if is_cover:
-                img.is_cover = True
-            img.save(update_fields=["is_verified", "verification_status", "is_cover", "updated_at"])
-
-        if is_cover or not dest.cover_image:
-            dest.gallery.exclude(pk=img.pk).filter(is_cover=True).update(is_cover=False)
-            dest.cover_image = image_url
-            dest.save(update_fields=["cover_image", "updated_at"])
-            _recompute_destination_cover(dest)
 
         return Response({
             "success": True,
-            "message": "Image successfully imported to destination gallery",
+            "message": (
+                "Image candidate added to pending review. Existing gallery images were kept."
+                if img.verification_status == DestinationImage.ImageStatus.PENDING
+                else "Image already exists; its existing review state was preserved."
+            ),
             "image_id": img.id,
             "image_url": image_url,
             "is_cover": img.is_cover,
+            "needs_review": img.verification_status == DestinationImage.ImageStatus.PENDING,
+            "verification_status": img.verification_status,
+            "is_verified": img.is_verified,
             "destination_id": dest.id,
             "destination_name": dest.name,
         })

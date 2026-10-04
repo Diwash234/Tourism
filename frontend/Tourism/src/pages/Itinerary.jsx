@@ -36,42 +36,49 @@ import LocalTrailSecrets from "../components/itinerary/LocalTrailSecrets"
 import PrintableTravelBrief from "../components/itinerary/PrintableTravelBrief"
 import TippingAndCurrencyGuide from "../components/itinerary/TippingAndCurrencyGuide"
 import { NATIONALITY_OPTIONS } from "../utils/currency"
+import { useI18n } from "../i18n"
 
 
-const NOTE_CATEGORIES = ["Hotel", "Transport", "Food", "Activity", "Other"]
+const NOTE_CATEGORIES = [
+  { key: "itin.note_hotel", fallback: "Hotel" },
+  { key: "itin.note_transport", fallback: "Transport" },
+  { key: "itin.note_food", fallback: "Food" },
+  { key: "itin.note_activity", fallback: "Activity" },
+  { key: "itin.note_other", fallback: "Other" },
+]
 
 const AI_MODIFICATIONS = [
-  ["cheaper", "Budget-Friendly (कम खर्च)"],
-  ["luxurious", "Extra Comfort & Boutique (आरामदायी)"],
-  ["more_culture", "Deep Cultural Heritage (संस्कृति)"],
-  ["more_nature", "Scenic Viewpoints (प्रकृति दृश्य)"],
-  ["slower_pace", "Gentle Acclimatization (सुस्त गति)"],
-  ["replan", "Trail & Weather Adapt (मौसम अनुकूल)"],
+  ["cheaper", "itin.mod_cheaper", "Budget-Friendly (कम खर्च)"],
+  ["luxurious", "itin.mod_luxurious", "Extra Comfort & Boutique (आरामदायी)"],
+  ["more_culture", "itin.mod_culture", "Deep Cultural Heritage (संस्कृति)"],
+  ["more_nature", "itin.mod_nature", "Scenic Viewpoints (प्रकृति दृश्य)"],
+  ["slower_pace", "itin.mod_slower", "Gentle Acclimatization (सुस्त गति)"],
+  ["replan", "itin.mod_replan", "Trail & Weather Adapt (मौसम अनुकूल)"],
 ]
 
 
 const BUDGET_LEVELS = [
-  { id: "budget", label: "Budget" },
-  { id: "mid", label: "Mid-range" },
-  { id: "standard", label: "Standard" },
-  { id: "luxury", label: "Luxury" },
+  { id: "budget", key: "itin.budget_budget", fallback: "Budget" },
+  { id: "mid", key: "itin.budget_mid", fallback: "Mid-range" },
+  { id: "standard", key: "itin.budget_standard", fallback: "Standard" },
+  { id: "luxury", key: "itin.budget_luxury", fallback: "Luxury" },
 ]
 
 
 const TRAVEL_STYLES = [
-  { id: "leisure", label: "Leisure" },
-  { id: "culture", label: "Culture" },
-  { id: "nature", label: "Nature" },
-  { id: "adventure", label: "Adventure" },
-  { id: "city", label: "City" },
+  { id: "leisure", key: "itin.style_leisure", fallback: "Leisure" },
+  { id: "culture", key: "itin.style_culture", fallback: "Culture" },
+  { id: "nature", key: "itin.style_nature", fallback: "Nature" },
+  { id: "adventure", key: "itin.style_adventure", fallback: "Adventure" },
+  { id: "city", key: "itin.style_city", fallback: "City" },
 ]
 
 
 const TRAVEL_TYPES = [
-  { id: "solo", label: "Solo" },
-  { id: "couple", label: "Couple" },
-  { id: "family", label: "Family" },
-  { id: "group", label: "Group" },
+  { id: "solo", key: "itin.type_solo", fallback: "Solo" },
+  { id: "couple", key: "itin.type_couple", fallback: "Couple" },
+  { id: "family", key: "itin.type_family", fallback: "Family" },
+  { id: "group", key: "itin.type_group", fallback: "Group" },
 ]
 
 
@@ -138,6 +145,8 @@ function enrichPlanBudget(rawPlan, form) {
 }
 
 const Itinerary = () => {
+  const { t } = useI18n()
+  const tx = (key, fallback) => (t(key) !== key ? t(key) : fallback)
 
   // /itinerary?city=Dolakha (linked from the 77-district pages) prefills the
   // start city so every district can jump straight to its own itinerary.
@@ -298,13 +307,21 @@ const Itinerary = () => {
 
 
         // Technical detail goes to the console/telemetry, never to the traveller.
+        const status = err?.response?.status
+        const timedOut = err?.code === "ECONNABORTED" || /timeout/i.test(String(err?.message || ""))
         console.error(
           "[itinerary] generation failed",
-          err?.response?.status || "",
+          status || "",
           err?.response?.data?.detail || err?.message
         )
         try { reportError(err, { feature: "itinerary", action: "generate" }) } catch { /* telemetry optional */ }
-        setError("We couldn't generate your itinerary right now. Please try again in a moment.")
+        if (status) {
+          setError(`The itinerary service returned an error (HTTP ${status}). Please try again.`)
+        } else if (timedOut || err?.apiUnreachable) {
+          setError(err.message || "The itinerary service is unreachable. Check your connection and try again.")
+        } else {
+          setError("We couldn't generate your itinerary right now. Please try again in a moment.")
+        }
 
 
         setPlan(null)
@@ -456,8 +473,7 @@ const Itinerary = () => {
       )}
       <CMSPageIntro pageKey="itinerary" />
 
-      <PageHeader title="Itinerary Planner" subtitle={<>Tell us your days, budget and interests, then press Generate. Plans include
-        altitude checks, official permits & fees and a trip-readiness checklist.</>} icon={ FiCalendar } />
+      <PageHeader title={t("itin.title")} subtitle={t("itin.subtitle")} icon={ FiCalendar } />
 
       {/* Curated Signature Master Itineraries Showcase */}
       <CuratedItineraryShowcase onSelectPlan={handleSelectCuratedPlan} currentNationality={form.nationality} />
@@ -472,7 +488,7 @@ const Itinerary = () => {
         <div>
 
           <label htmlFor="itin-days" className="block text-xs font-semibold text-gray-600 mb-1">
-            Days
+            {t("itin.days")}
           </label>
 
 
@@ -614,7 +630,7 @@ const Itinerary = () => {
 
               min={0}
 
-              placeholder="e.g. 50000"
+              placeholder={t("itin.budget_ph")}
 
 
               value={form.budget_npr}
@@ -651,7 +667,7 @@ const Itinerary = () => {
 
 
           <label htmlFor="itin-start" className="block text-xs font-semibold text-gray-600 mb-1">
-            Start city
+            {t("itin.start_city")}
           </label>
 
 
@@ -680,7 +696,7 @@ const Itinerary = () => {
 
 
               required
-               placeholder="Enter a start city"
+               placeholder={t("itin.start_city_ph")}
 
 
               className="input-field pl-11"
@@ -703,7 +719,7 @@ const Itinerary = () => {
 
 
           <label htmlFor="itin-1" className="block text-xs font-semibold text-gray-600 mb-1">
-            Budget level
+            {t("itin.budget_level")}
           </label>
 
 
@@ -739,7 +755,7 @@ const Itinerary = () => {
 
                 >
 
-                  {item.label}
+                  {tx(item.key, item.fallback)}
 
                 </option>
 
@@ -811,7 +827,7 @@ const Itinerary = () => {
 
             >
 
-              {style.label}
+              {tx(style.key, style.fallback)}
 
 
             </button>
@@ -873,7 +889,7 @@ const Itinerary = () => {
 
             >
 
-              {type.label}
+              {tx(type.key, type.fallback)}
 
 
             </button>
@@ -954,23 +970,23 @@ const Itinerary = () => {
 
       <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] lg:items-end" data-testid="itinerary-generate-row">
         <div>
-          <label htmlFor="itin-nationality" className="block text-xs font-semibold text-gray-600 mb-1">Nationality (official fees)</label>
+          <label htmlFor="itin-nationality" className="block text-xs font-semibold text-gray-600 mb-1">{t("itin.nationality")}</label>
           <select id="itin-nationality" className="input-field" value={form.nationality} onChange={(e) => setForm({ ...form, nationality: e.target.value })}>
             {NATIONALITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
         <div>
-          <label htmlFor="itin-month" className="block text-xs font-semibold text-gray-600 mb-1">Travel month</label>
+          <label htmlFor="itin-month" className="block text-xs font-semibold text-gray-600 mb-1">{t("itin.travel_month")}</label>
           <select id="itin-month" className="input-field" value={form.travel_month} onChange={(e) => setForm({ ...form, travel_month: e.target.value })}>
-            <option value="">Not decided</option>
+            <option value="">{t("itin.not_decided")}</option>
             {MONTH_NAMES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
           </select>
         </div>
         <button type="button" onClick={generate} disabled={loading || !form.start_city?.trim()} className="ny-btn ny-btn-primary min-h-11 sm:col-span-2 lg:col-span-1" data-testid="itinerary-generate">
-          {loading ? "Generating…" : plan ? "Regenerate itinerary" : "Generate itinerary"}
+          {loading ? t("itin.generating") : plan ? t("itin.regenerate") : t("itin.generate")}
         </button>
         {inputsChanged && !loading && (
-          <p role="status" className="text-xs font-medium text-amber-800 sm:col-span-2 lg:col-span-3">Your inputs changed — press “Regenerate itinerary” to update the plan.</p>
+          <p role="status" className="text-xs font-medium text-amber-800 sm:col-span-2 lg:col-span-3">{t("itin.inputs_changed")}</p>
         )}
       </div>
 
@@ -1023,8 +1039,8 @@ const Itinerary = () => {
 
             <FiLoader className="animate-spin"/>
 
-            Generating your itinerary…
-            <button type="button" onClick={cancelGenerate} className="ny-btn ny-btn-secondary min-h-9 px-3 text-xs">Cancel</button>
+            {t("itin.generating_plan")}
+            <button type="button" onClick={cancelGenerate} className="ny-btn ny-btn-secondary min-h-9 px-3 text-xs">{t("common.cancel")}</button>
 
           </div>
 
@@ -1038,7 +1054,7 @@ const Itinerary = () => {
 
           <div role="alert" className="mb-4 flex flex-col gap-3 rounded-[var(--ny-radius-md)] border border-[#E9B9B9] bg-[var(--ny-soft-red)] px-4 py-3 text-sm text-[var(--ny-danger)] sm:flex-row sm:items-center sm:justify-between">
             <span>{error}</span>
-            <button type="button" onClick={generate} className="ny-btn ny-btn-secondary min-h-11 shrink-0 text-xs">Try again</button>
+            <button type="button" onClick={generate} className="ny-btn ny-btn-secondary min-h-11 shrink-0 text-xs">{t("common.try_again")}</button>
           </div>
 
         )
@@ -1119,17 +1135,17 @@ const Itinerary = () => {
                 {modifying && <span className="text-emerald-600 animate-pulse">Adapting journey schedule…</span>}
               </div>
               <p className="text-[11px] text-slate-500">
-                Tailor this route dynamically according to your pace, preferences, and Himalayan trail conditions:
+                {t("itin.tailor_hint")}
               </p>
               <div className="flex flex-wrap gap-1.5 text-xs">
-                {AI_MODIFICATIONS.map(([act, label]) => (
+                {AI_MODIFICATIONS.map(([act, key, fallback]) => (
                   <button
                     key={act}
                     disabled={modifying}
                     onClick={() => handleApplyAIModification(act)}
                     className="min-h-10 rounded-xl border border-[var(--ny-border)] bg-white px-3 py-1.5 text-gray-800 font-bold transition hover:border-[var(--ny-green)] hover:bg-[var(--ny-soft-green)]"
                   >
-                    {label}
+                    {tx(key, fallback)}
                   </button>
                 ))}
               </div>
@@ -1137,23 +1153,23 @@ const Itinerary = () => {
                 <p className="text-[11px] text-emerald-700 font-bold bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">✓ {plan.modificationNote}</p>
               )}
               {focusDestination && (
-                <p className="text-[11px] text-himalaya-600 font-bold bg-himalaya-50 p-2.5 rounded-xl border border-himalaya-100">🎯 Planning focus: {focusDestination}</p>
+                <p className="text-[11px] text-himalaya-600 font-bold bg-himalaya-50 p-2.5 rounded-xl border border-himalaya-100">🎯 {t("itin.planning_focus")}: {focusDestination}</p>
               )}
             </div>
 
             <div className="card-base p-5 space-y-3">
               <div>
-                <h3 className="font-bold text-sm text-gray-900">Trip Cost Notepad</h3>
-                <p className="text-xs text-gray-500">Add custom lodge rates or local flight quotes to your trip total.</p>
+                <h3 className="font-bold text-sm text-gray-900">{t("itin.notepad_title")}</h3>
+                <p className="text-xs text-gray-500">{t("itin.notepad_sub")}</p>
               </div>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                <select aria-label="Cost category" className="input-field bg-white text-xs" value={noteForm.category} onChange={(e) => setNoteForm({ ...noteForm, category: e.target.value })}>
-                  {NOTE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                <select aria-label={t("itin.cost_category")} className="input-field bg-white text-xs" value={noteForm.category} onChange={(e) => setNoteForm({ ...noteForm, category: e.target.value })}>
+                  {NOTE_CATEGORIES.map((c) => <option key={c.key} value={c.fallback}>{tx(c.key, c.fallback)}</option>)}
                 </select>
-                <input aria-label="Item, for example a lodge or flight" className="input-field bg-white text-xs sm:col-span-1 lg:col-span-2" placeholder="e.g. Annapurna View Hotel" value={noteForm.label} onChange={(e) => setNoteForm({ ...noteForm, label: e.target.value })} />
+                <input aria-label={t("itin.item_label")} className="input-field bg-white text-xs sm:col-span-1 lg:col-span-2" placeholder={t("itin.item_ph")} value={noteForm.label} onChange={(e) => setNoteForm({ ...noteForm, label: e.target.value })} />
                 <div className="flex gap-2">
-                  <input aria-label="Amount in rupees" type="number" min="0" step="1" className="input-field bg-white text-xs" placeholder="रू" value={noteForm.amount} onChange={(e) => setNoteForm({ ...noteForm, amount: e.target.value })} />
-                  <button onClick={addNote} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-himalaya-600 text-white hover:bg-himalaya-700" aria-label="Add cost note"><FiPlus /></button>
+                  <input aria-label={t("itin.amount_label")} type="number" min="0" step="1" className="input-field bg-white text-xs" placeholder="रू" value={noteForm.amount} onChange={(e) => setNoteForm({ ...noteForm, amount: e.target.value })} />
+                  <button onClick={addNote} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-himalaya-600 text-white hover:bg-himalaya-700" aria-label={t("itin.add_note")}><FiPlus /></button>
                 </div>
               </div>
               {notes.length > 0 && (
@@ -1170,12 +1186,12 @@ const Itinerary = () => {
                       </div>
                     </div>
                   ))}
-                  <div className="flex justify-between font-bold pt-2"><span>Notepad Total</span><span>रू {notesTotal.toLocaleString()}</span></div>
+                  <div className="flex justify-between font-bold pt-2"><span>{t("itin.notepad_total")}</span><span>रू {notesTotal.toLocaleString()}</span></div>
                 </div>
               )}
               <div className="flex justify-between items-center pt-3 border-t border-gray-200">
-                <span className="font-bold text-sm text-gray-900">Grand Total (plan + notes)</span>
-                <span className="text-xl font-black text-himalaya-600">{plan?.total_estimated_npr != null ? `रू ${grandTotalNpr.toLocaleString()}` : `Notes: रू ${notesTotal.toLocaleString()}`}</span>
+                <span className="font-bold text-sm text-gray-900">{t("itin.grand_total")}</span>
+                <span className="text-xl font-black text-himalaya-600">{plan?.total_estimated_npr != null ? `रू ${grandTotalNpr.toLocaleString()}` : `${t("itin.notes_label")}: रू ${notesTotal.toLocaleString()}`}</span>
               </div>
             </div>
           </div>
@@ -1204,20 +1220,20 @@ const Itinerary = () => {
           >
             {savedPlan?.id && savedPlan.key === generatedKey ? (
               <div className="card-base p-4 text-left border-2 border-emerald-300">
-                <FiCheckCircle className="text-emerald-600 mb-1"/><b className="text-emerald-800">Saved to your account</b>
-                <p className="mb-2 text-xs text-gray-500">Share a read-only copy (no name, email or notes).</p>
+                <FiCheckCircle className="text-emerald-600 mb-1"/><b className="text-emerald-800">{t("itin.saved_to_account")}</b>
+                <p className="mb-2 text-xs text-gray-500">{t("itin.share_readonly")}</p>
                 <SharePlanButton planId={savedPlan.id} initialToken={savedPlan.share_token} compact />
               </div>
             ) : (
               <button onClick={savePlan} className="card-base p-4 text-left border-2 border-emerald-300 hover:bg-emerald-50">
-                <FiCheckCircle className="text-emerald-600 mb-1"/><b className="text-emerald-800">Save this plan</b><p className="text-xs text-gray-500">Keep the generated itinerary in your account, then share it</p>
+                <FiCheckCircle className="text-emerald-600 mb-1"/><b className="text-emerald-800">{t("itin.save_plan")}</b><p className="text-xs text-gray-500">{t("itin.save_plan_sub")}</p>
               </button>
             )}
 
             <div className="card-base p-4">
 
               <p className="text-xs text-gray-500">
-                Total estimate
+                {t("itin.total_estimate")}
               </p>
 
 
@@ -1230,7 +1246,7 @@ const Itinerary = () => {
 
               <p className="text-xs text-gray-400">
 
-                {plan.total_estimated_usd != null ? `≈ $${Number(plan.total_estimated_usd).toLocaleString()} USD` : "USD estimate unavailable"}
+                {plan.total_estimated_usd != null ? `≈ $${Number(plan.total_estimated_usd).toLocaleString()} USD` : t("itin.usd_unavailable")}
 
               </p>
 
@@ -1614,8 +1630,18 @@ const Itinerary = () => {
                                 <span className="font-semibold block truncate">{service.name}</span>
                                 <span>{service.distance_km} km straight-line{service.phone ? ` · ${service.phone}` : ""}</span>
                                 <VerificationBadge record={service} compact className="mt-1" />
+                                {(service.source_url || service.website) && (
+                                  <a
+                                    href={service.source_url || service.website}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="mt-1 inline-flex min-h-8 items-center text-[11px] font-semibold text-emerald-800 underline"
+                                  >
+                                    {service.source_url ? "Verify source" : "Visit website"}
+                                  </a>
+                                )}
                               </div>
-                            )) : <p className="text-[11px] text-gray-500 mt-2">No record nearby in our database</p>}
+                            )) : <p className="text-[11px] text-gray-500 mt-2">No verified record within 250 km in our database</p>}
                           </div>
                         ))}
                       </div>
