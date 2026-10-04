@@ -480,3 +480,27 @@ class CuratedItineraryPackingView(APIView):
             "title_nepali": target.get("title_nepali", ""),
             "packing": packing,
         })
+
+
+class City15DayItineraryListView(APIView):
+    """Public index of the additive 200-city, 15-day planner."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        from .city_15_day_planner import CITY_CATALOG
+        return Response({
+            "count": len(CITY_CATALOG), "days": 15, "cities": CITY_CATALOG,
+            "data_policy": "Existing curated itineraries and database records are preserved; missing facts are never invented.",
+        })
+
+
+class City15DayItineraryDetailView(APIView):
+    """Build one 15-day city plan from the project's real database records."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, city):
+        from .city_15_day_planner import build_city_15_day
+        payload = build_city_15_day(city, request=request)
+        if payload is None:
+            return Response({"detail": "City is not in the 200-city planning catalog."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(payload)
