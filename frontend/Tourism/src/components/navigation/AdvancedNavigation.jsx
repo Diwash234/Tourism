@@ -123,6 +123,7 @@ const AdvancedNavigation = () => {
   const [transportMode, setTransportMode] = useState("Private Car / Taxi")
   const [allDestinations, setAllDestinations] = useState([])
   const [destinationsWithDistance, setDestinationsWithDistance] = useState([])
+  const [destinationsError, setDestinationsError] = useState("")
   const [showAllDestinations, setShowAllDestinations] = useState(false)
   const [gpsTracking, setGpsTracking] = useState(false)
   const [lastUpdate, setLastUpdate] = useState(null)
@@ -244,22 +245,32 @@ const AdvancedNavigation = () => {
 
   useEffect(() => {
     if (!showNearby) return undefined
-    if (!Number.isFinite(nearbyLat) || !Number.isFinite(nearbyLng)) {
-      setNearbyPlaces([])
-      setNearbyError("Allow location access to find nearby places.")
-      return undefined
+    const timer = setTimeout(() => {
+      if (!Number.isFinite(nearbyLat) || !Number.isFinite(nearbyLng)) {
+        setNearbyPlaces([])
+        setNearbyLoading(false)
+        setNearbyError("Allow location access to find nearby places.")
+        return
+      }
+      fetchNearbyPlaces(nearbyLat, nearbyLng, selectedCategory)
+    }, 0)
+    return () => {
+      clearTimeout(timer)
+      nearbyRequestIdRef.current += 1
     }
-    fetchNearbyPlaces(nearbyLat, nearbyLng, selectedCategory)
-    return () => { nearbyRequestIdRef.current += 1 }
   }, [showNearby, nearbyLat, nearbyLng, selectedCategory, fetchNearbyPlaces])
 
   // Fetch all destinations with distances
   const fetchAllDestinations = async () => {
     if (!position) return
     setLoading(true)
+    setDestinationsError("")
     try {
       const { data } = await destinationApi.getMapPoints()
-      const dests = Array.isArray(data) ? data : (data.results || [])
+      const dests = Array.isArray(data) ? data : data?.points || data?.results
+      if (!Array.isArray(dests)) {
+        throw new Error("Destination map response did not include a points list.")
+      }
 
       // The map-points endpoint covers the whole catalogue; do not limit
       // distance ranking to whichever 100 records happen to be first.
@@ -279,6 +290,10 @@ const AdvancedNavigation = () => {
       setDestinationsWithDistance(withDistances.slice(0, 100))
     } catch (err) {
       console.error("Failed to fetch destinations:", err)
+      setDestinationsWithDistance([])
+      setDestinationsError(
+        err.response?.data?.detail || "Destinations could not be loaded. Please try again."
+      )
     } finally {
       setLoading(false)
     }
@@ -324,12 +339,11 @@ const AdvancedNavigation = () => {
 
   // Update ETA when position changes
   useEffect(() => {
-    if (position && destination?.latitude && destination?.longitude) {
-      const dist = haversineKm(position.lat, position.lng, Number(destination.latitude), Number(destination.longitude))
-      if (dist !== null) {
-        setEta(calculateETA(dist, transportMode))
-      }
-    }
+    if (!position || !destination?.latitude || !destination?.longitude) return undefined
+    const dist = haversineKm(position.lat, position.lng, Number(destination.latitude), Number(destination.longitude))
+    if (dist === null) return undefined
+    const timer = setTimeout(() => setEta(calculateETA(dist, transportMode)), 0)
+    return () => clearTimeout(timer)
   }, [position, destination, transportMode])
 
   const mapCenter = position
@@ -724,6 +738,10 @@ const AdvancedNavigation = () => {
                 <div className="max-h-96 overflow-y-auto">
                   {loading ? (
                     <div className="p-4 text-center text-xs text-slate-500">Calculating distances...</div>
+                  ) : destinationsError ? (
+                    <div className="p-4 text-center text-xs text-red-700" role="alert">
+                      {destinationsError}
+                    </div>
                   ) : destinationsWithDistance.length === 0 ? (
                     <div className="p-4 text-center text-xs text-slate-500">
                       {position ? "No destinations found" : "Enable GPS to see distances"}

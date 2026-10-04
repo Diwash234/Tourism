@@ -104,7 +104,7 @@ class Command(BaseCommand):
                 "route": "Pokhara International Airport → Lakeside",
                 "travel_distance": "~5 km",
                 "travel_time": "~20–30 min",
-                "overnight_stay": "Lakeside hotel (e.g. Annapurna Heritage Palace)",
+                "overnight_stay": "Lakeside accommodation; confirm current availability before booking.",
                 "morning": "Arrive at Pokhara airport. Collect luggage. Hotel transfer.",
                 "afternoon": "Check in. Rest 1–2 hours. Walk around Lakeside. Visit Phewa Lake waterfront.",
                 "evening": "Relaxed evening boat ride on Phewa Lake. Visit Tal Barahi Temple island. Sunset at Lakeside.",
@@ -327,8 +327,7 @@ class Command(BaseCommand):
                     "primary_destination": day_data.get("primary_destination"),
                 },
             )
-            if day_data.get("attractions"):
-                day.attractions.set([a for a in day_data["attractions"] if a])
+            day.attractions.set([a for a in day_data.get("attractions", []) if a])
             if day_data["day_number"] in (1, 2, 3, 4, 5, 6, 7, 9, 11, 13, 14, 15):
                 day.hotels.set(hotels[:3])
             if day_data["day_number"] == 1:

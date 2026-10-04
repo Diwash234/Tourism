@@ -3,7 +3,7 @@ from unittest.mock import patch
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from .models import Category, Destination, Hospital, Hotel
+from .models import Category, Destination, Hospital, Hotel, TravelGuide, TravelGuideDay
 from .views_ml import enrich_itinerary_with_services
 
 
@@ -87,6 +87,58 @@ class VerifiedItineraryServiceTests(TestCase):
         self.assertEqual(services["hospitals"][0]["source_url"], "https://example.test/hospital-source")
         self.assertEqual(result["service_distance_method"], "haversine_straight_line")
         self.assertGreater(services["hotels"][0]["distance_km"], 0)
+
+    def test_published_guide_exposes_only_verified_sourced_services(self):
+        guide = TravelGuide.objects.create(
+            slug="verified-guide",
+            title="Verified guide",
+            destination=self.destination,
+            is_published=True,
+        )
+        day = TravelGuideDay.objects.create(guide=guide, day_number=1, title="Day one")
+        verified_hotel = Hotel.objects.create(
+            destination=self.destination,
+            name="Verified guide hotel",
+            source_url="https://example.test/verified-hotel",
+            is_verified=True,
+        )
+        unverified_hotel = Hotel.objects.create(
+            destination=self.destination,
+            name="Unverified guide hotel",
+            is_verified=False,
+        )
+        verified_hospital = Hospital.objects.create(
+            destination=self.destination,
+            name="Verified guide hospital",
+            address="Pokhara",
+            phone="061555555",
+            latitude=28.2120,
+            longitude=83.9856,
+            district="Kaski",
+            source_url="https://example.test/verified-hospital",
+            is_verified=True,
+        )
+        unverified_hospital = Hospital.objects.create(
+            destination=self.destination,
+            name="Unverified guide hospital",
+            address="Pokhara",
+            phone="061555556",
+            latitude=28.2121,
+            longitude=83.9857,
+            district="Kaski",
+            is_verified=False,
+        )
+        day.hotels.add(verified_hotel, unverified_hotel)
+        day.hospitals.add(verified_hospital, unverified_hospital)
+        day.attractions.add(self.destination)
+
+        response = self.client.get("/api/v1/travel-guides/verified-guide/")
+
+        self.assertEqual(response.status_code, 200)
+        result = response.json()["days"][0]
+        self.assertEqual([item["name"] for item in result["hotels"]], ["Verified guide hotel"])
+        self.assertEqual([item["name"] for item in result["hospitals"]], ["Verified guide hospital"])
+        self.assertEqual([item["name"] for item in result["attractions"]], [self.destination.name])
 
     @patch("tourist.trip_readiness.enrich_with_trip_readiness", side_effect=lambda payload, **kwargs: payload)
     @patch("tourist.views_ml.requests.post")

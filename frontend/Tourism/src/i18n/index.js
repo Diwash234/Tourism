@@ -1926,6 +1926,9 @@ export function setLang(code) {
   // subscribers and re-runs the DOM bridge when it lands.
   fetchOverrideStrings(code)
   enableLegacyTranslationBridge()
+  if (typeof document !== "undefined") {
+    translateLegacyDom(document.body || document.documentElement)
+  }
 }
 
 export function getLang() {

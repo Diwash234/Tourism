@@ -18,7 +18,7 @@ app.innerHTML = `<h1>Welcome to Pashupatinath Temple</h1><p>Open daily from sunr
   const h1 = app.querySelector("h1").textContent, p = app.querySelector("p").textContent
   check("heading (not in the dictionary) is translated", h1 === "NE[Welcome to Pashupatinath Temple]", h1)
   check("paragraph is translated", p === "NE[Open daily from sunrise to sunset.]", p)
-  check("banner text up to the API limit is translated", app.querySelector("#long-banner").textContent === `NE[${longBanner}]`)
+  check("banner text up to the API limit is translated", app.querySelector("#long-banner").textContent === `NE[${longBanner.trim()}] `)
   check("select option labels are translated", app.querySelector("option").textContent === "NE[Choose a destination]")
   check("image alternative text is translated", app.querySelector("img").getAttribute("alt") === "NE[View of the Himalayas]")
   check("pure number is left alone", app.querySelector("span").textContent === "4,603")

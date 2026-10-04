@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useParams } from "react-router-dom"
 import { FiMapPin, FiClock, FiNavigation, FiAlertCircle, FiHeart } from "react-icons/fi"
-import { useI18n } from "../i18n"
 import axiosClient from "../api/axiosClient"
 
 /**
@@ -11,14 +10,17 @@ import axiosClient from "../api/axiosClient"
  * URL: /travel-guides/15-day-pokhara
  */
 export default function TravelGuidePage() {
-  const { t } = useI18n()
+  const { slug } = useParams()
   const [guide, setGuide] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [activeDay, setActiveDay] = useState(1)
 
   useEffect(() => {
-    axiosClient.get("/travel-guides/15-day-pokhara/")
+    if (!slug) return
+    setLoading(true)
+    setError("")
+    axiosClient.get(`/travel-guides/${encodeURIComponent(slug)}/`)
       .then(({ data }) => {
         setGuide(data)
         setLoading(false)
@@ -27,7 +29,7 @@ export default function TravelGuidePage() {
         setError("Could not load the travel guide.")
         setLoading(false)
       })
-  }, [])
+  }, [slug])
 
   if (loading) return <div className="ny-page container-app py-12 text-center text-gray-500">Loading guide…</div>
   if (error) return <div className="ny-page container-app py-12 text-center text-red-600">{error}</div>
@@ -42,6 +44,7 @@ export default function TravelGuidePage() {
         <span className="ny-kicker">{guide.destination.name}</span>
         <h1 className="mt-2 text-3xl sm:text-4xl font-black text-gray-900">{guide.title}</h1>
         <p className="mt-3 text-gray-600 leading-relaxed">{guide.subtitle}</p>
+        <p className="mt-3 text-sm text-amber-800">Planning outline only: confirm transport, access, weather, opening hours, and bookings with local operators before travel.</p>
         <div className="mt-4 flex flex-wrap gap-4 text-sm text-gray-500">
           <span className="flex items-center gap-1.5"><FiClock size={14} /> {guide.days_count} days</span>
           <span className="flex items-center gap-1.5"><FiMapPin size={14} /> {guide.pace}</span>
@@ -122,6 +125,7 @@ export default function TravelGuidePage() {
                       {h.rating && <span>★ {h.rating}</span>}
                       <span className={`px-2 py-0.5 rounded-full ${h.booking_status === "available" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>{h.booking_status}</span>
                     </div>
+                    {h.source_url && <a href={h.source_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-semibold text-[var(--ny-green)] hover:underline">Verify hotel details</a>}
                   </div>
                 ))}
               </div>
@@ -139,6 +143,7 @@ export default function TravelGuidePage() {
                     {h.address && <p className="mt-1 text-xs text-gray-500">{h.address}</p>}
                     {h.phone && <p className="mt-1 text-xs text-[var(--ny-green)] font-medium">{h.phone}</p>}
                     {h.opening_hours && <p className="mt-1 text-xs text-gray-400">{h.opening_hours}</p>}
+                    {h.source_url && <a href={h.source_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-semibold text-[var(--ny-green)] hover:underline">Verify hospital details</a>}
                   </div>
                 ))}
               </div>

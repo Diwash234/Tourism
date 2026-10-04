@@ -3,12 +3,14 @@ from __future__ import annotations
 
 import csv
 import functools
+import logging
 import re
 from pathlib import Path
 from typing import Any, Optional
 
 
 _DATA_PATH = Path(__file__).resolve().parents[1] / "dataset" / "nepal_cities_200.csv"
+logger = logging.getLogger(__name__)
 
 
 def _tokenize(value: str) -> str:
@@ -18,6 +20,7 @@ def _tokenize(value: str) -> str:
 @functools.lru_cache(maxsize=1)
 def _city_index() -> dict[str, dict[str, Any]]:
     if not _DATA_PATH.exists():
+        logger.warning("Itinerary city catalogue is missing: %s", _DATA_PATH)
         return {}
     index: dict[str, dict[str, Any]] = {}
     with _DATA_PATH.open(newline="", encoding="utf-8-sig") as source:

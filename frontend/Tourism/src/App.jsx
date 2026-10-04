@@ -200,9 +200,9 @@ function App() {
         <Route path="/compare" element={<CompareDestinations />} />
         <Route path="/destinations/compare" element={<CompareDestinations />} />
         <Route path="/gallery" element={<Gallery />} />
-        <Route path="/travel-guides/:slug" element={<TravelGuide />} />
         <Route path="/travel-toolkit" element={<LazyRoute><TravelToolkit /></LazyRoute>} />
         <Route path="/itinerary" element={<LazyRoute><Itinerary /></LazyRoute>} />
+        <Route path="/travel-guides/:slug" element={<LazyRoute><TravelGuide /></LazyRoute>} />
         <Route path="/trip-planner" element={<Navigate to="/itinerary" replace />} />
         <Route path="/packages" element={<Packages />} />
         <Route path="/recommendation" element={<Recommendation />} />
