@@ -8,6 +8,7 @@
  * translations), and an extensible dictionary. To add a language, append
  * its block to LANGS and register it in ALL_LANGS.
  */
+import { lookup as dynamicLookup, request as dynamicRequest } from "./dynamicTranslate"
 import { useEffect, useState } from "react"
 
 const STORAGE_KEY = "tourism_lang"
@@ -134,6 +135,42 @@ const en = {
   "settings.saved": "Preferences saved!",
   // gallery
   "gallery.title": "Nepal Photo Gallery",
+  "gallery.kicker": "Visual stories",
+  "gallery.subtitle": "Browse destination-linked images from the Nepal Yatra media library. Search by place, filter by subject, and open a photo for its available attribution details.",
+  "gallery.filters_label": "Gallery filters",
+  "gallery.categories_label": "Photo categories",
+  "gallery.filter_all": "All photos",
+  "gallery.filter_mountain": "Mountains & alpine",
+  "gallery.filter_lake": "Lakes & waters",
+  "gallery.filter_temple": "Temples & stupas",
+  "gallery.filter_wildlife": "Wildlife",
+  "gallery.filter_heritage": "Heritage",
+  "gallery.filter_landscape": "Landscapes & hills",
+  "gallery.search_label": "Search photos",
+  "gallery.search_placeholder": "Search by place or district",
+  "gallery.load_error": "Some gallery sources could not be loaded. Available photos are still shown below.",
+  "gallery.retry": "Retry gallery",
+  "gallery.district_index_kicker": "All Nepal District Visual Index",
+  "gallery.district_marquee": "77 District Photo Marquee",
+  "gallery.avg_per_district": "{n} images per district on average",
+  "gallery.district_index": "District photo index",
+  "gallery.swipe_hint": "swipe or browse below",
+  "gallery.no_photos_title": "No photos found",
+  "gallery.no_photos_sub": "No published photos match this category or search yet.",
+  "gallery.clear_filters": "Clear gallery filters",
+  "gallery.results_label": "Photo results",
+  "gallery.explore_destination": "Explore destination",
+  "gallery.link_unavailable": "Destination link unavailable",
+  "gallery.open_photo": "Open photo: {caption}",
+  "gallery.click_fullscreen": "Click to Fullscreen",
+  "gallery.viewer_label": "Photo viewer",
+  "gallery.photographer": "Photographer",
+  "gallery.license": "License",
+  "gallery.view_place_details": "View place details",
+  "gallery.close_viewer": "Close photo viewer",
+  "gallery.prev_photo": "Previous photo",
+  "gallery.next_photo": "Next photo",
+  "gallery.open_photo_n": "Open photo {n}",
   // compare
   "compare.title": "Compare Destinations",
   "common.home": "Home",
@@ -640,6 +677,42 @@ const ne = {
   "settings.notifications": "सूचनाहरू",
   "settings.saved": "प्राथमिकताहरू सुरक्षित भयो!",
   "gallery.title": "नेपाल तस्बिर ग्यालेरी",
+  "gallery.kicker": "दृश्य कथाहरू",
+  "gallery.subtitle": "नेपाल यात्रा मिडिया पुस्तकालयबाट गन्तव्य-जोडिएका तस्बिरहरू ब्राउज गर्नुहोस्। ठाउँ अनुसार खोज्नुहोस्, विषय अनुसार फिल्टर गर्नुहोस्, र उपलब्ध श्रेय विवरणका लागि तस्बिर खोल्नुहोस्।",
+  "gallery.filters_label": "ग्यालेरी फिल्टरहरू",
+  "gallery.categories_label": "तस्बिर श्रेणीहरू",
+  "gallery.filter_all": "सबै तस्बिरहरू",
+  "gallery.filter_mountain": "हिमाल र अल्पाइन",
+  "gallery.filter_lake": "ताल र पानी",
+  "gallery.filter_temple": "मन्दिर र स्तूप",
+  "gallery.filter_wildlife": "वन्यजन्तु",
+  "gallery.filter_heritage": "सम्पदा",
+  "gallery.filter_landscape": "परिदृश्य र पहाड",
+  "gallery.search_label": "तस्बिरहरू खोज्नुहोस्",
+  "gallery.search_placeholder": "ठाउँ वा जिल्ला अनुसार खोज्नुहोस्",
+  "gallery.load_error": "केही ग्यालेरी स्रोतहरू लोड हुन सकेन। उपलब्ध तस्बिरहरू तल देखाइएका छन्।",
+  "gallery.retry": "ग्यालेरी पुनः प्रयास गर्नुहोस्",
+  "gallery.district_index_kicker": "सम्पूर्ण नेपाल जिल्ला दृश्य सूचकाङ्क",
+  "gallery.district_marquee": "७७ जिल्ला तस्बिर मार्ची",
+  "gallery.avg_per_district": "औसतमा प्रति जिल्ला {n} तस्बिरहरू",
+  "gallery.district_index": "जिल्ला तस्बिर सूचकाङ्क",
+  "gallery.swipe_hint": "स्वाइप गर्नुहोस् वा तल ब्राउज गर्नुहोस्",
+  "gallery.no_photos_title": "कुनै तस्बिर भेटिएन",
+  "gallery.no_photos_sub": "यो श्रेणी वा खोजसँग मिल्ने कुनै प्रकाशित तस्बिर अहिलेसम्म छैन।",
+  "gallery.clear_filters": "ग्यालेरी फिल्टरहरू हटाउनुहोस्",
+  "gallery.results_label": "तस्बिर नतिजाहरू",
+  "gallery.explore_destination": "गन्तव्य अन्वेषण गर्नुहोस्",
+  "gallery.link_unavailable": "गन्तव्य लिङ्क उपलब्ध छैन",
+  "gallery.open_photo": "तस्बिर खोल्नुहोस्: {caption}",
+  "gallery.click_fullscreen": "पूर्णस्क्रिनका लागि क्लिक गर्नुहोस्",
+  "gallery.viewer_label": "तस्बिर दर्शक",
+  "gallery.photographer": "फोटोग्राफर",
+  "gallery.license": "इजाजतपत्र",
+  "gallery.view_place_details": "ठाउँ विवरण हेर्नुहोस्",
+  "gallery.close_viewer": "तस्बिर दर्शक बन्द गर्नुहोस्",
+  "gallery.prev_photo": "अघिल्लो तस्बिर",
+  "gallery.next_photo": "अर्को तस्बिर",
+  "gallery.open_photo_n": "तस्बिर {n} खोल्नुहोस्",
   "compare.title": "गन्तव्य तुलना गर्नुहोस्",
   "common.home": "गृहपृष्ठ",
   "common.back": "फर्कनुहोस्",
@@ -1145,6 +1218,42 @@ const hi = {
   "settings.notifications": "सूचनाएं",
   "settings.saved": "प्राथमिकताएं सहेजी गईं!",
   "gallery.title": "नेपाल फोटो गैलरी",
+  "gallery.kicker": "दृश्य कहानियाँ",
+  "gallery.subtitle": "नेपाल यात्रा मीडिया लाइब्रेरी से गंतव्य से जुड़ी तस्वीरें ब्राउज़ करें। स्थान से खोजें, विषय से फ़िल्टर करें, और उपलब्ध श्रेय विवरण के लिए फ़ोटो खोलें।",
+  "gallery.filters_label": "गैलरी फ़िल्टर",
+  "gallery.categories_label": "फ़ोटो श्रेणियाँ",
+  "gallery.filter_all": "सभी फ़ोटो",
+  "gallery.filter_mountain": "पर्वत और अल्पाइन",
+  "gallery.filter_lake": "झीलें और जल",
+  "gallery.filter_temple": "मंदिर और स्तूप",
+  "gallery.filter_wildlife": "वन्यजीव",
+  "gallery.filter_heritage": "विरासत",
+  "gallery.filter_landscape": "परिदृश्य और पहाड़ियाँ",
+  "gallery.search_label": "फ़ोटो खोजें",
+  "gallery.search_placeholder": "स्थान या जिले से खोजें",
+  "gallery.load_error": "कुछ गैलरी स्रोत लोड नहीं हो सके। उपलब्ध फ़ोटो नीचे दिखाए गए हैं।",
+  "gallery.retry": "गैलरी पुनः प्रयास करें",
+  "gallery.district_index_kicker": "समस्त नेपाल जिला दृश्य सूचकांक",
+  "gallery.district_marquee": "77 जिला फ़ोटो मार्ची",
+  "gallery.avg_per_district": "औसतन प्रति जिले {n} तस्वीरें",
+  "gallery.district_index": "जिला फ़ोटो सूचकांक",
+  "gallery.swipe_hint": "स्वाइप करें या नीचे ब्राउज़ करें",
+  "gallery.no_photos_title": "कोई फ़ोटो नहीं मिला",
+  "gallery.no_photos_sub": "इस श्रेणी या खोज से मेल खाने वाली कोई प्रकाशित फ़ोटो अभी नहीं है।",
+  "gallery.clear_filters": "गैलरी फ़िल्टर हटाएँ",
+  "gallery.results_label": "फ़ोटो परिणाम",
+  "gallery.explore_destination": "गंतव्य का अन्वेषण करें",
+  "gallery.link_unavailable": "गंतव्य लिंक उपलब्ध नहीं",
+  "gallery.open_photo": "फ़ोटो खोलें: {caption}",
+  "gallery.click_fullscreen": "पूर्णस्क्रीन के लिए क्लिक करें",
+  "gallery.viewer_label": "फ़ोटो दर्शक",
+  "gallery.photographer": "फोटोग्राफर",
+  "gallery.license": "लाइसेंस",
+  "gallery.view_place_details": "स्थान विवरण देखें",
+  "gallery.close_viewer": "फ़ोटो दर्शक बंद करें",
+  "gallery.prev_photo": "पिछली फ़ोटो",
+  "gallery.next_photo": "अगली फ़ोटो",
+  "gallery.open_photo_n": "फ़ोटो {n} खोलें",
   "compare.title": "गंतव्य तुलना करें",
   "common.home": "होम",
   "common.back": "वापस",
@@ -1641,33 +1750,89 @@ function persistLang(code) {
   }
 }
 
-const originalText = new WeakMap()
+// Per text node: the English original and the text this bridge last wrote.
+// React rewrites nodeValue itself when its state changes; comparing against
+// `applied` tells "React changed it (new original)" from "still our output".
+const nodeState = new WeakMap()
 let translationObserver = null
+let reverseDictionary = null
+
+const NEVER_TRANSLATE = "[data-no-translate],[translate='no'],script,style,code,pre,textarea,input,select,svg,[contenteditable='true'],.leaflet-container"
+
+function reverseLookup() {
+  if (!reverseDictionary) reverseDictionary = new Map(Object.entries(en).map(([key, value]) => [value, key]))
+  return reverseDictionary
+}
+
+function translateTextNode(node) {
+  const parent = node.parentElement
+  if (!parent || !node.isConnected) return
+  const state = nodeState.get(node)
+  const original = state && (node.nodeValue === state.applied || node.nodeValue === state.original)
+    ? state.original
+    : node.nodeValue
+  if (currentLang === "en") {
+    if (state && node.nodeValue !== state.original && node.nodeValue === state.applied) node.nodeValue = state.original
+    nodeState.set(node, { original: node.nodeValue, applied: node.nodeValue })
+    return
+  }
+  const trimmed = original.trim()
+  let translated = null
+  if (trimmed) {
+    const key = reverseLookup().get(trimmed)
+    if (key) {
+      translated = (DICTS[currentLang] || en)[key] || null
+    } else if (!parent.closest(NEVER_TRANSLATE)) {
+      // Not a dictionary string: page content. Use the batch translator.
+      translated = dynamicLookup(currentLang, trimmed)
+      if (translated == null) {
+        const lang = currentLang
+        dynamicRequest(lang, trimmed, (value) => {
+          if (currentLang === lang) translateTextNode(node)
+          else void value
+        })
+      }
+    }
+  }
+  if (translated != null && translated !== trimmed) {
+    const next = original.replace(trimmed, translated)
+    node.nodeValue = next
+    nodeState.set(node, { original, applied: next })
+  } else {
+    nodeState.set(node, { original, applied: node.nodeValue })
+  }
+}
 
 function translateLegacyDom(root = document.body) {
   if (typeof document === "undefined" || !root) return
-  const reverse = new Map(Object.entries(en).map(([key, value]) => [value, key]))
   const target = DICTS[currentLang] || en
+  const reverse = reverseLookup()
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  const nodes = []
   let node
-  while ((node = walker.nextNode())) {
-    if (!node.parentElement || ["SCRIPT","STYLE","CODE","PRE"].includes(node.parentElement.tagName)) continue
-    if (!originalText.has(node)) originalText.set(node, node.nodeValue)
-    const original = originalText.get(node)
-    const trimmed = original.trim()
-    const key = reverse.get(trimmed)
-    if (!key) continue
-    const translated = target[key] || trimmed
-    node.nodeValue = original.replace(trimmed, translated)
-  }
-  root.querySelectorAll?.("[placeholder],[title]").forEach((element) => {
-    for (const attribute of ["placeholder", "title"]) {
+  while ((node = walker.nextNode())) nodes.push(node)
+  nodes.forEach(translateTextNode)
+  root.querySelectorAll?.("[placeholder],[title],[aria-label]").forEach((element) => {
+    for (const attribute of ["placeholder", "title", "aria-label"]) {
       if (!element.hasAttribute(attribute)) continue
-      const storageKey = `i18nOriginal${attribute}`
+      const storageKey = `i18nOriginal${attribute.replace(/-./g, (m) => m[1].toUpperCase())}`
       if (!element.dataset[storageKey]) element.dataset[storageKey] = element.getAttribute(attribute)
       const original = element.dataset[storageKey]
       const key = reverse.get(original)
-      if (key) element.setAttribute(attribute, target[key] || original)
+      if (key) {
+        element.setAttribute(attribute, target[key] || original)
+      } else if (currentLang === "en") {
+        element.setAttribute(attribute, original)
+      } else if (!element.closest(NEVER_TRANSLATE) || attribute !== "title") {
+        const cached = dynamicLookup(currentLang, original)
+        if (cached != null) element.setAttribute(attribute, cached)
+        else {
+          const lang = currentLang
+          dynamicRequest(lang, original, (value) => {
+            if (currentLang === lang && element.isConnected) element.setAttribute(attribute, value)
+          })
+        }
+      }
     }
   })
 }
@@ -1680,11 +1845,16 @@ function enableLegacyTranslationBridge() {
       for (const mutation of mutations) {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) translateLegacyDom(node)
-          else if (node.nodeType === Node.TEXT_NODE && node.parentElement) translateLegacyDom(node.parentElement)
+          else if (node.nodeType === Node.TEXT_NODE && node.parentElement) translateTextNode(node)
         })
+        // React updating an existing text node (page change, filter, pagination).
+        if (mutation.type === "characterData" && mutation.target.nodeType === Node.TEXT_NODE) {
+          const state = nodeState.get(mutation.target)
+          if (!state || mutation.target.nodeValue !== state.applied) translateTextNode(mutation.target)
+        }
       }
     })
-    translationObserver.observe(document.documentElement, { childList: true, subtree: true })
+    translationObserver.observe(document.documentElement, { childList: true, subtree: true, characterData: true })
   }
 }
 
