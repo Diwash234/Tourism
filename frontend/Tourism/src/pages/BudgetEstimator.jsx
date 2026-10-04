@@ -17,56 +17,66 @@ import {
 import budgetApi from "../api/budgetApi"
 import PieChartCard from "../components/charts/PieChartCard"
 import useToast from "../hooks/useToast"
+import { useI18n } from "../i18n"
 
 const CURRENCIES = {
-  NPR: { symbol: "रू", label: "Nepali Rupee" },
-  USD: { symbol: "$", label: "US Dollar" },
-  INR: { symbol: "₹", label: "Indian Rupee" },
-  EUR: { symbol: "€", label: "Euro" },
-  GBP: { symbol: "£", label: "British Pound" },
+  NPR: { symbol: "रू", labelKey: "budgetest.cur_npr", fallback: "Nepali Rupee" },
+  USD: { symbol: "$", labelKey: "budgetest.cur_usd", fallback: "US Dollar" },
+  INR: { symbol: "₹", labelKey: "budgetest.cur_inr", fallback: "Indian Rupee" },
+  EUR: { symbol: "€", labelKey: "budgetest.cur_eur", fallback: "Euro" },
+  GBP: { symbol: "£", labelKey: "budgetest.cur_gbp", fallback: "British Pound" },
 }
 
+const unavailableText = { current: "Unavailable" }
+
 const formatMoney = (amount, currency) => {
-  if (amount == null || !Number.isFinite(Number(amount))) return "Unavailable"
+  if (amount == null || !Number.isFinite(Number(amount))) return unavailableText.current
   const c = CURRENCIES[currency]
-  if (!c) return "Unavailable"
+  if (!c) return unavailableText.current
   return `${c.symbol}${Math.round(Number(amount)).toLocaleString()}`
 }
 
 const CATEGORY_META = [
   {
     key: "accommodation",
-    label: "Hotel & Lodging",
+    labelKey: "budgetest.cat_hotel",
+    fallback: "Hotel & Lodging",
     icon: FiHome,
     color: "text-yellow-600 bg-yellow-50",
   },
   {
     key: "food",
-    label: "Food & Dining",
+    labelKey: "budgetest.cat_food",
+    fallback: "Food & Dining",
     icon: FiCoffee,
     color: "text-orange-600 bg-orange-50",
   },
   {
     key: "transport",
-    label: "Transport & Transit",
+    labelKey: "budgetest.cat_transport",
+    fallback: "Transport & Transit",
     icon: FiTruck,
     color: "text-blue-600 bg-blue-50",
   },
   {
     key: "activities",
-    label: "Sightseeing & Activities",
+    labelKey: "budgetest.cat_activities",
+    fallback: "Sightseeing & Activities",
     icon: FiCompass,
     color: "text-emerald-700 bg-[#F7F8F5]",
   },
   {
     key: "shopping",
-    label: "Local Shopping & Souvenirs",
+    labelKey: "budgetest.cat_shopping",
+    fallback: "Local Shopping & Souvenirs",
     icon: FiShoppingBag,
     color: "text-emerald-600 bg-emerald-50",
   },
 ]
 
 const BudgetEstimator = () => {
+  const { t } = useI18n()
+  unavailableText.current = t("budgetest.unavailable")
   const {
     register,
     handleSubmit,
@@ -214,8 +224,7 @@ const BudgetEstimator = () => {
       <CMSPageIntro pageKey="budget-estimator" />
       {/* FORM */}
       <div>
-        <PageHeader title="Budget Estimator" subtitle={<>Plan your Nepal trip expenses. The estimate updates automatically when
-          you change your trip details.</>} icon={ FiDollarSign } />
+        <PageHeader title={t("budgetest.title")} subtitle={t("budgetest.subtitle")} icon={ FiDollarSign } />
 
         <form
           onSubmit={handleSubmit(onSubmit)}
@@ -224,18 +233,18 @@ const BudgetEstimator = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium text-gray-500">
-                Destination
+                {t("budgetest.destination")}
               </label>
               <input
                 className="input-field mt-1"
-                placeholder="Enter a destination"
+                placeholder={t("budgetest.destination_ph")}
                 {...register("destination", { required: true })}
               />
             </div>
 
             <div>
               <label className="text-xs font-medium text-gray-500">
-                Number of Travelers
+                {t("budgetest.travelers")}
               </label>
               <input
                 type="number"
@@ -247,7 +256,7 @@ const BudgetEstimator = () => {
 
             <div>
               <label className="text-xs font-medium text-gray-500">
-                Duration (days)
+                {t("budgetest.duration")}
               </label>
               <input
                 type="number"
@@ -259,12 +268,12 @@ const BudgetEstimator = () => {
 
             <div>
               <label className="text-xs font-medium text-gray-500">
-                Travel Style
+                {t("budgetest.style")}
               </label>
               <select className="input-field mt-1" {...register("style")}>
-                <option value="budget">Budget</option>
-                <option value="mid">Mid-range</option>
-                <option value="luxury">Luxury</option>
+                <option value="budget">{t("budgetest.style_budget")}</option>
+                <option value="mid">{t("budgetest.style_mid")}</option>
+                <option value="luxury">{t("budgetest.style_luxury")}</option>
               </select>
             </div>
           </div>
@@ -274,12 +283,12 @@ const BudgetEstimator = () => {
             disabled={loading || isSubmitting}
             className="btn-primary w-full"
           >
-            {loading || isSubmitting ? "Calculating..." : "Estimate Budget"}
+            {loading || isSubmitting ? t("budgetest.calculating") : t("budgetest.estimate_cta")}
           </button>
 
           <div className="mt-4">
             <label className="text-xs font-medium text-gray-500">
-              Display currency
+              {t("budgetest.display_currency")}
             </label>
             <select
               className="input-field mt-1"
@@ -291,17 +300,17 @@ const BudgetEstimator = () => {
             >
               {Object.entries(CURRENCIES).map(([code, c]) => (
                 <option key={code} value={code}>
-                  {code} — {c.label} ({c.symbol})
+                  {code} — {t(c.labelKey) !== c.labelKey ? t(c.labelKey) : c.fallback} ({c.symbol})
                 </option>
               ))}
             </select>
-            <p className="mt-2 text-xs leading-5 text-[var(--ny-text-muted)]">Currency values are shown only when the estimate service provides a verified conversion rate.</p>
+            <p className="mt-2 text-xs leading-5 text-[var(--ny-text-muted)]">{t("budgetest.currency_note")}</p>
           </div>
 
           {loading && (
             <p className="flex items-center gap-2 text-xs text-saffron-600">
               <FiLoader className="animate-spin" />
-              Updating estimate...
+              {t("budgetest.updating")}
             </p>
           )}
         </form>
@@ -311,9 +320,9 @@ const BudgetEstimator = () => {
       <div>
         {error ? (
           <div role="alert" className="ny-panel p-6 text-center">
-            <p className="font-bold text-[var(--ny-danger)]">Estimate unavailable</p>
+            <p className="font-bold text-[var(--ny-danger)]">{t("budgetest.unavailable_title")}</p>
             <p className="mt-2 text-sm text-[var(--ny-text-secondary)]">{error}</p>
-            <button type="button" onClick={() => calculate(watched)} className="ny-btn ny-btn-secondary mt-4">Try again</button>
+            <button type="button" onClick={() => calculate(watched)} className="ny-btn ny-btn-secondary mt-4">{t("common.try_again")}</button>
           </div>
         ) : estimate ? (
           <motion.div
@@ -322,37 +331,37 @@ const BudgetEstimator = () => {
             className="space-y-6"
           >
             <div className="card-base p-6 text-center bg-white border border-slate-200 shadow-md">
-              <p className="text-sm text-gray-500">Estimated Total Cost</p>
+              <p className="text-sm text-gray-500">{t("budgetest.total")}</p>
 
               <p className="text-4xl font-extrabold text-saffron-600 my-1">
                 {formatMoney(grandTotal, currency)}
               </p>
 
               <p className="text-xs text-gray-500">
-                {currency === "USD" ? "USD estimate" : currency === "NPR" ? "NPR estimate" : "Selected currency conversion is not available from the verified estimate response"}
+                {currency === "USD" ? t("budgetest.usd_note") : currency === "NPR" ? t("budgetest.npr_note") : t("budgetest.fx_unavailable")}
               </p>
 
               {estimate.source === "dataset_csv" ? (
                 <p className="mt-3 inline-flex items-center gap-1 text-[11px] font-medium text-green-800 bg-green-50 border border-green-200 px-3 py-1 rounded-full shadow-sm">
-                  ✓ Based on real Nepal travel-cost dataset
+                  {t("budgetest.dataset_badge")}
                   {estimate.dataset
-                    ? ` (${estimate.dataset.destinations}+ places)`
+                    ? ` (${estimate.dataset.destinations}+ ${t("budgetest.places_unit")})`
                     : ""}
                 </p>
               ) : (
-                <p className="mt-3 text-[11px] text-[var(--ny-text-secondary)]">Source returned by the estimate service: {estimate.source || "not specified"}. Treat this as planning guidance, not a quoted price.</p>
+                <p className="mt-3 text-[11px] text-[var(--ny-text-secondary)]">{t("budgetest.source_note", { source: estimate.source || t("budgetest.not_specified") })}</p>
               )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {CATEGORY_META.map(({ key, label, icon: Icon, color }) => (
+              {CATEGORY_META.map(({ key, labelKey, fallback, icon: Icon, color }) => (
                 <div key={key} className="card-base p-4 flex items-center gap-3 bg-white border border-slate-200 shadow-sm">
                   <div className={`p-2.5 rounded-xl ${color}`}>
                     <Icon size={18} />
                   </div>
 
                   <div>
-                    <p className="text-xs text-gray-500">{label}</p>
+                    <p className="text-xs text-gray-500">{t(labelKey) !== labelKey ? t(labelKey) : fallback}</p>
                     <p className="font-bold text-dark text-sm">
                       {formatMoney(estimateValues?.[key], currency)}
                     </p>
@@ -365,7 +374,7 @@ const BudgetEstimator = () => {
                   <FiShield size={18} />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 font-medium">Emergency reserve (if recorded)</p>
+                  <p className="text-xs text-gray-500 font-medium">{t("budgetest.emergency_reserve")}</p>
                   <p className="font-bold text-dark text-sm">
                     {formatMoney(emergencyReserve, currency)}
                   </p>

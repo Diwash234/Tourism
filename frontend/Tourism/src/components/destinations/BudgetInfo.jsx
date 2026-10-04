@@ -1,4 +1,4 @@
-﻿import { FiDollarSign } from "react-icons/fi"
+import { FiDollarSign } from "react-icons/fi"
 
 const money = (value, currency = "USD") => value == null ? "Not recorded" : `${currency} ${Number(value).toLocaleString()}`
 

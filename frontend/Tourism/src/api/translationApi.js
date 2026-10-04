@@ -1,4 +1,4 @@
-﻿import axiosClient from "./axiosClient"
+import axiosClient from "./axiosClient"
 
 // Matches POST /api/v1/translate/. NOTE: I checked the backend directly
 // (tourist/serializers.py TranslateRequestSerializer + views.py

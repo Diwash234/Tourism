@@ -4,6 +4,7 @@ ML-powered Risk Prediction API Views
 import logging
 
 from django.conf import settings
+from drf_spectacular.utils import extend_schema
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -11,6 +12,12 @@ from rest_framework.views import APIView
 from .models import Destination
 from .ml_risk import risk_predictor, get_route_risk_assessment
 from .risk_service import build_destination_risk
+from .schema_extensions import (
+    RiskPredictionResponseSerializer,
+    RiskRequestSerializer,
+    RouteRiskRequestSerializer,
+    RouteRiskResponseSerializer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +51,22 @@ class RiskPredictionView(APIView):
     """
     
     permission_classes = [permissions.AllowAny]
-    
+
+    @extend_schema(
+        operation_id="ml_risk_prediction",
+        summary="Predict destination risk for the next N days",
+        description=(
+            "ML risk indicator for a destination. Weighted from verified "
+            "historical incidents, traveler records, seasonal patterns and "
+            "active observations. This is **not** an official DHM/BIPAD warning."
+        ),
+        request=RiskRequestSerializer,
+        responses={
+            200: RiskPredictionResponseSerializer,
+            400: RiskPredictionResponseSerializer,
+            404: RiskPredictionResponseSerializer,
+        },
+    )
     def post(self, request):
         destination_id = request.data.get("destination_id")
         destination_slug = request.data.get("destination_slug")
@@ -129,7 +151,20 @@ class RouteRiskAssessmentView(APIView):
     """
     
     permission_classes = [permissions.AllowAny]
-    
+
+    @extend_schema(
+        operation_id="ml_route_risk_assessment",
+        summary="Assess risk along a route between two coordinates",
+        description=(
+            "Segments a route between two points and scores the hazard level of "
+            "each segment. Advisory only; confirm conditions with DHM/BIPAD."
+        ),
+        request=RouteRiskRequestSerializer,
+        responses={
+            200: RouteRiskResponseSerializer,
+            400: RouteRiskResponseSerializer,
+        },
+    )
     def post(self, request):
         origin_lat = request.data.get("origin_latitude")
         origin_lng = request.data.get("origin_longitude")

@@ -1,4 +1,4 @@
-﻿import "react-icons/fi"
+import "react-icons/fi"
 
 export default function ImageApproval({ pendingImages = [], onApprove, onReject }) {
   if (!pendingImages || pendingImages.length === 0) {

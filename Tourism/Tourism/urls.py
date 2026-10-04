@@ -73,6 +73,15 @@ urlpatterns = [
     path("api/v2/search/faceted/", FacetedSearchView.as_view(), name="search-faceted-v2"),
     path("api/v2/", include("tourist.urls")),
 
+    # v2 schema / docs. v2 mounts the same view modules as v1, so the generated
+    # OpenAPI document already describes every v2 operation — these routes only
+    # exist so /api/v2/models/, /api/v2/docs/ and /api/v2/redoc/ resolve instead
+    # of 404-ing for clients pinned to the v2 prefix.
+    path("api/v2/models/", SpectacularAPIView.as_view(), name="api-v2-models"),
+    path("api/v2/models", SpectacularAPIView.as_view(), name="api-v2-models-noslash"),
+    path("api/v2/docs/", SpectacularSwaggerView.as_view(url_name="api-v2-models"), name="api-v2-docs"),
+    path("api/v2/redoc/", SpectacularRedocView.as_view(url_name="api-v2-models"), name="api-v2-redoc"),
+
     # ==================================================================
     # Public SEO surface (§101-103): generated from live DB records.
     # ==================================================================

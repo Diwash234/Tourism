@@ -1,4 +1,4 @@
-﻿import { useRef, useState, useEffect } from "react"
+import { useRef, useState, useEffect } from "react"
 import { motion, useReducedMotion } from "framer-motion"
 
 // Smooth cubic bezier easing matching modern digital agency standards (Refero / Emil Kowalski)

@@ -1,4 +1,4 @@
-﻿import { lazy, Suspense, useEffect } from "react"
+import { lazy, Suspense, useEffect } from "react"
 import { Routes, Route, Navigate } from "react-router-dom"
 import ErrorBoundary from "./components/common/ErrorBoundary"
 import { installGlobalErrorHandlers } from "./utils/errorLogger"
@@ -60,6 +60,7 @@ const DistrictsIndex = lazy(() => import("./pages/DistrictsIndex"))
 const DistrictDetail = lazy(() => import("./pages/DistrictDetail"))
 const CompareDestinations = lazy(() => import("./pages/CompareDestinations"))
 const Gallery = lazy(() => import("./pages/Gallery"))
+const TravelToolkit = lazy(() => import("./pages/TravelToolkit"))
 
 // Features
 const Chatbot = lazy(() => import("./Chatbot"))
@@ -198,6 +199,7 @@ function App() {
         <Route path="/compare" element={<CompareDestinations />} />
         <Route path="/destinations/compare" element={<CompareDestinations />} />
         <Route path="/gallery" element={<Gallery />} />
+        <Route path="/travel-toolkit" element={<LazyRoute><TravelToolkit /></LazyRoute>} />
         <Route path="/itinerary" element={<LazyRoute><Itinerary /></LazyRoute>} />
         <Route path="/trip-planner" element={<Navigate to="/itinerary" replace />} />
         <Route path="/packages" element={<Packages />} />

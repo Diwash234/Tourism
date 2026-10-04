@@ -1,4 +1,4 @@
-﻿import { motion } from "framer-motion"
+import { motion } from "framer-motion"
 import { FiAlertTriangle, FiCheck } from "react-icons/fi"
 
 export default function MedicalEmergencyPanel({ emergencies = [], onResolve }) {

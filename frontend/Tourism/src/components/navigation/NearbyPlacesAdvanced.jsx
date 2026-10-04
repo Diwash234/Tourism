@@ -1,8 +1,8 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { FiMapPin, FiNavigation, FiRefreshCw, FiAlertTriangle, FiStar } from "react-icons/fi"
 import { useTranslation } from "../../hooks/useTranslation"
 import useAuth from "../../hooks/useAuth"
-import { nearbyApi } from "../../api/nearbyApi"
+import nearbyApi from "../../api/nearbyApi"
 import DestinationMap from "../destinations/DestinationMap"
 import "../common/Badge"
 
@@ -37,14 +37,40 @@ export default function NearbyPlacesAdvanced() {
     setLoading(true)
     setError(null)
     try {
-      const data = await nearbyApi.getNearbyPlaces(lat, lng, radius)
-      setResults(data)
+      // One universal request: it already ranks every place type by distance
+      // and includes live OpenStreetMap rows that were never seeded here.
+      // (This used to pass three positional args to a single-params API and
+      // then set an array into an object-shaped state — every tab stayed
+      // empty no matter what came back.)
+      const { data } = await nearbyApi.getNearbyPlaces({ lat, lng, radius_km: radius, limit: 50 })
+      const list = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : []
+      const bucket = { destinations: [], pois: [], hotels: [], hospitals: [] }
+      list.forEach((place) => {
+        const kind = String(place.type || "").toLowerCase()
+        const source = String(place.source || "")
+        if (place.is_destination || kind === "destination") bucket.destinations.push(place)
+        else if (source.includes("hotel") || kind === "hotel") bucket.hotels.push(place)
+        else if (source.includes("hospital") || kind === "hospital") bucket.hospitals.push(place)
+        else bucket.pois.push(place)
+      })
+      setResults(bucket)
     } catch (err) {
-      setError(err.message || "Failed to fetch nearby places")
+      setError(err?.response?.data?.detail || err.message || "Failed to fetch nearby places")
     } finally {
       setLoading(false)
     }
   }, [radius])
+
+  // Fetch whenever the origin OR the radius changes. The radius selector used
+  // to do nothing until you re-picked a location, because only the handlers
+  // called fetchNearby. The microtask kick keeps the synchronous setState in
+  // fetchNearby() out of the effect flush (react-hooks/set-state-in-effect).
+  useEffect(() => {
+    if (!location) return undefined
+    const { lat, lng } = location
+    Promise.resolve().then(() => fetchNearby(lat, lng))
+    return undefined
+  }, [location, fetchNearby])
 
   const handleUseLocation = () => {
     if (!navigator.geolocation) {
@@ -54,9 +80,8 @@ export default function NearbyPlacesAdvanced() {
     setLoading(true)
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude }
-        setLocation(loc)
-        fetchNearby(loc.lat, loc.lng)
+        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+        setLoading(false)
       },
       (_err) => {
         setError("Unable to get your location. Please check browser permissions.")
@@ -67,9 +92,7 @@ export default function NearbyPlacesAdvanced() {
   }
 
   const handleMapClick = (lat, lng) => {
-    const loc = { lat, lng }
-    setLocation(loc)
-    fetchNearby(lat, lng)
+    setLocation({ lat, lng })
   }
 
   const currentResults = results[activeTab] || []
@@ -101,8 +124,12 @@ export default function NearbyPlacesAdvanced() {
               onChange={(e) => setRadius(Number(e.target.value))}
               className="text-sm rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-gray-700 dark:text-gray-300"
             >
+              <option value={0.5}>500 m</option>
+              <option value={1}>1 km</option>
+              <option value={2}>2 km</option>
               <option value={5}>5 km</option>
               <option value={10}>10 km</option>
+              <option value={11}>11 km</option>
               <option value={25}>25 km</option>
               <option value={50}>50 km</option>
               <option value={100}>100 km</option>

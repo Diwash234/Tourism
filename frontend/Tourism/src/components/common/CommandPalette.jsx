@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Compass, MapPin, Navigation as NavIcon, Shield, PhoneCall, Heart, Package, Calendar, MessageSquare, Search, X, Sparkles, Command, LayoutDashboard } from "lucide-react"
 

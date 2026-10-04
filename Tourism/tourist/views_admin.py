@@ -6,12 +6,20 @@ from django.db import models, transaction
 from django.db.models import Count, Sum, F, Q, Max
 from django.utils import timezone
 from django.conf import settings
+from drf_spectacular.utils import extend_schema
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions, viewsets, viewsets
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
+
+from .schema_extensions import (
+    ImageImportRequestSerializer,
+    ImageImportResponseSerializer,
+    MultiSourceImageSearchRequestSerializer,
+    MultiSourceImageSearchResponseSerializer,
+)
 
 from .models import (
     Destination, Alert, DestinationImage, DestinationVideo, VisitHistory, Favorite, Review, Rating, Restaurant, DestinationTransitRoute, TravelPlan,
@@ -2488,6 +2496,25 @@ class AdminBrandingView(APIView):
     }
     TEXT_FIELDS = {"site_title", "tagline", "footer_text", "contact_email", "contact_phone", "contact_address"}
     SOCIAL_FIELDS = {"facebook_url", "instagram_url", "twitter_url", "youtube_url"}
+    # Structural / organizing controls: the admin decides how the site is
+    # built (header behaviour, footer columns, card style...) without a
+    # code change. Every value is an allowlisted choice, never raw CSS.
+    CHOICE_FIELDS = {
+        "header_style": {"sticky", "static", "floating"},
+        "header_layout": {"spread", "centered", "compact"},
+        "sidebar_position": {"left", "right", "hidden"},
+        "footer_columns": {"2", "3", "4"},
+        "card_style": {"elevated", "outlined", "flat"},
+        "page_width": {"fluid", "boxed"},
+        "font_scale": {"compact", "normal", "large"},
+        "nav_style": {"default", "tabs", "pills"},
+    }
+    TOGGLE_FIELDS = {"show_breadcrumbs", "show_hero", "show_announcement_bar", "show_social_footer"}
+    STRUCT_TEXT_FIELDS = {"announcement_bar_text", "footer_heading"}
+    # Organized collections the admin maintains without code:
+    # quick links shown in the header/footer, and footer column
+    # sections. Validated to plain label/URL pairs server-side.
+    JSON_FIELDS = {"quick_links", "footer_sections"}
 
     def _setting(self):
         return SiteSetting.objects.get_or_create(key="branding", defaults={"value": {}, "description": "Public platform branding", "is_public": True})[0]
@@ -2507,12 +2534,36 @@ class AdminBrandingView(APIView):
         data = request.data.get("branding") or {}
         if not isinstance(data, dict):
             return Response({"detail": "Branding must be structured data"}, status=400)
-        unknown = set(data) - self.TEXT_FIELDS - self.SOCIAL_FIELDS - {"theme_preset"}
+        unknown = set(data) - self.TEXT_FIELDS - self.SOCIAL_FIELDS - {"theme_preset"} - set(self.CHOICE_FIELDS) - self.TOGGLE_FIELDS - self.STRUCT_TEXT_FIELDS - self.JSON_FIELDS
         if unknown:
             return Response({"detail": f"Unsupported branding fields: {', '.join(sorted(unknown))}"}, status=400)
+        for field in self.JSON_FIELDS:
+            if field in data:
+                rows = data[field]
+                if not isinstance(rows, list) or len(rows) > 12:
+                    return Response({"detail": f"{field} must be a list of up to 12 items"}, status=400)
+                clean_rows = []
+                for row in rows:
+                    if not isinstance(row, dict):
+                        return Response({"detail": f"{field} items must be objects"}, status=400)
+                    label = str(row.get("label") or "").strip()[:60]
+                    url = str(row.get("url") or "").strip()[:500]
+                    if not label or not url:
+                        continue
+                    clean_rows.append({"label": label, "url": url})
+                data[field] = clean_rows
         preset = data.get("theme_preset", before.get("theme_preset", "himalayan"))
         if preset not in self.PRESETS:
             return Response({"detail": "Unknown theme preset"}, status=400)
+        for field, allowed in self.CHOICE_FIELDS.items():
+            if field in data and data[field] not in allowed:
+                return Response({"detail": f"{field} must be one of: {', '.join(sorted(allowed))}"}, status=400)
+        for field in self.TOGGLE_FIELDS:
+            if field in data and not isinstance(data[field], bool):
+                return Response({"detail": f"{field} must be true or false"}, status=400)
+        for field in self.STRUCT_TEXT_FIELDS:
+            if field in data and len(str(data[field])) > 300:
+                return Response({"detail": f"{field} is too long"}, status=400)
         for field in self.SOCIAL_FIELDS:
             value = str(data.get(field, "")).strip()
             if value and not re.fullmatch(r"https://[^\s]{3,500}", value):
@@ -5597,6 +5648,21 @@ class AdminMultiSourceImageSearchView(APIView):
     """Admin/staff search across configured image providers with provenance scoring."""
     permission_classes = [IsAdminOrStaff]
 
+    @extend_schema(
+        operation_id="admin_image_multi_source_search",
+        summary="Search image providers for a destination or free-text query",
+        description=(
+            "Queries Wikimedia, Openverse, Flickr, Unsplash, Pexels and Pixabay in "
+            "parallel and returns candidates with Location Match %, Keyword Match % "
+            "and a confidence score. Returns candidates only — nothing is stored or "
+            "published until an admin imports one."
+        ),
+        request=MultiSourceImageSearchRequestSerializer,
+        responses={
+            200: MultiSourceImageSearchResponseSerializer,
+            400: MultiSourceImageSearchResponseSerializer,
+        },
+    )
     def post(self, request):
         from tourist.services.image_search.search import multi_source_image_search
 
@@ -5640,6 +5706,21 @@ class AdminImageImportMediaView(APIView):
     """Admin/staff import a selected externally hosted image with provenance."""
     permission_classes = [IsAdminOrStaff]
 
+    @extend_schema(
+        operation_id="admin_image_import_media",
+        summary="Import an externally hosted image into a destination gallery",
+        description=(
+            "Stores the chosen external image URL as an approved DestinationImage "
+            "with full provenance (author, license, source page). Re-importing the "
+            "same URL re-verifies the existing row instead of duplicating it."
+        ),
+        request=ImageImportRequestSerializer,
+        responses={
+            200: ImageImportResponseSerializer,
+            400: ImageImportResponseSerializer,
+            404: ImageImportResponseSerializer,
+        },
+    )
     def post(self, request):
         destination_id = request.data.get("destination_id")
         image_url = (request.data.get("image_url") or "").strip()

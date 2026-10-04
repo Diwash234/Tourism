@@ -2,6 +2,7 @@
 Common serializer mixins and utilities.
 """
 import re
+import sys
 from decimal import Decimal, ROUND_HALF_UP
 
 from drf_spectacular.utils import extend_schema_field
@@ -224,6 +225,148 @@ def _cover_backed_by_unverified_media(destination, cover_value):
     return False
 
 
+_COVER_EXTRA_GENERIC_TOKENS = {
+    "municipality", "metropolitan", "rural", "sub", "bazaar", "bazar", "tole",
+    "dham", "gaun", "village", "ward", "district", "zone", "province", "pradesh",
+    "garden", "gardens", "sacred", "durbar", "square", "river", "falls",
+    "waterfall", "cave", "forest", "trek", "trail", "camp", "base", "heritage",
+    "monastery", "gompa", "buddha", "buddhist", "hindu", "private", "limited",
+    "spring", "springs", "pond", "bank", "school", "college", "office",
+}
+_SERVICE_NAME_RE = re.compile(
+    r"\b(hotel|lodge|hostel|guest\s?house|homestay|home\s?stay|resort|restaurant|cafe|caf\u00e9|bhojanalaya|school|college|campus|consultancy|inn)\b",
+    re.IGNORECASE,
+)
+_OVERSHARED_CACHE = {"at": 0.0, "urls": frozenset()}
+_OVERSHARE_THRESHOLD = 3
+
+
+def _cover_title_matches_own_name(obj, url):
+    """True/False/None: does a named photo's title name THIS place itself?
+
+    ``image_url_matches_destination`` also accepts the city, district and
+    province, which is right for a gallery but wrong for a cover: every
+    Kathmandu hotel then "matched" the SAARC Secretariat photo because the title
+    contains "Kathmandu". The title must share a distinctive token with the
+    destination's own name/aliases. None = opaque URL (nothing to verify).
+    """
+    generic = _IMAGE_STOPWORDS | _COVER_EXTRA_GENERIC_TOKENS
+    title = _named_external_photo_title(url)
+    if title is None:
+        return None
+    own = " ".join(filter(None, [obj.name, getattr(obj, "aliases", "") or ""])).lower()
+    own_tokens = {t for t in re.findall(r"[a-z0-9]{4,}", own) if t not in generic}
+    if _SERVICE_NAME_RE.search(obj.name or ""):
+        # "Lumbini Garden Lodge" shares only its city with the Lumbini landmark
+        # photo; a business name must match on more than the place it stands in.
+        place = " ".join(str(getattr(obj, f, "") or "") for f in ("city", "district", "province")).lower()
+        own_tokens -= set(re.findall(r"[a-z0-9]{4,}", place))
+        own_tokens -= {"lumbini", "kathmandu", "pokhara", "chitwan", "bhaktapur", "patan", "nagarkot"}
+    if not own_tokens:
+        return False
+    title_tokens = {t for t in re.findall(r"[a-z0-9]{4,}", title.lower()) if t not in generic}
+    # Camera/filename-style titles ("IMG_2041", "DSC00123", "Nepal 2019") name no place at
+    # all: no evidence either way, so they follow the opaque-photo (reuse) rule instead of
+    # being rejected -- they are the "generic source filenames" real photos that must stay.
+    if not title_tokens or re.fullmatch(r"(img|dsc|dscn|dscf|pxl|p|image|photo|picture|nepal)?[\s_\-]*\d[\w\s\-]*", title.strip(), re.I):
+        return None
+    return bool(own_tokens & title_tokens)
+
+
+def _overshared_image_urls():
+    """External photo URLs attached to 3+ different destinations (cached 1 h).
+
+    Opaque URLs (hash-named files) carry no title to verify, so the only
+    evidence is reuse: one frame standing in for five unrelated villages is a
+    placeholder, not a photograph of any of them.
+    """
+    import time
+
+    now = time.time()
+    if _OVERSHARED_CACHE["at"] and now - _OVERSHARED_CACHE["at"] < 3600:
+        return _OVERSHARED_CACHE["urls"]
+    try:
+        from django.db.models import Count
+
+        urls = set(
+            DestinationImage.objects.exclude(external_url="")
+            .values("external_url")
+            .annotate(n=Count("destination_id", distinct=True))
+            .filter(n__gte=_OVERSHARE_THRESHOLD)
+            .values_list("external_url", flat=True)
+        )
+        urls |= set(
+            Destination.objects.exclude(cover_image="")
+            .values("cover_image")
+            .annotate(n=Count("id"))
+            .filter(n__gte=_OVERSHARE_THRESHOLD)
+            .values_list("cover_image", flat=True)
+        )
+        urls = frozenset(str(u) for u in urls)
+    except Exception:  # pragma: no cover - never break a page over a cache
+        urls = _OVERSHARED_CACHE["urls"]
+    _OVERSHARED_CACHE.update(at=now or 1.0, urls=urls)
+    return urls
+
+
+def _photo_is_for_this_place(obj, photo):
+    """Strict public-display gate for one gallery photo.
+
+    Builds on ``is_destination_specific_image`` and adds the two missing rules:
+    a named external photo must name the destination itself (not just its
+    city/district), and an unverifiable photo reused by 3+ destinations is not
+    shown. Local uploads and photos staff deliberately attached always pass.
+    """
+    if not is_destination_specific_image(obj, photo):
+        return False
+    external = getattr(photo, "external_url", "") or ""
+    if not external:
+        return True
+    uploader = getattr(photo, "uploaded_by", None) if getattr(photo, "uploaded_by_id", None) else None
+    if (
+        getattr(photo, "source", "") == DestinationImage.Source.ADMIN
+        and uploader is not None
+        and (uploader.is_staff or uploader.is_superuser)
+    ):
+        return True
+    verdict = _cover_title_matches_own_name(obj, external)
+    if verdict is True:
+        return True
+    if verdict is False:
+        return False
+    return external not in _overshared_image_urls()
+
+
+def _cover_column_is_for_this_place(obj):
+    """Gate the raw ``Destination.cover_image`` column with place-match evidence.
+
+    It used to be served unchecked, so bulk-import covers leaked to the public
+    site (a Boudhanath photo on "Mahaboudha Temple", one Lumbini garden photo
+    on 41 places). A wrong photo is worse than an honest "no photo yet". Local
+    media is kept; a staff-chosen photo (approved gallery row that passes the
+    gallery gate) is kept; a named photo of another place and an opaque photo
+    reused by 3+ places are rejected.
+    """
+    raw = str(getattr(obj, "cover_image", "") or "").strip()
+    if not raw.lower().startswith(("http://", "https://")):
+        return True
+    verdict = _cover_title_matches_own_name(obj, raw)
+    if verdict is True:
+        return True
+    if verdict is None and raw not in _overshared_image_urls():
+        return True
+    gallery = getattr(obj, "gallery", None)
+    if gallery is None:
+        return False
+    for photo in gallery.all():
+        if (getattr(photo, "external_url", "") or "") == raw \
+                and getattr(photo, "verification_status", "") == DestinationImage.ImageStatus.APPROVED \
+                and getattr(photo, "source", "") == DestinationImage.Source.ADMIN \
+                and _photo_is_for_this_place(obj, photo):
+            return True
+    return False
+
+
 def destination_cover_image(obj, request=None):
     """Resolve only an approved, verified, destination-specific photograph.
 
@@ -233,10 +376,15 @@ def destination_cover_image(obj, request=None):
     """
     from .utils import resolve_image_url
 
-    if getattr(obj, "cover_image", None) and not _cover_backed_by_unverified_media(
-        obj, obj.cover_image
+    cover_value = getattr(obj, "cover_image", None)
+    if (
+        cover_value
+        # A bulk-import default stamped onto 3+ destinations is another
+        # place's photo; fall through to this destination's own media.
+        and not is_shared_default_image(obj, cover_value)
+        and not _cover_backed_by_unverified_media(obj, cover_value)
     ):
-        resolved = resolve_image_url(obj.cover_image, request)
+        resolved = resolve_image_url(cover_value, request)
         if resolved and not is_generated_postcard_url(resolved):
             return resolved
 
@@ -248,7 +396,26 @@ def destination_cover_image(obj, request=None):
         url = _photo_url(cover, request)
         if url and not is_generated_postcard_url(url):
             return url
+
+    # No real photo for this destination: return None (never "").
+    #
+    # Two features depend on being able to tell "no photo" apart from "a
+    # photo exists":
+    #   * frontend/src/utils/imageProviders.js fetches a REAL photo
+    #     (Unsplash -> Pexels -> Pixabay -> Openverse -> Wikimedia) only when
+    #     cover_image_url is null. Serving a synthetic postcard here would
+    #     satisfy the <img> while silently disabling that pipeline for every
+    #     place that most needs a photo. That module documents this contract
+    #     by name: get_cover_image_url() "returns None (not \"\") when there's
+    #     no real photo".
+    #   * list/detail pages render their own empty state (PlaceholderImage)
+    #     instead of a broken <img>.
+    #
+    # A deterministic postcard is still available to pages that want one via
+    # photo_catalog and the /postcard/ route - it is just never presented as
+    # this destination's cover, and never stands in for unverified media.
     return None
+
 
 def _cover_cached(obj, request=None):
     """Memoise the cover on the row so `cover_image` + `cover_image_url`
@@ -2022,6 +2189,102 @@ def _is_bundled_placeholder_asset(photo, external_url, image_path, source_url):
     return any(marker in provenance for marker in BUNDLED_PLACEHOLDER_MARKERS)
 
 
+# ---------------------------------------------------------------------------
+# Covers that are reused across many destinations
+#
+# Bulk image imports stamped the same handful of Wikimedia files onto
+# thousands of unrelated rows: 551 URLs carry 3+ destinations each, and 7,644
+# of 8,757 destinations were showing a cover that also belonged to some other
+# place. A URL carried by three different destinations is a default, not
+# place-specific imagery -- except for the one destination whose own name the
+# filename actually contains.
+# ---------------------------------------------------------------------------
+SHARED_COVER_MIN_DESTINATIONS = 3
+SHARED_COVER_TTL = 60.0  # seconds
+# Generic words that carry no place identity, so "Patan District" would not
+# "own" a photo just because it is in Patan.
+SUBJECT_STOPWORDS = {
+    "lake", "park", "temple", "stupa", "mountain", "national", "area", "view",
+    "valley", "museum", "city", "nepal", "the", "and", "tourism",
+}
+_SHARED_COVER_CACHE = {"at": None, "value": frozenset()}
+# `manage.py test` wraps every test in a rolled-back transaction, so a set
+# computed while one test ran must never leak into the next: recompute instead
+# of memoising (test fixtures are tiny, the cost is negligible).
+_SHARED_COVER_RECOMPUTE = "test" in sys.argv
+
+
+def _shared_default_image_query():
+    """One aggregation for each source of reused media (cover column + gallery)."""
+    from django.db.models import Count
+
+    urls = set()
+    try:
+        covers = (
+            Destination.objects.exclude(cover_image="")
+            .exclude(cover_image__isnull=True)
+            .values("cover_image")
+            .annotate(n=Count("id"))
+            .filter(n__gte=SHARED_COVER_MIN_DESTINATIONS)
+        )
+        urls.update(str(row["cover_image"]) for row in covers)
+        external = (
+            DestinationImage.objects.exclude(external_url="")
+            .exclude(external_url__isnull=True)
+            .values("external_url")
+            .annotate(n=Count("destination_id", distinct=True))
+            .filter(n__gte=SHARED_COVER_MIN_DESTINATIONS)
+        )
+        urls.update(str(row["external_url"]) for row in external)
+    except Exception:
+        # The tables can be absent during an early migrate; the rule then
+        # simply does not apply yet rather than breaking every render.
+        return frozenset()
+    return frozenset(urls)
+
+
+def shared_default_image_urls():
+    """Media URLs used by 3+ destinations, memoised so membership is free.
+
+    A per-photo COUNT would add a query to every gallery row on every list
+    page; this costs one aggregation per minute per process instead.
+    """
+    import time as _time
+
+    if _SHARED_COVER_RECOMPUTE:
+        return _shared_default_image_query()
+    now = _time.monotonic()
+    stamp = _SHARED_COVER_CACHE["at"]
+    if stamp is not None and now - stamp < SHARED_COVER_TTL:
+        return _SHARED_COVER_CACHE["value"]
+    value = _shared_default_image_query()
+    _SHARED_COVER_CACHE["at"] = now
+    _SHARED_COVER_CACHE["value"] = value
+    return value
+
+
+def is_shared_default_image(destination, url):
+    """True when `url` belongs to 3+ destinations and does not name this one.
+
+    "Patan_Durbar_Square_at_Night.jpg" is attached to 130 destinations: it
+    stays with Patan Durbar Square (the filename says so) and is rejected for
+    the other 129, which then fall through to their own approved photo or to a
+    generated postcard instead of showing somebody else's landmark.
+    """
+    if not url:
+        return False
+    target = str(url).strip().rstrip("/")
+    if not target or target not in shared_default_image_urls():
+        return False
+    evidence = target.lower()
+    subject = f"{getattr(destination, 'name', '') or ''} {getattr(destination, 'aliases', '') or ''}".lower()
+    tokens = {
+        token for token in re.findall(r"[a-z0-9]+", subject)
+        if len(token) >= 4 and token not in SUBJECT_STOPWORDS
+    }
+    return not any(token in evidence for token in tokens)
+
+
 def is_destination_specific_image(destination, photo):
     """Keep destination-linked media unless there is strong mismatch evidence.
 
@@ -2029,8 +2292,7 @@ def is_destination_specific_image(destination, photo):
     This restores generated/imported media while still blocking obvious cases
     such as a Kathmandu photo assigned to Phewa Lake or crash/news imagery.
     """
-    import re
-    ignored = {"lake", "park", "temple", "stupa", "mountain", "national", "area", "view", "valley", "museum", "city", "nepal", "the", "and", "tourism"}
+    ignored = SUBJECT_STOPWORDS
     destination_text = " ".join(filter(None, [
         destination.name, destination.aliases, destination.city, destination.district, destination.province,
     ])).lower()
@@ -2044,6 +2306,12 @@ def is_destination_specific_image(destination, photo):
     # A bundled stock asset is not a photograph of this place.
     if _is_bundled_placeholder_asset(photo, external_url, image_path,
                                     getattr(photo, "source_url", "") or ""):
+        return False
+    # Carried by three or more destinations: a bulk-import default rather than
+    # a photo of this particular place (see is_shared_default_image).
+    if is_shared_default_image(destination, external_url) or is_shared_default_image(
+        destination, getattr(photo, "source_url", "") or ""
+    ):
         return False
     # A locally uploaded/generated file is explicitly attached by destination_id.
     if (local_image or image_path) and not external_url:
@@ -2070,6 +2338,10 @@ def is_destination_specific_image(destination, photo):
     # use photographer IDs or generic filenames (for example IMG_2041.jpg).
     # Keep the strong known-place conflict guard below so a clearly labelled
     # Pokhara image cannot silently become an Everest/Lumbini cover.
+    # Defined BEFORE its first use below. It used to be assigned after the loop that
+    # reads it, so any approved photo whose URL names a different place raised
+    # UnboundLocalError and the destination list/detail endpoint returned a 500.
+    known_places = {"kathmandu", "patan", "bhaktapur", "pokhara", "rara", "lumbini", "mustang", "chitwan", "janakpur", "everest", "annapurna", "tilicho", "gosaikunda", "bardiya", "ilam", "dhangadhi", "dadeldhura", "pashupatinath", "boudhanath", "swayambhunath"}
     for candidate_url in (external_url, getattr(photo, "source_url", "") or ""):
         if image_url_matches_destination(destination, candidate_url) is False:
             evidence_lower = evidence
@@ -2083,7 +2355,6 @@ def is_destination_specific_image(destination, photo):
     strict_subject = any(term in destination_text for term in ["cave", "gupha", "gufa", "balloon", "ultralight", "paragliding", "zipflyer", "zip flyer"])
     if strict_subject and not own_match:
         return False
-    known_places = {"kathmandu", "patan", "bhaktapur", "pokhara", "rara", "lumbini", "mustang", "chitwan", "janakpur", "everest", "annapurna", "tilicho", "gosaikunda", "bardiya", "ilam", "dhangadhi", "dadeldhura", "pashupatinath", "boudhanath", "swayambhunath"}
     conflicts = {place for place in known_places if place in evidence and place not in allowed}
     if conflicts and not own_match:
         return False
@@ -2101,7 +2372,7 @@ def verified_destination_photos(destination):
         photo for photo in destination.gallery.all()
         if photo.verification_status == DestinationImage.ImageStatus.APPROVED
         and photo.is_verified
-        and is_destination_specific_image(destination, photo)
+        and _photo_is_for_this_place(destination, photo)
     ]
 
 
@@ -2117,6 +2388,7 @@ def public_destination_cover(destination, request=None):
     if not url or is_generated_postcard_url(url):
         return None
     return url
+
 
 def real_photo_url(photo, request=None):
     """Resolve a verified photo to a display URL, or None when the media is

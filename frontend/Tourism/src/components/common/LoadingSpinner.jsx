@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Reusable loading spinner with accessible label.
  */
 export default function LoadingSpinner({ size = "md", label = "Loading..." }) {

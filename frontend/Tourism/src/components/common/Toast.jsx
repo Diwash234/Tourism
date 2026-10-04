@@ -1,4 +1,4 @@
-﻿import { FiCheckCircle, FiXCircle, FiAlertTriangle, FiInfo, FiX } from "react-icons/fi"
+import { FiCheckCircle, FiXCircle, FiAlertTriangle, FiInfo, FiX } from "react-icons/fi"
 
 // This module used to carry a SECOND, module-local ToastContext together with
 // its own ToastProvider/useToast. Nothing ever mounted that provider (main.jsx

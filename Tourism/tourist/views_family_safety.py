@@ -30,6 +30,8 @@ class TrustedContactViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
+            return TrustedContact.objects.none()
         return TrustedContact.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
@@ -47,6 +49,8 @@ class SharedTripViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
+            return SharedTrip.objects.none()
         return SharedTrip.objects.filter(user=self.request.user).prefetch_related("trusted_contacts", "pings")
 
     def perform_create(self, serializer):
@@ -117,6 +121,8 @@ class SOSAlertViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
+            return SOSAlert.objects.none()
         return SOSAlert.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
@@ -217,6 +223,8 @@ class FamilyLinkViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
+            return FamilyLink.objects.none()
         return FamilyLink.objects.filter(
             Q(requester=self.request.user) | Q(member=self.request.user)
         )

@@ -28,6 +28,7 @@ const MainLayout = () => {
 
   const hasTopbar = Boolean(settings?.topbar) && settings.topbar.enabled !== false && (settings.topbar.status ? settings.topbar.status === "published" : true)
   const topPad = hasTopbar ? "pt-[100px]" : "pt-16"
+  const announcement = settings?.announcement && typeof settings.announcement === "object" ? settings.announcement : (settings?.announcement ? { text: String(settings.announcement) } : null)
 
   useRouteSeo()
   useKeyboardShortcuts()
@@ -44,6 +45,11 @@ const MainLayout = () => {
       <ReadingProgress />
       <Navbar />
       <Sidebar />
+      {announcement && (announcement.text || announcement.html) && (
+        <div role="status" aria-live="polite" className="w-full bg-emerald-900 px-4 py-2 text-center text-sm font-semibold text-emerald-50">
+          {announcement.text || announcement.html}
+        </div>
+      )}
       <main
         id="main-content"
         key={location.pathname}

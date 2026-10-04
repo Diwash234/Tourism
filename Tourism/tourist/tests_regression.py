@@ -1,4 +1,4 @@
-﻿"""
+"""
 Regression suite for the Nepal Yatra fix pass (audit REQ-038).
 
 Each test pins one previously-fixed behavior so it cannot silently regress:

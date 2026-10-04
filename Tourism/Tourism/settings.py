@@ -444,25 +444,20 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
-    # Suppress warnings for APIView subclasses that don't have explicit serializer_class
-    # These are graceful fallback warnings, not errors — the API works fine
-    "DEFAULT_GENERATOR_CLASS": "drf_spectacular.generators.SchemaGenerator",
-    "PREPROCESSING_HOOKS": [],
-    "POSTPROCESSING_HOOKS": [],
-    "GET_MOCK_REQUEST": None,
-    "GET_LIB_DOC_EXCLUDES": [],
-    "ENUM_NAME_OVERRIDES": {},
     "COMPONENT_SPLIT_PATCH": True,
     "COMPONENT_NO_READ_ONLY_REQUIRED": False,
     "SORT_OPERATIONS": True,
     "SORT_OPERATION_PARAMETERS": True,
-    "AUTHENTICATION_WHITELIST": None,
-    "PARSER_WHITELIST": None,
-    "RENDERER_WHITELIST": None,
-    "DEFAULT_QUERY_INSPECTOR": None,
-    "DEFAULT_PAGINATOR_INSPECTOR": None,
-    "DEFAULT_FILTER_INSPECTOR": None,
-    "DEFAULT_GENERATOR_CLASS": "drf_spectacular.generators.SchemaGenerator",
+    "PREPROCESSING_HOOKS": [],
+    "POSTPROCESSING_HOOKS": [],
+    "ENUM_NAME_OVERRIDES": {},
+    # NOTE: GET_MOCK_REQUEST, AUTHENTICATION_WHITELIST, PARSER_WHITELIST,
+    # RENDERER_WHITELIST, DEFAULT_*_INSPECTOR and DEFAULT_GENERATOR_CLASS must be
+    # callables / lists of classes. They were previously set to None here, which
+    # made drf-spectacular raise "TypeError: 'NoneType' object is not callable"
+    # while generating the schema — that broke /api/v1/models/, /api/schema/,
+    # /api/docs/ and /api/redoc/ entirely. They are now left at the library
+    # defaults, which are always valid.
 }
 
 # ------------------------------------------------------------------
@@ -554,6 +549,16 @@ OPENWEATHER_API_KEY = config("OPENWEATHER_API_KEY", default="")
 import sys as _sys
 FX_AUTO_REFRESH = config(
     "FX_AUTO_REFRESH", default=not (len(_sys.argv) > 1 and _sys.argv[1] == "test"), cast=bool
+)
+
+# Live OpenStreetMap fill for /api/v1/nearby/places: when a pure "near me"
+# query comes in, points that exist only on the live map (not in our seeded
+# database) are merged into the list, tagged `source: "openstreetmap_live"`.
+# Off under `manage.py test` (same pattern as FX_AUTO_REFRESH) so the suite
+# never depends on the public Overpass instance; set NEARBY_LIVE_OSM=0 to
+# serve recorded rows only.
+NEARBY_LIVE_OSM = config(
+    "NEARBY_LIVE_OSM", default=not (len(_sys.argv) > 1 and _sys.argv[1] == "test"), cast=bool
 )
 
 # ------------------------------------------------------------------

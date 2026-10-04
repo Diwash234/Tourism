@@ -174,7 +174,7 @@ class HealthSampleViewSet(viewsets.ReadOnlyModelViewSet):
 # ---------------------------------------------------------------------------
 # Frontend error reporting (anonymous-safe; used by the React ErrorBoundary)
 # ---------------------------------------------------------------------------
-@extend_schema(request=FrontendErrorSerializer)
+@extend_schema(exclude=True)
 @api_view(["POST"])
 @permission_classes([permissions.AllowAny])
 def report_frontend_error(request):

@@ -85,6 +85,144 @@ def compute_bearing(lat1, lng1, lat2, lng2):
         return 0.0, "N", "⬆"
 
 
+# ---------------------------------------------------------------------------
+# Live OpenStreetMap fill — "places that exist outside our database".
+#
+# Overpass scans every tagged point inside a circle, so a country-sized radius
+# would time out instead of answering; a nearby search is well under this cap.
+# ---------------------------------------------------------------------------
+LIVE_OSM_MAX_RADIUS_KM = 50.0
+LIVE_OSM_CACHE_TTL = 900  # seconds, per (area, radius, category)
+# The live call is inline with an API request, so its mirror-failover budget is
+# deliberately small: an unreachable provider costs at most this long before the
+# recorded rows are served as-is. Empty results are cached for less time so a
+# provider that comes back (or goes down) is picked up sooner than 15 minutes.
+LIVE_OSM_TIMEOUT_S = 5
+LIVE_OSM_EMPTY_TTL = 300
+
+# Our category filter -> the OSM tag values that mean the same place. A
+# category we cannot honour maps to an empty set on purpose: returning every
+# mapped point under a wrong "pharmacy" tab would be worse than returning
+# none, so an unknown category simply gets no live rows.
+_LIVE_OSM_CATEGORY_ALIASES = {
+    "hotel": {"hotel", "hostel", "guest_house", "motel", "apartment", "resort", "chalet"},
+    "hotels": {"hotel", "hostel", "guest_house", "motel", "apartment", "resort", "chalet"},
+    "restaurant": {"restaurant", "fast_food", "food_court"},
+    "restaurants": {"restaurant", "fast_food", "food_court"},
+    "cafe": {"cafe", "bar", "pub"},
+    "cafes": {"cafe", "bar", "pub"},
+    "bank": {"bank"},
+    "banks": {"bank"},
+    "atm": {"atm"},
+    "atms": {"atm"},
+    "hospital": {"hospital", "clinic", "doctors"},
+    "hospitals": {"hospital", "clinic", "doctors"},
+    "police": {"police"},
+    "pharmacy": {"pharmacy", "chemist"},
+    "pharmacies": {"pharmacy", "chemist"},
+    "gas_station": {"fuel"},
+    "attraction": {"attraction", "artwork", "theme_park", "zoo", "gallery", "information"},
+    "attractions": {"attraction", "artwork", "theme_park", "zoo", "gallery", "information"},
+    "viewpoint": {"viewpoint"},
+    "viewpoints": {"viewpoint"},
+    "museum": {"museum"},
+    "temples": {"place_of_worship"},
+    "temple": {"place_of_worship"},
+}
+
+
+def _live_osm_nearby(ref_lat, ref_lng, radius_km, cat_filter=""):
+    """OpenStreetMap tourism/amenity points near a point, in the raw row shape
+    ``search_places`` builds before distance ranking (so the caller's normal
+    loop adds distance, bearing and dedupe for free).
+
+    Honest by construction: every row carries ``source: "openstreetmap_live"``
+    plus its OSM id/url, and the function NEVER raises — an unreachable
+    provider returns [] and the recorded database answer is served unchanged.
+    """
+    from django.conf import settings
+
+    if not getattr(settings, "NEARBY_LIVE_OSM", False):
+        return []
+    try:
+        radius_km = float(radius_km)
+    except (TypeError, ValueError):
+        return []
+    if not radius_km or radius_km > LIVE_OSM_MAX_RADIUS_KM:
+        return []
+    cat_filter = (cat_filter or "").strip().lower()
+    wanted = _LIVE_OSM_CATEGORY_ALIASES.get(cat_filter, set() if cat_filter else None)
+    if cat_filter and not wanted:
+        return []
+
+    import hashlib
+    from django.core.cache import cache
+
+    key = "place-live-osm:" + hashlib.sha256(
+        f"{round(float(ref_lat), 3)}|{round(float(ref_lng), 3)}|{radius_km:.2f}|{cat_filter}".encode()
+    ).hexdigest()
+    try:
+        cached = cache.get(key)
+    except Exception:  # a broken cache backend must not break search
+        cached = None
+    if cached is not None:
+        return cached
+
+    from tourist.utils import overpass_search_nearby
+
+    try:
+        # Both tourism and amenity nodes: hotels and restaurants aside, a
+        # nearby list is worthless if it omits banks, ATMs and pharmacies.
+        raw = overpass_search_nearby(
+            ref_lat, ref_lng, radius_m=max(50, int(radius_km * 1000)),
+            tourism_only=False, timeout=LIVE_OSM_TIMEOUT_S,
+        )
+    except Exception:
+        raw = []
+
+    rows = []
+    for item in raw or []:
+        lat, lng = item.get("latitude"), item.get("longitude")
+        if lat is None or lng is None:
+            continue
+        try:
+            lat, lng = float(lat), float(lng)
+        except (TypeError, ValueError):
+            continue
+        name = str(item.get("name") or "").strip()
+        if not name or name == "Unnamed":
+            continue
+        kind = str(item.get("type") or "").strip().lower()
+        if wanted is not None and kind not in wanted:
+            continue
+        tags = item.get("tags") or {}
+        rows.append({
+            "id": f"live-{item.get('osm_id')}",
+            "osm_id": item.get("osm_id"),
+            "name": name,
+            "category": (kind or "Place").replace("_", " ").title(),
+            "type": kind or "place",
+            "latitude": lat,
+            "longitude": lng,
+            "address": ", ".join(
+                part for part in [tags.get("addr:street"), tags.get("addr:city")] if part
+            ) or "Nepal",
+            "city": tags.get("addr:city") or "",
+            "phone": tags.get("phone") or tags.get("contact:phone") or "",
+            "website": tags.get("website") or tags.get("contact:website") or "",
+            "opening_hours": tags.get("opening_hours") or "",
+            "source": "openstreetmap_live",
+            "source_url": f"https://www.openstreetmap.org/node/{item.get('osm_id')}",
+            "is_destination": False,
+        })
+
+    try:
+        cache.set(key, rows, LIVE_OSM_CACHE_TTL if rows else LIVE_OSM_EMPTY_TTL)
+    except Exception:
+        pass
+    return rows
+
+
 class LocationSearchService:
     @staticmethod
     def search_places(query="", user_lat=None, user_lng=None, category=None, radius_km=50, limit=25):
@@ -260,6 +398,37 @@ class LocationSearchService:
                 "is_destination": False,
             })
 
+        # 2b. OSMTourismPlace — attractions, viewpoints, museums, waterfalls,
+        # cafes, peaks and hiking routes synced from OpenStreetMap into our
+        # own tables. The module docstring promised this provider but it was
+        # never queried, so a nearby/search request silently omitted every
+        # tourism point that is not a Destination or Hotel row — "all places
+        # near me" came back empty while these rows sat in the database.
+        _OSM_TP_CATS = {
+            "attraction", "viewpoint", "museum", "cafe", "monument", "peak",
+            "waterfall", "hiking_path", "hiking_route", "information",
+        }
+        if not cat_filter or cat_filter in _OSM_TP_CATS:
+            tp_qs = OSMTourismPlace.objects.exclude(name__icontains="name not recorded")
+            if cat_filter:
+                tp_qs = tp_qs.filter(category=cat_filter)
+            elif search_term:
+                tp_qs = tp_qs.filter(_match("name", "address", "category"))
+            for tp in _in_radius(tp_qs)[:40]:
+                raw_results.append({
+                    "id": f"osmtp-{tp.id}",
+                    "name": tp.name,
+                    "category": tp.get_category_display(),
+                    "type": tp.category,
+                    "latitude": float(tp.latitude),
+                    "longitude": float(tp.longitude),
+                    "address": tp.address or "Nepal",
+                    "city": "",
+                    "phone": (tp.raw_tags or {}).get("phone", "") if isinstance(tp.raw_tags, dict) else "",
+                    "source": "osm_tourism_place",
+                    "is_destination": False,
+                })
+
         # 3. Search Hospitals & Police Stations
         if not cat_filter or cat_filter == "hospital":
             h_qs = Hospital.objects.all()
@@ -278,6 +447,9 @@ class LocationSearchService:
                     "phone": h.phone or "",
                     "source": "verified_hospital",
                     "is_destination": False,
+                    # Coordinate provenance: a lat/lng copied from the parent
+                    # destination is an area point, not this hospital's door.
+                    "is_approximate": bool(getattr(h, "is_approximate_coordinate", False)),
                 })
 
         if not cat_filter or cat_filter == "police":
@@ -297,6 +469,7 @@ class LocationSearchService:
                     "phone": p.phone or "",
                     "source": "verified_police",
                     "is_destination": False,
+                    "is_approximate": bool(getattr(p, "is_approximate_coordinate", False)),
                 })
 
         # 4. Search Hotels & Restaurants
@@ -320,6 +493,7 @@ class LocationSearchService:
                     "phone": ht.phone or "",
                     "source": "verified_hotel",
                     "is_destination": False,
+                    "is_approximate": bool(getattr(ht, "is_approximate_coordinate", False)),
                 })
 
         # DEF-022: the Restaurant table was documented as searched but never
@@ -397,7 +571,18 @@ class LocationSearchService:
             row["bearing_degrees"] = deg
             row["direction"] = comp
             row["compass_text"] = f"{comp} {arrow}"
-            row["distance_text"] = "0 km (Here)" if dist_km < 0.1 else f"{dist_km} km"
+            # Under a kilometre, metres read far better than "0.45 km" — the
+            # 500 m radius searches are exactly where this matters most.
+            row["distance_text"] = (
+                "0 m (Here)" if dist_km < 0.005
+                else f"{int(round(dist_km * 1000))} m" if dist_km < 1
+                else f"{dist_km} km"
+            )
+            # Area-point coordinates must never be presented as a precise
+            # distance: label them honestly (the UI already renders
+            # `distance_label` ahead of its own fallbacks).
+            if row.get("is_approximate"):
+                row["distance_label"] = f"≈ {dist_km} km (area point)"
             processed.append(row)
 
         # Honour the requested radius — but ONLY when the user actually
@@ -436,6 +621,62 @@ class LocationSearchService:
         processed.sort(key=_rank)
 
         return processed[:limit]
+
+    @staticmethod
+    def merge_live_osm(results, ref_lat, ref_lng, radius_km, category="", limit=30):
+        """Append OpenStreetMap points that are NOT in our database to an
+        already-ranked nearby list (see ``_live_osm_nearby``).
+
+        Only meaningful for a pure "near me" query — Overpass matches on
+        location, not on names — so callers with a text query skip this. The
+        merged list is distance-ranked (which is what a text-less nearby
+        search already is) and truncated to ``limit``.
+
+        Returns ``results`` untouched whenever live data is unavailable, so a
+        provider outage can never cost the user their recorded rows.
+        """
+        try:
+            live = _live_osm_nearby(ref_lat, ref_lng, radius_km, category)
+        except Exception:
+            return results
+        if not live:
+            return results
+        try:
+            radius_km = float(radius_km)
+        except (TypeError, ValueError):
+            return results
+
+        combined = list(results)
+        seen = {
+            f"{str(r.get('name', '')).lower()[:20]}_{round(float(r.get('latitude') or 0), 3)}_"
+            f"{round(float(r.get('longitude') or 0), 3)}"
+            for r in combined
+        }
+        for row in live:
+            key = (
+                f"{row['name'].lower()[:20]}_{round(row['latitude'], 3)}_"
+                f"{round(row['longitude'], 3)}"
+            )
+            if key in seen:
+                continue
+            dist_km = round(haversine_distance_km(ref_lat, ref_lng, row["latitude"], row["longitude"]), 2)
+            if dist_km > radius_km:
+                continue
+            seen.add(key)
+            deg, comp, arrow = compute_bearing(ref_lat, ref_lng, row["latitude"], row["longitude"])
+            row["distance_km"] = dist_km
+            row["bearing_degrees"] = deg
+            row["direction"] = comp
+            row["compass_text"] = f"{comp} {arrow}"
+            row["distance_text"] = (
+                "0 m (Here)" if dist_km < 0.005
+                else f"{int(round(dist_km * 1000))} m" if dist_km < 1
+                else f"{dist_km} km"
+            )
+            combined.append(row)
+
+        combined.sort(key=lambda r: r.get("distance_km", 0))
+        return combined[:limit]
 
     @staticmethod
     def resolve_single_place(query_or_name):

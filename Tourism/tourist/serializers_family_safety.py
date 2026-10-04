@@ -43,11 +43,13 @@ class SharedTripSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "share_token", "started_at"]
 
-    def get_latest_ping(self, obj):
+    def get_latest_ping(self, obj) -> str:
+
         ping = obj.pings.first()  # Meta.ordering = ["-recorded_at"]
         return LocationPingSerializer(ping).data if ping else None
 
-    def get_is_valid(self, obj):
+    def get_is_valid(self, obj) -> str:
+
         return obj.is_valid()
 
     def validate(self, attrs):
@@ -92,21 +94,26 @@ class FamilyLinkSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "requester", "member", "created_at", "accepted_at"]
 
-    def get_member_name(self, obj):
+    def get_member_name(self, obj) -> str:
+
         u = obj.member
         return (u.first_name or u.full_name or u.email or "").strip() or u.email
 
-    def get_member_username(self, obj):
+    def get_member_username(self, obj) -> str:
+
         return getattr(obj.member, "username", "") or obj.member.email or obj.member.id
 
-    def get_requester_name(self, obj):
+    def get_requester_name(self, obj) -> str:
+
         u = obj.requester
         return (u.first_name or u.full_name or u.email or "").strip() or u.email
 
-    def get_requester_username(self, obj):
+    def get_requester_username(self, obj) -> str:
+
         return getattr(obj.requester, "username", "") or obj.requester.email or obj.requester.id
 
-    def get_direction(self, obj):
+    def get_direction(self, obj) -> str:
+
         request = self.context.get("request")
         if request and obj.requester_id == request.user.id:
             return "sent"

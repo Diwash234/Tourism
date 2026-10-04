@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { FiZap, FiMap, FiCalendar, FiDollarSign, FiShield, FiMessageCircle, FiBook, FiNavigation } from "react-icons/fi"
 

@@ -141,7 +141,23 @@ const Settings = () => {
     getTranslationProvider()
   )
   const [currency, setCurrency] = useState(() => localStorage.getItem("tourism_currency") || "USD")
+  const [currencyFormat, setCurrencyFormat] = useState(() => localStorage.getItem("tourism_currency_format") || "symbol")
+  const [density, setDensity] = useState(() => localStorage.getItem("ny_density") || "comfortable")
   const [notifPrefs, setNotifPrefs] = useState({ in_app_enabled: true, email_enabled: true, push_enabled: true, sms_enabled: false, safety_alerts: true, booking_updates: true, recommendations: true, marketing: false })
+  const [resetEmailBusy, setResetEmailBusy] = useState(false)
+  const requestPasswordReset = async () => {
+    setResetEmailBusy(true)
+    try {
+      await userApi.requestPasswordReset?.({ email: user?.email })
+      showToast(`A password-reset link was sent to ${user?.email || "your email"}.`, "success")
+    } catch {
+      showToast("Could not send the password-reset email. Please use the 'Forgot password' page.", "error")
+    } finally { setResetEmailBusy(false) }
+  }
+  useEffect(() => {
+    document.documentElement.classList.toggle("density-compact", density === "compact")
+    document.documentElement.dataset.density = density
+  }, [density])
 
 
 
@@ -211,6 +227,8 @@ const Settings = () => {
     setSaving(true)
     try {
       localStorage.setItem("tourism_currency", currency)
+      localStorage.setItem("tourism_currency_format", currencyFormat)
+      localStorage.setItem("ny_density", density)
       await userApi.updateNotificationPreferences(notifPrefs)
       const selectedLanguage = languages.find((item) => String(item.code || item.language_code).toLowerCase() === String(data.preferred_language || "").toLowerCase())
       if (data.preferred_language) {
@@ -566,14 +584,49 @@ const Settings = () => {
             <option value="INR">INR (₹) — Indian Rupee</option>
             <option value="CNY">CNY (¥) — Chinese Yuan</option>
           </select>
+
+          <div className="pt-2">
+            <p className="text-sm font-medium text-gray-800">Price display format</p>
+            <select className="input-field mt-1" value={currencyFormat} onChange={(e) => { setCurrencyFormat(e.target.value); localStorage.setItem("tourism_currency_format", e.target.value) }}>
+              <option value="symbol">Symbol (₨ / $ / €)</option>
+              <option value="code">Currency code (NPR / USD / EUR)</option>
+              <option value="compact">Compact (e.g. 1.2k)</option>
+            </select>
+          </div>
         </div>
 
+        {/* Display & layout */}
+        <div className="border border-gray-200 rounded-2xl p-5 bg-white space-y-3">
+          <h3 className="font-semibold flex items-center gap-2 text-gray-900">
+            <FiCpu className="text-emerald-700" size={16} /> Appearance &amp; layout
+          </h3>
+          <div>
+            <p className="text-sm font-medium text-gray-800">Theme</p>
+            <button type="button" onClick={toggleTheme} className="input-field mt-1 w-fit">
+              Switch to {isDark ? "light" : "dark"} mode
+            </button>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-800">Layout density</p>
+            <select className="input-field mt-1" value={density} onChange={(e) => { setDensity(e.target.value); localStorage.setItem("ny_density", e.target.value) }}>
+              <option value="comfortable">Comfortable</option>
+              <option value="compact">Compact</option>
+            </select>
+          </div>
+        </div>
 
-
-
+        {/* Password reset helper */}
+        <div className="border border-gray-200 rounded-2xl p-5 bg-white space-y-3">
+          <h3 className="font-semibold flex items-center gap-2 text-gray-900">
+            <FiInfo className="text-emerald-700" size={16} /> Password reset
+          </h3>
+          <p className="text-sm text-gray-600">Forgotten your password? Send yourself a reset link.</p>
+          <button type="button" onClick={requestPasswordReset} disabled={resetEmailBusy} className="btn-primary w-fit">
+            {resetEmailBusy ? "Sending…" : "Email me a password-reset link"}
+          </button>
+        </div>
 
         <button
-
           type="submit"
 
           className="btn-primary"

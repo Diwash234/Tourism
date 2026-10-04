@@ -59,6 +59,23 @@ function applyBranding(branding = {}) {
   Object.entries(vars).forEach(([key, value]) => value && root.style.setProperty(key, value))
   root.dataset.themePreset = branding.theme_preset || "himalayan"
   root.dataset.density = branding.density || "comfortable"
+  // Structural settings the admin controls from the Settings desk.
+  // Surfaced as data-* attributes so layout CSS can react to each
+  // choice without any code deployment.
+  root.dataset.headerStyle = branding.header_style || "sticky"
+  root.dataset.headerLayout = branding.header_layout || "spread"
+  root.dataset.navStyle = branding.nav_style || "default"
+  root.dataset.sidebarPosition = branding.sidebar_position || "left"
+  root.dataset.pageWidth = branding.page_width || "fluid"
+  root.dataset.cardStyle = branding.card_style || "elevated"
+  root.dataset.fontScale = branding.font_scale || "normal"
+  root.dataset.footerColumns = String(branding.footer_columns || "3")
+  root.dataset.showBreadcrumbs = String(Boolean(branding.show_breadcrumbs))
+  root.dataset.showHero = String(Boolean(branding.show_hero))
+  root.dataset.showAnnouncementBar = String(Boolean(branding.show_announcement_bar))
+  root.dataset.showSocialFooter = String(Boolean(branding.show_social_footer))
+  root.dataset.announcementBarText = branding.announcement_bar_text || ""
+  root.dataset.footerHeading = branding.footer_heading || ""
   // The document title is owned by the page/layout (useRouteSeo + useSeo);
   // writing it here raced with them and left every page titled the same.
   if (branding.favicon_url) {

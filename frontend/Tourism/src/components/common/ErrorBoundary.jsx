@@ -1,4 +1,4 @@
-﻿import { Component } from "react"
+import { Component } from "react"
 import { FiAlertTriangle, FiRefreshCw } from "react-icons/fi"
 
 /**

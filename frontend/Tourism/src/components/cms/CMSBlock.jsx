@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import ConsentVideo from "../common/ConsentVideo"
 import { privacyEmbedUrl } from "../../utils/cookieConsent"
 import { Link } from "react-router-dom"

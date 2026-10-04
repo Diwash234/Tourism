@@ -90,6 +90,7 @@ export default function Recommendation() {
   const [locating, setLocating] = useState(false)
   const [geoError, setGeoError] = useState("")
   const [origins, setOrigins] = useState([])
+  const [categories, setCategories] = useState([])
 
   useEffect(() => {
     let alive = true
@@ -112,6 +113,8 @@ export default function Recommendation() {
   const visibleInterests = showMoreInterests ? interestList : interestList.slice(0, 8)
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }))
   const toggleInterest = (key) => setSelected((current) => current.includes(key) ? current.filter((item) => item !== key) : [...current, key])
+  const COMMON_CATEGORIES = ["mountains", "lakes", "wildlife", "heritage", "temples", "trekking", "national-parks", "viewpoints", "cities", "hill-stations", "waterfalls", "desert"]
+  const toggleCategory = (c) => setCategories((current) => current.includes(c) ? current.filter((item) => item !== c) : [...current, c])
 
   const requestMyLocation = () => {
     setGeoError("")
@@ -140,6 +143,7 @@ export default function Recommendation() {
         mood: selected.join(","), days: form.days, budget: form.budget, difficulty: form.difficulty,
         ...(form.month ? { month: form.month } : {}), ...(form.origin ? { origin: form.origin } : {}),
         travel_style: form.travelStyle, province: form.province, mode: explorationMode, limit: 18,
+        ...(categories.length ? { category: categories.join(",") } : {}),
         ...(form.persona && form.persona !== "all" ? { persona: form.persona } : {}),
         ...(nearMe ? { latitude: nearMe.lat, longitude: nearMe.lng } : {}),
       })
@@ -192,6 +196,17 @@ export default function Recommendation() {
             })}
           </div>
           {interestList.length > 8 && <button type="button" onClick={() => setShowMoreInterests((value) => !value)} className="mt-4 text-sm font-semibold text-[var(--ny-green)] hover:underline">{showMoreInterests ? "Show fewer interests" : "Show more interests"}</button>}
+
+          <div className="mt-7 rounded-[var(--ny-radius-md)] border border-[var(--ny-border)] bg-white p-4">
+            <p className="text-sm font-semibold text-[var(--ny-text-secondary)]">Zoom in on what you want to visit (optional)</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {COMMON_CATEGORIES.map((c) => {
+                const active = categories.includes(c)
+                return <button key={c} type="button" onClick={() => toggleCategory(c)} aria-pressed={active} className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${active ? "border-[var(--ny-green)] bg-[var(--ny-green)] text-white" : "border-[var(--ny-border)] bg-white text-[var(--ny-text-secondary)] hover:border-[var(--ny-green)]"}`}>{c.replace("-", " ")}</button>
+              })}
+            </div>
+            {categories.length > 0 && <p className="mt-2 text-xs text-[var(--ny-text-muted)]">Filtering checkout toward: {categories.join(", ")}</p>}
+          </div>
 
           <div className="mt-8 border-t border-[var(--ny-border)] pt-5">
             <p className="ny-kicker">Step 2 · Your trip</p>

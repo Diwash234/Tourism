@@ -1,4 +1,4 @@
-﻿import { FiInbox, FiSearch, FiMapPin, FiHeart, FiCalendar } from "react-icons/fi"
+import { FiInbox, FiSearch, FiMapPin, FiHeart, FiCalendar } from "react-icons/fi"
 
 /**
  * Empty state component with icon, title, description, and optional action.

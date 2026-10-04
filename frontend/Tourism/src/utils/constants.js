@@ -99,6 +99,7 @@ export const PAGE_SIZE = 12
 
 export const NAV_LINKS = [
   { label: "Home", path: "/" },
+  { label: "Toolkit", path: "/travel-toolkit" },
   { label: "Explore", path: "/destinations", children: [
     { label: "Recommended", path: "/recommendation" },
     { label: "Find by Activity", path: "/discover" },

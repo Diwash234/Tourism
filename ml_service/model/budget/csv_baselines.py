@@ -238,33 +238,73 @@ def lookup_baseline(city: str = None, district: str = None, province: str = None
     Return {transport, food, accommodation, taxi} daily USD figures calibrated
     against authentic Nepal travel rates. Matches in priority order:
     verified table > dataset destination > dataset district > dataset province > default.
+
+    Thin wrapper over :func:`lookup_baseline_with_source` for callers that only
+    need the numbers.
+    """
+    return lookup_baseline_with_source(
+        city=city, district=district, province=province
+    )["baseline"]
+
+
+def lookup_baseline_with_source(
+    city: str = None, district: str = None, province: str = None
+) -> Dict:
+    """
+    Same match ladder as :func:`lookup_baseline`, but also reports *what* was
+    matched so the API can be honest about provenance.
+
+    The previous implementation always reported ``dataset_csv`` and a null
+    matched name, even when the figure came from the hand-verified
+    ``VERIFIED_NEPAL_BASELINES`` table. That made a specific, verified
+    Kathmandu rate indistinguishable from a generic national fallback.
+
+    Returns
+    -------
+    dict with keys:
+        baseline      : {transport, food, accommodation, taxi} daily USD
+        matched_city  : the key that matched, or None for the default
+        source        : "verified_table" | "dataset_destination" |
+                        "dataset_district" | "dataset_province" | "default"
     """
     candidates = [v for v in (city, district, province) if v]
-    
+
     # 1. Match verified Nepal rates table first for pinpoint accuracy
     for val in candidates:
         norm_val = _norm(val)
         if norm_val in VERIFIED_NEPAL_BASELINES:
-            return dict(VERIFIED_NEPAL_BASELINES[norm_val])
+            return {
+                "baseline": dict(VERIFIED_NEPAL_BASELINES[norm_val]),
+                "matched_city": norm_val,
+                "source": "verified_table",
+            }
         for k, v in VERIFIED_NEPAL_BASELINES.items():
             if k != "default" and (k in norm_val or norm_val in k):
-                return dict(v)
+                return {
+                    "baseline": dict(v),
+                    "matched_city": k,
+                    "source": "verified_table",
+                }
 
     # 2. Check CSV dataset cache
     c = _cache_get()
-    for value, bucket in (
-        (city, c["by_dest"]),
-        (district, c["by_district"]),
-        (province, c["by_province"]),
+    for value, bucket, source in (
+        (city, c["by_dest"], "dataset_destination"),
+        (district, c["by_district"], "dataset_district"),
+        (province, c["by_province"], "dataset_province"),
     ):
         if not value:
             continue
         key = _norm(value)
         if key in bucket and bucket[key]:
-            return dict(bucket[key])
+            return {"baseline": dict(bucket[key]), "matched_city": key, "source": source}
         for k, v in bucket.items():
             if k and (k in key or key in k) and v:
-                return dict(v)
+                return {"baseline": dict(v), "matched_city": k, "source": source}
 
     # 3. Fallback to default Nepal baseline
-    return dict(VERIFIED_NEPAL_BASELINES["default"])
+    return {
+        "baseline": dict(VERIFIED_NEPAL_BASELINES["default"]),
+        "matched_city": None,
+        "source": "default",
+    }

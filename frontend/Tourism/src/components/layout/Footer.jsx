@@ -15,6 +15,7 @@ const PUBLIC_FOOTER_PATHS = new Set([
   "/itinerary", "/budget-estimator", "/before-you-travel", "/hotels/search", "/emergency", "/risk-alerts", "/navigation",
   "/distances", "/language", "/translation", "/nearby-places", "/packages", "/guides", "/guide-portal",
   "/tourism-jobs", "/guide-bookings", "/collaborate", "/chatbot", "/travel", "/about", "/contact", "/support", "/how-it-works",
+  "/travel-toolkit",
 ])
 
 const NATIONAL_SYMBOLS = [
@@ -37,6 +38,7 @@ const DEFAULT_EXPLORE = [
 
 const DEFAULT_PLAN = [
   ["Trip Planner", "/itinerary"],
+  ["Travel Toolkit", "/travel-toolkit"],
   ["Travel Packages", "/packages"],
   ["Budget Estimator", "/budget-estimator"],
   ["Before You Travel", "/before-you-travel"],
@@ -56,6 +58,14 @@ const Footer = () => {
     .filter((item) => item.location === location && String(item.route || "").startsWith("/") && (isAuthenticated || PUBLIC_FOOTER_PATHS.has(item.route)))
     .map((item) => [item.label, item.route])
   const exploreLinks = managed("footer").length ? managed("footer") : DEFAULT_EXPLORE
+  // Organization content published from the admin Settings desk.
+  const quickLinks = Array.isArray(branding.quick_links) ? branding.quick_links : []
+  const footerSections = Array.isArray(branding.footer_sections) ? branding.footer_sections : []
+  const showSocialFooter = branding.show_social_footer !== false
+  // Grid adapts to the admin's chosen column count (2/3/4).
+  const columnCount = String(branding.footer_columns || "3")
+  const footerGrid = columnCount === "2" ? "sm:grid-cols-1 lg:grid-cols-2" : columnCount === "4" ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-3"
+  const footerHeading = (branding.footer_heading || "").trim()
   // Never publish a placeholder number such as "+977-000-0000" that an old
   // settings row may still hold — show the honest "not published" text.
   const contactPhone = isRealPhone(branding.contact_phone) ? branding.contact_phone : ""
@@ -118,9 +128,10 @@ const Footer = () => {
         </section>
       )}
 
-      <div className="container-app grid gap-10 py-10 sm:grid-cols-2 lg:grid-cols-3">
+      <div className={`container-app grid gap-10 py-10 ${footerGrid}`}>
         <div className="sm:col-span-2 lg:col-span-1">
           <Link to="/" className="inline-flex items-center gap-2 text-lg font-bold text-white"><FiGlobe size={20} className="text-[#63E6BE]" aria-hidden="true" />{footerSetting.brand_name || APP_NAME}</Link>
+          {footerHeading && <h2 className="mt-2 text-xl font-bold text-[#BDEBD9]">{footerHeading}</h2>}
           <p className="mt-3 max-w-sm text-sm leading-6 text-[#AFC5BC]">{brandDescription}</p>
           {showBlock("newsletter") && (
             <form onSubmit={subscribe} className="mt-5 max-w-sm">

@@ -448,6 +448,18 @@ export default function DestinationDetails() {
 
       {destination.notices?.length > 0 && <VisitorNoticeBanner notices={destination.notices} />}
 
+      {/* Honesty badge: when this record was last updated and its recorded source */}
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-primary-100 bg-primary-50/60 px-4 py-2 text-[11px] text-slate-700">
+        <span className="font-bold uppercase tracking-wide text-primary-700">Source</span>
+        <span>{destination.source || destination.data_source || "Recorded destination record"}</span>
+        {destination.updated_at && (
+          <>
+            <span aria-hidden="true">·</span>
+            <span>Last updated {new Date(destination.updated_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</span>
+          </>
+        )}
+      </div>
+
       {/* DISTANCE FROM THE TRAVELLER'S CURRENT LOCATION */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary-100 bg-white p-4">
         <div className="flex min-w-0 items-center gap-3">

@@ -14,7 +14,8 @@ class AuditLogSerializer(serializers.ModelSerializer):
             "extra",
         ]
 
-    def get_user_name(self, obj):
+    def get_user_name(self, obj) -> str:
+
         if obj.user:
             return getattr(obj.user, "full_name", None) or (f"{obj.user.first_name} {obj.user.last_name}".strip() if obj.user.first_name else "") or obj.user.email
         return obj.user_email or "System"

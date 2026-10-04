@@ -198,7 +198,30 @@ class UserRouteCalculateView(APIView):
             distance_km = straight_line_km
             duration_min = None
             geometry_coordinates = []
-            steps = []
+            # …but still never hand the UI an empty step list, which it would
+            # have to special-case. Reuse the central engine's contract: one
+            # explicit "no road route" step that invents no directions
+            # (navigation.route_engine.build_maneuvers grades it "none").
+            _distance_m = (float(distance_km) * 1000.0) if distance_km is not None else None
+            _start_point = [round(olat, 6), round(olng, 6)]
+            try:
+                from navigation.route_engine import build_maneuvers as _build_maneuvers
+                steps = _build_maneuvers({
+                    "source": "straight_line_fallback",
+                    "distance_m": _distance_m,
+                    "geometry": [_start_point, [round(dlat, 6), round(dlng, 6)]],
+                })
+            except Exception:
+                steps = [{
+                    "instruction": (
+                        "Straight-line estimate — no road route is available for this "
+                        "destination, so turn-by-turn guidance is not available"
+                    ),
+                    "point": _start_point,
+                    "distance_m": _distance_m,
+                    "maneuver_grade": "none",
+                    "turn": "straight",
+                }]
             routing_engine = "straight_line_only"
             confidence = "STRAIGHT_LINE"
             route_note = "No live routing provider is available; only straight-line distance is shown."
@@ -612,6 +635,8 @@ class UserRouteViewSet(viewsets.ModelViewSet):
     pagination_class = None  # capped by the history cleanup in perform_create
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
+            return UserRoute.objects.none()
         qs = UserRoute.objects.filter(user=self.request.user)
         if self.request.query_params.get("saved") in ("1", "true", "True"):
             qs = qs.filter(is_saved=True)

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, Suspense } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { Link, Outlet, useLocation } from "react-router-dom"
 import { FiActivity, FiChevronDown, FiChevronRight, FiMenu, FiShield, FiUsers, FiX } from "react-icons/fi"
 import TourismLogo from "../branding/TourismLogo"

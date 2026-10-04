@@ -39,10 +39,12 @@ class ItinerarySerializer(serializers.ModelSerializer):
     distance_type = serializers.SerializerMethodField()
     distance_note = serializers.SerializerMethodField()
 
-    def get_distance_type(self, obj):
+    def get_distance_type(self, obj) -> str:
+
         return "straight_line"
 
-    def get_distance_note(self, obj):
+    def get_distance_note(self, obj) -> str:
+
         return "Straight-line distance"
 
     class Meta:

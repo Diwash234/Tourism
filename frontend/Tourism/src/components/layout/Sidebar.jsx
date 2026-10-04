@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation } from "react-router-dom"
 import {
   BsX, BsBoxArrowInRight, BsPersonPlus, BsChevronDown, BsChevronRight,
 } from "react-icons/bs"
+import { FiSun, FiMoon } from "react-icons/fi"
 import { UI_ICON } from "../../utils/uiIcons"
 
 import useAuth from "../../hooks/useAuth"
@@ -11,6 +12,7 @@ import { useI18n } from "../../i18n"
 import usePublicConfig from "../../hooks/usePublicConfig"
 import { userDisplayName, userRoleLabel } from "../../utils/placeUtils"
 import LanguageSwitcher from "../common/LanguageSwitcher"
+import useTheme from "../../context/ThemeContext"
 
 // link.icon is a name from the real UI icon set (public/icons/ui/) —
 // original duotone pictograms (node scripts/generate-ui-icons.mjs).
@@ -34,6 +36,7 @@ const GROUPS = [
   {
     label: "Plan", tk: "sidebar.planning",
     links: [
+      { to: "/travel-toolkit", label: "Travel Toolkit", icon: "compass", color: "emerald" },
       { to: "/itinerary", label: "Trip Planner & Itineraries", tk: "sidebar.trip_planner", icon: "calendar", color: "emerald" },
       { to: "/expenditure", label: "Expense Tracker", tk: "sidebar.expenditure", icon: "wallet", color: "emerald" },
       { to: "/budget-estimator", label: "Budget Estimator", tk: "sidebar.budget", icon: "calculator", color: "orange" },
@@ -115,6 +118,7 @@ export default function Sidebar() {
   const { isAuthenticated, user, isAdmin, isStaff, isLocal } = useAuth()
   const { t } = useI18n()
   const { navigation } = usePublicConfig()
+  const { isDark, toggleTheme } = useTheme()
   const location = useLocation()
   const [managedItems, setManagedItems] = useState([])
   // Groups are click-controlled (brief §17): nothing auto-expands except the
@@ -139,7 +143,8 @@ export default function Sidebar() {
     "/", "/destinations", "/recommendation", "/gallery", "/compare", "/nearby-places",
     "/distances", "/itinerary", "/explore-map", "/discover-nepal", "/packages", "/guides", "/guide-portal", "/tourism-jobs", "/guide-bookings", "/collaborate", "/hotels/search",
     "/emergency", "/risk-alerts", "/budget-estimator", "/before-you-travel", "/navigation", "/language", "/translation", "/chatbot", "/travel",
-    "/about", "/contact", "/support", "/how-it-works", "/privacy", "/terms", "/privacy-policy", "/terms-of-service", "/cookie-policy", "/data-deletion", "/unsubscribe", "/login", "/register"
+    "/about", "/contact", "/support", "/how-it-works", "/privacy", "/terms", "/privacy-policy", "/terms-of-service", "/cookie-policy", "/data-deletion", "/unsubscribe", "/login", "/register",
+    "/travel-toolkit",
   ])
 
   const managedByRoute = new Map(managedItems.filter(item => String(item.route).startsWith("/")).map(item => [item.route, item]))
@@ -268,6 +273,15 @@ export default function Sidebar() {
               </p>
               <div className="flex items-center gap-2 px-1">
                 <LanguageSwitcher compact />
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+                  title={isDark ? "Light mode" : "Dark mode"}
+                  className="inline-flex items-center justify-center rounded-lg border border-emerald-700 px-2 py-1.5 text-emerald-200 transition-colors hover:bg-emerald-800"
+                >
+                  {isDark ? <FiSun size={16} /> : <FiMoon size={16} />}
+                </button>
               </div>
             </div>
           )}

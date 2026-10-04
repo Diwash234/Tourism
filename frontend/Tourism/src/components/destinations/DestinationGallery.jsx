@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { FiX, FiChevronLeft, FiChevronRight, FiZoomIn, FiDownload, FiShare2 } from "react-icons/fi"
 import { useTranslation } from "../../hooks/useTranslation"
 import LazyImage from "../common/LazyImage"

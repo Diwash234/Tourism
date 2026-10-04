@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { FiCalendar, FiMessageSquare, FiThermometer } from "react-icons/fi"
 import exploreApi from "../../api/exploreApi"

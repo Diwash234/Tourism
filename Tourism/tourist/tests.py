@@ -943,6 +943,12 @@ class DestinationEssentialsTests(APITestCase):
             booking_status="available", latitude=28.9977, longitude=83.8460,
         )
 
+    # The assertion below is about the NO-KEY degradation branch: without this
+    # override it depends on whether the machine running the suite happens to
+    # have OPENWEATHER_API_KEY in .env. With a key present the view makes a
+    # live call and returns real weather, so the test failed for anyone who had
+    # one configured. Same precondition as test_weather_returns_503_without_api_key.
+    @override_settings(OPENWEATHER_API_KEY="")
     def test_essentials_bundle_returns_hotels_and_degrades_gracefully(self):
         response = self.client.get(reverse("destination-essentials", kwargs={"slug": self.destination.slug}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)

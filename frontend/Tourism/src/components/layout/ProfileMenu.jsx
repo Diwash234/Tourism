@@ -56,16 +56,16 @@ export default function ProfileMenu({ variant = "light" }) {
         className={`flex items-center gap-2 rounded-full py-1 pl-1 pr-2 transition-colors ${
           admin
             ? "bg-emerald-800 text-white hover:bg-emerald-700"
-            : "border border-gray-200 dark:border-slate-600 hover:shadow-card"
+            : "border border-white/30 hover:bg-white/10 hover:shadow-card"
         }`}
       >
         <span className={`grid h-8 w-8 place-items-center rounded-full text-xs font-black text-white ${admin ? "bg-emerald-600" : "bg-nav-active"}`}>
           {initial}
         </span>
-        <span className={`hidden max-w-[110px] truncate text-sm font-medium sm:block ${admin ? "text-emerald-50" : "text-gray-700 dark:text-gray-200"}`}>
+        <span className={`hidden max-w-[110px] truncate text-sm font-medium sm:block ${admin ? "text-emerald-50" : "text-white"}`}>
           {displayName}
         </span>
-        <FiChevronDown size={14} className={`transition-transform ${admin ? "text-emerald-200" : "text-gray-400"} ${open ? "rotate-180" : ""}`} />
+        <FiChevronDown size={14} className={`transition-transform ${admin ? "text-emerald-200" : "text-emerald-100"} ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (

@@ -861,26 +861,60 @@ class NearbyPlacesCompatView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        # Accept both radius (metres) and radius_km (kilometres, what the
-        # Navigation page sends) — previously radius_km was silently ignored
-        # and every nearby search ran at the 15 km default.
-        radius_km_param = request.query_params.get("radius_km")
-        if radius_km_param:
-            try:
-                radius_m = float(radius_km_param) * 1000.0
-            except (TypeError, ValueError):
-                return Response({"detail": "radius_km must be a number."}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            radius_m = request.query_params.get("radius", 15000) or 15000
-        radius_m = max(int(radius_m), 1000)
-        radius_km = radius_m / 1000.0
+        # Radius is accepted in metres (`radius`, `radius_m`) or kilometres
+        # (`radius_km`, what the Navigation page sends) — radius_km used to be
+        # silently ignored and every nearby search ran at the 15 km default.
+        # It parses as float (an int() on "0.5" was an unhandled 500) and the
+        # floor is 100 m rather than 1 km: "hotels within 500 m" is a normal
+        # request and the old clamp quietly widened it to 1000 m.
+        raw_radius = request.query_params.get("radius_km") or request.query_params.get("radius_m") or request.query_params.get("radius")
+        try:
+            radius_km = float(raw_radius) if raw_radius not in (None, "") else 15.0
+            if request.query_params.get("radius_km"):
+                pass  # already kilometres
+            elif request.query_params.get("radius_m") or request.query_params.get("radius"):
+                radius_km /= 1000.0
+            else:
+                radius_km = 15.0
+        except (TypeError, ValueError):
+            return Response({"detail": "radius must be a number."}, status=status.HTTP_400_BAD_REQUEST)
+        if radius_km <= 0:
+            return Response({"detail": "radius must be greater than zero."}, status=status.HTTP_400_BAD_REQUEST)
+        radius_km = min(max(radius_km, 0.1), 200.0)
+        radius_m = radius_km * 1000.0
+
+        try:
+            limit = int(request.query_params.get("limit", 30))
+        except (TypeError, ValueError):
+            limit = 30
+        limit = min(max(limit, 1), 100)
+
         category = request.query_params.get("category") or request.query_params.get("type") or ""
         q = request.query_params.get("q", "")
 
+        from django.conf import settings as django_settings
+
         from .location.search_service import LocationSearchService
         results = LocationSearchService.search_places(
-            query=q, user_lat=lat, user_lng=lon, category=category, radius_km=radius_km, limit=30
+            query=q, user_lat=lat, user_lng=lon, category=category, radius_km=radius_km, limit=limit
         )
+
+        # Places that exist OUTSIDE our seeded database: for a pure "near me"
+        # query (no text — Overpass matches on location, not names) fill in
+        # live OpenStreetMap points when they are still within the radius.
+        # Gated by NEARBY_LIVE_OSM (off under `manage.py test`, like
+        # FX_AUTO_REFRESH, so the suite never touches the network) and
+        # `include_osm=0` for callers that want our recorded rows only.
+        want_live = (
+            bool(getattr(django_settings, "NEARBY_LIVE_OSM", False))
+            and not (q or "").strip()
+            and (request.query_params.get("include_osm", "1").lower() not in ("0", "false", "no"))
+        )
+        if want_live:
+            results = LocationSearchService.merge_live_osm(
+                results, lat, lon, radius_km, category=category, limit=limit
+            )
+
         for item in results:
             if "distance" not in item:
                 item["distance"] = item.get("distance_km")

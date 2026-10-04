@@ -43,6 +43,7 @@ import useToast from "../hooks/useToast"
 import destinationApi from "../api/destinationApi"
 import hotelApi from "../api/hotelApi"
 import emergencyApi from "../api/emergencyApi"
+import nearbyApi from "../api/nearbyApi"
 import userApi from "../api/userApi"
 import { getPlaceTypeIcon } from "../utils/placeTypeIcons"
 
@@ -76,9 +77,15 @@ const PlaceTypeChip = ({ destination }) => {
   )
 }
 
-const RADIUS_OPTIONS_KM = [5, 10, 25, 50, 100, 250]
+// Sub-kilometre options first: "hotels within 500 m" is the normal way people
+// ask, and the picker previously started at 5 km — the smallest search it
+// offered was 20× wider than the question.
+const RADIUS_OPTIONS_KM = [0.5, 1, 2, 5, 11, 25, 50, 100, 250]
 const DEFAULT_RADIUS_KM = 25
 const PAGE_SIZE = 24
+
+// 0.5 km reads badly in a pill; metres are what people ask for at this scale.
+const formatRadius = (km) => (km < 1 ? `${Math.round(km * 1000)} m` : `${km} km`)
 
 // /nearby-places?category=<OSM service category> (linked from site search)
 // opens the matching tab; POI categories map onto the backend's groups.
@@ -90,6 +97,7 @@ const CATEGORY_LINKS = {
 }
 
 const RESULT_TYPES = [
+  { key: "all", label: "All places", noun: "places" },
   { key: "destinations", label: "Destinations", noun: "destinations" },
   { key: "pois", label: "Real-world places", noun: "places" },
   { key: "hotels", label: "Hotels", noun: "hotels" },
@@ -113,7 +121,10 @@ const NearbyPlaces = () => {
   const [searchParams] = useSearchParams()
   const categoryLink = CATEGORY_LINKS[(searchParams.get("category") || "").toLowerCase()] || null
   const poiFocus = categoryLink?.poi || ""
-  const [activeType, setActiveType] = useState(categoryLink?.type || "destinations")
+  // "all" is the default: the universal endpoint ranks every place type
+  // (recorded + live OSM) by real distance, so the page answers "what's
+  // near me?" instead of pre-filtering to one kind of place.
+  const [activeType, setActiveType] = useState(categoryLink?.type || "all")
   const activeMeta = RESULT_TYPES.find((t) => t.key === activeType)
 
   const [radiusKm, setRadiusKm] = useState(DEFAULT_RADIUS_KM)
@@ -196,6 +207,17 @@ const NearbyPlaces = () => {
               : error?.message || ""
         )
         setFetchState("error")
+      }
+
+      if (activeType === "all") {
+        nearbyApi
+          .getNearbyPlaces({ lat: origin.lat, lng: origin.lng, radius_km: radiusKm, limit: PAGE_SIZE })
+          .then(({ data }) => {
+            const list = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : []
+            settle(list, list.length)
+          })
+          .catch(fail)
+        return
       }
 
       if (activeType === "hotels") {
@@ -383,8 +405,8 @@ const NearbyPlaces = () => {
 
   const resultsSummary =
     total > places.length
-      ? `Showing the ${places.length} nearest of ${total} ${noun} within ${radiusKm} km — nearest first`
-      : `Found ${places.length} ${noun} within ${radiusKm} km — nearest first`
+      ? `Showing the ${places.length} nearest of ${total} ${noun} within ${formatRadius(radiusKm)} — nearest first`
+      : `Found ${places.length} ${noun} within ${formatRadius(radiusKm)} — nearest first`
 
   const directionsHref = (item) =>
     `https://www.google.com/maps/dir/?api=1&destination=${item.latitude},${item.longitude}`
@@ -462,9 +484,14 @@ const NearbyPlaces = () => {
                     : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                 }`}
               >
-                {r} km
+                {formatRadius(r)}
               </button>
             ))}
+            {activeType === "pois" && radiusKm > 25 && (
+              <span className="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1">
+                Live OSM places are mapped up to 25 km — showing 25 km
+              </span>
+            )}
           </div>
 
           {/* View Mode Switcher */}
@@ -574,8 +601,8 @@ const NearbyPlaces = () => {
         {panel === "empty" && (
           <EmptyState
             icon={FiSearch}
-            title={`No ${noun} found within ${radiusKm} km.`}
-            subtitle={`No recorded places are within ${radiusKm} km of ${origin?.label}. Try a larger radius or a different starting point.`}
+            title={`No ${noun} found within ${formatRadius(radiusKm)}.`}
+            subtitle={`No places are within ${formatRadius(radiusKm)} of ${origin?.label}. Try a larger radius or a different starting point.`}
             action={
               <div className="flex flex-wrap items-center justify-center gap-3">
                 {nextRadius && (
@@ -584,7 +611,7 @@ const NearbyPlaces = () => {
                     onClick={() => setRadiusKm(nextRadius)}
                     className="btn-primary !px-4 !py-2 text-sm"
                   >
-                    Expand to {nextRadius} km
+                    Expand to {formatRadius(nextRadius)}
                   </button>
                 )}
                 <button
@@ -762,6 +789,94 @@ const NearbyPlaces = () => {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Universal "All places" view — every place type the backend
+                ranks by distance: recorded destinations, hotels, hospitals,
+                police, restaurants, OSM essentials/tourism rows, plus live
+                OpenStreetMap points that were never seeded into the database. */}
+            {viewMode !== "radar" && activeType === "all" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {displayedPlaces.map((p) => {
+                  const Icon = getPlaceTypeIcon(p).Icon
+                  const bearing = origin?.lat && p.latitude ? compassBearing(origin.lat, origin.lng, p.latitude, p.longitude) : ""
+                  const distanceText =
+                    p.distance_label ||
+                    p.distance_text ||
+                    (p.distance_km != null ? (p.is_approximate ? `≈ ${p.distance_km} km (area point)` : `${p.distance_km} km`) : null)
+                  const isLive = p.source === "openstreetmap_live"
+                  return (
+                    <div key={p.id || `${p.type}-${p.name}`} className="card-base p-4 flex flex-col justify-between space-y-3">
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800">
+                            <Icon className="w-3 h-3" aria-hidden="true" />
+                            {p.category || p.type || "Place"}
+                          </span>
+                          {bearing && (
+                            <span className="px-2 py-0.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs font-black">
+                              {compassArrow(bearing)} {bearing}
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="font-bold text-sm text-slate-900 mt-2">
+                          {p.slug ? (
+                            <Link to={`/destinations/${p.slug}`} className="hover:text-emerald-800 hover:underline">
+                              {p.name}
+                            </Link>
+                          ) : (
+                            p.name
+                          )}
+                        </h4>
+                        <p className="text-xs text-slate-500 mt-0.5 truncate">
+                          {[p.address || p.district, p.city].filter(Boolean).join(" · ") || "Location recorded"}
+                        </p>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-100 space-y-2">
+                        <div className="flex items-center justify-between text-xs gap-2">
+                          <span className="font-black text-emerald-800">
+                            {distanceText ? `${distanceText} from ${origin?.label || "here"}` : "Distance recorded"}
+                          </span>
+                          {p.phone && (
+                            <a href={`tel:${p.phone}`} className="inline-flex items-center gap-1 text-slate-600 hover:text-emerald-800 hover:underline shrink-0">
+                              <FiPhone className="w-3 h-3" /> Call
+                            </a>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Link
+                            to={`/navigation?dest=${encodeURIComponent(p.name)}${origin?.label ? `&origin=${encodeURIComponent(origin.label)}` : ""}`}
+                            className="flex-1 py-1.5 px-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs text-center inline-flex items-center justify-center gap-1"
+                          >
+                            <FiNavigation size={12} /> Road Route
+                          </Link>
+                          {p.latitude != null && p.longitude != null && (
+                            <a
+                              href={directionsHref(p)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="py-1.5 px-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold shrink-0"
+                              title="Google Directions"
+                            >
+                              Maps ↗
+                            </a>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-slate-400">
+                          {p.source_url && isLive ? (
+                            <a href={p.source_url} target="_blank" rel="noopener noreferrer" className="hover:text-emerald-700 hover:underline">
+                              Live OpenStreetMap ↗
+                            </a>
+                          ) : (
+                            p.source || "Recorded database"
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             )}
 

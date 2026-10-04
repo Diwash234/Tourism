@@ -3558,13 +3558,30 @@ class RedirectRule(TimeStampedModel):
 
 class CMSRevision(models.Model):
     """Immutable snapshots for safe CMS preview, audit, and rollback."""
-    resource = models.CharField(max_length=20, choices=[("pages", "Pages"), ("sections", "Sections"), ("navigation", "Navigation"), ("settings", "Settings"), ("translations", "Translations"), ("destinations", "Destinations")])
+    resource = models.CharField(max_length=30, choices=[
+        ("pages", "Pages"), ("sections", "Sections"), ("navigation", "Navigation"),
+        ("settings", "Settings"), ("translations", "Translations"), ("destinations", "Destinations"),
+        ("components", "Components"), ("banners", "Banners"), ("widgets", "Widgets"),
+        ("navigation_items", "Navigation Items"), ("themes", "Themes"),
+        ("global_settings", "Global Settings"), ("page_templates", "Page Templates"),
+        ("widget_instances", "Widget Instances"), ("media_library", "Media Library"),
+        ("themes", "Themes"), ("global_settings", "Global Settings"),
+        ("navbar", "Navbar"), ("toolbar", "Toolbar"), ("footer", "Footer"),
+        ("notifications", "Notifications"), ("notices", "Notices"),
+        ("media_library", "Media Library"), ("page_templates", "Page Templates"),
+    ])
     object_id = models.PositiveBigIntegerField()
     revision_number = models.PositiveIntegerField()
     snapshot = models.JSONField(default=dict)
-    action = models.CharField(max_length=20, choices=[("create", "Create"), ("update", "Update"), ("publish", "Publish"), ("unpublish", "Unpublish"), ("schedule", "Schedule"), ("rollback", "Rollback")])
+    action = models.CharField(max_length=20, choices=[
+        ("create", "Create"), ("update", "Update"), ("publish", "Publish"),
+        ("unpublish", "Unpublish"), ("schedule", "Schedule"), ("rollback", "Rollback"),
+        ("duplicate", "Duplicate"), ("reorder", "Reorder"), ("import", "Import"),
+        ("export", "Export"), ("revert", "Revert"), ("restore", "Restore")
+    ])
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="cms_revisions")
     created_at = models.DateTimeField(auto_now_add=True)
+    metadata = models.JSONField(default=dict, blank=True, help_text="Extra context: e.g., which fields changed, comparison data")
 
     class Meta:
         ordering = ["-revision_number"]

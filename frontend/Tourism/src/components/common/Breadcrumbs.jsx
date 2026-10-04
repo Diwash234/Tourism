@@ -1,4 +1,4 @@
-﻿import { Link, useLocation } from "react-router-dom"
+import { Link, useLocation } from "react-router-dom"
 import { FiChevronRight, FiHome } from "react-icons/fi"
 import { useI18n } from "../../i18n"
 

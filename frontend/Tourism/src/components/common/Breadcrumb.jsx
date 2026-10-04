@@ -13,6 +13,7 @@ const routeLabels = {
   "/decide": "Which Should I Choose?",
   "/search": "Search",
   "/itinerary": "Trip Planner",
+  "/travel-toolkit": "Travel Toolkit",
   "/budget-estimator": "Budget Estimator",
   "/before-you-travel": "Before You Travel",
   "/hotels": "Hotels",

@@ -97,8 +97,11 @@ def _calculate_precise_score(incidents, current_hazards, feedback, baseline, des
         base_weight = SEVERITY_WEIGHT.get(incident.severity, 2.0)
         hazard_config = RISK_CATEGORIES.get(incident.hazard_type, {})
         seasonal_factor = _calculate_seasonal_factor(incident.hazard_type, incident.event_date.month if incident.event_date else month)
-        # Weight by recency (more recent = higher weight)
-        days_ago = (now - incident.event_date).days if incident.event_date else 365
+        # Weight by recency (more recent = higher weight).
+        # event_date is a DateField while timezone.now() returns a datetime,
+        # so subtract dates — datetime - date raises TypeError and 500s the
+        # whole risk endpoint for any destination that has a recorded incident.
+        days_ago = (now.date() - incident.event_date).days if incident.event_date else 365
         recency_factor = max(0.1, 1.0 - (days_ago / 365.0))
         score = base_weight * seasonal_factor * recency_factor * 10
         historical_scores.append(score)

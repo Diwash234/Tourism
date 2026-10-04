@@ -62,6 +62,8 @@ class FieldVerificationTaskViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
+            return FieldVerificationTask.objects.none()
         user = self.request.user
         qs = FieldVerificationTask.objects.select_related("destination", "assigned_to", "report")
         if user.role in (User.Role.ADMIN, User.Role.SUPER_ADMIN, User.Role.TOURISM_ADMIN, User.Role.CONTENT_MODERATOR):

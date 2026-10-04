@@ -890,11 +890,15 @@ def get_current_weather(latitude, longitude):
         return None
 
 
-def overpass_search_nearby(latitude, longitude, radius_m=2000, tourism_only=True):
+def overpass_search_nearby(latitude, longitude, radius_m=2000, tourism_only=True, timeout=12):
     """
-    OpenStreetMap Overpass API — free, no key required. Returns raw OSM
+    OpenStreetMap Overpass API - free, no key required. Returns raw OSM
     tourism/amenity nodes near a point, useful for discovering places not
     yet in your own Destination table.
+
+    `timeout` is the whole mirror-failover budget (seconds) — callers that
+    run inline with an API request pass a smaller number so an unreachable
+    provider degrades to "no live rows" instead of stalling the response.
     """
     tag_filter = 'node["tourism"]' if tourism_only else 'node["tourism"];node["amenity"]'
     query = f"""
@@ -907,7 +911,7 @@ def overpass_search_nearby(latitude, longitude, radius_m=2000, tourism_only=True
     # Mirror failover (see tourist/services/overpass.py::overpass_post).
     from .services.overpass import overpass_post
 
-    elements, error = overpass_post(query, timeout=12)
+    elements, error = overpass_post(query, timeout=max(1, int(timeout)))
     if error is not None:
         logger.warning("Overpass API lookup failed on all endpoints: %s", error)
         return []

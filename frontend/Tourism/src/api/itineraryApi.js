@@ -1,4 +1,4 @@
-﻿import axiosClient from "./axiosClient"
+import axiosClient from "./axiosClient"
 
 // Rich, dataset-driven itinerary builder. The backend (Django
 // /api/v1/ml/itinerary/ -> ML service /itinerary/build) plans a

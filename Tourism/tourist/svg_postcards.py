@@ -906,14 +906,22 @@ def generate_postcard_svg(
     district: str = "",
     width: int = 800,
     height: int = 500,
+    variant: str = "",
 ) -> str:
     """
     Generate a deterministic SVG postcard for a Nepal destination.
 
     Returns a complete SVG string (UTF-8) suitable for embedding or serving
     as an image response.
+
+    `variant` seeds a different palette/silhouette for the same place (used by
+    the `/id-<n>` suffix so identically-named destinations do not all render
+    the same artwork). It is deliberately left out of the seed when empty, so
+    every postcard that was already served keeps its original look.
     """
     seed_str = f"{name.lower()}|{category_slug.lower()}|{district.lower()}"
+    if variant:
+        seed_str += f"|{variant.lower()}"
     h = hashlib.md5(seed_str.encode("utf-8")).hexdigest()
     pal_idx = int(h[:4], 16) % len(PALETTES)
     hue = (int(h[4:8], 16) % 360)

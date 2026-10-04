@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import usePublicConfig from "../../hooks/usePublicConfig";
 import { Link } from "react-router-dom";

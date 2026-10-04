@@ -81,11 +81,18 @@ def overpass_post(query, timeout=15):
         if remaining <= 0:
             break
         try:
+            # A scalar `timeout` in requests is applied SEPARATELY to connect
+            # and to read, so one attempt could burn 2x the remaining budget
+            # before failover even got a chance to run — with Overpass
+            # unreachable that turned a 5 s budget into a ~10 s stalled API
+            # response. The tuple keeps the whole chain inside `timeout`.
+            connect_budget = max(1, min(3, remaining))
+            read_budget = max(1, remaining - connect_budget)
             response = requests.post(
                 url,
                 data={"data": query},
                 headers={"User-Agent": "TourismApp/1.0", "Accept": "application/json"},
-                timeout=max(1, min(timeout, remaining)),
+                timeout=(connect_budget, read_budget),
             )
             response.raise_for_status()
             elements = response.json().get("elements", [])
