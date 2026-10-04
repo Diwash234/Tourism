@@ -1,6 +1,7 @@
 import { FiMapPin, FiStar, FiWifi, FiNavigation, FiImage, FiGlobe, FiPhoneCall } from "react-icons/fi"
 import HotelMedia from "./HotelMedia"
 import VerificationBadge from "../common/VerificationBadge"
+import { useI18n } from "../../i18n"
 
 const STATUS_STYLE = {
   available: "badge-risk-low",
@@ -27,6 +28,7 @@ const STATUS_STYLE = {
  * there rather than faked.
  */
 const HotelCard = ({ hotel, destinationName }) => {
+  const { t } = useI18n()
   const {
     name,
     address,
@@ -65,13 +67,13 @@ const HotelCard = ({ hotel, destinationName }) => {
         )}
         {hotel.amenities && (
           <span className={`absolute bottom-3 left-3 text-white text-xs font-semibold px-2.5 py-1 rounded-full bg-[var(--ny-green)]`}>
-            Amenities listed
+            {t("hotelcard.amenities_listed")}
           </span>
         )}
       </div>
 
       <div className="p-4">
-        <h3 className="font-bold text-dark truncate">{name || "Hotel name unavailable"}</h3>
+        <h3 className="font-bold text-dark truncate">{name || t("hotelcard.name_unavailable")}</h3>
         <VerificationBadge record={hotel} className="mt-1.5" />
         {address && (
           <p className="text-sm text-gray-500 flex items-center gap-1 mt-1 min-w-0">
@@ -80,7 +82,7 @@ const HotelCard = ({ hotel, destinationName }) => {
           </p>
         )}
         {destinationName && (
-          <p className="text-xs text-himalaya-500 mt-1">Near {destinationName}</p>
+          <p className="text-xs text-himalaya-500 mt-1">{t("hotelcard.near", { name: destinationName })}</p>
         )}
 
         {Array.isArray(facilities) && facilities.length > 0 && (
@@ -99,8 +101,8 @@ const HotelCard = ({ hotel, destinationName }) => {
 
         <div className="flex items-center justify-between mt-4 gap-2">
           <p className="font-bold text-forest-600">
-            {price_per_night != null ? `${currency} ${price_per_night}` : "Price on request"}
-            <span className="text-xs font-normal text-gray-400">/night</span>
+            {price_per_night != null ? `${currency} ${price_per_night}` : t("hotelcard.price_on_request")}
+            <span className="text-xs font-normal text-gray-400">{t("common.per_night")}</span>
           </p>
           <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
             {latitude != null && longitude != null && (
@@ -109,16 +111,16 @@ const HotelCard = ({ hotel, destinationName }) => {
                 target="_blank"
                 rel="noreferrer"
                 className="grid h-10 w-10 place-items-center rounded-[var(--ny-radius-sm)] bg-[var(--ny-soft-green)] text-[var(--ny-green)] transition hover:bg-[#DDEFE7]"
-                title="View on map"
-                aria-label={`View ${name} on map`}
+                title={t("hotelcard.view_on_map")}
+                aria-label={t("hotelcard.view_on_map_name", { name: name || t("hotelcard.name_unavailable") })}
               >
                 <FiNavigation size={15} aria-hidden="true" />
               </a>
             )}
-            {hotel.phone_number && <a href={`tel:${String(hotel.phone_number).replace(/[^0-9+]/g, "")}`} className="grid h-10 w-10 place-items-center rounded-[var(--ny-radius-sm)] bg-[var(--ny-soft-green)] text-[var(--ny-green)] transition hover:bg-[#DDEFE7]" title="Call hotel desk" aria-label={`Call ${name}`}><FiPhoneCall size={15} aria-hidden="true" /></a>}
-            {hotel.website_url && <a href={hotel.website_url} target="_blank" rel="noreferrer" className="ny-btn ny-btn-secondary min-h-10 px-3 text-xs" title="Official website"><FiGlobe size={14} aria-hidden="true" />Web</a>}
-            {booking_url && <a href={booking_url} target="_blank" rel="noreferrer" className="ny-btn ny-btn-primary min-h-10 px-3 text-xs">View booking</a>}
-            {!hotel.phone_number && !hotel.website_url && !booking_url && <span className="text-xs text-[var(--ny-text-secondary)]">Booking details unavailable</span>}
+            {hotel.phone_number && <a href={`tel:${String(hotel.phone_number).replace(/[^0-9+]/g, "")}`} className="grid h-10 w-10 place-items-center rounded-[var(--ny-radius-sm)] bg-[var(--ny-soft-green)] text-[var(--ny-green)] transition hover:bg-[#DDEFE7]" title={t("hotelcard.call_desk")} aria-label={t("hotelcard.call_name", { name: name || "" })}><FiPhoneCall size={15} aria-hidden="true" /></a>}
+            {hotel.website_url && <a href={hotel.website_url} target="_blank" rel="noreferrer" className="ny-btn ny-btn-secondary min-h-10 px-3 text-xs" title={t("hotelcard.official_website")}><FiGlobe size={14} aria-hidden="true" />{t("hotelcard.web")}</a>}
+            {booking_url && <a href={booking_url} target="_blank" rel="noreferrer" className="ny-btn ny-btn-primary min-h-10 px-3 text-xs">{t("hotelcard.view_booking")}</a>}
+            {!hotel.phone_number && !hotel.website_url && !booking_url && <span className="text-xs text-[var(--ny-text-secondary)]">{t("hotelcard.booking_unavailable")}</span>}
           </div>
         </div>
       </div>
