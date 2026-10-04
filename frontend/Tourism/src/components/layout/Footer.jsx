@@ -151,6 +151,28 @@ const Footer = () => {
         {showBlock("company") && <FooterColumn title="Nepal Yatra" links={[["About", "/about"], ["How it works", "/how-it-works"], ["Contact", "/contact"], ["Support", "/support"], ["Emergency", "/emergency"]]} />}
         {showBlock("provinces") && <FooterColumn title="Provinces" links={PROVINCES.map((province) => [province, `/destinations?q=${encodeURIComponent(province)}`])} />}
 
+        {/* Admin-published quick links (Settings → Organization) */}
+        {quickLinks.length > 0 && (
+          <section>
+            <h2 className="text-sm font-bold text-[#BDEBD9]">Quick Links</h2>
+            <ul className="mt-4 space-y-2.5 text-sm text-[#C7D9D2]">
+              {quickLinks.map((link, index) => (
+                <li key={`ql-${index}`}>
+                  <a href={link.url} target="_blank" rel="noreferrer" className="hover:text-white">{link.label}</a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* Admin-published custom footer sections (Settings → Organization) */}
+        {footerSections.map((section, index) => (
+          <section key={`fsec-${index}`}>
+            <h2 className="text-sm font-bold text-[#BDEBD9]">{section.heading}</h2>
+            <p className="mt-4 text-sm leading-6 text-[#C7D9D2] whitespace-pre-line">{section.content}</p>
+          </section>
+        ))}
+
         {showBlock("contact") && (
           <section aria-labelledby="footer-contact-title">
             <h2 id="footer-contact-title" className="text-sm font-bold text-[#BDEBD9]">Contact</h2>
@@ -161,12 +183,14 @@ const Footer = () => {
                 {contactPhone && <li className="flex items-center gap-2"><FiPhone size={16} className="shrink-0 text-[#63E6BE]" aria-hidden="true" /><a className="hover:text-white" href={`tel:${String(contactPhone).replace(/[^+\d]/g, "")}`}>{contactPhone}</a></li>}
               </ul>
             ) : <p className="mt-4 text-sm text-[#AFC5BC]">Contact details are not currently published.</p>}
-            <div className="mt-5 flex gap-4 text-[#C7D9D2]">
-              {branding.facebook_url && <a href={branding.facebook_url} target="_blank" rel="noreferrer" aria-label="Facebook"><FiFacebook size={19} /></a>}
-              {branding.instagram_url && <a href={branding.instagram_url} target="_blank" rel="noreferrer" aria-label="Instagram"><FiInstagram size={19} /></a>}
-              {branding.twitter_url && <a href={branding.twitter_url} target="_blank" rel="noreferrer" aria-label="X"><FiTwitter size={19} /></a>}
-              {branding.youtube_url && <a href={branding.youtube_url} target="_blank" rel="noreferrer" aria-label="YouTube"><FiYoutube size={19} /></a>}
-            </div>
+            {showSocialFooter && (
+              <div className="mt-5 flex gap-4 text-[#C7D9D2]">
+                {branding.facebook_url && <a href={branding.facebook_url} target="_blank" rel="noreferrer" aria-label="Facebook"><FiFacebook size={19} /></a>}
+                {branding.instagram_url && <a href={branding.instagram_url} target="_blank" rel="noreferrer" aria-label="Instagram"><FiInstagram size={19} /></a>}
+                {branding.twitter_url && <a href={branding.twitter_url} target="_blank" rel="noreferrer" aria-label="X"><FiTwitter size={19} /></a>}
+                {branding.youtube_url && <a href={branding.youtube_url} target="_blank" rel="noreferrer" aria-label="YouTube"><FiYoutube size={19} /></a>}
+              </div>
+            )}
           </section>
         )}
       </div>

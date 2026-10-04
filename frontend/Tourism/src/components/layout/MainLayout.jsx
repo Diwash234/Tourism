@@ -27,8 +27,16 @@ const MainLayout = () => {
   const { settings } = usePublicConfig()
 
   const hasTopbar = Boolean(settings?.topbar) && settings.topbar.enabled !== false && (settings.topbar.status ? settings.topbar.status === "published" : true)
-  const topPad = hasTopbar ? "pt-[100px]" : "pt-16"
+  const brandingAnnouncement = settings?.branding
+  const showBrandingBar = Boolean(brandingAnnouncement?.show_announcement_bar) && Boolean((brandingAnnouncement?.announcement_bar_text || "").trim())
+  // When the announcement bar is on, the fixed header stack grows by
+  // the bar's height so content never hides behind it.
+  const topPad = hasTopbar ? "pt-[140px]" : showBrandingBar ? "pt-24" : "pt-16"
   const announcement = settings?.announcement && typeof settings.announcement === "object" ? settings.announcement : (settings?.announcement ? { text: String(settings.announcement) } : null)
+  // Settings-desk announcement bar (branding). Shown at the very top
+  // when the admin enables it and provides text.
+  const barText = (brandingAnnouncement?.announcement_bar_text || "").trim()
+  const barColor = brandingAnnouncement?.primary_color || "#0B3D91"
 
   useRouteSeo()
   useKeyboardShortcuts()
@@ -43,6 +51,18 @@ const MainLayout = () => {
       <a href="#main-content" className="ny-skip-link">Skip to main content</a>
       <ElevationScrollProgress />
       <ReadingProgress />
+      {/* Settings-desk announcement bar — fixed at the very top,
+          above the navbar, when the admin enables it. */}
+      {showBrandingBar && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed inset-x-0 top-0 z-[70] px-4 py-2 text-center text-xs font-bold text-white"
+          style={{ background: barColor }}
+        >
+          {barText}
+        </div>
+      )}
       <Navbar />
       <Sidebar />
       {announcement && (announcement.text || announcement.html) && (

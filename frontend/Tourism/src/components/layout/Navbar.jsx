@@ -117,11 +117,15 @@ const Navbar = () => {
 
   // Structural choices published from the admin Settings desk.
   const structure = settings?.branding || {}
+  // The announcement bar (when on) is fixed at the very top,
+  // so the header sits just below it.
+  const barActive = Boolean(structure.show_announcement_bar) && Boolean((structure.announcement_bar_text || "").trim())
+  const barOffset = barActive ? "top-9" : "top-0"
   const headerPosition = structure.header_style === "static"
     ? "relative"
     : structure.header_style === "floating"
-      ? "fixed inset-x-2 sm:inset-x-4 top-2 rounded-3xl"
-      : "fixed inset-x-0 top-0"
+      ? `fixed inset-x-2 sm:inset-x-4 ${barActive ? "top-14" : "top-2"} rounded-3xl`
+      : `fixed inset-x-0 ${barOffset}`
   const headerLayout = structure.header_layout === "centered"
     ? "justify-center"
     : structure.header_layout === "compact"
