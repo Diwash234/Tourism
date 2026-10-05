@@ -18,8 +18,6 @@ import {
   FiSliders,
   FiPlus,
   FiTrash2,
-  FiActivity,
-  FiCheckSquare,
 } from "react-icons/fi"
 
 import itineraryApi from "../api/itineraryApi"
@@ -28,57 +26,43 @@ import axiosClient from "../api/axiosClient"
 import { formatDistance, formatDuration } from "../utils/formatDistance"
 import useToast from "../hooks/useToast"
 import TripReadinessPanel from "../components/itinerary/TripReadinessPanel"
-import CuratedItineraryShowcase from "../components/itinerary/CuratedItineraryShowcase"
-import AltitudeSafetyModal from "../components/itinerary/AltitudeSafetyModal"
-import CostBreakdownModal from "../components/itinerary/CostBreakdownModal"
-import PackingChecklistModal from "../components/itinerary/PackingChecklistModal"
-import LocalTrailSecrets from "../components/itinerary/LocalTrailSecrets"
-import PrintableTravelBrief from "../components/itinerary/PrintableTravelBrief"
-import TippingAndCurrencyGuide from "../components/itinerary/TippingAndCurrencyGuide"
 import { NATIONALITY_OPTIONS } from "../utils/currency"
-import { useI18n } from "../i18n"
 
 
-const NOTE_CATEGORIES = [
-  { key: "itin.note_hotel", fallback: "Hotel" },
-  { key: "itin.note_transport", fallback: "Transport" },
-  { key: "itin.note_food", fallback: "Food" },
-  { key: "itin.note_activity", fallback: "Activity" },
-  { key: "itin.note_other", fallback: "Other" },
-]
+const NOTE_CATEGORIES = ["Hotel", "Transport", "Food", "Activity", "Other"]
 
 const AI_MODIFICATIONS = [
-  ["cheaper", "itin.mod_cheaper", "Budget-Friendly (कम खर्च)"],
-  ["luxurious", "itin.mod_luxurious", "Extra Comfort & Boutique (आरामदायी)"],
-  ["more_culture", "itin.mod_culture", "Deep Cultural Heritage (संस्कृति)"],
-  ["more_nature", "itin.mod_nature", "Scenic Viewpoints (प्रकृति दृश्य)"],
-  ["slower_pace", "itin.mod_slower", "Gentle Acclimatization (सुस्त गति)"],
-  ["replan", "itin.mod_replan", "Trail & Weather Adapt (मौसम अनुकूल)"],
+  ["cheaper", "Make it more affordable"],
+  ["luxurious", "Add more comfort"],
+  ["more_culture", "Add more culture"],
+  ["more_nature", "Add more nature"],
+  ["slower_pace", "Slow the pace"],
+  ["replan", "Replan around conditions"],
 ]
 
 
 const BUDGET_LEVELS = [
-  { id: "budget", key: "itin.budget_budget", fallback: "Budget" },
-  { id: "mid", key: "itin.budget_mid", fallback: "Mid-range" },
-  { id: "standard", key: "itin.budget_standard", fallback: "Standard" },
-  { id: "luxury", key: "itin.budget_luxury", fallback: "Luxury" },
+  { id: "budget", label: "Budget" },
+  { id: "mid", label: "Mid-range" },
+  { id: "standard", label: "Standard" },
+  { id: "luxury", label: "Luxury" },
 ]
 
 
 const TRAVEL_STYLES = [
-  { id: "leisure", key: "itin.style_leisure", fallback: "Leisure" },
-  { id: "culture", key: "itin.style_culture", fallback: "Culture" },
-  { id: "nature", key: "itin.style_nature", fallback: "Nature" },
-  { id: "adventure", key: "itin.style_adventure", fallback: "Adventure" },
-  { id: "city", key: "itin.style_city", fallback: "City" },
+  { id: "leisure", label: "Leisure" },
+  { id: "culture", label: "Culture" },
+  { id: "nature", label: "Nature" },
+  { id: "adventure", label: "Adventure" },
+  { id: "city", label: "City" },
 ]
 
 
 const TRAVEL_TYPES = [
-  { id: "solo", key: "itin.type_solo", fallback: "Solo" },
-  { id: "couple", key: "itin.type_couple", fallback: "Couple" },
-  { id: "family", key: "itin.type_family", fallback: "Family" },
-  { id: "group", key: "itin.type_group", fallback: "Group" },
+  { id: "solo", label: "Solo" },
+  { id: "couple", label: "Couple" },
+  { id: "family", label: "Family" },
+  { id: "group", label: "Group" },
 ]
 
 
@@ -145,8 +129,6 @@ function enrichPlanBudget(rawPlan, form) {
 }
 
 const Itinerary = () => {
-  const { t } = useI18n()
-  const tx = (key, fallback) => (t(key) !== key ? t(key) : fallback)
 
   // /itinerary?city=Dolakha (linked from the 77-district pages) prefills the
   // start city so every district can jump straight to its own itinerary.
@@ -187,12 +169,6 @@ const Itinerary = () => {
   const focusDestination = (searchParams.get("dest") || "").replace(/[-_]/g, " ").trim()
 
   const [modifying, setModifying] = useState(false)
-  const [showSafetyModal, setShowSafetyModal] = useState(false)
-  const [showCostModal, setShowCostModal] = useState(false)
-  const [showPackingModal, setShowPackingModal] = useState(false)
-  const [showSecretsModal, setShowSecretsModal] = useState(false)
-  const [showPrintModal, setShowPrintModal] = useState(false)
-  const [showTippingModal, setShowTippingModal] = useState(false)
   const [notes, setNotes] = useState([])
   const [noteForm, setNoteForm] = useState({ category: "Hotel", label: "", amount: "" })
 
@@ -205,7 +181,7 @@ const Itinerary = () => {
     try {
       const { data } = await axiosClient.post("/ml/itinerary/modify/", { action, itinerary_data: plan })
       setPlan((prev) => ({ ...prev, itinerary: data.itinerary || prev.itinerary, total_estimated_npr: null, total_estimated_usd: null, per_person_npr: null, per_person_usd: null, fits_budget: null, modificationNote: data.modification_note }))
-      showToast(data.modification_note || "Route customized successfully", "success")
+      showToast(data.modification_note || `AI modification applied: ${action}`, "success")
     } catch {
       showToast("Could not modify itinerary.", "error")
     } finally {
@@ -229,21 +205,6 @@ const Itinerary = () => {
       ...patch
     }))
 
-  }
-
-  const handleSelectCuratedPlan = (curatedPlan) => {
-    const updatedForm = {
-      ...form,
-      days: curatedPlan.days || form.days,
-      travelers: curatedPlan.travelers || form.travelers,
-      nationality: curatedPlan.nationality || form.nationality,
-      start_city: curatedPlan.itinerary?.[0]?.city || curatedPlan.itinerary?.[0]?.destinations?.[0]?.city || form.start_city,
-      budget_npr: curatedPlan.total_estimated_npr || form.budget_npr,
-    }
-    setForm(updatedForm)
-    setPlan(enrichPlanBudget(curatedPlan, updatedForm))
-    setGeneratedKey(planKey(updatedForm))
-    setError("")
   }
 
   const [savedPlan, setSavedPlan] = useState(null)
@@ -307,21 +268,13 @@ const Itinerary = () => {
 
 
         // Technical detail goes to the console/telemetry, never to the traveller.
-        const status = err?.response?.status
-        const timedOut = err?.code === "ECONNABORTED" || /timeout/i.test(String(err?.message || ""))
         console.error(
           "[itinerary] generation failed",
-          status || "",
+          err?.response?.status || "",
           err?.response?.data?.detail || err?.message
         )
         try { reportError(err, { feature: "itinerary", action: "generate" }) } catch { /* telemetry optional */ }
-        if (status) {
-          setError(`The itinerary service returned an error (HTTP ${status}). Please try again.`)
-        } else if (timedOut || err?.apiUnreachable) {
-          setError(err.message || "The itinerary service is unreachable. Check your connection and try again.")
-        } else {
-          setError("We couldn't generate your itinerary right now. Please try again in a moment.")
-        }
+        setError("We couldn't generate your itinerary right now. Please try again in a moment.")
 
 
         setPlan(null)
@@ -473,10 +426,10 @@ const Itinerary = () => {
       )}
       <CMSPageIntro pageKey="itinerary" />
 
-      <PageHeader title={t("itin.title")} subtitle={t("itin.subtitle")} icon={ FiCalendar } />
+      <PageHeader title="Itinerary Planner" subtitle={<>Tell us your days, budget and interests, then press Generate. Plans include
+        altitude checks, official permits & fees and a trip-readiness checklist.</>} icon={ FiCalendar } />
 
-      {/* Curated Signature Master Itineraries Showcase */}
-      <CuratedItineraryShowcase onSelectPlan={handleSelectCuratedPlan} currentNationality={form.nationality} />
+
 
       {/* Controls */}
 
@@ -488,7 +441,7 @@ const Itinerary = () => {
         <div>
 
           <label htmlFor="itin-days" className="block text-xs font-semibold text-gray-600 mb-1">
-            {t("itin.days")}
+            Days
           </label>
 
 
@@ -630,7 +583,7 @@ const Itinerary = () => {
 
               min={0}
 
-              placeholder={t("itin.budget_ph")}
+              placeholder="e.g. 50000"
 
 
               value={form.budget_npr}
@@ -667,7 +620,7 @@ const Itinerary = () => {
 
 
           <label htmlFor="itin-start" className="block text-xs font-semibold text-gray-600 mb-1">
-            {t("itin.start_city")}
+            Start city
           </label>
 
 
@@ -696,7 +649,7 @@ const Itinerary = () => {
 
 
               required
-               placeholder={t("itin.start_city_ph")}
+               placeholder="Enter a start city"
 
 
               className="input-field pl-11"
@@ -719,7 +672,7 @@ const Itinerary = () => {
 
 
           <label htmlFor="itin-1" className="block text-xs font-semibold text-gray-600 mb-1">
-            {t("itin.budget_level")}
+            Budget level
           </label>
 
 
@@ -755,7 +708,7 @@ const Itinerary = () => {
 
                 >
 
-                  {tx(item.key, item.fallback)}
+                  {item.label}
 
                 </option>
 
@@ -827,7 +780,7 @@ const Itinerary = () => {
 
             >
 
-              {tx(style.key, style.fallback)}
+              {style.label}
 
 
             </button>
@@ -889,7 +842,7 @@ const Itinerary = () => {
 
             >
 
-              {tx(type.key, type.fallback)}
+              {type.label}
 
 
             </button>
@@ -970,68 +923,26 @@ const Itinerary = () => {
 
       <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] lg:items-end" data-testid="itinerary-generate-row">
         <div>
-          <label htmlFor="itin-nationality" className="block text-xs font-semibold text-gray-600 mb-1">{t("itin.nationality")}</label>
+          <label htmlFor="itin-nationality" className="block text-xs font-semibold text-gray-600 mb-1">Nationality (official fees)</label>
           <select id="itin-nationality" className="input-field" value={form.nationality} onChange={(e) => setForm({ ...form, nationality: e.target.value })}>
             {NATIONALITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
         <div>
-          <label htmlFor="itin-month" className="block text-xs font-semibold text-gray-600 mb-1">{t("itin.travel_month")}</label>
+          <label htmlFor="itin-month" className="block text-xs font-semibold text-gray-600 mb-1">Travel month</label>
           <select id="itin-month" className="input-field" value={form.travel_month} onChange={(e) => setForm({ ...form, travel_month: e.target.value })}>
-            <option value="">{t("itin.not_decided")}</option>
+            <option value="">Not decided</option>
             {MONTH_NAMES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
           </select>
         </div>
         <button type="button" onClick={generate} disabled={loading || !form.start_city?.trim()} className="ny-btn ny-btn-primary min-h-11 sm:col-span-2 lg:col-span-1" data-testid="itinerary-generate">
-          {loading ? t("itin.generating") : plan ? t("itin.regenerate") : t("itin.generate")}
+          {loading ? "Generating…" : plan ? "Regenerate itinerary" : "Generate itinerary"}
         </button>
         {inputsChanged && !loading && (
-          <p role="status" className="text-xs font-medium text-amber-800 sm:col-span-2 lg:col-span-3">{t("itin.inputs_changed")}</p>
+          <p role="status" className="text-xs font-medium text-amber-800 sm:col-span-2 lg:col-span-3">Your inputs changed — press “Regenerate itinerary” to update the plan.</p>
         )}
       </div>
 
-      {/* Dual Persona Guidance Banner */}
-      <div className="mb-6 rounded-2xl border border-slate-200/80 bg-slate-50/50 p-4 shadow-2xs">
-        {form.nationality === "nepali" ? (
-          <div className="flex items-start gap-3">
-            <span className="text-2xl" aria-hidden="true">🇳🇵</span>
-            <div>
-              <p className="font-bold text-emerald-950 text-sm">
-                नेपाली आन्तरिक पर्यटक योजना (Nepalese Domestic Explorer Mode)
-              </p>
-              <p className="mt-1 text-xs text-slate-700 leading-relaxed">
-                नेपाली नागरिकका लागि कुनै TIMS कार्ड वा विदेशी निकुञ्ज परमिट चाहिँदैन। केवल सामान्य मन्दिर, पालिका तथा स्थानीय शुल्क (रु. २५ - रु. १५०) मात्र लाग्नेछ। स्थानीय डिलक्स बस, स्कोर्पियो जीप तथा रैथाने खानाका सिफारिसहरू उपलब्ध छन्।
-              </p>
-            </div>
-          </div>
-        ) : form.nationality === "saarc" ? (
-          <div className="flex items-start gap-3">
-            <span className="text-2xl" aria-hidden="true">🏛️</span>
-            <div>
-              <p className="font-bold text-blue-950 text-sm">
-                SAARC National Explorer (सार्क देशहरूका नागरिकहरू)
-              </p>
-              <p className="mt-1 text-xs text-slate-700 leading-relaxed">
-                Concessional entry rates (50% to 70% discount) apply across UNESCO World Heritage sites, National Parks, and Conservation Areas. Please ensure you carry your valid SAARC passport or government photo ID.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-start gap-3">
-            <span className="text-2xl" aria-hidden="true">🌍</span>
-            <div>
-              <p className="font-bold text-slate-900 text-sm">
-                International Visitor Planning Mode (विदेशी पर्यटक)
-              </p>
-              <p className="mt-1 text-xs text-slate-700 leading-relaxed">
-                Official TIMS Cards (NPR 2,000 / $20) and Conservation Area / National Park permits (Sagarmatha, ACAP, Langtang) are automatically calculated. Certified licensed trekking guides are required on declared mountain routes under NTB regulations.
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div id="itinerary-plan-results" className="scroll-mt-6">
       {
         loading && (
 
@@ -1039,8 +950,8 @@ const Itinerary = () => {
 
             <FiLoader className="animate-spin"/>
 
-            {t("itin.generating_plan")}
-            <button type="button" onClick={cancelGenerate} className="ny-btn ny-btn-secondary min-h-9 px-3 text-xs">{t("common.cancel")}</button>
+            Generating your itinerary…
+            <button type="button" onClick={cancelGenerate} className="ny-btn ny-btn-secondary min-h-9 px-3 text-xs">Cancel</button>
 
           </div>
 
@@ -1054,122 +965,55 @@ const Itinerary = () => {
 
           <div role="alert" className="mb-4 flex flex-col gap-3 rounded-[var(--ny-radius-md)] border border-[#E9B9B9] bg-[var(--ny-soft-red)] px-4 py-3 text-sm text-[var(--ny-danger)] sm:flex-row sm:items-center sm:justify-between">
             <span>{error}</span>
-            <button type="button" onClick={generate} className="ny-btn ny-btn-secondary min-h-11 shrink-0 text-xs">{t("common.try_again")}</button>
+            <button type="button" onClick={generate} className="ny-btn ny-btn-secondary min-h-11 shrink-0 text-xs">Try again</button>
           </div>
 
         )
       }
       {plan && !error && <TripReadinessPanel plan={plan} />}
 
-      {plan && !error && (plan.cost_breakdown || plan.altitude_safety || plan.packing_checklist_detailed) && (
-        <div className="flex flex-wrap gap-2.5 my-4">
-          {plan.cost_breakdown && (
-            <button
-              type="button"
-              onClick={() => setShowCostModal(true)}
-              className="ny-btn ny-btn-secondary text-xs flex items-center gap-1.5 py-2 px-3.5 rounded-xl border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 font-bold shadow-2xs"
-            >
-              <FiDollarSign size={14} className="text-emerald-700" />
-              <span>Itemized Cost Schedule (NPR {plan.cost_breakdown.total_npr?.toLocaleString()})</span>
-            </button>
-          )}
-          {plan.altitude_safety && (
-            <button
-              type="button"
-              onClick={() => setShowSafetyModal(true)}
-              className="ny-btn ny-btn-secondary text-xs flex items-center gap-1.5 py-2 px-3.5 rounded-xl border-rose-300 bg-rose-50 text-rose-900 hover:bg-rose-100 font-bold shadow-2xs"
-            >
-              <FiActivity size={14} className="text-rose-700" />
-              <span>AMS & High-Altitude Safety Guide ({plan.altitude_safety.max_elevation_m}m)</span>
-            </button>
-          )}
-          {plan.packing_checklist_detailed && (
-            <button
-              type="button"
-              onClick={() => setShowPackingModal(true)}
-              className="ny-btn ny-btn-secondary text-xs flex items-center gap-1.5 py-2 px-3.5 rounded-xl border-blue-300 bg-blue-50 text-blue-900 hover:bg-blue-100 font-bold shadow-2xs"
-            >
-              <FiCheckSquare size={14} className="text-blue-700" />
-              <span>Gear Checklist ({plan.packing_checklist_detailed.total_items} items)</span>
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={() => setShowSecretsModal(true)}
-            className="ny-btn ny-btn-secondary text-xs flex items-center gap-1.5 py-2 px-3.5 rounded-xl border-amber-300 bg-amber-50 text-amber-950 hover:bg-amber-100 font-bold shadow-2xs"
-          >
-            <span>🏔️</span>
-            <span>Trail Secrets & Etiquette (स्थानीय संस्कार)</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setShowTippingModal(true)}
-            className="ny-btn ny-btn-secondary text-xs flex items-center gap-1.5 py-2 px-3.5 rounded-xl border-teal-300 bg-teal-50 text-teal-950 hover:bg-teal-100 font-bold shadow-2xs"
-          >
-            <span>💵</span>
-            <span>Tipping & Mountain Cash (टिपिङ र नगद)</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setShowPrintModal(true)}
-            className="ny-btn ny-btn-secondary text-xs flex items-center gap-1.5 py-2 px-3.5 rounded-xl border-slate-300 bg-slate-100 text-slate-900 hover:bg-slate-200 font-bold shadow-2xs"
-          >
-            <span>🖨️</span>
-            <span>Printable Field Dossier (अफलाइन गाइड)</span>
-          </button>
-        </div>
-      )}
-
-      {/* Route Adaptation & Journey Customizer + Trip Cost Notepad */}
+            {/* AI Itinerary Refinement + Trip Cost Notepad (merged from TripPlanner) */}
       {
         plan && !error && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
             <div className="card-base p-5 space-y-3">
               <div className="flex justify-between items-center text-xs font-bold text-gray-800">
-                <span className="flex items-center gap-1.5">
-                  <FiSliders className="text-amber-500" /> Route Adaptation & Journey Customizer (यात्रा अनुकूलन)
-                </span>
-                {modifying && <span className="text-emerald-600 animate-pulse">Adapting journey schedule…</span>}
+                <span className="flex items-center gap-1.5"><FiSliders className="text-amber-500" /> AI Itinerary Refinement</span>
+                {modifying && <span className="text-emerald-600 animate-pulse">Modifying plan…</span>}
               </div>
-              <p className="text-[11px] text-slate-500">
-                {t("itin.tailor_hint")}
-              </p>
               <div className="flex flex-wrap gap-1.5 text-xs">
-                {AI_MODIFICATIONS.map(([act, key, fallback]) => (
+                {AI_MODIFICATIONS.map(([act, label]) => (
                   <button
                     key={act}
                     disabled={modifying}
                     onClick={() => handleApplyAIModification(act)}
-                    className="min-h-10 rounded-xl border border-[var(--ny-border)] bg-white px-3 py-1.5 text-gray-800 font-bold transition hover:border-[var(--ny-green)] hover:bg-[var(--ny-soft-green)]"
+                    className="min-h-11 rounded-xl border border-[var(--ny-border)] bg-white px-2.5 py-2 text-gray-800 font-bold transition hover:border-[var(--ny-green)] hover:bg-[var(--ny-soft-green)]"
                   >
-                    {tx(key, fallback)}
+                    {label}
                   </button>
                 ))}
               </div>
               {plan.modificationNote && (
-                <p className="text-[11px] text-emerald-700 font-bold bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">✓ {plan.modificationNote}</p>
+                <p className="text-xs text-emerald-700 font-bold bg-emerald-50 p-2 rounded-xl border border-emerald-200">✓ {plan.modificationNote}</p>
               )}
               {focusDestination && (
-                <p className="text-[11px] text-himalaya-600 font-bold bg-himalaya-50 p-2.5 rounded-xl border border-himalaya-100">🎯 {t("itin.planning_focus")}: {focusDestination}</p>
+                <p className="text-xs text-himalaya-600 font-bold bg-himalaya-50 p-2 rounded-xl border border-himalaya-100">🎯 Planning focus: {focusDestination}</p>
               )}
             </div>
 
             <div className="card-base p-5 space-y-3">
               <div>
-                <h3 className="font-bold text-sm text-gray-900">{t("itin.notepad_title")}</h3>
-                <p className="text-xs text-gray-500">{t("itin.notepad_sub")}</p>
+                <h3 className="font-bold text-sm text-gray-900">Trip Cost Notepad</h3>
+                <p className="text-xs text-gray-500">Add custom lodge rates or local flight quotes to your trip total.</p>
               </div>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                <select aria-label={t("itin.cost_category")} className="input-field bg-white text-xs" value={noteForm.category} onChange={(e) => setNoteForm({ ...noteForm, category: e.target.value })}>
-                  {NOTE_CATEGORIES.map((c) => <option key={c.key} value={c.fallback}>{tx(c.key, c.fallback)}</option>)}
+                <select aria-label="Cost category" className="input-field bg-white text-xs" value={noteForm.category} onChange={(e) => setNoteForm({ ...noteForm, category: e.target.value })}>
+                  {NOTE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
                 </select>
-                <input aria-label={t("itin.item_label")} className="input-field bg-white text-xs sm:col-span-1 lg:col-span-2" placeholder={t("itin.item_ph")} value={noteForm.label} onChange={(e) => setNoteForm({ ...noteForm, label: e.target.value })} />
+                <input aria-label="Item, for example a lodge or flight" className="input-field bg-white text-xs sm:col-span-1 lg:col-span-2" placeholder="e.g. Annapurna View Hotel" value={noteForm.label} onChange={(e) => setNoteForm({ ...noteForm, label: e.target.value })} />
                 <div className="flex gap-2">
-                  <input aria-label={t("itin.amount_label")} type="number" min="0" step="1" className="input-field bg-white text-xs" placeholder="रू" value={noteForm.amount} onChange={(e) => setNoteForm({ ...noteForm, amount: e.target.value })} />
-                  <button onClick={addNote} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-himalaya-600 text-white hover:bg-himalaya-700" aria-label={t("itin.add_note")}><FiPlus /></button>
+                  <input aria-label="Amount in rupees" type="number" min="0" step="1" className="input-field bg-white text-xs" placeholder="रू" value={noteForm.amount} onChange={(e) => setNoteForm({ ...noteForm, amount: e.target.value })} />
+                  <button onClick={addNote} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-himalaya-600 text-white hover:bg-himalaya-700" aria-label="Add cost note"><FiPlus /></button>
                 </div>
               </div>
               {notes.length > 0 && (
@@ -1177,7 +1021,7 @@ const Itinerary = () => {
                   {notes.map((n) => (
                     <div key={n.id} className="flex items-center justify-between border-b border-gray-100 pb-2">
                       <div className="min-w-0">
-                        <span className="text-[10px] text-gray-400 font-bold uppercase">{n.category}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase">{n.category}</span>
                         <p className="font-bold text-gray-800 truncate">{n.label}</p>
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
@@ -1186,12 +1030,12 @@ const Itinerary = () => {
                       </div>
                     </div>
                   ))}
-                  <div className="flex justify-between font-bold pt-2"><span>{t("itin.notepad_total")}</span><span>रू {notesTotal.toLocaleString()}</span></div>
+                  <div className="flex justify-between font-bold pt-2"><span>Notepad Total</span><span>रू {notesTotal.toLocaleString()}</span></div>
                 </div>
               )}
               <div className="flex justify-between items-center pt-3 border-t border-gray-200">
-                <span className="font-bold text-sm text-gray-900">{t("itin.grand_total")}</span>
-                <span className="text-xl font-black text-himalaya-600">{plan?.total_estimated_npr != null ? `रू ${grandTotalNpr.toLocaleString()}` : `${t("itin.notes_label")}: रू ${notesTotal.toLocaleString()}`}</span>
+                <span className="font-bold text-sm text-gray-900">Grand Total (plan + notes)</span>
+                <span className="text-xl font-black text-himalaya-600">{plan?.total_estimated_npr != null ? `रू ${grandTotalNpr.toLocaleString()}` : `Notes: रू ${notesTotal.toLocaleString()}`}</span>
               </div>
             </div>
           </div>
@@ -1220,20 +1064,20 @@ const Itinerary = () => {
           >
             {savedPlan?.id && savedPlan.key === generatedKey ? (
               <div className="card-base p-4 text-left border-2 border-emerald-300">
-                <FiCheckCircle className="text-emerald-600 mb-1"/><b className="text-emerald-800">{t("itin.saved_to_account")}</b>
-                <p className="mb-2 text-xs text-gray-500">{t("itin.share_readonly")}</p>
+                <FiCheckCircle className="text-emerald-600 mb-1"/><b className="text-emerald-800">Saved to your account</b>
+                <p className="mb-2 text-xs text-gray-500">Share a read-only copy (no name, email or notes).</p>
                 <SharePlanButton planId={savedPlan.id} initialToken={savedPlan.share_token} compact />
               </div>
             ) : (
               <button onClick={savePlan} className="card-base p-4 text-left border-2 border-emerald-300 hover:bg-emerald-50">
-                <FiCheckCircle className="text-emerald-600 mb-1"/><b className="text-emerald-800">{t("itin.save_plan")}</b><p className="text-xs text-gray-500">{t("itin.save_plan_sub")}</p>
+                <FiCheckCircle className="text-emerald-600 mb-1"/><b className="text-emerald-800">Save this plan</b><p className="text-xs text-gray-500">Keep the generated itinerary in your account, then share it</p>
               </button>
             )}
 
             <div className="card-base p-4">
 
               <p className="text-xs text-gray-500">
-                {t("itin.total_estimate")}
+                Total estimate
               </p>
 
 
@@ -1246,7 +1090,7 @@ const Itinerary = () => {
 
               <p className="text-xs text-gray-400">
 
-                {plan.total_estimated_usd != null ? `≈ $${Number(plan.total_estimated_usd).toLocaleString()} USD` : t("itin.usd_unavailable")}
+                {plan.total_estimated_usd != null ? `≈ $${Number(plan.total_estimated_usd).toLocaleString()} USD` : "USD estimate unavailable"}
 
               </p>
 
@@ -1572,7 +1416,7 @@ const Itinerary = () => {
                         >
 
 
-                          <span className="text-[10px] uppercase tracking-wide text-gray-400">
+                          <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
 
                             {dest.category}
 
@@ -1592,7 +1436,7 @@ const Itinerary = () => {
                           {
                             dest.latitude && dest.longitude && (
 
-                              <p className="text-[11px] text-gray-400 mt-1">
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
 
                                 {dest.latitude.toFixed(4)},
                                 {" "}
@@ -1613,40 +1457,10 @@ const Itinerary = () => {
 
                   </div>
 
-                  {day.nearby_services && (
-                    <div className="mt-5 pt-4 border-t">
-                      <h4 className="text-xs font-black uppercase tracking-wide text-gray-500 mb-3">Nearby planning & emergency services</h4>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                        {[
-                          ["Stay", day.nearby_services.hotels],
-                          ["Hospital", day.nearby_services.hospitals],
-                          ["Police", day.nearby_services.police],
-                          ["🏦 Essentials", day.nearby_services.essentials],
-                        ].map(([label, services]) => (
-                          <div key={label} className="rounded-xl bg-gray-50 p-3">
-                            <b className="text-xs">{label}</b>
-                            {(services || []).length ? services.map((service) => (
-                              <div key={`${label}-${service.id}`} className="mt-2 text-[11px] text-gray-600">
-                                <span className="font-semibold block truncate">{service.name}</span>
-                                <span>{service.distance_km} km straight-line{service.phone ? ` · ${service.phone}` : ""}</span>
-                                <VerificationBadge record={service} compact className="mt-1" />
-                                {(service.source_url || service.website) && (
-                                  <a
-                                    href={service.source_url || service.website}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="mt-1 inline-flex min-h-8 items-center text-[11px] font-semibold text-emerald-800 underline"
-                                  >
-                                    {service.source_url ? "Verify source" : "Visit website"}
-                                  </a>
-                                )}
-                              </div>
-                            )) : <p className="text-[11px] text-gray-500 mt-2">No verified record within 250 km in our database</p>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  {/* Hotels, hospitals, police, ATMs and pharmacies are planning
+                      resources, not itinerary stops. They remain available through
+                      the trip-readiness/emergency tools and are intentionally not
+                      rendered as Day 1/Day 2 visit cards. */}
 
                 </motion.div>
 
@@ -1681,58 +1495,9 @@ const Itinerary = () => {
         )
       }
 
-      </div>
 
-      {/* Altitude Safety & Lake Louise Modal */}
-      <AltitudeSafetyModal
-        isOpen={showSafetyModal}
-        onClose={() => setShowSafetyModal(false)}
-        safetyData={plan?.altitude_safety}
-        title={plan?.title}
-      />
 
-      {/* Itemized Cost Breakdown Modal */}
-      <CostBreakdownModal
-        isOpen={showCostModal}
-        onClose={() => setShowCostModal(false)}
-        costData={plan?.cost_breakdown}
-        title={plan?.title}
-        currentParams={{
-          nationality: plan?.nationality || form.nationality,
-          style: "standard",
-          travelers: plan?.travelers || form.travelers,
-        }}
-      />
 
-      {/* Gear & Packing Checklist Modal */}
-      <PackingChecklistModal
-        isOpen={showPackingModal}
-        onClose={() => setShowPackingModal(false)}
-        packingData={plan?.packing_checklist_detailed}
-        title={plan?.title}
-        slug={plan?.slug || plan?.title?.toLowerCase()?.replace(/\s+/g, "-")}
-      />
-
-      {/* Local Trail Secrets & Mountain Wisdom Modal */}
-      <LocalTrailSecrets
-        isOpen={showSecretsModal}
-        onClose={() => setShowSecretsModal(false)}
-      />
-
-      {/* Guide & Porter Tipping and Currency Guide Modal */}
-      <TippingAndCurrencyGuide
-        isOpen={showTippingModal}
-        onClose={() => setShowTippingModal(false)}
-        defaultDays={plan?.days || form.days}
-        defaultTravelers={plan?.travelers || form.travelers}
-      />
-
-      {/* Printable Travel Brief & SOS Medical Card */}
-      <PrintableTravelBrief
-        isOpen={showPrintModal}
-        onClose={() => setShowPrintModal(false)}
-        plan={plan}
-      />
     </div>
 
   )

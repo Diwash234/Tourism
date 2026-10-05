@@ -1,14 +1,94 @@
+# Git
 .git
+.gitignore
 .github
-node_modules
-frontend/Tourism/node_modules
-frontend/Tourism/dist
-frontend/Tourism/.vite
-Tourism/db.sqlite3
-Tourism/media
-Tourism/staticfiles
-image-server/images
+
+# Python
 __pycache__
 *.pyc
-.venv
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Runtime
+*.pid
+*.seed
+*.pid.lock
+
+# Environment
 .env
+.env.local
+.env.*.local
+
+# Docker
+Dockerfile
+Dockerfile.ml
+docker-compose.yml
+.dockerignore
+
+# Documentation
+docs/
+*.md
+
+# Reports
+reports/
+
+# Misc archives (must stay above the downloads negations: last match wins)
+*.zip
+*.tar
+*.rar
+
+# Downloads: keep only the seed database + checksums the Dockerfile COPYs
+downloads/*
+!downloads/nepal-tourism-seed.sqlite3.gz
+!downloads/nepal-tourism-seed.sqlite3.gz.sha256
+!downloads/nepal-tourism-database.sqlite3.gz
+!downloads/nepal-tourism-database.sqlite3.gz.sha256
+
+# Virtual environments
+venv/
+.venv/
+
+# Test results
+test-results/
+tests-nav/
+
+# ML service: ship code + models + processed_data, never runtime artifacts
+# or secrets (plain patterns like __pycache__/.env only match the context
+# root, so the nested copies need their own globs).
+ml_service/logs/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/.env
+!ml_service/.env.example
