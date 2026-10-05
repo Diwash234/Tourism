@@ -519,6 +519,19 @@ TWILIO_FROM_NUMBER = _strip_placeholder_secret(config("TWILIO_FROM_NUMBER", defa
 NOTIFICATION_WORKER_ENABLED = config("NOTIFICATION_WORKER_ENABLED", default=True, cast=bool)
 NOTIFICATION_WORKER_INTERVAL = config("NOTIFICATION_WORKER_INTERVAL", default=60, cast=int)
 
+# tourist/apps.py pre-builds the destination fact table (~6,700 rows; measured
+# 14.6s) in a daemon thread when the web server starts, so the first AI
+# recommendation request finds it ready instead of timing out. That pre-warm is
+# a large allocation and it overlaps daphne, so it is opt-out for memory-limited
+# instances: Render's 512 MiB plan sets this to 0 and the table is simply built
+# on first use instead.
+#
+# This must exist as a real setting rather than relying on the getattr default
+# in apps.py, otherwise the environment variable would never be read.
+TRAVELLER_FACTS_WARMUP_ENABLED = config(
+    "TRAVELLER_FACTS_WARMUP_ENABLED", default=True, cast=bool
+)
+
 # ------------------------------------------------------------------
 # Push notifications (Firebase Cloud Messaging) - optional
 # ------------------------------------------------------------------

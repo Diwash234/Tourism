@@ -17,6 +17,15 @@ cd /app/Tourism
 #
 # Never allowed to abort the boot.
 start_ml_service() {
+  # Honour START_ML_SERVICE. render.yaml sets it to "0" because the ML sidecar
+  # (pandas + scikit-learn + joblib models) is the single largest memory
+  # consumer on a 512 MiB instance; with it running alongside daphne the deploy
+  # was killed with "Out of memory (used over 512Mi)". Django falls back to
+  # deterministic CSV/database answers when it is off.
+  if [ "${START_ML_SERVICE:-1}" = "0" ]; then
+    echo "entrypoint: ML service disabled (START_ML_SERVICE=0); using deterministic fallbacks"
+    return 0
+  fi
   if [ -f /app/ml_service/app.py ]; then
     echo "entrypoint: starting ML service on 127.0.0.1:8001"
     (cd /app/ml_service && nohup python -m uvicorn app:app \

@@ -50,6 +50,12 @@ services:
         value: "false"
       - key: NOTIFICATION_WORKER_INTERVAL
         value: "60"
+      # tourist/apps.py pre-builds ~6,700 destination fact rows in a daemon
+      # thread at start-up (measured: 14.6s). On a 512 MiB instance that
+      # overlapped daphne and pushed the deploy over the limit again. Off here;
+      # the fact table is still built on first use, just not pre-warmed.
+      - key: TRAVELLER_FACTS_WARMUP_ENABLED
+        value: "0"
       - key: LOCAL_GRAPH_ROUTING_ENABLED
         value: "true"
       - key: LOCAL_GRAPH_MAX_SNAP_KM
