@@ -22,6 +22,7 @@ from .phone_quality import (
     is_placeholder_phone,
     is_unusable_phone,
     normalize_phone_artifact,
+    usable_phone,
 )
 from .serializers import HospitalSerializer, PoliceStationSerializer, RestaurantSerializer
 
@@ -36,6 +37,23 @@ class NullSentinelTests(TestCase):
         for value in ("", None, "01-4469064", "+9779800000010", "nanotechnology"):
             with self.subTest(value=value):
                 self.assertFalse(is_null_sentinel(value))
+
+    def test_english_missing_markers_from_the_osm_service_csvs_are_recognised(self):
+        # 2,752 of the 3,293 rows in emergency_services.csv carry the literal
+        # text "Not Available" in the phone column. The cell is non-empty, so an
+        # import that trusted emptiness would publish it as a callable number.
+        for value in ("Not Available", "not available", "NOT AVAILABLE", "Unknown",
+                      "Not Applicable", "Not Found", "No data", "No Information",
+                      "Information not available", "Not listed", "Not known"):
+            with self.subTest(value=value):
+                self.assertTrue(is_null_sentinel(value))
+
+    def test_prose_sentinels_never_reach_a_response_or_the_database(self):
+        # The end of the chain: not merely detected, but withheld and unstorable.
+        for value in ("Not Available", "Unknown", "Not Found"):
+            with self.subTest(value=value):
+                self.assertEqual(usable_phone(value), "")
+                self.assertTrue(is_unusable_phone(value))
 
 
 class PlaceholderPhoneTests(TestCase):
@@ -157,10 +175,46 @@ class PhoneCleanupMigrationTests(_ServiceFixtures):
         self.assertEqual(PoliceStation.objects.get(name="Idem Police").phone, "014440000")
 
     def test_migration_reports_what_it_changed(self):
-        self._police("Reported Police", "nan")
+        # Planted with .update(), which bypasses the pre_save guard exactly as a
+        # bulk import or raw-SQL load would. This is the case the migration
+        # exists for: values written before the guard, or written by a path
+        # that skips model signals.
+        police = self._police("Reported Police", "01-4469064")
+        PoliceStation.objects.filter(pk=police.pk).update(phone="nan")
         editor = self._run()
         self.assertTrue(editor.statements, "the migration should record what it cleaned")
         self.assertIn("PoliceStation", editor.statements[0])
+        self.assertEqual(PoliceStation.objects.get(pk=police.pk).phone, "")
+
+
+class PhoneWriteNormalisationTests(_ServiceFixtures):
+    """Normalising on write closes the class of bug, not the instance.
+
+    Migration 0086 cleaned what was stored and the read paths blank anything
+    unusable, but several views assemble rows straight from model attributes.
+    Patching every call site is repetitive and easy to miss on the next one, so
+    a pre_save guard makes an unusable value unstorable in the first place.
+    """
+
+    def test_sentinel_cannot_be_saved(self):
+        self._police("Saved Nan", "nan")
+        self.assertEqual(PoliceStation.objects.get(name="Saved Nan").phone, "")
+
+    def test_templated_filler_cannot_be_saved(self):
+        self._police("Saved Filler", "037-520123")
+        self.assertEqual(PoliceStation.objects.get(name="Saved Filler").phone, "")
+
+    def test_float_mangled_is_repaired_on_save(self):
+        self._police("Saved Float", "14440000.0")
+        self.assertEqual(PoliceStation.objects.get(name="Saved Float").phone, "014440000")
+
+    def test_real_number_is_preserved_on_save(self):
+        self._police("Saved Real", "01-4469064")
+        self.assertEqual(PoliceStation.objects.get(name="Saved Real").phone, "01-4469064")
+
+    def test_hospital_is_guarded_too(self):
+        self._hospital("Saved Hospital", "nan")
+        self.assertEqual(Hospital.objects.get(name="Saved Hospital").phone, "")
 
 
 class SerializerPhoneGuaranteeTests(_ServiceFixtures):

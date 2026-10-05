@@ -2371,11 +2371,20 @@ class NearbyPOIsView(APIView):
         for dest in qs:
             distance = haversine_distance(lat, lon, dest.latitude, dest.longitude)
             if distance <= radius_km:
+                # A distance is only as precise as the pin it points at. A
+                # destination recorded to two decimals is a town centre good to
+                # about a kilometre, so publishing "0.34 km" without the
+                # uncertainty would state more precision than the data has.
+                from .coordinate_accuracy import classify_precision, resolution_km
+
                 db_rows.append({
                     "name": dest.name,
                     "latitude": float(dest.latitude),
                     "longitude": float(dest.longitude),
                     "distance_km": round(distance, 2),
+                    "coordinate_accuracy": dest.coordinate_accuracy
+                    or classify_precision(dest.latitude, dest.longitude),
+                    "distance_uncertainty_km": resolution_km(dest.latitude, dest.longitude),
                     "slug": dest.slug,
                     "source": "Tourism database (approved listing)",
                     "source_url": f"/destinations/{dest.slug}",
@@ -2490,6 +2499,12 @@ class DestinationNearbyPOIsView(APIView):
         # Load each candidate set ONCE (no bounding-box pre-filter — the
         # tables are small: <6k rows total) and distance-rank in Python so
         # tier expansion never re-queries.
+        # These rows are assembled straight from model attributes rather than
+        # through a serializer, so they need the publish-safe phone helper
+        # themselves: migration 0086 cleaned what is stored, but an import or
+        # an admin edit after that must not be able to serve "nan" as a number.
+        from .phone_quality import usable_phone
+
         hospital_rows = [
             (h.name, float(h.latitude), float(h.longitude), {"phone": usable_phone(h.phone)})
             for h in Hospital.objects.filter(is_archived=False)
@@ -2508,14 +2523,14 @@ class DestinationNearbyPOIsView(APIView):
                      "homestay", "inn"):
             stay_q |= Q(name__icontains=word)
         hotel_rows = [
-            (h.name, float(h.latitude), float(h.longitude), {"phone": h.phone, "address": h.address, "price": str(h.price_per_night) if h.price_per_night else None})
+            (h.name, float(h.latitude), float(h.longitude), {"phone": usable_phone(h.phone), "address": h.address, "price": str(h.price_per_night) if h.price_per_night else None})
             for h in Hotel.objects.filter(is_active=True).exclude(latitude=None).exclude(longitude=None)
         ] + [
             (d.name, float(d.latitude), float(d.longitude), {"slug": d.slug})
             for d in dest_qs.filter(stay_q).exclude(latitude=None).exclude(longitude=None)
         ]
         restaurant_rows = [
-            (r.name, float(r.latitude), float(r.longitude), {"phone": r.phone, "address": r.address, "cuisine": r.cuisine_types})
+            (r.name, float(r.latitude), float(r.longitude), {"phone": usable_phone(r.phone), "address": r.address, "cuisine": r.cuisine_types})
             for r in Restaurant.objects.filter(status="published").exclude(latitude=None).exclude(longitude=None)
         ] + [
             (d.name, float(d.latitude), float(d.longitude), {"slug": d.slug})
