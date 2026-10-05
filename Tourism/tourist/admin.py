@@ -1,12 +1,743 @@
 from django.contrib import admin
+from django.utils.html import format_html
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from .models import ManagedNavigationItem
+from .models import (
+    District, Province,
+    User, Language, Category, Destination, DestinationTranslation,
+    DestinationImage, DestinationVideo, Review, Rating, Favorite,
+    VisitHistory, Budget, Alert, EmergencyContact, Notification,
+    DeviceToken, EmailVerificationToken, PasswordResetToken, MLInsight, Hotel,
+    OSMEssentialService, OSMTourismPlace, FamilyLink, RiskIncident, CurrentHazard,
+    RiskAnalysis,
+    InfrastructureSubmission, DestinationFeatureProfile, FeedbackEvidence, MLTrainingRun,
+    RecommendationEvent, RiskNewsReport, RiskObservation, UserFeedback, StaffCapabilityProfile,
+    SiteSetting, DataRetentionPolicy, BrandingAsset, CMSContentTranslation, ManagedPage, ContentSection, ManagedNavigationItem, CMSRevision, NotificationPreference, FeedbackMessage,
+    Restaurant, DestinationTransitRoute, TravelPlan, TravelPlanStop, HeroSlide,
+)
 
+
+@admin.register(User)
+class UserAdmin(BaseUserAdmin):
+    ordering = ["-date_joined"]
+    list_display = ["email", "full_name", "role", "is_verified", "is_active", "is_staff", "date_joined"]
+    list_filter = ["role", "is_verified", "is_active", "is_staff"]
+    search_fields = ["email", "first_name", "last_name"]
+    readonly_fields = ["date_joined", "last_login"]
+    fieldsets = (
+        (None, {"fields": ("email", "password")}),
+        ("Personal info", {"fields": ("first_name", "last_name", "phone_number", "bio", "profile_picture")}),
+        ("Location", {"fields": ("latitude", "longitude", "country", "city", "location_source")}),
+        ("Preferences", {"fields": ("preferred_language", "role")}),
+        ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser", "is_verified", "groups", "user_permissions")}),
+        ("Important dates", {"fields": ("last_login", "date_joined")}),
+    )
+    add_fieldsets = (
+        (None, {"classes": ("wide",), "fields": ("email", "password1", "password2")}),
+    )
+    filter_horizontal = ["groups", "user_permissions"]
+
+
+@admin.register(Language)
+class LanguageAdmin(admin.ModelAdmin):
+    list_display = ["code", "name", "is_active"]
+    search_fields = ["code", "name"]
+
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ["name", "slug", "destination_count"]
+    prepopulated_fields = {"slug": ("name",)}
+    search_fields = ["name"]
+
+    def destination_count(self, obj):
+        return obj.destinations.count()
+    destination_count.short_description = "Destinations"
+
+
+# ---------------------------------------------------------------------------
+# Destination image moderation inline
+# ---------------------------------------------------------------------------
+class DestinationImageInline(admin.TabularInline):
+    model = DestinationImage
+    extra = 0
+    fields = [
+        "thumbnail", "image", "external_url", "caption",
+        "is_cover", "source", "verification_status",
+        "is_verified", "authenticity_score",
+        "uploaded_by", "view_count",
+    ]
+    readonly_fields = ["thumbnail", "view_count"]
+    ordering = ["-is_cover", "-created_at"]
+    max_num = 20
+
+    def thumbnail(self, obj):
+        url = None
+        if obj.external_url:
+            url = obj.external_url
+        elif obj.image:
+            try:
+                url = obj.image.url
+            except Exception:
+                url = None
+        if url:
+            return format_html(
+                '<img src="{}" style="height:60px;width:60px;object-fit:cover;border-radius:6px;" />',
+                url,
+            )
+        return "—"
+    thumbnail.short_description = "Preview"
+
+
+class DestinationVideoInline(admin.TabularInline):
+    model = DestinationVideo
+    extra = 0
+
+
+@admin.register(Destination)
+class DestinationAdmin(admin.ModelAdmin):
+    list_display = [
+        "name", "cover_thumb", "category", "city", "district",
+        "status", "image_count", "average_rating", "views_count", "is_active",
+    ]
+    list_filter = ["category", "country", "province", "district", "status", "is_active"]
+    search_fields = ["name", "slug", "city", "district", "province", "description"]
+    prepopulated_fields = {"slug": ("name",)}
+    inlines = [DestinationImageInline, DestinationVideoInline]
+    readonly_fields = [
+        "average_rating", "ratings_count", "views_count",
+        "created_at", "updated_at", "cover_image_preview", "cover_image_url_preview",
+    ]
+    list_per_page = 50
+    actions = [
+        "approve_selected",
+        "reject_selected",
+        "reassign_covers_action",
+    ]
+
+    def cover_thumb(self, obj):
+        """Tiny cover preview in the list view so admins can spot wrong-category images at a glance."""
+        url = None
+        cover = obj.gallery.filter(is_cover=True).first()
+        if cover and cover.external_url:
+            url = cover.external_url
+        elif cover and cover.image:
+            try:
+                url = cover.image.url
+            except Exception:
+                url = None
+        elif obj.cover_image:
+            try:
+                url = obj.cover_image.url
+            except Exception:
+                url = None
+        if url:
+            return format_html(
+                '<img src="{}" style="height:44px;width:64px;object-fit:cover;border-radius:4px;" />',
+                url,
+            )
+        return "—"
+    cover_thumb.short_description = "Cover"
+
+    def image_count(self, obj):
+        return obj.gallery.count()
+    image_count.short_description = "#Images"
+
+    def cover_image_preview(self, obj):
+        """Big cover preview on the edit page."""
+        url = None
+        cover = obj.gallery.filter(is_cover=True).first()
+        if cover and cover.external_url:
+            url = cover.external_url
+        elif cover and cover.image:
+            try:
+                url = cover.image.url
+            except Exception:
+                url = None
+        elif obj.cover_image:
+            try:
+                url = obj.cover_image.url
+            except Exception:
+                url = None
+        if url:
+            return format_html(
+                '<img src="{}" style="max-height:220px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.1);" />'
+                '<p style="color:#666;font-size:12px;">Current cover (upload replacement in inline below).</p>',
+                url,
+            )
+        return "No cover image yet."
+    cover_image_preview.short_description = "Current cover image"
+
+    def cover_image_url_preview(self, obj):
+        cover = obj.gallery.filter(is_cover=True).first()
+        if cover and cover.external_url:
+            return cover.external_url
+        return ""
+    cover_image_url_preview.short_description = "Cover URL"
+
+    @admin.action(description="Approve selected pending submissions")
+    def approve_selected(self, request, queryset):
+        updated = queryset.update(status=Destination.SubmissionStatus.APPROVED, is_active=True)
+        self.message_user(request, f"{updated} destination(s) approved.")
+
+    @admin.action(description="Reject selected pending submissions")
+    def reject_selected(self, request, queryset):
+        updated = queryset.update(status=Destination.SubmissionStatus.REJECTED, is_active=False)
+        self.message_user(request, f"{updated} destination(s) rejected.")
+
+    @admin.action(description="Reassign deterministic cover + 6 gallery photos (from catalog)")
+    def reassign_covers_action(self, request, queryset):
+        """Run the photo_catalog resolver on just the selected destinations."""
+        from . import photo_catalog
+        processed = 0
+        for dest in queryset:
+            # Clear any existing auto-assigned covers first
+            dest.gallery.filter(
+                source__in=[
+                    DestinationImage.Source.UNSPLASH,
+                    DestinationImage.Source.REFERENCE,
+                ],
+                is_cover=True,
+            ).update(is_cover=False)
+
+            try:
+                cover = photo_catalog.resolve_cover_photo(dest)
+            except Exception as exc:  # noqa: BLE001
+                self.message_user(
+                    request, f"Cover resolution failed for {dest.name}: {exc}",
+                    level="error",
+                )
+                continue
+            gallery = photo_catalog.resolve_gallery_photos(dest, target=6)
+
+            seen_urls = set(
+                dest.gallery.values_list("external_url", flat=True),
+            )
+            # Add cover
+            if cover.get("url") and cover["url"] not in seen_urls:
+                _make_image(dest, cover, is_cover=True)
+            elif cover.get("url"):
+                dest.gallery.filter(external_url=cover["url"]).update(is_cover=True)
+            seen_urls.add(cover.get("url"))
+
+            for photo in gallery:
+                u = photo.get("url")
+                if u and u not in seen_urls:
+                    _make_image(dest, photo, is_cover=False)
+                    seen_urls.add(u)
+            processed += 1
+        self.message_user(
+            request,
+            f"Re-assigned photos for {processed} destination(s) using curated catalog.",
+        )
+
+
+def _make_image(dest, photo, *, is_cover):
+    """Helper that creates a DestinationImage row from a photo_catalog dict."""
+    url = photo.get("url", "")
+    if not url:
+        return
+    if url.startswith("/images/") or url.startswith("/api/image/"):
+        return
+    if not photo.get("author") or not photo.get("license") or not photo.get("source_url"):
+        return
+    if "images.unsplash.com" in url:
+        source = DestinationImage.Source.UNSPLASH
+    else:
+        source = DestinationImage.Source.ADMIN
+    # Stock-photo origin is not an authenticity judgement. Leave the score NULL
+    # so a human media review assigns it; a fixed value here would let the
+    # canonical release gate pass on an invented number.
+    authenticity = None
+    DestinationImage.objects.get_or_create(
+        destination=dest,
+        external_url=url,
+        defaults=dict(
+            thumbnail_url=photo.get("thumb", url),
+            caption=(photo.get("caption", "") or "")[:200],
+            is_cover=False,
+            source=source,
+            source_url=photo.get("source_url", "")[:500],
+            photographer=(photo.get("author", "") or "")[:150],
+            license_type=(photo.get("license", "") or "")[:100],
+            copyright_status="pending_review",
+            image_category="cover" if is_cover else "gallery",
+            verification_status=DestinationImage.ImageStatus.PENDING,
+            is_verified=False,
+            authenticity_score=None,
+            quality_score=None,
+            attribution=(photo.get("author", "") or "")[:120],
+        ),
+    )
+
+
+@admin.register(DestinationImage)
+class DestinationImageAdmin(admin.ModelAdmin):
+    list_display = ["thumbnail", "destination", "is_cover", "source", "verification_status", "is_verified", "view_count", "created_at"]
+    list_filter = ["is_cover", "source", "verification_status", "is_verified"]
+    search_fields = ["destination__name", "caption", "external_url"]
+    list_per_page = 100
+    actions = ["approve_selected_images", "reject_selected_images", "mark_verified"]
+    readonly_fields = ["thumbnail_large", "view_count", "phash", "quality_score", "authenticity_score", "overall_score"]
+
+    def thumbnail(self, obj):
+        url = None
+        if obj.external_url:
+            url = obj.external_url
+        elif obj.image:
+            try:
+                url = obj.image.url
+            except Exception:
+                url = None
+        if url:
+            return format_html(
+                '<img src="{}" style="height:44px;width:64px;object-fit:cover;border-radius:4px;" />', url,
+            )
+        return "—"
+    thumbnail.short_description = "Thumb"
+
+    def thumbnail_large(self, obj):
+        url = None
+        if obj.external_url:
+            url = obj.external_url
+        elif obj.image:
+            try:
+                url = obj.image.url
+            except Exception:
+                url = None
+        if url:
+            return format_html('<img src="{}" style="max-height:300px;border-radius:8px;" />', url)
+        return "—"
+    thumbnail_large.short_description = "Full preview"
+
+    @admin.action(description="Approve selected images")
+    def approve_selected_images(self, request, qs):
+        n = qs.update(verification_status=DestinationImage.ImageStatus.APPROVED, is_verified=True)
+        self.message_user(request, f"{n} images approved.")
+
+    @admin.action(description="Reject selected images")
+    def reject_selected_images(self, request, qs):
+        n = qs.update(verification_status=DestinationImage.ImageStatus.REJECTED, is_verified=False)
+        self.message_user(request, f"{n} images rejected.")
+
+    @admin.action(description="Mark as verified")
+    def mark_verified(self, request, qs):
+        n = qs.update(is_verified=True, verification_status=DestinationImage.ImageStatus.APPROVED)
+        self.message_user(request, f"{n} images marked verified.")
+
+
+@admin.register(Hotel)
+class HotelAdmin(admin.ModelAdmin):
+    list_display = ["name", "destination", "image_preview", "booking_status", "is_active", "price_per_night", "currency", "rating", "source"]
+    list_filter = ["booking_status", "is_active", "source", "currency"]
+    search_fields = ["name", "destination__name", "address"]
+    readonly_fields = ["image_preview_large"]
+    fields = [
+        "destination", "name", "cover_image", "external_image_url", "image_preview_large",
+        "price_per_night", "currency", "rating", "booking_status", "booking_url",
+        "facilities", "address", "latitude", "longitude", "source", "phone",
+    ]
+
+    @admin.display(description="Image")
+    def image_preview(self, obj):
+        url = None
+        if obj.cover_image:
+            try:
+                url = obj.cover_image.url
+            except Exception:
+                url = None
+        if not url and obj.external_image_url:
+            url = obj.external_image_url
+        if url:
+            return format_html('<img src="{}" style="height:40px;border-radius:4px;" />', url)
+        return "—"
+
+    @admin.display(description="Current image")
+    def image_preview_large(self, obj):
+        url = None
+        if obj.cover_image:
+            try:
+                url = obj.cover_image.url
+            except Exception:
+                url = None
+        if not url and obj.external_image_url:
+            url = obj.external_image_url
+        if url:
+            return format_html('<img src="{}" style="max-height:200px;border-radius:8px;" />', url)
+        return "No image yet."
+
+
+@admin.register(DestinationTranslation)
+class DestinationTranslationAdmin(admin.ModelAdmin):
+    list_display = ["destination", "language", "is_auto_generated", "updated_at"]
+    list_filter = ["language", "is_auto_generated"]
+
+
+@admin.register(Restaurant)
+class RestaurantAdmin(admin.ModelAdmin):
+    list_display = ["name", "destination", "price_range", "status", "is_verified", "updated_at"]
+    list_filter = ["status", "is_verified", "price_range"]
+    search_fields = ["name", "destination__name", "address"]
+
+@admin.register(DestinationTransitRoute)
+class DestinationTransitRouteAdmin(admin.ModelAdmin):
+    list_display = ["origin", "destination", "transport_mode", "estimated_fare_npr", "is_active", "is_verified"]
+    list_filter = ["transport_mode", "is_active", "is_verified"]
+    search_fields = ["origin", "destination__name", "operator_name"]
+
+class TravelPlanStopInline(admin.TabularInline):
+    model = TravelPlanStop; extra = 0
+
+@admin.register(TravelPlan)
+class TravelPlanAdmin(admin.ModelAdmin):
+    list_display = ["title", "user", "status", "travelers", "budget_npr", "generation_source", "updated_at"]
+    list_filter = ["status", "generation_source"]
+    search_fields = ["title", "user__email"]
+    inlines = [TravelPlanStopInline]
+
+@admin.register(Review)
+class ReviewAdmin(admin.ModelAdmin):
+    list_display = ["destination", "user", "moderation_status", "is_flagged", "moderated_by", "created_at"]
+    list_filter = ["moderation_status", "is_flagged"]
+    search_fields = ["destination__name", "user__email", "comment"]
+
+
+@admin.register(Rating)
+class RatingAdmin(admin.ModelAdmin):
+    list_display = ["destination", "user", "value", "created_at"]
+
+
+@admin.register(Favorite)
+class FavoriteAdmin(admin.ModelAdmin):
+    list_display = ["user", "destination", "created_at"]
+
+
+@admin.register(VisitHistory)
+class VisitHistoryAdmin(admin.ModelAdmin):
+    list_display = ["user", "destination", "viewed_at"]
+
+
+@admin.register(Budget)
+class BudgetAdmin(admin.ModelAdmin):
+    list_display = ["user", "title", "category", "amount", "currency", "date"]
+    list_filter = ["category", "currency"]
+
+
+@admin.register(Alert)
+class AlertAdmin(admin.ModelAdmin):
+    list_display = ["title", "alert_type", "severity", "city", "is_active", "created_at"]
+    list_filter = ["alert_type", "severity", "is_active"]
+    search_fields = ["title", "city", "country"]
+
+
+@admin.register(RiskIncident)
+class RiskIncidentAdmin(admin.ModelAdmin):
+    list_display = ["title", "destination", "hazard_type", "severity", "event_date", "source_type", "verified"]
+    list_filter = ["hazard_type", "severity", "source_type", "verified"]
+    search_fields = ["title", "destination__name", "source_name"]
+    autocomplete_fields = ["destination"]
+
+
+@admin.register(RiskAnalysis)
+class RiskAnalysisAdmin(admin.ModelAdmin):
+    """Admin editor for a destination's curated risk profile.
+
+    Staff review and assign the structured risk factors here:
+    accident history, travel safety, weather exposure,
+    emergency / life-safety coverage and the risk causes.
+    """
+    list_display = ["destination", "risk_category", "travel_safety_rating",
+                    "accident_trend", "overall_safety_score", "last_reviewed", "reviewed_by"]
+    list_filter = ["risk_category", "travel_safety_rating", "accident_trend",
+                   "hospital_coverage", "monsoon_risk", "high_altitude_risk"]
+    search_fields = ["destination__name", "destination__district", "safety_summary"]
+    autocomplete_fields = ["destination", "reviewed_by"]
+    readonly_fields = ["last_reviewed", "reviewed_by"]
+    fieldsets = (
+        ("Accident history", {"fields": (
+            "accidents", "accidents_last_year", "fatal_accidents_last_year",
+            "accidents_last_5y", "accident_trend", "last_major_incident_date")}),
+        ("Hazard counts (imported)", {"fields": (
+            "landslide", "avalanche", "flood", "earthquake_damage")}),
+        ("Travel safety", {"fields": (
+            "travel_safety_score", "travel_safety_rating",
+            "solo_travel_safety", "night_safety", "family_safety",
+            "female_traveler_safety", "road_quality", "trail_marking",
+            "mobile_network_coverage")}),
+        ("Weather & seasonal exposure", {"fields": (
+            "monsoon_risk", "winter_snow_risk", "summer_heat_risk",
+            "lightning_risk", "high_altitude_risk", "uv_exposure")}),
+        ("Emergency & life safety", {"fields": (
+            "hospital_count", "police_count", "fire_station_count",
+            "hospital_coverage", "emergency_response_minutes",
+            "rescue_availability", "medical_facility_level", "police_presence")}),
+        ("Risk causes & summary", {"fields": (
+            "risk_causes", "overall_safety_score", "safety_summary",
+            "emergency_risk", "natural_disaster_risk", "tourism_risk_index",
+            "risk_category")}),
+        ("Review", {"fields": ("last_reviewed", "reviewed_by")}),
+    )
+
+
+@admin.register(CurrentHazard)
+class CurrentHazardAdmin(admin.ModelAdmin):
+    list_display = ["title", "destination", "hazard_type", "severity", "source_name", "observed_at", "is_active", "verified"]
+    list_filter = ["hazard_type", "severity", "source_type", "is_active", "verified"]
+    search_fields = ["title", "destination__name", "source_name", "station_name"]
+    autocomplete_fields = ["destination"]
+
+
+@admin.register(InfrastructureSubmission)
+class InfrastructureSubmissionAdmin(admin.ModelAdmin):
+    list_display = ["name", "place_type", "district", "province", "status", "submitted_by", "created_at"]
+    list_filter = ["place_type", "status", "province", "district"]
+    search_fields = ["name", "address", "municipality", "submitted_by__email"]
+    readonly_fields = ["created_at", "updated_at", "reviewed_at", "csv_synced_at"]
+
+
+@admin.register(EmergencyContact)
+class EmergencyContactAdmin(admin.ModelAdmin):
+    list_display = ["name", "contact_type", "ward_number", "designation", "city", "phone_number", "is_24_hours"]
+    list_filter = ["contact_type", "city", "ward_number"]
+    search_fields = ["name", "city", "designation"]
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ["user", "channel", "category", "title", "delivery_status", "delivery_attempts", "is_read", "created_at"]
+    list_filter = ["channel", "category", "delivery_status", "is_read"]
+    search_fields = ["user__email", "title", "message"]
+
+
+@admin.register(NotificationPreference)
+class NotificationPreferenceAdmin(admin.ModelAdmin):
+    list_display = ["user", "in_app_enabled", "email_enabled", "sms_enabled", "push_enabled", "safety_alerts", "updated_at"]
+    search_fields = ["user__email"]
+
+
+admin.site.register(DeviceToken)
+admin.site.register(EmailVerificationToken)
+admin.site.register(PasswordResetToken)
+
+
+@admin.register(MLInsight)
+class MLInsightAdmin(admin.ModelAdmin):
+    list_display = ["destination", "insight_type", "label", "score", "created_at"]
+    list_filter = ["insight_type"]
+
+
+admin.site.site_header = "Nepal Tourism Platform — Administration"
+admin.site.site_title = "Nepal Tourism Admin"
+admin.site.index_title = "Manage Destinations, Images, Alerts & Users"
+
+
+@admin.register(OSMEssentialService)
+class OSMEssentialServiceAdmin(admin.ModelAdmin):
+    list_display = ["name", "category", "phone", "address"]
+    list_filter = ["category"]
+    search_fields = ["name", "address"]
+
+
+@admin.register(OSMTourismPlace)
+class OSMTourismPlaceAdmin(admin.ModelAdmin):
+    list_display = ["name", "category", "address"]
+    list_filter = ["category"]
+    search_fields = ["name", "address"]
+
+
+@admin.register(FamilyLink)
+class FamilyLinkAdmin(admin.ModelAdmin):
+    list_display = ["id", "requester", "member", "relationship", "status", "created_at", "accepted_at"]
+    list_filter = ["status"]
+    search_fields = ["requester__email", "member__email", "requester__first_name", "member__first_name"]
+    readonly_fields = ["created_at", "accepted_at"]
+
+
+@admin.register(DestinationFeatureProfile)
+class DestinationFeatureProfileAdmin(admin.ModelAdmin):
+    list_display = ["destination", "difficulty", "budget_level", "is_verified", "updated_at"]
+    list_filter = ["difficulty", "budget_level", "is_verified"]
+    search_fields = ["destination__name"]
+
+
+@admin.register(RiskObservation)
+class RiskObservationAdmin(admin.ModelAdmin):
+    list_display = ["destination", "observation_type", "value", "unit", "station_name", "observed_at", "verified"]
+    list_filter = ["observation_type", "trend", "verified"]
+    search_fields = ["destination__name", "station_name", "source_name"]
+
+
+@admin.register(RiskNewsReport)
+class RiskNewsReportAdmin(admin.ModelAdmin):
+    list_display = ["title", "destination", "hazard_type", "source_name", "published_at", "verification_status"]
+    list_filter = ["hazard_type", "verification_status", "promoted_to_warning"]
+    search_fields = ["title", "destination__name", "affected_area", "source_name"]
+
+
+@admin.register(MLTrainingRun)
+class MLTrainingRunAdmin(admin.ModelAdmin):
+    list_display = ["model_type", "version", "status", "dataset_size", "requested_by", "created_at"]
+    list_filter = ["model_type", "status"]
+    readonly_fields = ["created_at", "updated_at", "started_at", "completed_at"]
+
+
+@admin.register(RecommendationEvent)
+class RecommendationEventAdmin(admin.ModelAdmin):
+    list_display = ["event_type", "user", "destination", "score", "consented", "created_at"]
+    list_filter = ["event_type", "consented"]
+
+
+@admin.register(FeedbackEvidence)
+class FeedbackEvidenceAdmin(admin.ModelAdmin):
+    list_display = ["feedback", "media_type", "caption", "is_verified", "created_at"]
+    list_filter = ["media_type", "is_verified"]
+
+
+@admin.register(UserFeedback)
+class UserFeedbackAdmin(admin.ModelAdmin):
+    list_display = ["subject", "user", "email", "category", "status", "created_at"]
+    list_filter = ["category", "status", "created_at"]
+    search_fields = ["subject", "message", "name", "email", "user__email"]
+    readonly_fields = ["created_at", "updated_at", "replied_at"]
+
+
+@admin.register(StaffCapabilityProfile)
+class StaffCapabilityProfileAdmin(admin.ModelAdmin):
+    list_display = ["user", "is_active", "assigned_by", "updated_at"]
+    list_filter = ["is_active"]
+    search_fields = ["user__email", "user__first_name", "user__last_name"]
+    autocomplete_fields = ["user", "assigned_by"]
+
+class ContentSectionInline(admin.TabularInline):
+    """Sections edited here go through the same storage boundary as the API.
+
+    A bare inline skipped every guarantee AdminCMSView enforces: ``body`` was
+    stored verbatim (no ``sanitize_cms_html``), ``config`` was not whitelisted,
+    and no CMSRevision / AuditLog row was written and the public CMS cache was
+    never invalidated. Because PublicConfigView falls back to live section rows
+    when ``published_snapshot`` is empty, an admin form save could therefore
+    publish unsanitized markup straight to the public site.
+
+    The enforcement lives in ManagedPageAdmin.save_formset because
+    ``save_formset`` is a ModelAdmin hook -- InlineModelAdmin does not have one.
+    """
+    model=ContentSection; extra=0; ordering=['display_order']
+
+@admin.register(ManagedPage)
+class ManagedPageAdmin(admin.ModelAdmin):
+    list_display=['title','route','is_enabled','status','scheduled_publish_at','published_at','updated_at']; list_filter=['is_enabled','status']; search_fields=['title','route','key']; inlines=[ContentSectionInline]
+
+    def save_formset(self, request, form, formset, change):
+        """Apply the API's storage boundary to inline section saves.
+
+        ``save_formset`` runs before ``formset.save()``, so sanitizing the form
+        instances here means nothing unsanitized can reach the database through
+        the admin, exactly as with the JSON API.
+        """
+        from .views_admin import AdminCMSView, sanitize_cms_html
+
+        if formset.model is ContentSection:
+            changed = False
+            for inline_form in formset.forms:
+                if not inline_form.has_changed():
+                    continue
+                section = inline_form.instance
+                section.body = sanitize_cms_html(section.body)
+                if isinstance(section.config, dict):
+                    section.config = AdminCMSView._safe_section_config(section.config)
+                changed = True
+            if changed:
+                AdminCMSView._invalidate_public_caches()
+        super().save_formset(request, form, formset, change)
+
+@admin.register(DataRetentionPolicy)
+class DataRetentionPolicyAdmin(admin.ModelAdmin):
+    list_display = ["name", "read_notification_days", "location_ping_days", "recommendation_event_days", "resolved_sos_days", "preserve_official_risk_records", "updated_at"]
+
+@admin.register(BrandingAsset)
+class BrandingAssetAdmin(admin.ModelAdmin):
+    list_display = ["kind", "width", "height", "file_size", "updated_by", "updated_at"]
+    readonly_fields = ["mime_type", "file_size", "width", "height", "updated_by"]
+
+@admin.register(CMSContentTranslation)
+class CMSContentTranslationAdmin(admin.ModelAdmin):
+    list_display = ["target_resource", "object_id", "language_code", "updated_by", "updated_at"]
+    list_filter = ["target_resource", "language_code"]
+
+@admin.register(CMSRevision)
+class CMSRevisionAdmin(admin.ModelAdmin):
+    list_display=['resource','object_id','revision_number','action','created_by','created_at']
+    list_filter=['resource','action']; search_fields=['object_id','created_by__email']; readonly_fields=['resource','object_id','revision_number','snapshot','action','created_by','created_at']
+    def has_add_permission(self, request): return False
+    def has_change_permission(self, request, obj=None): return False
+    def has_delete_permission(self, request, obj=None): return False
+
+@admin.register(SiteSetting)
+class SiteSettingAdmin(admin.ModelAdmin):
+    list_display=['key','is_public','updated_by','updated_at']; list_filter=['is_public']; search_fields=['key','description']
+
+
+@admin.register(HeroSlide)
+class HeroSlideAdmin(admin.ModelAdmin):
+    """Manage the cinematic landing hero: swap imagery, copy, and overlay."""
+    list_display = ["preview", "title", "order", "is_active", "overlay_strength", "focal_point", "updated_at"]
+    list_editable = ["order", "is_active", "overlay_strength", "focal_point"]
+    list_filter = ["is_active", "focal_point"]
+    search_fields = ["title", "subtitle", "kicker", "link_slug"]
+    ordering = ["order", "id"]
+    readonly_fields = ["updated_by", "preview"]
+    fieldsets = (
+        (None, {"fields": ("title", "kicker", "subtitle", "tagline", "link_slug")}),
+        ("Background image", {"fields": ("image", "image_url", "local_image", "preview")}),
+        ("Presentation", {"fields": ("overlay_strength", "focal_point", "order", "is_active", "duration_seconds")}),
+        ("Meta", {"fields": ("updated_by",)}),
+    )
+
+    @admin.display(description="Preview")
+    def preview(self, obj):
+        src = obj.resolve_image()
+        if not src:
+            return "—"
+        return format_html(
+            '<img src="{}" alt="{}" style="height:64px;width:112px;object-fit:cover;border-radius:8px;" />',
+            src, obj.title,
+        )
+
+    def save_model(self, request, obj, form, change):
+        obj.updated_by = request.user
+        super().save_model(request, obj, form, change)
 
 @admin.register(ManagedNavigationItem)
 class ManagedNavigationItemAdmin(admin.ModelAdmin):
-    list_display = ['label', 'location', 'route', 'parent', 'display_order', 'is_active']
-    list_filter = ['location', 'is_active']
-    list_editable = ['display_order', 'is_active']
-    search_fields = ['label', 'route', 'description']
-    ordering = ['location', 'display_order']
+    list_display=['label','location','route','parent','display_order','is_active']; list_filter=['location','is_active']; list_editable=['display_order','is_active']; search_fields=['label','route']; ordering=['location','display_order']
+
+@admin.register(FeedbackMessage)
+class FeedbackMessageAdmin(admin.ModelAdmin):
+    list_display=['feedback','sender','is_internal','created_at']; list_filter=['is_internal']; search_fields=['body','feedback__subject']
+
+
+class ProvinceAdmin(admin.ModelAdmin):
+    list_display = ("name", "capital", "order")
+    ordering = ("order", "name")
+    search_fields = ("name", "capital")
+    prepopulated_fields = {"slug": ("name",)}
+
+
+@admin.register(District)
+class DistrictAdmin(admin.ModelAdmin):
+    list_display = ("name", "province", "region_type", "elevation_m")
+    list_filter = ("province",)
+    search_fields = ("name", "region_type")
+    prepopulated_fields = {"slug": ("name",)}
+    autocomplete_fields = ("province",)
+    fieldsets = (
+        (None, {"fields": ("name", "slug", "province", "region_type")}),
+        ("Geography", {"fields": ("latitude", "longitude", "elevation_m")}),
+        ("Verified content", {
+            "fields": ("description",),
+            "description": "Only enter text verified from a trustworthy source. Blank shows as 'Information unavailable' publicly.",
+        }),
+    )
+
+
+admin.site.register(Province, ProvinceAdmin)
