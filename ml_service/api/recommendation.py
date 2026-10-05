@@ -51,10 +51,17 @@ def recommendation(request: RecommendationRequest):
         user_lat=request.latitude,
         user_lon=request.longitude,
         category_filter=request.category,
+        # Django already selected up to 100 live, approved catalogue rows
+        # filtered by interest/province/category. Passing them through means the
+        # ranking reflects the real catalogue instead of the bundled
+        # OpenStreetMap extract.
+        candidate_rows=request.destinations,
     )
 
     return {
         "success": True,
         "recommendations": results,
         "results": results,
+        "count": len(results),
+        "source": results[0]["source"] if results else "none",
     }

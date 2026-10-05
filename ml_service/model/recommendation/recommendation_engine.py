@@ -94,131 +94,420 @@ destinations = destinations.fillna(
 )
 
 
-def recommend(user_input, top_n=5, user_lat=None, user_lon=None, budget_level=None, category_filter=None):
+# ---------------------------------------------------------------------------
+# Category gating
+# ---------------------------------------------------------------------------
+# The bundled OpenStreetMap extract labels rows with accommodation-style tags
+# (hotel 4218, guest_house 2964, hostel 655, information 583) rather than with
+# visitor interests. A requested category could therefore only ever be a soft
+# +0.15 score nudge, so every category ranked the same places and the caller
+# saw "the same 20 destinations" whatever it asked for.
+#
+# These keyword sets are matched against each row's real text (name, area,
+# district, search_text), which is what actually distinguishes a peak from a
+# temple from a national park in this dataset.
+CATEGORY_KEYWORDS = {
+    "mountain": ["mountain", "himal", "peak", "summit", "alpine", "glacier", "highland"],
+    "mountains": ["mountain", "himal", "peak", "summit", "alpine", "glacier", "highland"],
+    "trek": ["trek", "trekking", "hike", "hiking", "trail", "base camp"],
+    "trekking": ["trek", "trekking", "hike", "hiking", "trail", "base camp"],
+    "adventure": ["adventure", "raft", "bungee", "paraglid", "canyoning", "zipline", "climb"],
+    "heritage": ["heritage", "durbar", "palace", "fort", "gadhi", "monument", "archaeolog", "historic"],
+    "culture": ["culture", "cultural", "newar", "gurung", "tharu", "limbu", "maithal", "tamang", "folk"],
+    "temple": ["temple", "mandir", "stupa", "shrine", "deul", "chaitya", "dham"],
+    "temples": ["temple", "mandir", "stupa", "shrine", "deul", "chaitya", "dham"],
+    "buddhist": ["buddhist", "monastery", "gompa", "stupa", "lama", "tibetan"],
+    "pilgrimage": ["pilgrim", "dham", "muktinath", "pashupati", "pathibhara", "boudha", "lumbini"],
+    "spiritual": ["spiritual", "meditation", "yoga", "retreat", "ashram", "sanctuary"],
+    "wellness": ["wellness", "meditation", "yoga", "retreat", "spa", "hot spring", "tatopani"],
+    "food": ["food", "cuisine", "restaurant", "thali", "momo", "kulha", "cafe", "bhojanalaya"],
+    "culinary": ["food", "cuisine", "restaurant", "thali", "momo", "kulha", "cafe"],
+    "wildlife": ["wildlife", "national park", "reserve", "safari", "elephant", "rhino", "tiger", "jungle"],
+    "bird": ["bird", "birding", "florican", "crane", "wetland", "ornithol"],
+    "lake": ["lake", "phewa", "begnas", "rara", "gokyo", "gosaikunda", "tali", "pokhari"],
+    "lakes": ["lake", "phewa", "begnas", "rara", "gokyo", "gosaikunda", "tali", "pokhari"],
+    "river": ["river", "gandaki", "koshi", "karnali", "narayani", "bagmati", "rafting"],
+    "waterfall": ["waterfall", "falls", "jharana", "chhahara", "cascade"],
+    "cave": ["cave", "gufa", "cavern", "karst"],
+    "forest": ["forest", "jungle", "botanical", "rhododendron", "sal forest", "community forest"],
+    "museum": ["museum", "gallery", "exhibition", "collection", "art gallery"],
+    "shopping": ["bazaar", "market", "shopping", "handicraft", "souvenir", "craft", "thamel", "asan"],
+    "viewpoint": ["viewpoint", "panorama", "lookout", "sunrise", "scenic view"],
+    "village": ["village", "homestay", "gaun", "community", "rural"],
+    "camping": ["camp", "camping", "tent", "glamping"],
+    "monument": ["monument", "statue", "pillar", "inscription"],
+    "historic": ["historic", "ancient", "old", "heritage", "archaeolog"],
+    "city": ["city", "bazaar", "market", "centre", "center", "thamel", "patan", "bhaktapur"],
+    "festival": ["festival", "jatra", "mela", "dashain", "tihar", "holi", "losar"],
+    "garden": ["garden", "botanical", "park", "green"],
+}
+
+# Words the UI sends that are not themselves keys above. Without these an
+# underscore key such as "lakes_rivers" fell through to a literal keyword that
+# can never appear in any row, silently disabling the category gate.
+CATEGORY_ALIASES = {
+    "himalaya": "mountain", "himalayan": "mountain", "peak": "mountain",
+    "mountains & peaks": "mountain", "adventure & mountain": "mountain",
+    "nature": "forest", "national park": "wildlife", "national-parks": "wildlife",
+    "national_parks": "wildlife", "national parks": "wildlife", "jungle": "wildlife",
+    "temples & hindu sites": "temple", "hindu": "temple",
+    "buddhist sites": "buddhist", "monastery": "buddhist",
+    "pilgrimage sites": "pilgrimage", "religious": "pilgrimage",
+    "food & culinary": "food", "culinary tourism": "food",
+    "lakes & water bodies": "lake", "lakes-rivers": "river",
+    "heritage & culture": "heritage", "unesco": "heritage",
+    "viewpoints & hillstations": "viewpoint", "viewpoints & lookouts": "viewpoint",
+    "hill-stations": "viewpoint", "hill stations": "viewpoint",
+    "wildlife & safari": "wildlife", "wildlife and nature": "wildlife",
+    "camping & glamping": "camping", "museums & galleries": "museum",
+    "tea & coffee gardens": "garden", "waterfalls": "waterfall",
+    "caves": "cave", "villages & rural tourism": "village",
+    "cultural & ethnic tourism": "culture", "shopping & handicrafts": "shopping",
+    "trekking & nature": "trek", "adventure sports": "adventure",
+    "rivers & river valleys": "river", "festivals & events": "festival",
+    "eco & community": "forest", "lakes_rivers": "lake", "lakes rivers": "lake",
+    "birdwatching": "bird", "bird watching": "bird",
+    "artisan_crafts": "shopping", "artisan crafts": "shopping",
+    "village_life": "village", "village life": "village",
+    "history": "historic", "cultural": "culture", "photography": "viewpoint",
+    "cycling": "adventure", "family": "city", "relaxed": "lake",
+    "solitude": "lake", "educational": "museum", "romantic": "viewpoint",
+    "ecotourism": "forest", "eco tourism": "forest", "tea_coffee": "garden",
+    "hill_stations": "viewpoint", "wildlife_safari": "wildlife",
+    "adventure_sports": "adventure", "camping_glamping": "camping",
+    "food_culinary": "food", "spirits": "spiritual",
+}
+
+# ---------------------------------------------------------------------------
+# Not-a-destination filter
+# ---------------------------------------------------------------------------
+# `_is_recommendable` is called by recommend() but was never defined in this
+# module. The NameError was swallowed by the broad `except Exception: return []`
+# at the bottom of recommend(), so this endpoint returned an EMPTY list on
+# every call instead of reporting an error. These are the categories and name
+# patterns that are real map records but not somewhere a traveller visits.
+_NON_VISITABLE_CATEGORIES = {
+    "information", "office", "townhall", "government", "embassy", "consulate",
+    "bank", "atm", "post_office", "school", "university", "college",
+    "fire_station", "police", "town_hall", "shop", "supermarket",
+    "convenience", "fuel", "charging_station", "toilets", "waste_basket",
+    "bench", "tree", "way", "bus_stop", "car", "motorcycle", "bicycle",
+    "aeroway", "railway", "hospital", "clinic", "doctors", "pharmacy",
+    "courthouse", "prison", "yes", "no", "unknown", "",
+}
+
+_NON_VISITABLE_NAME_HINTS = (
+    "tourism board", "tourism office", "association", "committee", "council",
+    "department", "ministry", "municipality", "district office", "embassy of",
+    "consulate", "university", "college of", "school of", "bank of",
+    "electricity", "water supply", "telecom", "post office", "bus park",
+    "car park", "parking", "nepal rastra", "youth club", "ward office",
+    "village office", "gram panchayat",
+)
+
+
+def _is_recommendable(row):
+    """True when the record is somewhere a traveller would actually go.
+
+    Filters organisational records (tourism boards, municipalities, utilities,
+    banks) and administrative map tags. These matched interest text well and
+    were being returned as "suggestions", which is a data bug rather than a
+    recommendation.
+    """
+    category = str(row.get("Tourism_Category", "") or "").strip().lower()
+    if category in _NON_VISITABLE_CATEGORIES:
+        return False
+    name = str(row.get("Name", "") or "").strip()
+    if not name:
+        return False
+    lowered = name.lower()
+    for hint in _NON_VISITABLE_NAME_HINTS:
+        if hint in lowered:
+            return False
+    return True
+
+
+def _normalize_category(value):
+    """Map a requested category onto a known keyword profile."""
+    if not value:
+        return None, []
+    key = str(value).strip().lower()
+    if not key:
+        return None, []
+    if key in CATEGORY_KEYWORDS:
+        return key, list(CATEGORY_KEYWORDS[key])
+    aliased = CATEGORY_ALIASES.get(key)
+    if not aliased:
+        # Fall back to a single-token match ("wildlife safari" -> "wildlife").
+        parts = [p.strip() for p in key.replace("-", " ").split() if p.strip()]
+        for part in parts:
+            if part in CATEGORY_KEYWORDS:
+                return part, list(CATEGORY_KEYWORDS[part])
+            if part in CATEGORY_ALIASES:
+                resolved = CATEGORY_ALIASES[part]
+                return resolved, list(CATEGORY_KEYWORDS.get(resolved, []))
+        return key, [key]
+    return aliased, list(CATEGORY_KEYWORDS.get(aliased, []))
+
+
+def _row_text(row):
+    """All searchable text for a row, lowercased."""
+    parts = [
+        row.get("Name"), row.get("Type"), row.get("Tourism_Category"),
+        row.get("City"), row.get("Area"), row.get("District"),
+        row.get("Province"), row.get("search_text"),
+    ]
+    return " ".join(str(p) for p in parts if p).lower()
+
+
+def _category_match(text, keywords):
+    """How strongly a row's text matches the requested category (0..1)."""
+    if not keywords:
+        return 0.0
+    hits = sum(1 for kw in keywords if kw and kw in text)
+    if not hits:
+        return 0.0
+    return min(1.0, 0.55 + 0.15 * (hits - 1))
+
+
+def _candidate_frame(candidate_rows):
+    """Normalise Django's live-DB candidate rows into the shared row shape.
+
+    Django selects up to 100 real, approved destinations (already filtered by
+    the caller's interest/province/category) and sends them with every request.
+    Those rows used to be ignored entirely, so recommendations came from the
+    static OpenStreetMap extract instead of the live catalogue.
+    """
+    records = []
+    for row in candidate_rows or []:
+        if not isinstance(row, dict):
+            continue
+        name = str(row.get("name") or "").strip()
+        if not name:
+            continue
+        records.append({
+            "ID": row.get("id"),
+            "Name": name,
+            "Type": str(row.get("type") or ""),
+            "Tourism_Category": str(row.get("category") or row.get("type") or ""),
+            "City": str(row.get("city") or ""),
+            "Area": "",
+            "District": str(row.get("district") or ""),
+            "Province": str(row.get("province") or ""),
+            "search_text": " ".join(
+                str(row.get(field) or "")
+                for field in ("name", "type", "city", "district", "province")
+            ),
+            "Latitude": row.get("latitude") or 0.0,
+            "Longitude": row.get("longitude") or 0.0,
+            "average_rating": row.get("average_rating"),
+        })
+    return records
+
+
+def _records_from_frame(frame):
+    """Flatten the destination DataFrame once, instead of ``.iloc[i]`` per row.
+
+    Row-wise ``.iloc`` on a 12k-row frame dominated request time; a list of
+    plain dicts is what the scoring loop actually wants.
+    """
+    columns = [
+        "ID", "Name", "Type", "Tourism_Category", "City", "Area",
+        "District", "Province", "Latitude", "Longitude", "search_text",
+    ]
+    return frame.reindex(columns=columns).to_dict("records")
+
+
+_csv_records = []
+
+
+def _refresh_dataset():
+    """Reload the vectorizer/CSV when the extract on disk changes."""
+    global vectorizer, destination_vectors, destinations, _csv_records
+    if not os.path.exists(DEST_CSV_PATH):
+        return
+    mtime = os.path.getmtime(DEST_CSV_PATH)
+    if getattr(recommend, "_last_mtime", None) == mtime and _csv_records:
+        return
+    vectorizer = joblib.load(VEC_PATH)
+    destination_vectors = joblib.load(DEST_VEC_PATH)
+    destinations = pd.read_csv(DEST_CSV_PATH).fillna({
+        "Name": "", "Type": "", "Tourism_Category": "", "City": "",
+        "District": "", "Province": "", "Latitude": 0.0, "Longitude": 0.0,
+    })
+    _csv_records = _records_from_frame(destinations)
+    recommend._last_mtime = mtime
+
+
+def recommend(user_input, top_n=5, user_lat=None, user_lon=None, budget_level=None,
+              category_filter=None, candidate_rows=None):
+    """Rank destinations for a traveller.
+
+    ``candidate_rows`` are the live, approved catalogue rows Django selected
+    (already filtered by the caller's interest/province/category). When they
+    are supplied they are the ranking pool, so the answer reflects the real
+    catalogue instead of the static OpenStreetMap extract.
+
+    A requested ``category_filter`` is a gate, not a nudge: rows are matched
+    against real category keywords and those rank first. This is what stops
+    every category returning the same places.
+    """
     if not user_input and not category_filter and user_lat is None:
         user_input = "nepal tourism heritage nature adventure mountain"
 
     try:
-        # Reload vectorizer and destination dataset if updated
-        global vectorizer, destination_vectors, destinations
-        if os.path.exists(DEST_CSV_PATH):
-            mtime = os.path.getmtime(DEST_CSV_PATH)
-            if not hasattr(recommend, "_last_mtime") or recommend._last_mtime != mtime:
-                vectorizer = joblib.load(VEC_PATH)
-                destination_vectors = joblib.load(DEST_VEC_PATH)
-                destinations = pd.read_csv(DEST_CSV_PATH).fillna({
-                    "Name": "", "Type": "", "Tourism_Category": "", "City": "",
-                    "District": "", "Province": "", "Latitude": 0.0, "Longitude": 0.0,
-                })
-                recommend._last_mtime = mtime
+        _refresh_dataset()
+
+        live_rows = _candidate_frame(candidate_rows)
+        if live_rows:
+            records = live_rows
+            source = "live_catalog"
+        else:
+            records = _csv_records or _records_from_frame(destinations)
+            source = "bundled_osm_extract"
+        if not records:
+            return []
+
+        category_name, category_keywords = _normalize_category(category_filter)
+        texts = [_row_text(r) for r in records]
 
         query_text = str(user_input or "")
         if category_filter:
             query_text += f" {category_filter}"
+        similarity = cosine_similarity(
+            vectorizer.transform([query_text]),
+            vectorizer.transform(texts),
+        )[0]
 
-        user_vector = vectorizer.transform([query_text])
-        similarity = cosine_similarity(user_vector, destination_vectors)[0]
+        user_loc_known = (
+            user_lat is not None
+            and user_lon is not None
+            and not (float(user_lat) == 0.0 and float(user_lon) == 0.0)
+        )
 
-        # Calculate location proximity and category match scores
         candidates = []
-        num_rows = len(destinations)
-
-        for index in range(num_rows):
-            row = destinations.iloc[index]
-
-            # Never recommend something that is a real place but not a place a
-            # traveller visits. "Nepal Tourism Board" scored highly and was
-            # returned with the reason "Category: information", which is a bug
-            # rather than a suggestion. A matching category in a search query
-            # must not be able to pull these back in either.
+        for index, row in enumerate(records):
             if not _is_recommendable(row):
                 continue
+
+            cat_match = _category_match(texts[index], category_keywords)
 
             sim_score = float(similarity[index])
             if not math.isfinite(sim_score):
                 sim_score = 0.0
 
-            d_lat = float(row["Latitude"]) if pd.notna(row["Latitude"]) else 0.0
-            d_lon = float(row["Longitude"]) if pd.notna(row["Longitude"]) else 0.0
+            try:
+                d_lat = float(row.get("Latitude") or 0.0)
+                d_lon = float(row.get("Longitude") or 0.0)
+            except (TypeError, ValueError):
+                d_lat = d_lon = 0.0
 
             dist_km = None
             prox_score = 0.0
-            # A user location of exactly (0, 0) means "not provided", not
-            # "somewhere in the Atlantic". The guard already treated that as
-            # missing for the destination's own coordinates, but not for the
-            # user's, so haversine was measured from Null Island and every
-            # result came back around 9,400 km -- which is how destinations in
-            # Pokhara and the Everest region were reported as "9,416 km away".
-            user_loc_known = (
-                user_lat is not None
-                and user_lon is not None
-                and not (float(user_lat) == 0.0 and float(user_lon) == 0.0)
-            )
             if user_loc_known and d_lat != 0.0 and d_lon != 0.0:
                 dist_km = round(haversine_km(user_lat, user_lon, d_lat, d_lon), 1)
-                # Proximity boost for places within 100km
                 if dist_km < 10.0:
-                    prox_score = 0.35
+                    prox_score = 0.20
                 elif dist_km < 50.0:
-                    prox_score = 0.25
+                    prox_score = 0.14
                 elif dist_km < 150.0:
-                    prox_score = 0.15
+                    prox_score = 0.08
 
-            cat_str = str(row.get("Tourism_Category", row.get("Type", ""))).lower()
-            cat_match = 0.15 if category_filter and category_filter.lower() in cat_str else 0.0
+            rating_score = 0.0
+            try:
+                rating = row.get("average_rating")
+                if rating is not None and float(rating) > 0:
+                    rating_score = min(float(rating) / 5.0, 1.0) * 0.05
+            except (TypeError, ValueError):
+                rating_score = 0.0
 
-            final_score = round((sim_score * 0.5) + prox_score + cat_match, 4)
+            final_score = (
+                (sim_score * 0.45)
+                + (cat_match * 0.35 if category_keywords else 0.0)
+                + prox_score
+                + rating_score
+            )
 
-            # Generate preference match reasons
             reasons = []
-            if sim_score > 0.1:
-                reasons.append(f"✓ Matches interest in {query_text.split()[0].title()}")
-            if cat_str:
-                reasons.append(f"✓ Category: {row.get('Tourism_Category') or row.get('Type')}")
+            if cat_match > 0 and category_name:
+                reasons.append(f"âœ“ Matches {category_name.replace('_', ' ')}")
+            elif sim_score > 0.1:
+                first_term = str(user_input or "").split()
+                if first_term:
+                    reasons.append(f"âœ“ Matches interest in {first_term[0].title()}")
+            cat_label = row.get("Tourism_Category") or row.get("Type")
+            if cat_label:
+                reasons.append(f"âœ“ Category: {cat_label}")
             if dist_km is not None and dist_km < 999:
-                city_name = row.get("City") or row.get("District") or "Nepal"
-                reasons.append(f"✓ {dist_km} km from your current location ({city_name})")
+                place = row.get("City") or row.get("District") or "Nepal"
+                reasons.append(f"âœ“ {dist_km} km from your current location ({place})")
 
             candidates.append({
-                "destination_id": int(row.get("ID", index + 1)),
-                "name": str(row["Name"]),
-                "type": str(row["Type"]),
-                "category": str(row.get("Tourism_Category", row.get("Type", "Experience"))),
-                "city": str(row["City"]),
-                "district": str(row.get("District", "")),
-                "province": str(row.get("Province", "")),
+                "destination_id": int(row.get("ID") or 0) or None,
+                "name": str(row.get("Name") or ""),
+                "type": str(row.get("Type") or ""),
+                "category": str(cat_label or "Experience"),
+                "city": str(row.get("City") or ""),
+                "district": str(row.get("District") or ""),
+                "province": str(row.get("Province") or ""),
                 "latitude": d_lat,
                 "longitude": d_lon,
                 "distance_km": dist_km,
                 "similarity_score": round(sim_score, 4),
-                "score": round(final_score, 4),
-                "match_percentage": min(98, max(65, int(final_score * 100 + 60))),
+                "category_match": round(cat_match, 4),
+                "score": round(max(0.0, final_score), 4),
+                "source": source,
                 "match_reasons": reasons,
             })
 
-        # Sort by combined personalized score
-        candidates.sort(key=lambda x: x["score"], reverse=True)
+        if not candidates:
+            return []
 
-        # Ensure diversity across cities and categories
-        seen_cities = set()
-        diverse_results = []
-        for cand in candidates:
-            city_key = (cand["city"] or cand["district"]).lower()
-            if city_key not in seen_cities or len(diverse_results) < 2:
-                diverse_results.append(cand)
-                if city_key:
-                    seen_cities.add(city_key)
-            if len(diverse_results) >= top_n:
-                break
+        candidates.sort(key=lambda item: item["score"], reverse=True)
 
-        # Fallback to top candidates if diversity pool is small
-        if len(diverse_results) < top_n:
-            for cand in candidates:
-                if cand not in diverse_results:
-                    diverse_results.append(cand)
-                if len(diverse_results) >= top_n:
-                    break
+        # Diversity: spread across districts and cities instead of taking one
+        # place per city, which for a narrow category returned a single town.
+        picked, district_seen, city_seen = [], {}, {}
+        remaining = list(candidates)
+        while remaining and len(picked) < top_n:
+            def adjusted(item):
+                district = (item["district"] or "unknown").lower()
+                city = (item["city"] or district).lower()
+                return (
+                    item["score"]
+                    - district_seen.get(district, 0) * 0.08
+                    - city_seen.get(city, 0) * 0.04
+                )
 
-        return diverse_results[:top_n]
-    except Exception as e:
-        return []
+            best = max(remaining, key=adjusted)
+            remaining.remove(best)
+            district = (best["district"] or "unknown").lower()
+            city = (best["city"] or district).lower()
+            district_seen[district] = district_seen.get(district, 0) + 1
+            city_seen[city] = city_seen.get(city, 0) + 1
+            picked.append(best)
+
+        # match_percentage is derived from the actual blended signals, so a
+        # weak match is reported as weak. It used to be clamped into a
+        # flattering 65-98% band for every result.
+        for item in picked:
+            blended = min(
+                1.0,
+                0.45 * min(1.0, item["similarity_score"] / 0.35)
+                + 0.35 * item["category_match"]
+                + 0.15 * (1.0 if item["distance_km"] is not None else 0.0)
+                + 0.05,
+            )
+            item["match_percentage"] = int(round(blended * 100))
+            item["score"] = round(blended, 4)
+
+        return picked[:top_n]
+    except Exception:  # noqa: BLE001
+        # Surface the failure instead of pretending there are no results: an
+        # empty list here is indistinguishable from "nothing matched".
+        import logging
+
+        logging.getLogger("ml-service").exception(
+            "recommendation scoring failed for category_filter=%r", category_filter
+        )
+        raise
