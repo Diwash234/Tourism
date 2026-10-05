@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { validateGpsPosition } from "../utils/placeUtils"
 
 const CACHE_KEY = "ny_cached_position"
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
@@ -30,7 +31,6 @@ const useGeolocation = ({ auto = true, enableIpFallback = true } = {}) => {
   const [loading, setLoading] = useState(auto)
   const [source, setSource] = useState(null)
   const ipFallbackAttempted = useRef(false)
-  const gpsFixReceived = useRef(false)
 
   // Read cached position from localStorage
   const readCache = useCallback(() => {
@@ -61,14 +61,17 @@ const useGeolocation = ({ auto = true, enableIpFallback = true } = {}) => {
     }
   }, [])
 
-  // IP-based geolocation fallback via backend (public endpoint, no auth required)
+  // IP-based geolocation fallback via backend
   const fetchIpLocation = useCallback(async () => {
     if (ipFallbackAttempted.current) return false
     ipFallbackAttempted.current = true
     try {
-      const resp = await fetch("/api/v1/auth/detect-location/")
+      const resp = await fetch("/api/v1/auth/update-location/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      })
       const data = await resp.json()
-      if (gpsFixReceived.current) return true
       if (data?.latitude && data?.longitude) {
         setCoords({ latitude: data.latitude, longitude: data.longitude })
         setAccuracy(data.accuracy || null)
@@ -81,7 +84,7 @@ const useGeolocation = ({ auto = true, enableIpFallback = true } = {}) => {
     } catch {
       /* IP fallback failed */
     }
-    return gpsFixReceived.current
+    return false
   }, [])
 
   const request = useCallback(async (forceFresh = false) => {
@@ -110,28 +113,39 @@ const useGeolocation = ({ auto = true, enableIpFallback = true } = {}) => {
     setLoading(true)
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const latitude = pos.coords.latitude
-        const longitude = pos.coords.longitude
-        const acc = pos.coords.accuracy ?? null
-        // Only a broken fix (NaN/missing coordinates) is unusable. Coarse
-        // accuracy and positions outside the Nepal bbox still answer "where
-        // am I": distances stay computable from anywhere, and the IP fallback
-        // below already accepts any coordinates. validateGpsPosition's hard
-        // bbox/accuracy failures used to reject the fix here, so anyone whose
-        // first fix landed even slightly outside the bbox saw
-        // "GPS coordinates are invalid or outside Nepal." with no location.
-        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        const candidate = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy ?? null,
+        }
+        const validation = validateGpsPosition(candidate)
+        // A coarse GPS fix is still useful for nearby search. Keep it as a
+        // usable source instead of treating accuracy as a hard failure; the
+        // UI can show the accuracy and the user can refine it when needed.
+        if (!validation.valid && validation.reason?.toLowerCase().includes("accuracy")) {
+          setCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude })
+          setAccuracy(pos.coords.accuracy ?? null)
+          setSource("gps")
+          setError(null)
+          setCode(null)
+          setLoading(false)
+          writeCache(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy ?? null)
+          return
+        }
+        if (!validation.valid) {
           setCoords(null)
           setAccuracy(null)
-          setError("GPS coordinates are invalid. Please try again.")
+          setError(validation.reason)
           setCode(3)
           setLoading(false)
           return
         }
+        const latitude = pos.coords.latitude
+        const longitude = pos.coords.longitude
+        const acc = pos.coords.accuracy ?? null
         setCoords({ latitude, longitude })
         setAccuracy(acc)
         setSource("gps")
-        gpsFixReceived.current = true
         setError(null)
         setCode(null)
         setLoading(false)
@@ -153,68 +167,14 @@ const useGeolocation = ({ auto = true, enableIpFallback = true } = {}) => {
           if (!ok) setError(message)
         }
       },
-      { enableHighAccuracy: true, timeout: 20000, maximumAge: forceFresh ? 0 : 300000 }
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 300000 }
     )
   }, [readCache, writeCache, enableIpFallback, fetchIpLocation])
 
   const refresh = useCallback(() => {
     ipFallbackAttempted.current = false
-    gpsFixReceived.current = false
     request(true)
   }, [request])
-
-  const watchPosition = useCallback((onPosition, onError) => {
-    if (!navigator.geolocation) {
-      const watchError = new Error("Geolocation is not supported by this browser.")
-      setError(watchError.message)
-      setCode(3)
-      onError?.(watchError)
-      return null
-    }
-
-    try {
-      return navigator.geolocation.watchPosition(
-        (pos) => {
-          const latitude = pos.coords.latitude
-          const longitude = pos.coords.longitude
-          const acc = pos.coords.accuracy ?? null
-          if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-            const watchError = new Error("GPS coordinates are invalid. Please try again.")
-            setError(watchError.message)
-            setCode(3)
-            onError?.(watchError)
-            return
-          }
-          setCoords({ latitude, longitude })
-          setAccuracy(acc)
-          setSource("gps")
-          gpsFixReceived.current = true
-          setError(null)
-          setCode(null)
-          setLoading(false)
-          writeCache(latitude, longitude, acc)
-          onPosition?.(pos)
-        },
-        (watchError) => {
-          const codeMap = {
-            1: "Location permission denied. Please enable location access.",
-            2: "Location unavailable. Please try again.",
-            3: "Location request timed out. Please try again.",
-          }
-          setError(codeMap[watchError.code] || watchError.message || "Unable to retrieve your location.")
-          setCode(watchError.code)
-          setLoading(false)
-          onError?.(watchError)
-        },
-        { enableHighAccuracy: true, timeout: 20000, maximumAge: 5000 }
-      )
-    } catch (watchError) {
-      setError(watchError instanceof Error ? watchError.message : "Unable to start GPS tracking.")
-      setCode(3)
-      onError?.(watchError)
-      return null
-    }
-  }, [writeCache])
 
   const clear = useCallback(() => {
     setCoords(null)
@@ -223,7 +183,6 @@ const useGeolocation = ({ auto = true, enableIpFallback = true } = {}) => {
     setCode(null)
     setSource(null)
     setLoading(false)
-    gpsFixReceived.current = false
     try {
       localStorage.removeItem(CACHE_KEY)
     } catch {
@@ -237,24 +196,17 @@ const useGeolocation = ({ auto = true, enableIpFallback = true } = {}) => {
     return () => clearTimeout(t)
   }, [auto, request])
 
-  // Build legacy position object for backward compatibility. Memoized:
-  // pages put `position` in effect dependency arrays, and a fresh object on
-  // every render would re-fire those effects (a refetch loop for any page
-  // that auto-requests the position).
-  const position = useMemo(
-    () =>
-      coords
-        ? {
-            lat: coords.latitude,
-            lng: coords.longitude,
-            accuracy,
-            altitude: null,
-            speed: null,
-            heading: null,
-          }
-        : null,
-    [coords, accuracy]
-  )
+  // Build legacy position object for backward compatibility
+  const position = coords
+    ? {
+        lat: coords.latitude,
+        lng: coords.longitude,
+        accuracy,
+        altitude: null,
+        speed: null,
+        heading: null,
+      }
+    : null
 
   return {
     // New API
@@ -266,7 +218,6 @@ const useGeolocation = ({ auto = true, enableIpFallback = true } = {}) => {
     refresh,
     clear,
     source,
-    watchPosition,
     // Legacy API (backward compatible)
     position,
     locating: loading,
