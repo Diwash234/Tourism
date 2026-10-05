@@ -38,6 +38,15 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='destinationimage',
             name='external_url',
-            field=models.URLField(blank=True, help_text='Used instead of `image` for externally-hosted photos (Unsplash/Wikimedia/etc.)'),
+            # Widen to 1000 rather than URLField's default 200. Real
+            # Wikimedia/Unsplash URLs in this catalogue reach ~697 characters and
+            # 738 rows exceeded 200, so the default made Postgres abort the whole
+            # migration with `value too long for type character varying(200)` --
+            # which failed every Render deploy at migrate time. Widening keeps every
+            # existing URL intact instead of truncating it.
+            field=models.URLField(
+                blank=True, max_length=1000,
+                help_text='Used instead of `image` for externally-hosted photos (Unsplash/Wikimedia/etc.)',
+            ),
         ),
     ]

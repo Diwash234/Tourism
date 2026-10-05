@@ -5,17 +5,27 @@ cd /app/Tourism
 
 # ML microservice (budget estimates, itinerary planning, safety scoring) runs
 # as a background uvicorn on 127.0.0.1:8001 in this same container -- Django
-# talks to it at ML_SERVICE_URL. Started first so it warms up (imports
-# pandas/sklearn, loads the joblib models) while migrations/seed run.
+# talks to it at ML_SERVICE_URL.
+#
+# It is started LATE, immediately before the web server, NOT before the
+# migrations. It imports pandas/scikit-learn and loads joblib models, which
+# costs a few hundred MiB and never releases it. Starting it first meant it was
+# resident while `manage.py migrate` ran, and Render's 512 MiB instances were
+# killed mid-migration with "Out of memory (used over 512Mi)" -- the deploy
+# died at `Applying tourist.0099_...` on every attempt. Migrations now run
+# alone; the warm-up overlap was not worth failing the boot for.
+#
 # Never allowed to abort the boot.
-if [ -f /app/ml_service/app.py ]; then
-  echo "entrypoint: starting ML service on 127.0.0.1:8001"
-  (cd /app/ml_service && nohup python -m uvicorn app:app \
-      --host 127.0.0.1 --port 8001 >> /tmp/ml-service.log 2>&1 &) \
-    || echo "entrypoint: WARNING - ML service failed to launch (budget/itinerary will degrade)"
-else
-  echo "entrypoint: WARNING - ml_service/app.py missing; budget/itinerary/safety will degrade"
-fi
+start_ml_service() {
+  if [ -f /app/ml_service/app.py ]; then
+    echo "entrypoint: starting ML service on 127.0.0.1:8001"
+    (cd /app/ml_service && nohup python -m uvicorn app:app \
+        --host 127.0.0.1 --port 8001 >> /tmp/ml-service.log 2>&1 &) \
+      || echo "entrypoint: WARNING - ML service failed to launch (budget/itinerary will degrade)"
+  else
+    echo "entrypoint: WARNING - ml_service/app.py missing; budget/itinerary/safety will degrade"
+  fi
+}
 
 DB_FILE=$(python - <<'PY'
 import os
@@ -203,5 +213,9 @@ if destinations == 0:
     raise SystemExit("Database verification failed: tourist_destination is empty")
 PY
 fi
+
+# Migrations and seeding are done, so the memory they needed is released. Only
+# now is it safe to load the ML models alongside the web server.
+start_ml_service
 
 exec "$@"
