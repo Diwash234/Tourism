@@ -598,7 +598,12 @@ def _bundled_route_fallback(start_lat, start_lon, end_lat, end_lon):
 
     distance = haversine_distance(start_lat, start_lon, end_lat, end_lon)
     return {
-        "distance_km": None,
+        # This endpoint labels its own provenance: `source` becomes
+        # "straight_line_fallback" and `navigation_grade` false further down, so
+        # the value is never presented as a driving distance. (The
+        # /navigation/calculate/ endpoint has no such label and therefore leaves
+        # distance_km null there instead.)
+        "distance_km": round(distance, 2) if distance is not None else None,
         "duration_min": None,
         "route": [[start_lat, start_lon], [end_lat, end_lon]],
         "steps": [],

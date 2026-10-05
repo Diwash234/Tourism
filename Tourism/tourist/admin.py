@@ -709,7 +709,7 @@ class HeroSlideAdmin(admin.ModelAdmin):
 
 @admin.register(ManagedNavigationItem)
 class ManagedNavigationItemAdmin(admin.ModelAdmin):
-    list_display=['label','location','route','parent','display_order','is_active']; list_filter=['location','is_active']; search_fields=['label','route']
+    list_display=['label','location','route','parent','display_order','is_active']; list_filter=['location','is_active']; list_editable=['display_order','is_active']; search_fields=['label','route']; ordering=['location','display_order']
 
 @admin.register(FeedbackMessage)
 class FeedbackMessageAdmin(admin.ModelAdmin):
