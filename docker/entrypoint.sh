@@ -139,44 +139,69 @@ PY
   python manage.py repair_cover_image_urls \
     || echo "entrypoint: WARNING - cover-image repair skipped"
 
-  echo "entrypoint: backfilling missing destination media from verified seed"
-  python manage.py sync_seed_media_postgres \
-    || echo "entrypoint: WARNING - media backfill skipped"
-  # Reconcile the destination budget table on every deploy. The importer is
-  # idempotent (update_or_create) and makes the tracked CSV usable on Render
-  # instead of depending on the optional ML process being online.
-  echo "entrypoint: importing verified destination budget dataset"
-  python manage.py import_budget \
-    || echo "entrypoint: WARNING - budget dataset import skipped"
+  # ---------------------------------------------------------------------
+  # Heavy, idempotent data reconciliation.
+  #
+  # These used to run unconditionally on every boot. Each is a separate
+  # `manage.py` process, and this project's Django start-up costs ~15s, so
+  # thirteen of them added roughly three and a half minutes before the web
+  # server was exec'd. Render's start-up port scan expired long before that:
+  # "Port scan timeout reached, no open ports detected" -> "Timed Out", on
+  # every deploy. The media backfill alone matched 7,027 destinations
+  # against 14,861 seed images and created 13,250 rows.
+  #
+  # They are all idempotent repairs over an already-seeded catalogue, which
+  # is exactly what RUN_DATA_REPAIRS_ON_BOOT exists for further down this
+  # script. Run them on a one-off worker instead:
+  #
+  #   docker run ... -e RUN_DATA_REPAIRS_ON_BOOT=1 ...
+  #
+  # Seeding (the DATA_EXISTS=0 branch above) is untouched and still runs.
+  # ---------------------------------------------------------------------
+  if [ "${RUN_DATA_REPAIRS_ON_BOOT:-0}" = "1" ]; then
+    echo "entrypoint: backfilling missing destination media from verified seed"
+    python manage.py sync_seed_media_postgres \
+      || echo "entrypoint: WARNING - media backfill skipped"
 
-  echo "entrypoint: importing sourced emergency and nearby-service records"
-  python manage.py import_emergency_services \
-    || echo "entrypoint: WARNING - emergency services import skipped"
-  python manage.py seed_district_services \
-    || echo "entrypoint: WARNING - district services seed skipped"
-  echo "entrypoint: importing bundled hotel, hospital, police and risk datasets"
-  python manage.py import_hotels_csv --csv dataset/hotel.csv \
-    || echo "entrypoint: WARNING - hotel CSV import skipped"
-  python manage.py import_hospital --csv dataset/hospital.csv \
-    || echo "entrypoint: WARNING - hospital CSV import skipped"
-  python manage.py import_police --csv dataset/nearbypolice.csv \
-    || echo "entrypoint: WARNING - police CSV import skipped"
-  python manage.py import_risk \
-    || echo "entrypoint: WARNING - risk CSV import skipped"
-  echo "entrypoint: auditing service coverage"
-  python manage.py audit_service_coverage --radius 50 \
-    || echo "entrypoint: WARNING - service coverage audit skipped"
+    # Reconcile the destination budget table. The importer is idempotent
+    # (update_or_create) and makes the tracked CSV usable on Render instead
+    # of depending on the optional ML process being online.
+    echo "entrypoint: importing verified destination budget dataset"
+    python manage.py import_budget \
+      || echo "entrypoint: WARNING - budget dataset import skipped"
 
-  echo "entrypoint: repairing explicitly curated destination media"
-  python manage.py repair_curated_media \
-    || echo "entrypoint: WARNING - curated media repair skipped"
+    echo "entrypoint: importing sourced emergency and nearby-service records"
+    python manage.py import_emergency_services \
+      || echo "entrypoint: WARNING - emergency services import skipped"
+    python manage.py seed_district_services \
+      || echo "entrypoint: WARNING - district services seed skipped"
+    echo "entrypoint: importing bundled hotel, hospital, police and risk datasets"
+    python manage.py import_hotels_csv --csv dataset/hotel.csv \
+      || echo "entrypoint: WARNING - hotel CSV import skipped"
+    python manage.py import_hospital --csv dataset/hospital.csv \
+      || echo "entrypoint: WARNING - hospital CSV import skipped"
+    python manage.py import_police --csv dataset/nearbypolice.csv \
+      || echo "entrypoint: WARNING - police CSV import skipped"
+    python manage.py import_risk \
+      || echo "entrypoint: WARNING - risk CSV import skipped"
+    echo "entrypoint: auditing service coverage"
+    python manage.py audit_service_coverage --radius 50 \
+      || echo "entrypoint: WARNING - service coverage audit skipped"
 
-  # Fill empty destination columns from coordinates/CSVs after every seed
-  # path (snapshot, fixture, dataset, archive).  Idempotent - only empty
-  # values are written - so re-running on an existing catalogue is safe.
-  echo "entrypoint: filling missing destination data (distances, nearest city/airport, city names)"
-  python manage.py enrich_destinations \
-    || echo "entrypoint: WARNING - destination enrichment skipped"
+    echo "entrypoint: repairing explicitly curated destination media"
+    python manage.py repair_curated_media \
+      || echo "entrypoint: WARNING - curated media repair skipped"
+
+    # Fill empty destination columns from coordinates/CSVs after every seed
+    # path (snapshot, fixture, dataset, archive).  Idempotent - only empty
+    # values are written - so re-running on an existing catalogue is safe.
+    echo "entrypoint: filling missing destination data (distances, nearest city/airport, city names)"
+    python manage.py enrich_destinations \
+      || echo "entrypoint: WARNING - destination enrichment skipped"
+  else
+    echo "entrypoint: heavy data repairs disabled on normal web boot"
+    echo "entrypoint: (re-enable with RUN_DATA_REPAIRS_ON_BOOT=1)"
+  fi
 
   # Recompute nearest hospital/police/hotel proximity from the service tables
   # - only right after a fresh seed, so curated values on later boots are

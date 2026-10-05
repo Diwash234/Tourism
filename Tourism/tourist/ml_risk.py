@@ -4,7 +4,6 @@ Provides forward-looking risk forecasts based on historical patterns,
 seasonal trends, weather data, and real-time observations.
 """
 
-import numpy as np
 from datetime import timedelta
 from collections import defaultdict
 from django.utils import timezone
