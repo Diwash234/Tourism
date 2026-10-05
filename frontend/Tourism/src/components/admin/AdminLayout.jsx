@@ -1,6 +1,6 @@
 import { useEffect, useState, Suspense } from "react"
 import { Link, Outlet, useLocation } from "react-router-dom"
-import { FiActivity, FiChevronDown, FiChevronRight, FiMenu, FiShield, FiUsers, FiX } from "react-icons/fi"
+import { FiActivity, FiCheckSquare, FiChevronDown, FiChevronRight, FiImage, FiMenu, FiShield, FiUsers, FiX } from "react-icons/fi"
 import TourismLogo from "../branding/TourismLogo"
 import AdminGlobalSearch from "./AdminGlobalSearch"
 import ProfileMenu from "../layout/ProfileMenu"
@@ -196,6 +196,12 @@ export default function AdminLayout() {
             </Link>
             <Link to="/admin/tasks" onClick={closeMobile} title="Staff Tasks" aria-label="Staff Tasks" className={`flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm text-[var(--ny-text)] hover:bg-[var(--ny-white)] hover:text-[var(--ny-green)] ${collapsed ? "lg:justify-center lg:px-1" : ""}`}>
               <FiUsers className="shrink-0" /> <span className={collapsed ? "lg:hidden" : ""}>Staff Tasks</span>
+            </Link>
+            <Link to="/admin/place-approvals" onClick={closeMobile} title="Place Approvals" aria-label="Place Approvals" className={`flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm text-[var(--ny-text)] hover:bg-[var(--ny-white)] hover:text-[var(--ny-green)] ${collapsed ? "lg:justify-center lg:px-1" : ""}`}>
+              <FiCheckSquare className="shrink-0" /> <span className={collapsed ? "lg:hidden" : ""}>Place Approvals</span>
+            </Link>
+            <Link to="/admin/destination-media" onClick={closeMobile} title="Destination Media" aria-label="Destination Media" className={`flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm text-[var(--ny-text)] hover:bg-[var(--ny-white)] hover:text-[var(--ny-green)] ${collapsed ? "lg:justify-center lg:px-1" : ""}`}>
+              <FiImage className="shrink-0" /> <span className={collapsed ? "lg:hidden" : ""}>Destination Media</span>
             </Link>
           </section>
         </nav>

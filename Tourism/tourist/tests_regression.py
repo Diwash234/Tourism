@@ -1142,10 +1142,18 @@ class RouteCalculatorHonestyTests(TestCase):
         self.assertIn(body["confidence_level"], ("ROUTED", "GRAPH_APPROXIMATION", "STRAIGHT_LINE"))
         coordinates = body["geometry"]["coordinates"]
         if body["geometry"]["kind"] == "straight_line":
-            # The two real endpoints only: no invented intermediate
-            # waypoints, and no turn-by-turn directions nobody routed.
+            # The two real endpoints only: no invented intermediate waypoints.
             self.assertEqual(coordinates, [[27.7172, 85.324], [28.2117, 83.9517]])
-            self.assertEqual(body["steps"], [])
+            # No turn-by-turn directions nobody routed. The endpoint used to
+            # return an empty list here; it now returns the single explicit
+            # non-guidance step that navigation.route_engine.build_maneuvers
+            # produces for a straight-line fallback, so the UI never has to
+            # special-case "no steps". Either shape is honest as long as no
+            # step claims a real maneuver -- which is what this asserts.
+            for step in body["steps"]:
+                self.assertEqual(step.get("maneuver_grade"), "none")
+                self.assertNotIn("turn left", step.get("instruction", "").lower())
+                self.assertNotIn("turn right", step.get("instruction", "").lower())
             self.assertIsNone(body["distance_km"])
             self.assertEqual(body["confidence_level"], "STRAIGHT_LINE")
         else:

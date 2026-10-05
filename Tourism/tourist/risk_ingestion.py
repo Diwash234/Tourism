@@ -9,7 +9,8 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 
 from .emergency_service import resolve_destination
-from .models import CurrentHazard, Destination, RiskIncident, RiskObservation
+from .models import (CurrentHazard, Destination, RiskIncident, RiskNewsReport,
+                     RiskObservation)
 from .utils import haversine_distance
 
 PROVIDERS = {
@@ -46,7 +47,8 @@ def ingest_records(records, provider_key, verified=False):
     provider = PROVIDERS.get(provider_key)
     if not provider:
         raise ValueError(f"Unknown provider '{provider_key}'. Register it before ingestion.")
-    summary = {"current_created": 0, "historical_created": 0, "observations_created": 0, "skipped": 0}
+    summary = {"current_created": 0, "historical_created": 0, "observations_created": 0,
+               "news_created": 0, "skipped": 0}
     for record in records:
         destination = _destination(record)
         kind = record.get("record_kind", "current")
@@ -89,6 +91,42 @@ def ingest_records(records, provider_key, verified=False):
                 },
             )
             summary["historical_created"] += int(created)
+        elif kind == "news":
+            # News is a source of HISTORY, never a live warning. The "news"
+            # provider was registered but had no branch here, so RiskNewsReport
+            # could never be written and the per-destination `verified_news`
+            # block was permanently empty.
+            published_at = _datetime(record.get("published_at") or record.get("observed_at"))
+            # A news row without a resolvable destination AND without a source
+            # link cannot be verified or cited, so it is dropped rather than
+            # stored as unsourceable noise.
+            if not published_at or not source_url or not destination:
+                summary["skipped"] += 1
+                continue
+            _, created = RiskNewsReport.objects.update_or_create(
+                # source_url is unique, so re-running a feed is idempotent.
+                source_url=source_url,
+                defaults={
+                    "destination": destination,
+                    "title": record["title"],
+                    "summary": record.get("summary", record.get("description", "")),
+                    "hazard_type": record.get("hazard_type", "other"),
+                    "source_name": source_name,
+                    "published_at": published_at,
+                    "latitude": record.get("latitude"),
+                    "longitude": record.get("longitude"),
+                    "affected_area": record.get("affected_area", ""),
+                    # News alone is never an official warning. It lands pending
+                    # unless it came from an authority/admin feed that was
+                    # explicitly marked verified; `promoted_to_warning` stays
+                    # False because that requires a separate verified Alert.
+                    "verification_status": (
+                        "verified" if (verified and source_type in {"official", "admin"}) else "pending"
+                    ),
+                    "promoted_to_warning": False,
+                },
+            )
+            summary["news_created"] += int(created)
         else:
             observed_at = _datetime(record.get("observed_at"), timezone.now())
             _, created = CurrentHazard.objects.update_or_create(

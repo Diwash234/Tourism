@@ -7,7 +7,13 @@ from tourist.risk_ingestion import PROVIDERS, ingest_records
 
 
 class Command(BaseCommand):
-    help = "Ingest a normalized, reviewed DHM/BIPAD/admin/news JSON risk feed"
+    help = (
+        "Ingest a normalized, reviewed DHM/BIPAD/admin/news JSON risk feed. "
+        'Each record sets record_kind: "current" (default, live hazard), '
+        '"historical" (dated incident), "news" (news report -> RiskNewsReport, '
+        'always pending unless an official/admin feed is marked --verified), or '
+        '"observation" (numeric station reading).'
+    )
 
     def add_arguments(self, parser):
         parser.add_argument("file", type=str)

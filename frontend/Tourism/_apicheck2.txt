@@ -1,0 +1,29 @@
+== FRONTEND CALLS WITH NO RESOLVABLE BACKEND ROUTE ==
+/destination-images/{p}/view/
+    POST services/photoApi.js:36
+/export/
+    GET components/BulkExport.jsx:43
+/likes/{p}/{p}
+    POST components/common/LikeButton.jsx:47
+/location-history/clear/
+    DELETE components/LocationHistory.jsx:54
+/loyalty/redeem/
+    POST components/LoyaltyRewards.jsx:105
+/loyalty/status/
+    GET components/LoyaltyRewards.jsx:64
+/reviews/bulk-moderate/
+    POST components/ReviewModeration.jsx:75
+/reviews/moderation-queue/
+    GET components/ReviewModeration.jsx:34
+/reviews/{p}/moderate/
+    POST components/ReviewModeration.jsx:57
+/trips/{p}/collaborators/
+    GET components/TripCollaboration.jsx:26
+    POST components/TripCollaboration.jsx:78
+/trips/{p}/collaborators/{p}/
+    DELETE components/TripCollaboration.jsx:98
+/trips/{p}/generate-share-link/
+    POST components/TripCollaboration.jsx:52
+
+total: 12 of 330 distinct urls
+

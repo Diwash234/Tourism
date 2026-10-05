@@ -925,7 +925,13 @@ class DestinationImage(TimeStampedModel):
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="gallery")
     image = models.ImageField(upload_to="destinations/gallery/", blank=True, null=True)
     external_url = models.URLField(
-        blank=True, help_text="Used instead of `image` for externally-hosted photos (Unsplash/Wikimedia/etc.)"
+        max_length=1000, blank=True,
+        help_text=(
+            "Used instead of `image` for externally-hosted photos (Unsplash/Wikimedia/etc.). "
+            "Sized at 1000, not URLField's default 200: real Wikimedia/Unsplash URLs in the "
+            "catalogue reach ~700 characters, and the default truncated 738 rows (and made "
+            "Postgres refuse migration 0099 with 'value too long for character varying(200)')."
+        ),
     )
     thumbnail_url = models.URLField(blank=True, help_text="Optimized thumbnail for fast web delivery")
     image_path = models.CharField(

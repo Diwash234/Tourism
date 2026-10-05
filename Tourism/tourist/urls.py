@@ -13,6 +13,7 @@ from . import views_family_safety
 from . import views_images
 from . import views_weather
 from . import views_media_review
+from . import risk_views
 from . import views_itinerary
 from .field_verification import FieldVerificationTaskViewSet
 from .trip_feedback import TripFeedbackViewSet, TripFeedbackMediaViewSet

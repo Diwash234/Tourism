@@ -1,4 +1,4 @@
-import PlaceholderImage from "./PlaceholderImage"
+import PlaceholderImage from "../components/common/PlaceholderImage"
 
 /**
  * ImageGallery

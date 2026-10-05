@@ -18,6 +18,7 @@ const PUBLIC_NAV_PATHS = new Set([
   "/itinerary", "/budget-estimator", "/before-you-travel", "/hotels/search", "/emergency", "/risk-alerts", "/navigation",
   "/distances", "/language", "/translation", "/nearby-places", "/packages", "/guides", "/guide-portal",
   "/tourism-jobs", "/guide-bookings", "/collaborate", "/chatbot", "/travel", "/about", "/contact", "/support",
+  "/marketplace", "/risk", "/feedback", "/help",
 ])
 
 const NavChildren = ({ items, depth = 0, onNavigate }) => items.map(child => <div key={child.path}><NavLink to={child.path} onClick={onNavigate} className="block px-3 py-2 rounded-lg text-sm text-[#C7D9D2] hover:bg-white/10 hover:text-white transition-colors" style={{ paddingLeft: `${12 + depth * 14}px` }}>{child.label}</NavLink>{!!child.children?.length && <NavChildren items={child.children} depth={depth + 1} onNavigate={onNavigate}/>}</div>)

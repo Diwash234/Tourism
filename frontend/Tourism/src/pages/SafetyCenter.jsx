@@ -1,57 +1,91 @@
-import { useState, useEffect } from 'react'
-import { FiAlertTriangle, FiPhone, FiMapPin, FiShield, FiUsers, FiClock, FiX } from 'react-icons/fi'
+import { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { FiAlertTriangle, FiPhone, FiMapPin, FiShield, FiUsers, FiClock, FiX, FiAlertCircle, FiNavigation } from 'react-icons/fi'
 import useAuth from '../hooks/useAuth'
+import emergencyService from '../api/emergencyService'
+import safetyApi from '../api/safetyApi'
+import useGeolocation from '../hooks/useGeolocation'
+
+/**
+ * Safety centre.
+ *
+ * Previously inert in two ways:
+ *  - it called /api/v1/emergency/contacts/nearest/ and /api/v1/sos/, neither
+ *    of which exists (the real routes are /emergency-contacts/nearest/ and
+ *    /safety/sos/), so the contact list never loaded and SOS never sent;
+ *  - both calls sent hardcoded Kathmandu coordinates (27.7172, 85.3240), so
+ *    even after fixing the URLs it would have reported the wrong services.
+ *
+ * It now uses the real API clients, asks the browser for the traveller's
+ * actual position, and surfaces failures instead of silently doing nothing.
+ */
+
+// Falls back to Kathmandu only when the browser refuses to share a position,
+// so "nearby" is never silently the wrong city.
+const FALLBACK = { latitude: 27.7172, longitude: 85.3240 }
 
 const SafetyCenter = () => {
-  const { user: _user } = useAuth()
+  const { isAuthenticated } = useAuth()
+  const navigate = useNavigate()
+  const { latitude, longitude, loading: locating, error: locationError, source } = useGeolocation()
+
   const [emergencyContacts, setEmergencyContacts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [sosModal, setSosModal] = useState(false)
   const [sosLoading, setSosLoading] = useState(false)
   const [sosSuccess, setSosSuccess] = useState(false)
+  const [sosError, setSosError] = useState('')
 
-  const fetchEmergencyContacts = async () => {
-    try {
-      const response = await fetch('/api/v1/emergency/contacts/nearest/?latitude=27.7172&longitude=85.3240&radius_km=50')
-      if (response.ok) {
-        const data = await response.json()
-        setEmergencyContacts(data)
-      }
-    } catch (err) {
-      console.error('Failed to fetch emergency contacts:', err)
-    }
-  }
+  const hasFix = latitude != null && longitude != null
+  const coords = hasFix ? { latitude, longitude } : FALLBACK
+
+  const fetchEmergencyContacts = useCallback(() => {
+    setLoading(true)
+    setLoadError('')
+    emergencyService.nearby(coords.latitude, coords.longitude)
+      .then(({ data }) => {
+        const list = Array.isArray(data) ? data : data?.results || []
+        setEmergencyContacts(list)
+        if (list.length === 0) setLoadError('')
+      })
+      .catch(() => {
+        setEmergencyContacts([])
+        setLoadError('Nearby emergency services could not be loaded right now.')
+      })
+      .finally(() => setLoading(false))
+  }, [coords.latitude, coords.longitude])
 
   useEffect(() => {
-    // Defer the initial fetch one tick so the effect doesn't setState
-    // synchronously; the initial loading state still renders the skeleton.
-    const t = setTimeout(() => fetchEmergencyContacts(), 0)
+    const t = setTimeout(fetchEmergencyContacts, 0)
     return () => clearTimeout(t)
-  }, [])
+  }, [fetchEmergencyContacts])
+
+  const openSos = () => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: '/safety-center' } })
+      return
+    }
+    setSosError('')
+    setSosSuccess(false)
+    setSosModal(true)
+  }
 
   const triggerSOS = async () => {
     setSosLoading(true)
+    setSosError('')
     try {
-      const response = await fetch('/api/v1/sos/', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('access')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          latitude: 27.7172,
-          longitude: 85.3240,
-          message: 'Emergency SOS triggered'
-        })
+      await safetyApi.triggerSos({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        message: 'Emergency SOS triggered',
       })
-      if (response.ok) {
-        setSosSuccess(true)
-        setTimeout(() => {
-          setSosSuccess(false)
-          setSosModal(false)
-        }, 3000)
-      }
-    } catch (err) {
-      console.error('Failed to trigger SOS:', err)
+      setSosSuccess(true)
+    } catch (error) {
+      const detail =
+        error?.response?.data?.detail ||
+        'We could not send your SOS alert. Call the local emergency number directly.'
+      setSosError(detail)
     } finally {
       setSosLoading(false)
     }
@@ -81,7 +115,8 @@ const SafetyCenter = () => {
             </p>
           </div>
           <button
-            onClick={() => setSosModal(true)}
+            type="button"
+            onClick={openSos}
             className="w-24 h-24 rounded-full bg-red-600 hover:bg-red-700 text-white font-bold text-sm flex items-center justify-center shadow-lg hover:shadow-xl transition-all active:scale-95"
           >
             SOS
@@ -91,22 +126,40 @@ const SafetyCenter = () => {
 
       {/* Emergency Contacts */}
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 mb-8">
-        <h2 className="text-lg font-semibold mb-4">Emergency Contacts</h2>
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <h2 className="text-lg font-semibold">Emergency Contacts</h2>
+          <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+            <FiNavigation className={locating ? 'animate-pulse' : ''} />
+            {locating ? 'Finding you…' : hasFix ? `Near your location${source === 'ip' ? ' (approx.)' : ''}` : 'Using Kathmandu (location unavailable)'}
+          </span>
+        </div>
+        {(loadError || locationError) && (
+          <div role="alert" className="mb-4 flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+            <FiAlertCircle />
+            <span>{loadError || locationError}</span>
+            <button type="button" onClick={fetchEmergencyContacts} className="ml-auto font-semibold underline">Retry</button>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {emergencyContacts.length === 0 ? (
+          {loading ? (
+            <div className="col-span-2 text-center py-8 text-gray-500">Loading nearby services…</div>
+          ) : emergencyContacts.length === 0 ? (
             <div className="col-span-2 text-center py-8 text-gray-500">
               <FiPhone className="w-8 h-8 mx-auto mb-2 opacity-50" />
               <p>No emergency contacts found nearby</p>
             </div>
           ) : (
             emergencyContacts.map((contact, idx) => (
-              <div key={idx} className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div key={contact.id || idx} className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                 <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center text-emerald-600">
                   {getContactIcon(contact.contact_type)}
                 </div>
                 <div className="flex-1">
                   <p className="font-medium">{contact.name}</p>
-                  <p className="text-sm text-gray-500">{contact.contact_type}</p>
+                  <p className="text-sm text-gray-500">
+                    {contact.contact_type}
+                    {contact.distance_km != null && ` · ${Number(contact.distance_km).toFixed(1)} km`}
+                  </p>
                 </div>
                 <a
                   href={`tel:${contact.phone_number}`}
@@ -154,26 +207,44 @@ const SafetyCenter = () => {
                 <p className="text-gray-600 dark:text-gray-400 mt-2">
                   Your trusted contacts have been notified of your location.
                 </p>
+                <button
+                  type="button"
+                  onClick={() => { setSosModal(false); setSosSuccess(false) }}
+                  className="mt-6 px-5 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700"
+                >
+                  Close
+                </button>
               </div>
             ) : (
               <>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-red-600">Confirm SOS Alert</h3>
-                  <button onClick={() => setSosModal(false)} className="text-gray-400 hover:text-gray-600">
+                  <button type="button" onClick={() => setSosModal(false)} aria-label="Close" className="text-gray-400 hover:text-gray-600">
                     <FiX className="w-5 h-5" />
                   </button>
                 </div>
                 <p className="text-gray-600 dark:text-gray-400 mb-6">
                   This will immediately notify all your trusted contacts with your current location. Only use in genuine emergencies.
                 </p>
+                <p className="mb-4 text-xs text-gray-500">
+                  Sending from {hasFix ? 'your current GPS position' : 'Kathmandu (your location was not shared)'}.
+                </p>
+                {sosError && (
+                  <div role="alert" className="mb-4 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+                    <FiAlertCircle className="mt-0.5 shrink-0" />
+                    <span>{sosError}</span>
+                  </div>
+                )}
                 <div className="flex gap-3">
                   <button
+                    type="button"
                     onClick={() => setSosModal(false)}
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                   >
                     Cancel
                   </button>
                   <button
+                    type="button"
                     onClick={triggerSOS}
                     disabled={sosLoading}
                     className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"

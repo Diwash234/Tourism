@@ -15,7 +15,7 @@ const PUBLIC_FOOTER_PATHS = new Set([
   "/itinerary", "/budget-estimator", "/before-you-travel", "/hotels/search", "/emergency", "/risk-alerts", "/navigation",
   "/distances", "/language", "/translation", "/nearby-places", "/packages", "/guides", "/guide-portal",
   "/tourism-jobs", "/guide-bookings", "/collaborate", "/chatbot", "/travel", "/about", "/contact", "/support", "/how-it-works",
-  "/travel-toolkit",
+  "/travel-toolkit", "/marketplace", "/risk", "/feedback", "/help",
 ])
 
 const NATIONAL_SYMBOLS = [
@@ -43,6 +43,7 @@ const DEFAULT_PLAN = [
   ["Budget Estimator", "/budget-estimator"],
   ["Before You Travel", "/before-you-travel"],
   ["Hotels & Lodges", "/hotels/search"],
+  ["Marketplace", "/marketplace"],
 ]
 
 const Footer = () => {
@@ -148,7 +149,7 @@ const Footer = () => {
 
         {showBlock("explore") && <FooterColumn title="Explore" links={exploreLinks} />}
         {showBlock("explore") && <FooterColumn title="Plan" links={DEFAULT_PLAN} />}
-        {showBlock("company") && <FooterColumn title="Nepal Yatra" links={[["About", "/about"], ["How it works", "/how-it-works"], ["Contact", "/contact"], ["Support", "/support"], ["Emergency", "/emergency"]]} />}
+        {showBlock("company") && <FooterColumn title="Nepal Yatra" links={[["About", "/about"], ["How it works", "/how-it-works"], ["Contact", "/contact"], ["Support", "/support"], ["Help & FAQ", "/help"], ["Give feedback", "/feedback"], ["Emergency", "/emergency"]]} />}
         {showBlock("provinces") && <FooterColumn title="Provinces" links={PROVINCES.map((province) => [province, `/destinations?q=${encodeURIComponent(province)}`])} />}
 
         {/* Admin-published quick links (Settings → Organization) */}

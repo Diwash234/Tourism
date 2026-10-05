@@ -1272,6 +1272,68 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         self.assertEqual(hazard.source_type, "official")
         self.assertEqual(hazard.affected_area, "Upper Kaski slopes")
 
+    def test_news_ingestion_is_pending_by_default_and_never_a_warning(self):
+        """News is history, not a live warning.
+
+        The "news" provider was registered but ingest_records had no branch for
+        it, so RiskNewsReport could never be written and the per-destination
+        verified_news block was permanently empty.
+        """
+        from .models import RiskNewsReport
+        from .risk_ingestion import ingest_records
+
+        base = {
+            "record_kind": "news",
+            "destination_slug": self.trek.slug,
+            "hazard_type": "landslide",
+            "title": "Trail closed after landslide",
+            "summary": "Kaski authorities closed the trail.",
+            "published_at": "2026-08-18T08:00:00Z",
+        }
+        # 1. A plain news feed lands pending, never verified on trust alone.
+        summary = ingest_records([{**base, "source_name": "Test Wire",
+                                   "source_url": "https://example.com/news-pending"}], "news")
+        self.assertEqual(summary["news_created"], 1)
+        row = RiskNewsReport.objects.get(source_url="https://example.com/news-pending")
+        self.assertEqual(row.verification_status, "pending")
+        self.assertEqual(row.destination, self.trek)
+        # News alone must never become an official warning.
+        self.assertFalse(row.promoted_to_warning)
+
+        # 2. An authority feed that is explicitly verified may be verified.
+        summary = ingest_records([{**base, "title": "Official closure notice",
+                                   "source_name": "Test authority",
+                                   "source_type": "official",
+                                   "source_url": "https://example.com/news-verified"}],
+                                 "news", verified=True)
+        self.assertEqual(summary["news_created"], 1)
+        verified = RiskNewsReport.objects.get(source_url="https://example.com/news-verified")
+        self.assertEqual(verified.verification_status, "verified")
+        self.assertFalse(verified.promoted_to_warning)
+
+        # 3. Re-ingesting the same source_url must not duplicate the row.
+        again = ingest_records([{**base, "source_name": "Test Wire",
+                                 "source_url": "https://example.com/news-pending"}], "news")
+        self.assertEqual(again["news_created"], 0)
+        self.assertEqual(RiskNewsReport.objects.count(), 2)
+
+        # 4. News with no citable source is dropped, not stored unsourceable.
+        dropped = ingest_records([{**base, "title": "Unciteable rumour"}], "news")
+        self.assertEqual(dropped["news_created"], 0)
+        self.assertEqual(dropped["skipped"], 1)
+
+        # 5. Only VERIFIED news reaches the public risk payload; the pending row
+        #    stays out until a human verifies it.
+        response = self.client.get(reverse("destination-risk-assessment",
+                                           kwargs={"destination_ref": self.trek.slug}))
+        self.assertEqual(response.status_code, 200)
+        news = response.data["verified_news"]
+        self.assertEqual(len(news), 1)
+        self.assertEqual(news[0]["title"], "Official closure notice")
+        self.assertFalse(news[0]["promoted_to_warning"])
+        self.assertNotIn("Trail closed after landslide",
+                         [item["title"] for item in news])
+
     def test_verified_critical_warning_marks_recommendation_unavailable(self):
         from django.utils import timezone
         from .models import CurrentHazard

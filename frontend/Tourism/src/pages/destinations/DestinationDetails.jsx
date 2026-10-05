@@ -38,6 +38,7 @@ import VisitorNoticeBanner from "../../components/common/VisitorNoticeBanner"
 import DestinationHero from "../../components/destinations/DestinationHero"
 import DestinationRequirementsPanel from "../../components/destinations/DestinationRequirementsPanel"
 import DestinationInsights from "../../components/destinations/DestinationInsights"
+import PlaceHistoryPanel from "../../components/risk/PlaceHistoryPanel"
 
 // Real icon per nearby-POI category (Twemoji — Mozilla, CC-BY 4.0).
 const POI_CATEGORY_ICONS = {
@@ -1018,6 +1019,10 @@ export default function DestinationDetails() {
             <p className="text-xs text-gray-500 bg-white p-3 rounded-xl border border-gray-100">
               {activeAlert?.title || activeAlert?.description || "No active alert is stored for this place."}
             </p>
+
+            {/* The recorded history behind that index: per-hazard counts, the
+                baseline they came from, live advisories and verified news. */}
+            <PlaceHistoryPanel destinationRef={destination?.slug} className="mt-4" />
           </div>
 
           {/* Emergency Helplines */}

@@ -193,16 +193,23 @@ class UserRouteCalculateView(APIView):
             # Do not expose the bundled coordinate graph as if it were road
             # navigation. It is not street-level routing and previously
             # produced plausible-looking but fabricated corridors. Without a
-            # configured routing provider, return only measured straight-line
-            # distance and no turn-by-turn instructions.
-            distance_km = straight_line_km
+            # configured routing provider, return no road distance at all.
+            #
+            # distance_km stays None on purpose: it is the field consumers read
+            # as "how far this route is", and a straight-line figure placed
+            # there is shown to travellers as if it were a driving distance.
+            # The measured straight-line value is already exposed separately as
+            # straight_line_km, alongside confidence_level=STRAIGHT_LINE and a
+            # route_note that says exactly what happened, so nothing is hidden
+            # and nothing is overclaimed.
+            distance_km = None
             duration_min = None
             geometry_coordinates = []
             # …but still never hand the UI an empty step list, which it would
             # have to special-case. Reuse the central engine's contract: one
             # explicit "no road route" step that invents no directions
             # (navigation.route_engine.build_maneuvers grades it "none").
-            _distance_m = (float(distance_km) * 1000.0) if distance_km is not None else None
+            _distance_m = (float(straight_line_km) * 1000.0) if straight_line_km is not None else None
             _start_point = [round(olat, 6), round(olng, 6)]
             try:
                 from navigation.route_engine import build_maneuvers as _build_maneuvers

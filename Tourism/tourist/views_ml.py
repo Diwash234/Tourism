@@ -84,38 +84,19 @@ class RecommendedDestinationsView(APIView):
         # Smart candidate selection: query real approved Destination rows,
         # filtered by user interest/province if supplied, bounded to top 100 candidates
         # to avoid payload bloat and network delays.
-        candidate_qs = Destination.publicly_visible().exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+        # Progressive filter relaxation lives in recommendation_candidates.py so
+        # it survives a views_ml refactor. The previous code here dropped EVERY
+        # filter as soon as the filtered set was smaller than top_n, so
+        # different travellers got the identical globally top-rated list.
+        from .recommendation_candidates import select_recommendation_candidates
 
-        if province:
-            candidate_qs = candidate_qs.filter(province__iexact=province)
-        if category:
-            candidate_qs = candidate_qs.filter(category__name__icontains=category)
-        if interest:
-            from django.db.models import Q
-            candidate_qs = candidate_qs.filter(
-                Q(name__icontains=interest) |
-                Q(type__icontains=interest) |
-                Q(description__icontains=interest) |
-                Q(short_description__icontains=interest) |
-                Q(cultural_significance__icontains=interest) |
-                Q(category__name__icontains=interest)
-            )
-
-        compact_rows = candidate_qs.order_by("-is_featured", "-average_rating", "-views_count").values(
-            "id", "name", "slug", "type", "city", "district",
-            "province", "latitude", "longitude", "average_rating",
-        )[:100]
-
-        # If strict filtering yielded too few rows, fall back to general candidate selection
-        if len(compact_rows) < top_n:
-            compact_rows = Destination.publicly_visible().exclude(
-                latitude__isnull=True
-            ).exclude(longitude__isnull=True).order_by(
-                "-is_featured", "-average_rating", "-views_count"
-            ).values(
-                "id", "name", "slug", "type", "city", "district",
-                "province", "latitude", "longitude", "average_rating",
-            )[:100]
+        compact_rows, relaxations = select_recommendation_candidates(
+            Destination,
+            province=province or "",
+            category=category or "",
+            interest=interest or "",
+            top_n=top_n,
+        )
         destinations = [
             {
                 "id": row["id"],
@@ -134,10 +115,14 @@ class RecommendedDestinationsView(APIView):
 
         payload = {
             **data,
-            "latitude": float(latitude or 0),
-            "longitude": float(longitude or 0),
             "destinations": destinations,
         }
+        # Never send 0,0 for "location unknown": that is a real point in the
+        # Gulf of Guinea, so the service reasoned about a location nobody was
+        # at. Omit the pair and let it treat the origin as unknown.
+        if latitude is not None and longitude is not None:
+            payload["latitude"] = float(latitude)
+            payload["longitude"] = float(longitude)
 
         try:
             response = requests.post(
@@ -154,6 +139,10 @@ class RecommendedDestinationsView(APIView):
             res_json = response.json()
             if isinstance(res_json, dict):
                 res_json.setdefault("source", "ml_recommendation_engine")
+                # Say plainly when the catalogue could not satisfy the request
+                # as asked, instead of quietly returning a generic list.
+                if relaxations:
+                    res_json["relaxed_filters"] = relaxations
             return Response(
                 res_json,
                 status=response.status_code
@@ -179,17 +168,14 @@ class RecommendedDestinationsView(APIView):
             if len(fallback_destinations) < top_n:
                 fallback_destinations = list(Destination.publicly_visible().order_by("-is_featured", "-average_rating", "-views_count")[:top_n * 2])
 
-            # Apply category & district diversity filtering
-            seen_cats, seen_districts, diverse_list = set(), set(), []
-            for dest in fallback_destinations:
-                cat_id = dest.category_id
-                dist = dest.district or dest.city
-                if cat_id not in seen_cats or dist not in seen_districts or len(diverse_list) < top_n:
-                    diverse_list.append(dest)
-                    if cat_id: seen_cats.add(cat_id)
-                    if dist: seen_districts.add(dist)
-                if len(diverse_list) >= top_n:
-                    break
+            # Real diversity: take places that add a NEW category and a NEW
+            # district first, then fill the quota from what is left. The old
+            # condition ORed in `len(diverse_list) < top_n`, which stays true
+            # for the whole loop, so it never rejected a repeat and every
+            # traveller received the same top-rated run.
+            from .recommendation_candidates import diversify_destinations
+
+            diverse_list = diversify_destinations(fallback_destinations, top_n=top_n)
 
             results = DestinationListSerializer(
                 diverse_list,
@@ -202,13 +188,13 @@ class RecommendedDestinationsView(APIView):
             ).data
 
 
-            return Response(
-                {
-                    "source": "fallback_top_rated",
-                    "results": results,
-                },
-                status=status.HTTP_200_OK,
-            )
+            body = {
+                "source": "fallback_top_rated",
+                "results": results,
+            }
+            if relaxations:
+                body["relaxed_filters"] = relaxations
+            return Response(body, status=status.HTTP_200_OK)
 
 
 

@@ -94,6 +94,15 @@ const Itinerary = lazy(() => import("./pages/Itinerary"))
 const BeforeYouTravel = lazy(() => import("./pages/BeforeYouTravel"))
 const FamilySafety = lazy(() => import("./pages/FamilySafety"))
 const SharedTripView = lazy(() => import("./pages/SharedTripView"))
+// Feature pages that existed but were never routed, so they could not be
+// reached. Each one now has a real route and (where applicable) a nav entry.
+const Feedback = lazy(() => import("./pages/Feedback"))
+const HelpSupport = lazy(() => import("./pages/HelpSupport"))
+const Marketplace = lazy(() => import("./pages/Marketplace"))
+const Risk = lazy(() => import("./pages/Risk"))
+const GuideDirectory = lazy(() => import("./pages/GuideDirectory"))
+const JobBoard = lazy(() => import("./pages/JobBoard"))
+const SafetyCenter = lazy(() => import("./pages/SafetyCenter"))
 
 // New Features (Remote Repository Updates)
 const Packages = lazy(() => import("./pages/Packages"))
@@ -121,6 +130,9 @@ import StaffLayout from "./components/admin/StaffLayout"
 const DiagnosticsCenter = lazy(() => import("./pages/admin/DiagnosticsCenter"))
 const HotelAssignments = lazy(() => import("./pages/admin/HotelAssignments"))
 const AdminTasks = lazy(() => import("./pages/admin/Tasks"))
+const AdminPlaceApprovals = lazy(() => import("./pages/admin/PlaceApprovals"))
+const AdminDestinationMedia = lazy(() => import("./pages/admin/DestinationMediaManager"))
+const BookingManagement = lazy(() => import("./pages/BookingManagement"))
 
 const RouteLoading = () => (
   <div className="container-app flex min-h-[320px] items-center justify-center py-12" role="status" aria-live="polite">
@@ -240,6 +252,13 @@ function App() {
         <Route path="/hotels/search" element={<HotelSearch />} />
         {/* Travel planner ÔÇö real routes between any two destinations (public) */}
         <Route path="/travel" element={<LazyRoute><TravelPlanner /></LazyRoute>} />
+        {/* Previously unreachable: the pages existed but had no route. */}
+        <Route path="/marketplace" element={<LazyRoute><Marketplace /></LazyRoute>} />
+        <Route path="/risk" element={<LazyRoute><Risk /></LazyRoute>} />
+        <Route path="/feedback" element={<LazyRoute><Feedback /></LazyRoute>} />
+        <Route path="/help" element={<LazyRoute><HelpSupport /></LazyRoute>} />
+        <Route path="/guide-directory" element={<LazyRoute><GuideDirectory /></LazyRoute>} />
+        <Route path="/job-board" element={<LazyRoute><JobBoard /></LazyRoute>} />
       </Route>
 
 
@@ -274,6 +293,8 @@ function App() {
             element={<MyBooking />}
           />
           <Route path="/partner" element={<PartnerDesk />} />
+          <Route path="/bookings" element={<BookingManagement />} />
+          <Route path="/safety-center" element={<SafetyCenter />} />
 
           <Route
             path="/notifications"
@@ -318,6 +339,8 @@ function App() {
             <Route path="/admin/hotel-assignments" element={<LazyRoute><HotelAssignments /></LazyRoute>} />
             <Route path="/admin/tasks" element={<LazyRoute><AdminTasks /></LazyRoute>} />
             <Route path="/admin/diagnostics" element={<LazyRoute><DiagnosticsCenter /></LazyRoute>} />
+            <Route path="/admin/place-approvals" element={<LazyRoute><AdminPlaceApprovals /></LazyRoute>} />
+            <Route path="/admin/destination-media" element={<LazyRoute><AdminDestinationMedia /></LazyRoute>} />
           </Route>
         </Route>
 

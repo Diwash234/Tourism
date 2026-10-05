@@ -1,0 +1,15 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/css/custom_admin.css' %}">
+{% endblock %}
+
+{% block title %}{{ title }} | Nepal Tourism Admin{% endblock %}
+
+{% block branding %}
+<h1 id="branding">
+    <a href="{% url 'admin:index' %}">Nepal Tourism Admin</a>
+</h1>
+{% endblock %}

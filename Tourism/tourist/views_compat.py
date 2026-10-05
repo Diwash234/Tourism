@@ -70,42 +70,109 @@ class RecommendationsPersonalizedView(APIView):
     def get(self, request):
         lat = request.query_params.get("latitude") or request.query_params.get("lat")
         lon = request.query_params.get("longitude") or request.query_params.get("lng")
-        top_n = int(request.query_params.get("top_n", 12))
+        try:
+            top_n = max(1, min(int(request.query_params.get("top_n", 12)), 50))
+        except (TypeError, ValueError):
+            top_n = 12
         interest = (request.query_params.get("interest") or "").strip().lower()
 
         from .models import Destination
-        qs = Destination.objects.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)
+        from .views import MoodRecommendationsView
 
-        if interest and interest != "all":
-            if "adventure" in interest:
-                qs = qs.filter(Q(category__name__icontains="adventure") | Q(description__icontains="trek") | Q(name__icontains="camp") | Q(name__icontains="himal"))
-            elif "cultural" in interest or "heritage" in interest:
-                qs = qs.filter(Q(category__name__icontains="heritage") | Q(category__name__icontains="temple") | Q(category__name__icontains="religious") | Q(description__icontains="temple"))
-            elif "nature" in interest:
-                qs = qs.filter(Q(category__name__icontains="nature") | Q(category__name__icontains="national park") | Q(category__name__icontains="wildlife") | Q(category__name__icontains="lake"))
-            elif "relaxation" in interest or "lake" in interest:
-                qs = qs.filter(Q(category__name__icontains="lake") | Q(category__name__icontains="photography") | Q(name__icontains="lake") | Q(city__icontains="pokhara"))
+        base = Destination.objects.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)
+
+        # Reuse the recommender's own interest table instead of maintaining a
+        # second, drifting copy of it here. This endpoint used to carry its own
+        # four-branch mapping, which disagreed with MOOD_PROFILES and had to
+        # fall back to description__icontains -- so "cultural" surfaced a lake
+        # whose description happens to mention a temple.
+        profiles = MoodRecommendationsView.MOOD_PROFILES
+        wanted_slugs, keywords = set(), []
+        if interest and interest not in {"all", "any"}:
+            profile = profiles.get(interest) or next(
+                (v for key, v in profiles.items() if key in interest or interest in key), None
+            )
+            if profile:
+                wanted_slugs = set(profile.get("cats", []))
+                keywords = list(profile.get("kw", []))
             else:
-                qs = qs.filter(Q(name__icontains=interest) | Q(city__icontains=interest) | Q(category__name__icontains=interest) | Q(description__icontains=interest))
+                # Unknown interest: fall back to a text match on the request.
+                keywords = [interest]
 
-        destinations = list(qs.order_by("-average_rating", "-views_count")[:top_n])
-        if len(destinations) < 4:
-            # Add top rated places
-            extras = list(Destination.objects.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED).exclude(id__in=[d.id for d in destinations]).order_by("-views_count")[:top_n - len(destinations)])
-            destinations.extend(extras)
+        if wanted_slugs or keywords:
+            # One combined query. OR-ing a separate base.filter() per keyword
+            # scanned the whole catalogue once per keyword instead of once.
+            interest_q = Q()
+            if wanted_slugs:
+                interest_q |= Q(category__slug__in=sorted(wanted_slugs))
+            for keyword in keywords:
+                interest_q |= (
+                    Q(name__icontains=keyword)
+                    | Q(short_description__icontains=keyword)
+                    | Q(category__name__icontains=keyword)
+                )
+            qs = base.filter(interest_q)
+        else:
+            qs = base
+
+        # Rank on signals that exist. average_rating is all but empty in this
+        # catalogue (8 of 6,754 rows carry one), so ordering by it first was
+        # really order_by("-views_count") and returned the same most-viewed
+        # places whatever the interest was.
+        candidates = list(
+            qs.select_related("category")
+            .order_by("-is_featured", "-views_count")[: max(top_n * 8, 120)]
+        )
+
+        # Category membership is the strongest signal, then recorded interest
+        # in the text, then popularity. District diversity is applied below so
+        # one town cannot fill the whole page.
+        ranked = []
+        for destination in candidates:
+            slug = destination.category.slug if destination.category_id else ""
+            hay = " ".join(filter(None, [
+                destination.name or "", destination.short_description or "",
+                destination.city or "", destination.district or "",
+            ])).lower()
+            hits = sum(1 for keyword in keywords if keyword and keyword in hay)
+            category_score = 1.0 if slug in wanted_slugs else 0.0
+            score = (
+                category_score * 3.0
+                + min(hits, 3) * 0.5
+                + (1.0 if destination.is_featured else 0.0)
+                + min((destination.views_count or 0) / 200.0, 1.0)
+            )
+            ranked.append((score, (destination.district or "unknown").lower(), destination))
+
+        ranked.sort(key=lambda row: (-row[0], row[2].id))
+        district_counts = {}
+        selected = []
+        for score, district, destination in ranked:
+            if district_counts.get(district, 0) >= 3:
+                continue
+            district_counts[district] = district_counts.get(district, 0) + 1
+            selected.append(destination)
+            if len(selected) >= top_n:
+                break
 
         context = {"request": request, "user_lat": lat, "user_lon": lon}
-        results = DestinationListSerializer(destinations, many=True, context=context).data
+        results = DestinationListSerializer(selected, many=True, context=context).data
 
-        # This compatibility endpoint is a deterministic catalog fallback,
-        # not an ML response. Do not invent confidence scores or claim an ML
-        # engine produced them.
+        # This compatibility endpoint is a deterministic catalog ranking, not an
+        # ML response. Do not invent confidence scores or claim an ML engine
+        # produced them.
+        basis = "catalog_category_and_interest_match" if (wanted_slugs or keywords) else "catalog_popularity"
         for item in results:
             item["ml_score"] = None
             item["similarity_score"] = None
-            item["match_basis"] = "catalog_rank_and_recorded_filters"
+            item["match_basis"] = basis
 
-        return Response({"source": "deterministic_public_catalog", "results": results})
+        return Response({
+            "source": "deterministic_public_catalog",
+            "interest": interest or None,
+            "matched_categories": sorted(wanted_slugs),
+            "results": results,
+        })
 
 
 class BudgetSummaryView(APIView):
@@ -498,6 +565,54 @@ def _street_level_route(start_lat, start_lon, end_lat, end_lon, transport_mode):
     }
 
 
+def _bundled_route_fallback(start_lat, start_lon, end_lat, end_lon):
+    """Last-resort route from the bundled Nepal graph, then the straight line.
+
+    A 503 is a dead end for a traveller who only asked for directions. The
+    bundled tourism graph and a straight-line estimate are both real, sourced
+    answers as long as they say which one produced them, and the response's
+    `source` is derived from `routing_engine` further down ("graphml_fallback"
+    vs "straight_line_fallback"), so no caller can mistake one for a live road
+    route. Geometry is never invented: the straight-line case returns exactly the
+    two points the caller supplied.
+    """
+    metrics = None
+    try:
+        from .routing_service import route_metrics
+
+        metrics = route_metrics(start_lat, start_lon, end_lat, end_lon)
+    except Exception:  # noqa: BLE001 - a fallback must never raise
+        metrics = None
+
+    if metrics and metrics.get("status") in {"graph_routed", "routed"}:
+        return {
+            "distance_km": metrics.get("route_distance_km"),
+            "duration_min": metrics.get("duration_min"),
+            "route": metrics.get("route", []),
+            "steps": [],
+            "routing_engine": metrics.get("routing_engine") or "bundled_nepal_graphml",
+            "straight_line_km": metrics.get("straight_line_km"),
+            "road_distance_km": metrics.get("road_distance_km"),
+            "note": metrics.get("note") or "Routed on the bundled Nepal tourism graph; not a live street-level road service.",
+        }
+
+    distance = haversine_distance(start_lat, start_lon, end_lat, end_lon)
+    return {
+        "distance_km": None,
+        "duration_min": None,
+        "route": [[start_lat, start_lon], [end_lat, end_lon]],
+        "steps": [],
+        "routing_engine": "straight_line_only",
+        "straight_line_km": round(distance, 2) if distance is not None else None,
+        "road_distance_km": None,
+        "note": (
+            "No routing engine is reachable right now, so only the straight-line "
+            "distance between these two points is shown. No road route or driving "
+            "time was invented."
+        ),
+    }
+
+
 class NavigationRouteView(APIView):
     """
     POST /api/v1/navigation/route
@@ -526,8 +641,61 @@ class NavigationRouteView(APIView):
                     return data[key]
             return None
 
-        start_lat_raw = pick("start_latitude", "startLat", "start_lat", "originLat", "origin_lat", "lat", "latitude")
-        start_lon_raw = pick("start_longitude", "startLng", "start_lng", "originLng", "origin_lng", "lng", "longitude", "lon")
+        # Normalise the nested "modern" payload the frontend sends:
+        #   {"start": {"latitude": .., "longitude": ..},
+        #    "destination": {"latitude": .., "longitude": ..}}
+        # `start` / `origin` / `from` / `destination` / `dest` are ALSO accepted
+        # as plain place names by older clients, so they are only unwrapped when
+        # the value really is an object. Previously the dict flowed straight
+        # into origin_name / destination_name and `.lower()` raised
+        # AttributeError, 500-ing the endpoint for its own documented payload.
+        def _unwrap(*keys):
+            for key in keys:
+                value = data.get(key)
+                if isinstance(value, dict):
+                    return value
+            return None
+
+        start_obj = _unwrap("start", "origin", "from")
+        dest_obj = _unwrap("destination", "dest")
+
+        def pick_nested(obj, *keys):
+            if not isinstance(obj, dict):
+                return None
+            for key in keys:
+                value = obj.get(key)
+                if value not in (None, ""):
+                    return value
+            return None
+
+        def pick_point(obj, *keys):
+            """Flat keys first, then the same keys inside this endpoint's object.
+
+            Scoped to `obj` on purpose: reading the destination's latitude as the
+            start's latitude would silently route every leg to itself.
+            """
+            value = pick(*keys)
+            if value is not None:
+                return value
+            return pick_nested(obj, "latitude", "lat", *keys)
+
+        def pick_name(obj, *keys):
+            """A place NAME only — never an object."""
+            value = pick(*keys)
+            if isinstance(value, str):
+                return value
+            nested_name = pick_nested(obj, "name", "label")
+            return nested_name if isinstance(nested_name, str) else None
+
+        start_lat_raw = pick_point(
+            start_obj,
+            "start_latitude", "startLat", "start_lat", "originLat", "origin_lat", "lat", "latitude",
+        )
+        start_lon_raw = pick_point(
+            start_obj,
+            "start_longitude", "startLng", "start_lng", "originLng", "origin_lng",
+            "lng", "longitude", "lon",
+        )
         try:
             # Coordinates are optional when origin_name can supply the start.
             start_lat = _parse_float(start_lat_raw, "start latitude") if start_lat_raw is not None else None
@@ -538,7 +706,10 @@ class NavigationRouteView(APIView):
         # Origin by name (e.g. "From: Kathmandu") — lets travellers plan a
         # route without GPS. Resolved through the same universal place index
         # as destinations; a fabricated default origin is never substituted.
-        origin_name = pick("origin_name", "originName", "origin", "start", "from", "start_name", "start_city")
+        origin_name = pick_name(
+            start_obj, "origin_name", "originName", "origin", "start", "from",
+            "start_name", "start_city",
+        )
         origin_label = None
         if (start_lat is None or start_lon is None) and origin_name and origin_name.lower() not in {"current location", "my current location"}:
             from .location.search_service import LocationSearchService
@@ -587,7 +758,10 @@ class NavigationRouteView(APIView):
 
         destination_obj = None
         destination_dict = None
-        destination_name = pick("destination_name", "destinationName", "destination_slug", "destinationSlug", "destination", "dest")
+        destination_name = pick_name(
+            dest_obj, "destination_name", "destinationName", "destination_slug",
+            "destinationSlug", "destination", "dest",
+        )
         dest_id = pick("destination_id", "destinationId")
         if dest_id and not destination_name:
             d_found = Destination.objects.filter(pk=dest_id).first()
@@ -679,8 +853,12 @@ class NavigationRouteView(APIView):
                             )
         else:
             try:
-                end_lat = _parse_float(pick("end_latitude", "endLat", "end_lat", "destinationLat"), "end latitude")
-                end_lon = _parse_float(pick("end_longitude", "endLng", "end_lng", "destinationLng"), "end longitude")
+                end_lat = _parse_float(
+                    pick_point(dest_obj, "end_latitude", "endLat", "end_lat", "destinationLat"),
+                    "end latitude")
+                end_lon = _parse_float(
+                    pick_point(dest_obj, "end_longitude", "endLng", "end_lng", "destinationLng"),
+                    "end longitude")
             except ValueError as exc:
                 return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -734,7 +912,14 @@ class NavigationRouteView(APIView):
             for idx in range(len(leg_points) - 1):
                 leg = get_ml_best_route(leg_points[idx][0], leg_points[idx][1], leg_points[idx + 1][0], leg_points[idx + 1][1], route_type=mode_route_type or "fastest")
                 if leg is None:
-                    return Response({"detail": "Routing service is currently unavailable."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+                    # Routing is unreachable for this leg: fall back to the
+                    # bundled graph / straight line instead of failing the whole
+                    # multi-stop request, so the traveller still gets a drawable
+                    # route for the legs we can answer.
+                    leg = _bundled_route_fallback(
+                        leg_points[idx][0], leg_points[idx][1],
+                        leg_points[idx + 1][0], leg_points[idx + 1][1],
+                    )
                 if leg.get("error"):
                     return Response({"detail": f"Leg {idx + 1} of {len(leg_points) - 1}: {leg['error']}"}, status=status.HTTP_404_NOT_FOUND)
                 coords = leg.get("route", [])
@@ -770,10 +955,10 @@ class NavigationRouteView(APIView):
             if result is None:
                 result = get_ml_best_route(start_lat, start_lon, end_lat, end_lon, route_type=mode_route_type or "fastest")
         if result is None:
-            return Response(
-                {"detail": "Routing service is currently unavailable."},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
+            # Neither the street-level provider nor the ML router answered.
+            # Never a dead end: return the bundled graph / straight line, which
+            # the response labels honestly instead of 503-ing the traveller.
+            result = _bundled_route_fallback(start_lat, start_lon, end_lat, end_lon)
 
         # ADDED: best_route() returns {"error": "..."} (HTTP 200) rather
         # than raising when it can't snap a coordinate to the road graph

@@ -1,10 +1,22 @@
 import { useState } from 'react'
-import { FiChevronDown, FiChevronUp, FiMessageCircle, FiMail, FiFileText, FiPlay } from 'react-icons/fi'
+import { Link } from 'react-router-dom'
+import { FiChevronDown, FiChevronUp, FiMessageCircle, FiMail, FiFileText, FiAlertCircle } from 'react-icons/fi'
+import axiosClient from '../api/axiosClient'
+
+const CATEGORY_SUBJECTS = {
+  general: 'General enquiry',
+  booking: 'Booking issue',
+  payment: 'Payment issue',
+  technical: 'Technical issue',
+  feedback: 'Feedback',
+}
 
 const HelpSupport = () => {
   const [openFaq, setOpenFaq] = useState(null)
   const [contactForm, setContactForm] = useState({ name: '', email: '', category: 'general', message: '' })
   const [submitted, setSubmitted] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState('')
 
   const faqs = [
     { q: 'How do I book a hotel?', a: 'Navigate to the Hotels page, select your preferred hotel, choose your dates, and click "Book Now". You will receive a confirmation email once your booking is confirmed.' },
@@ -15,11 +27,33 @@ const HelpSupport = () => {
     { q: 'How do I enable offline mode?', a: 'Install the PWA (Progressive Web App) and enable offline mode in settings. Your itineraries and saved destinations will be available offline.' },
   ]
 
-  const handleSubmit = (e) => {
+  // This used to fake a send: it flipped `submitted` on a 3s timer and threw
+  // the message away, so "Message Sent!" was a lie. It now posts to the real
+  // support endpoint (POST /feedback/) and only reports success on a 2xx.
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    setSubmitted(true)
-    setTimeout(() => setSubmitted(false), 3000)
-    setContactForm({ name: '', email: '', category: 'general', message: '' })
+    setError('')
+    setSending(true)
+    try {
+      await axiosClient.post('/feedback/', {
+        name: contactForm.name.trim(),
+        email: contactForm.email.trim(),
+        category: 'general',
+        subject: CATEGORY_SUBJECTS[contactForm.category] || 'Support request',
+        message: `[${contactForm.category}] ${contactForm.message.trim()}`,
+      })
+      setSubmitted(true)
+      setContactForm({ name: '', email: '', category: 'general', message: '' })
+    } catch (err) {
+      setError(
+        err?.response?.data?.detail ||
+          (err?.response
+            ? 'We could not send your message. Please try again.'
+            : 'Network problem — your message was not sent. Please try again.')
+      )
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
@@ -108,33 +142,51 @@ const HelpSupport = () => {
                 required
               />
             </div>
+            {error && (
+              <div role="alert" className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+                <FiAlertCircle className="mt-0.5 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
             <button
               type="submit"
-              className="px-6 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700"
+              disabled={sending}
+              className="px-6 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 disabled:opacity-50"
             >
-              Send Message
+              {sending ? 'Sending…' : 'Send Message'}
             </button>
           </form>
         )}
       </div>
 
-      {/* Resources */}
+      {/* Resources — these were plain divs advertising pages that do not exist
+          ("Browse help articles", "Watch how-to guides"). They are now real
+          links to surfaces that actually exist. */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 text-center">
+        <a
+          href="mailto:support@nepalyatra.com"
+          className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 text-center hover:border-emerald-400 transition-colors"
+        >
           <FiMail className="w-8 h-8 mx-auto mb-3 text-emerald-600" />
           <h3 className="font-semibold mb-2">Email Support</h3>
-          <p className="text-sm text-gray-500">support@nepalyatra.com</p>
-        </div>
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 text-center">
+          <p className="text-sm text-gray-500 break-all">support@nepalyatra.com</p>
+        </a>
+        <Link
+          to="/how-it-works"
+          className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 text-center hover:border-emerald-400 transition-colors"
+        >
           <FiFileText className="w-8 h-8 mx-auto mb-3 text-emerald-600" />
           <h3 className="font-semibold mb-2">Knowledge Base</h3>
           <p className="text-sm text-gray-500">Browse help articles</p>
-        </div>
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 text-center">
-          <FiPlay className="w-8 h-8 mx-auto mb-3 text-emerald-600" />
-          <h3 className="font-semibold mb-2">Video Tutorials</h3>
-          <p className="text-sm text-gray-500">Watch how-to guides</p>
-        </div>
+        </Link>
+        <Link
+          to="/emergency"
+          className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 text-center hover:border-emerald-400 transition-colors"
+        >
+          <FiMessageCircle className="w-8 h-8 mx-auto mb-3 text-emerald-600" />
+          <h3 className="font-semibold mb-2">Emergency Desk</h3>
+          <p className="text-sm text-gray-500">Nearest police, hospital &amp; ambulance</p>
+        </Link>
       </div>
     </div>
   )

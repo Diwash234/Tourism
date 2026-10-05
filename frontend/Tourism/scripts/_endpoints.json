@@ -2725,7 +2725,7 @@
   },
   {
     "file": "components/destinations/DestinationWeather.jsx",
-    "line": 48,
+    "line": 23,
     "verb": "GET",
     "url": "/weather/"
   },
@@ -2946,8 +2946,20 @@
     "url": "/districts/"
   },
   {
+    "file": "pages/Feedback.jsx",
+    "line": 57,
+    "verb": "POST",
+    "url": "/feedback/"
+  },
+  {
+    "file": "pages/HelpSupport.jsx",
+    "line": 38,
+    "verb": "POST",
+    "url": "/feedback/"
+  },
+  {
     "file": "pages/Itinerary.jsx",
-    "line": 206,
+    "line": 182,
     "verb": "POST",
     "url": "/ml/itinerary/modify/"
   },
@@ -2977,7 +2989,13 @@
   },
   {
     "file": "pages/TravelGuide.jsx",
-    "line": 23,
+    "line": 24,
+    "verb": "GET",
+    "url": "/travel-guides/"
+  },
+  {
+    "file": "pages/TravelGuide.jsx",
+    "line": 33,
     "verb": "GET",
     "url": "/travel-guides/${encodeURIComponent(slug)}/"
   },

@@ -42,6 +42,15 @@ OVERPASS_MIRRORS = (
 )
 _OVERPASS_CACHE_KEY = "overpass:working_endpoint"
 
+# Circuit breaker. When every mirror has just failed, the next callers must not
+# each re-pay the whole failover budget: the public Overpass instances are
+# shared free infrastructure and go down for minutes at a time. Without this,
+# every uncached request to an Overpass-backed endpoint stalled for the full
+# timeout budget (nearby-pois measured 44 s) even though the answer was always
+# "upstream is unreachable, use the database fallback".
+_OVERPASS_FAIL_KEY = "overpass:all_endpoints_failed_at"
+_OVERPASS_BREAKER_SECONDS = 120
+
 
 def _overpass_endpoints():
     """Configured endpoint first (deduped), then the public mirrors."""
@@ -62,6 +71,25 @@ def overpass_post(query, timeout=15):
     """
     from django.core.cache import cache
     import time
+
+    # Open the breaker when every mirror failed recently: answer immediately so
+    # the caller can fall back to the database instead of waiting out the whole
+    # timeout chain again.
+    try:
+        failed_at = cache.get(_OVERPASS_FAIL_KEY)
+    except Exception:  # pragma: no cover — cache backend failures
+        failed_at = None
+    if failed_at is not None:
+        try:
+            waited = time.time() - float(failed_at)
+        except (TypeError, ValueError):
+            waited = _OVERPASS_BREAKER_SECONDS
+        if waited < _OVERPASS_BREAKER_SECONDS:
+            retry_in = int(_OVERPASS_BREAKER_SECONDS - waited)
+            return [], (
+                f"OpenStreetMap (Overpass) is temporarily unreachable; "
+                f"retrying in {retry_in}s"
+            )
 
     try:
         preferred = cache.get(_OVERPASS_CACHE_KEY)
@@ -107,6 +135,13 @@ def overpass_post(query, timeout=15):
         except Exception as exc:  # noqa: BLE001
             last_error = str(exc)
             logger.warning("Overpass endpoint %s failed: %s", url, exc)
+
+    # Every mirror failed: start the cooldown so the next callers fall straight
+    # through to the database instead of each stalling for the whole budget.
+    try:
+        cache.set(_OVERPASS_FAIL_KEY, time.time(), _OVERPASS_BREAKER_SECONDS)
+    except Exception:  # pragma: no cover
+        pass
     return [], last_error
 
 
