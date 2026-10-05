@@ -608,6 +608,9 @@ class TravelGuideListView(APIView):
 
     Returns all published guides with basic info for the city selector.
     """
+    # Response is a hand-built list of dicts, so there is no model serializer
+    # for drf-spectacular to infer. See TravelGuideDetailView.
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
