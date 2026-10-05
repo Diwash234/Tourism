@@ -1,3 +1,8 @@
+from django.contrib import admin
+
+from .models import ManagedNavigationItem
+
+
 @admin.register(ManagedNavigationItem)
 class ManagedNavigationItemAdmin(admin.ModelAdmin):
     list_display = ['label', 'location', 'route', 'parent', 'display_order', 'is_active']
