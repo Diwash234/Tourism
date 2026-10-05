@@ -9,6 +9,7 @@ from .models import (
     VisitHistory, Budget, Alert, EmergencyContact, Notification,
     DeviceToken, EmailVerificationToken, PasswordResetToken, MLInsight, Hotel,
     OSMEssentialService, OSMTourismPlace, FamilyLink, RiskIncident, CurrentHazard,
+    RiskAnalysis,
     InfrastructureSubmission, DestinationFeatureProfile, FeedbackEvidence, MLTrainingRun,
     RecommendationEvent, RiskNewsReport, RiskObservation, UserFeedback, StaffCapabilityProfile,
     SiteSetting, DataRetentionPolicy, BrandingAsset, CMSContentTranslation, ManagedPage, ContentSection, ManagedNavigationItem, CMSRevision, NotificationPreference, FeedbackMessage,
@@ -435,6 +436,47 @@ class RiskIncidentAdmin(admin.ModelAdmin):
     list_filter = ["hazard_type", "severity", "source_type", "verified"]
     search_fields = ["title", "destination__name", "source_name"]
     autocomplete_fields = ["destination"]
+
+
+@admin.register(RiskAnalysis)
+class RiskAnalysisAdmin(admin.ModelAdmin):
+    """Admin editor for a destination's curated risk profile.
+
+    Staff review and assign the structured risk factors here:
+    accident history, travel safety, weather exposure,
+    emergency / life-safety coverage and the risk causes.
+    """
+    list_display = ["destination", "risk_category", "travel_safety_rating",
+                    "accident_trend", "overall_safety_score", "last_reviewed", "reviewed_by"]
+    list_filter = ["risk_category", "travel_safety_rating", "accident_trend",
+                   "hospital_coverage", "monsoon_risk", "high_altitude_risk"]
+    search_fields = ["destination__name", "destination__district", "safety_summary"]
+    autocomplete_fields = ["destination", "reviewed_by"]
+    readonly_fields = ["last_reviewed", "reviewed_by"]
+    fieldsets = (
+        ("Accident history", {"fields": (
+            "accidents", "accidents_last_year", "fatal_accidents_last_year",
+            "accidents_last_5y", "accident_trend", "last_major_incident_date")}),
+        ("Hazard counts (imported)", {"fields": (
+            "landslide", "avalanche", "flood", "earthquake_damage")}),
+        ("Travel safety", {"fields": (
+            "travel_safety_score", "travel_safety_rating",
+            "solo_travel_safety", "night_safety", "family_safety",
+            "female_traveler_safety", "road_quality", "trail_marking",
+            "mobile_network_coverage")}),
+        ("Weather & seasonal exposure", {"fields": (
+            "monsoon_risk", "winter_snow_risk", "summer_heat_risk",
+            "lightning_risk", "high_altitude_risk", "uv_exposure")}),
+        ("Emergency & life safety", {"fields": (
+            "hospital_count", "police_count", "fire_station_count",
+            "hospital_coverage", "emergency_response_minutes",
+            "rescue_availability", "medical_facility_level", "police_presence")}),
+        ("Risk causes & summary", {"fields": (
+            "risk_causes", "overall_safety_score", "safety_summary",
+            "emergency_risk", "natural_disaster_risk", "tourism_risk_index",
+            "risk_category")}),
+        ("Review", {"fields": ("last_reviewed", "reviewed_by")}),
+    )
 
 
 @admin.register(CurrentHazard)
