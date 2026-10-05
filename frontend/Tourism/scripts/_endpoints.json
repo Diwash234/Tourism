@@ -1,0 +1,3494 @@
+[
+  {
+    "file": "api/adminApi.js",
+    "line": 4,
+    "verb": "GET",
+    "url": "/admin/stats"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 5,
+    "verb": "GET",
+    "url": "/admin/reports/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 6,
+    "verb": "GET",
+    "url": "/admin/routing-provider/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 7,
+    "verb": "PATCH",
+    "url": "/admin/routing-provider/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 8,
+    "verb": "POST",
+    "url": "/admin/routing-provider/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 9,
+    "verb": "GET",
+    "url": "/admin/retention/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 10,
+    "verb": "PATCH",
+    "url": "/admin/retention/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 11,
+    "verb": "POST",
+    "url": "/admin/retention/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 12,
+    "verb": "GET",
+    "url": "/admin/travel-services/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 13,
+    "verb": "PATCH",
+    "url": "/admin/travel-services/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 14,
+    "verb": "GET",
+    "url": "/restaurants/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 15,
+    "verb": "GET",
+    "url": "/restaurants/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 16,
+    "verb": "POST",
+    "url": "/restaurants/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 17,
+    "verb": "PATCH",
+    "url": "/restaurants/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 18,
+    "verb": "GET",
+    "url": "/transit-routes/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 19,
+    "verb": "GET",
+    "url": "/transit-routes/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 20,
+    "verb": "POST",
+    "url": "/transit-routes/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 21,
+    "verb": "PATCH",
+    "url": "/transit-routes/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 22,
+    "verb": "POST",
+    "url": "/transit-routes/${id}/verify/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 23,
+    "verb": "POST",
+    "url": "/transit-routes/${id}/recalculate/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 24,
+    "verb": "GET",
+    "url": "/travel-plans/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 25,
+    "verb": "GET",
+    "url": "/admin/reports/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 26,
+    "verb": "GET",
+    "url": "/admin/search/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 27,
+    "verb": "GET",
+    "url": "/admin/datasets/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 28,
+    "verb": "POST",
+    "url": "/admin/datasets/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 29,
+    "verb": "PUT",
+    "url": "/admin/datasets/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 30,
+    "verb": "GET",
+    "url": "/admin/datasets/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 31,
+    "verb": "GET",
+    "url": "/admin/media-library/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 32,
+    "verb": "POST",
+    "url": "/admin/media-library/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 33,
+    "verb": "GET",
+    "url": "/admin/review-moderation/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 34,
+    "verb": "PATCH",
+    "url": "/admin/review-moderation/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 35,
+    "verb": "PATCH",
+    "url": "/admin/media-library/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 36,
+    "verb": "DELETE",
+    "url": "/admin/media-library/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 37,
+    "verb": "GET",
+    "url": "/admin/media-library/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 38,
+    "verb": "GET",
+    "url": "/admin/users"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 39,
+    "verb": "POST",
+    "url": "/admin/users"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 43,
+    "verb": "PUT",
+    "url": "/admin/users/${id}/status"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 44,
+    "verb": "DELETE",
+    "url": "/admin/users/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 46,
+    "verb": "GET",
+    "url": "/admin/user-tracking/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 48,
+    "verb": "GET",
+    "url": "/admin/pending-places/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 49,
+    "verb": "POST",
+    "url": "/admin/pending-places/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 50,
+    "verb": "POST",
+    "url": "/admin/pending-places/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 52,
+    "verb": "GET",
+    "url": "/admin/pending-images/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 53,
+    "verb": "POST",
+    "url": "/admin/pending-images/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 54,
+    "verb": "POST",
+    "url": "/admin/pending-images/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 56,
+    "verb": "GET",
+    "url": "/admin/emergencies/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 57,
+    "verb": "POST",
+    "url": "/admin/emergencies/${id}/resolve/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 59,
+    "verb": "GET",
+    "url": "/expense-feedback/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 60,
+    "verb": "POST",
+    "url": "/expense-feedback/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 62,
+    "verb": "GET",
+    "url": "/risk-feedback/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 63,
+    "verb": "POST",
+    "url": "/risk-feedback/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 65,
+    "verb": "GET",
+    "url": "/destinations/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 66,
+    "verb": "GET",
+    "url": "/hotels/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 67,
+    "verb": "POST",
+    "url": "/hotels/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 68,
+    "verb": "PATCH",
+    "url": "/hotels/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 69,
+    "verb": "PATCH",
+    "url": "/hotels/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 70,
+    "verb": "DELETE",
+    "url": "/hotels/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 71,
+    "verb": "GET",
+    "url": "/bookings/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 72,
+    "verb": "PATCH",
+    "url": "/bookings/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 73,
+    "verb": "POST",
+    "url": "/bookings/${id}/confirm/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 74,
+    "verb": "POST",
+    "url": "/bookings/${id}/cancel/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 75,
+    "verb": "POST",
+    "url": "/bookings/${id}/complete/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 76,
+    "verb": "GET",
+    "url": "/hotel-reviews/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 77,
+    "verb": "DELETE",
+    "url": "/hotel-reviews/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 78,
+    "verb": "GET",
+    "url": "/admin/destination-features/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 79,
+    "verb": "GET",
+    "url": "/admin/destination-translations/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 80,
+    "verb": "POST",
+    "url": "/admin/destination-translations/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 81,
+    "verb": "PATCH",
+    "url": "/admin/destination-translations/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 83,
+    "verb": "GET",
+    "url": "/admin/redirects/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 84,
+    "verb": "POST",
+    "url": "/admin/redirects/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 85,
+    "verb": "PATCH",
+    "url": "/admin/redirects/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 86,
+    "verb": "DELETE",
+    "url": "/admin/redirects/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 87,
+    "verb": "DELETE",
+    "url": "/admin/destination-translations/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 88,
+    "verb": "GET",
+    "url": "/categories/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 89,
+    "verb": "POST",
+    "url": "/categories/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 90,
+    "verb": "PATCH",
+    "url": "/categories/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 91,
+    "verb": "DELETE",
+    "url": "/categories/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 92,
+    "verb": "POST",
+    "url": "/admin/destination-features/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 93,
+    "verb": "PATCH",
+    "url": "/admin/destination-features/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 94,
+    "verb": "DELETE",
+    "url": "/admin/destination-features/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 95,
+    "verb": "POST",
+    "url": "/destinations/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 96,
+    "verb": "PUT",
+    "url": "/destinations/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 97,
+    "verb": "DELETE",
+    "url": "/destinations/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 99,
+    "verb": "GET",
+    "url": "/alerts/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 100,
+    "verb": "GET",
+    "url": "/admin/risk-incidents/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 101,
+    "verb": "POST",
+    "url": "/admin/risk-incidents/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 102,
+    "verb": "PATCH",
+    "url": "/admin/risk-incidents/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 103,
+    "verb": "DELETE",
+    "url": "/admin/risk-incidents/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 104,
+    "verb": "GET",
+    "url": "/admin/current-hazards/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 105,
+    "verb": "POST",
+    "url": "/admin/current-hazards/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 106,
+    "verb": "PATCH",
+    "url": "/admin/current-hazards/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 107,
+    "verb": "DELETE",
+    "url": "/admin/current-hazards/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 108,
+    "verb": "GET",
+    "url": "/admin/risk-observations/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 109,
+    "verb": "POST",
+    "url": "/admin/risk-observations/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 110,
+    "verb": "PATCH",
+    "url": "/admin/risk-observations/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 111,
+    "verb": "DELETE",
+    "url": "/admin/risk-observations/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 112,
+    "verb": "POST",
+    "url": "/alerts/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 115,
+    "verb": "GET",
+    "url": "/admin/discovery/health-report/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 116,
+    "verb": "GET",
+    "url": "/admin/discovery/stats/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 117,
+    "verb": "GET",
+    "url": "/admin/discovery/candidates/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 118,
+    "verb": "POST",
+    "url": "/admin/discovery/run-batch/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 119,
+    "verb": "POST",
+    "url": "/admin/discovery/candidates/${id}/action/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 120,
+    "verb": "POST",
+    "url": "/admin/discovery/bulk-action/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 123,
+    "verb": "POST",
+    "url": "/admin/images/multi-search/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 124,
+    "verb": "POST",
+    "url": "/admin/images/import-media/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 125,
+    "verb": "GET",
+    "url": "/destinations/${slugOrId}/images/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 126,
+    "verb": "POST",
+    "url": "/destinations/${slugOrId}/images/discover/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 127,
+    "verb": "POST",
+    "url": "/destinations/${slugOrId}/images/refresh/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 128,
+    "verb": "POST",
+    "url": "/destinations/${slugOrId}/images/${imageId}/set-cover/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 132,
+    "verb": "POST",
+    "url": "/admin/fetch-images/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 134,
+    "verb": "POST",
+    "url": "/admin/generate-ai-images/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 136,
+    "verb": "DELETE",
+    "url": "/admin/destinations/${destinationId}/images"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 137,
+    "verb": "DELETE",
+    "url": "/admin/images/${id}"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 140,
+    "verb": "GET",
+    "url": "/admin/users/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 141,
+    "verb": "PATCH",
+    "url": "/admin/users/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 142,
+    "verb": "POST",
+    "url": "/admin/users/${id}/send-verification"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 143,
+    "verb": "POST",
+    "url": "/admin/users/${id}/actions"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 144,
+    "verb": "GET",
+    "url": "/admin/data-explorer/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 145,
+    "verb": "GET",
+    "url": "/admin/branding/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 146,
+    "verb": "PATCH",
+    "url": "/admin/branding/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 147,
+    "verb": "POST",
+    "url": "/admin/branding/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 148,
+    "verb": "DELETE",
+    "url": "/admin/branding/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 149,
+    "verb": "GET",
+    "url": "/admin/cms/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 150,
+    "verb": "GET",
+    "url": "/admin/cms/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 151,
+    "verb": "PATCH",
+    "url": "/admin/cms/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 152,
+    "verb": "GET",
+    "url": "/admin/staff-workspace/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 153,
+    "verb": "POST",
+    "url": "/admin/staff-workspace/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 154,
+    "verb": "GET",
+    "url": "/admin/staff-capabilities/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 155,
+    "verb": "PUT",
+    "url": "/admin/staff-capabilities/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 156,
+    "verb": "POST",
+    "url": "/admin/cms/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 157,
+    "verb": "DELETE",
+    "url": "/admin/cms/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 158,
+    "verb": "GET",
+    "url": "/admin/poi-categories/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 159,
+    "verb": "PUT",
+    "url": "/admin/poi-categories/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 160,
+    "verb": "GET",
+    "url": "/admin/trip-interests/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 161,
+    "verb": "PUT",
+    "url": "/admin/trip-interests/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 162,
+    "verb": "PATCH",
+    "url": "/admin/cms/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 163,
+    "verb": "GET",
+    "url": "/admin/sections/${sectionId}/blocks/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 164,
+    "verb": "POST",
+    "url": "/admin/sections/${sectionId}/blocks/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 165,
+    "verb": "PATCH",
+    "url": "/admin/blocks/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 166,
+    "verb": "DELETE",
+    "url": "/admin/blocks/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 167,
+    "verb": "POST",
+    "url": "/admin/blocks/reorder/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 168,
+    "verb": "GET",
+    "url": "/admin/infrastructure-submissions/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 169,
+    "verb": "POST",
+    "url": "/admin/infrastructure-submissions/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 170,
+    "verb": "GET",
+    "url": "/admin/marketplace/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 171,
+    "verb": "POST",
+    "url": "/admin/marketplace/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 172,
+    "verb": "PATCH",
+    "url": "/admin/marketplace/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 173,
+    "verb": "GET",
+    "url": "/admin/emergency-directory/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 174,
+    "verb": "POST",
+    "url": "/admin/emergency-directory/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 175,
+    "verb": "PATCH",
+    "url": "/admin/emergency-directory/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 176,
+    "verb": "GET",
+    "url": "/admin/national-hotlines/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 177,
+    "verb": "POST",
+    "url": "/admin/national-hotlines/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 178,
+    "verb": "PATCH",
+    "url": "/admin/national-hotlines/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 179,
+    "verb": "DELETE",
+    "url": "/admin/national-hotlines/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 180,
+    "verb": "GET",
+    "url": "/admin/visitor-desk/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 181,
+    "verb": "POST",
+    "url": "/admin/visitor-desk/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 182,
+    "verb": "PATCH",
+    "url": "/admin/visitor-desk/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 183,
+    "verb": "DELETE",
+    "url": "/admin/visitor-desk/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 184,
+    "verb": "POST",
+    "url": "/admin/visitor-desk/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 187,
+    "verb": "GET",
+    "url": "/admin/featured-destinations/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 188,
+    "verb": "GET",
+    "url": "/admin/featured-destinations/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 189,
+    "verb": "POST",
+    "url": "/admin/featured-destinations/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 190,
+    "verb": "PATCH",
+    "url": "/admin/featured-destinations/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 191,
+    "verb": "DELETE",
+    "url": "/admin/featured-destinations/${id}/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 192,
+    "verb": "POST",
+    "url": "/admin/featured-destinations/reorder/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 193,
+    "verb": "GET",
+    "url": "/featured-destinations/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 194,
+    "verb": "GET",
+    "url": "/admin/service-media/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 195,
+    "verb": "POST",
+    "url": "/admin/service-media/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 196,
+    "verb": "DELETE",
+    "url": "/admin/service-media/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 197,
+    "verb": "POST",
+    "url": "/admin/ml-data-pipeline/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 198,
+    "verb": "GET",
+    "url": "/admin/ml/status/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 199,
+    "verb": "GET",
+    "url": "/admin/rate-adjustments/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 200,
+    "verb": "POST",
+    "url": "/admin/rate-adjustments/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 201,
+    "verb": "GET",
+    "url": "/admin/notifications/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 202,
+    "verb": "POST",
+    "url": "/admin/notifications/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 203,
+    "verb": "PATCH",
+    "url": "/admin/notifications/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 204,
+    "verb": "GET",
+    "url": "/admin/feedback"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 205,
+    "verb": "POST",
+    "url": "/admin/feedback/${id}/reply"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 206,
+    "verb": "PATCH",
+    "url": "/admin/feedback/${id}/reply"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 207,
+    "verb": "POST",
+    "url": "/feedback"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 208,
+    "verb": "GET",
+    "url": "/feedback"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 209,
+    "verb": "POST",
+    "url": "/feedback/${id}/message"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 212,
+    "verb": "POST",
+    "url": "/admin/destinations"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 213,
+    "verb": "DELETE",
+    "url": "/admin/destinations/${id}"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 214,
+    "verb": "GET",
+    "url": "/admin/destinations/${id}"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 215,
+    "verb": "PUT",
+    "url": "/admin/destinations/${id}"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 216,
+    "verb": "POST",
+    "url": "/admin/destinations/${id}"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 217,
+    "verb": "POST",
+    "url": "/admin/destinations/${id}/images"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 218,
+    "verb": "PATCH",
+    "url": "/admin/destinations/${id}/images"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 219,
+    "verb": "PATCH",
+    "url": "/admin/destinations/${id}/images"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 220,
+    "verb": "DELETE",
+    "url": "/admin/destinations/${id}/images"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 221,
+    "verb": "GET",
+    "url": "/admin/destinations/${id}/videos"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 222,
+    "verb": "POST",
+    "url": "/admin/destinations/${id}/videos"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 223,
+    "verb": "PATCH",
+    "url": "/admin/destinations/${id}/videos"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 224,
+    "verb": "DELETE",
+    "url": "/admin/destinations/${id}/videos"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 227,
+    "verb": "GET",
+    "url": "/audit/logs/summary/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 228,
+    "verb": "GET",
+    "url": "/audit/logs/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 229,
+    "verb": "GET",
+    "url": "/audit/errors/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 230,
+    "verb": "POST",
+    "url": "/audit/errors/${id}/acknowledge/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 231,
+    "verb": "POST",
+    "url": "/audit/errors/bulk-resolve/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 232,
+    "verb": "GET",
+    "url": "/audit/health/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 233,
+    "verb": "GET",
+    "url": "/audit/health/latest/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 234,
+    "verb": "GET",
+    "url": "/system/health/full/"
+  },
+  {
+    "file": "api/adminApi.js",
+    "line": 235,
+    "verb": "POST",
+    "url": "/system/health/sample/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 4,
+    "verb": "GET",
+    "url": "/admin-panel/hotel-assignments/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 6,
+    "verb": "POST",
+    "url": "/admin-panel/hotel-assignments/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 7,
+    "verb": "DELETE",
+    "url": "/admin-panel/hotel-assignments/${id}/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 10,
+    "verb": "POST",
+    "url": "/admin-panel/tasks/${id}/action/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 11,
+    "verb": "GET",
+    "url": "/admin-panel/my-performance/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 14,
+    "verb": "GET",
+    "url": "/admin-panel/support/tickets/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 16,
+    "verb": "POST",
+    "url": "/admin-panel/support/tickets/${id}/action/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 18,
+    "verb": "GET",
+    "url": "/admin-panel/my-hotels/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 20,
+    "verb": "GET",
+    "url": "/admin-panel/my-bookings/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 22,
+    "verb": "POST",
+    "url": "/admin-panel/my-bookings/${id}/action/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 25,
+    "verb": "GET",
+    "url": "/admin-panel/data-entry/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 26,
+    "verb": "POST",
+    "url": "/admin-panel/data-entry/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 28,
+    "verb": "POST",
+    "url": "/admin-panel/data-entry/${id}/action/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 30,
+    "verb": "GET",
+    "url": "/admin-panel/media/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 31,
+    "verb": "POST",
+    "url": "/admin-panel/media/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 32,
+    "verb": "POST",
+    "url": "/admin-panel/media/${id}/action/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 34,
+    "verb": "GET",
+    "url": "/admin-panel/safety/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 36,
+    "verb": "POST",
+    "url": "/admin-panel/safety/${kind}/${id}/action/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 37,
+    "verb": "GET",
+    "url": "/admin-panel/tasks/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 38,
+    "verb": "POST",
+    "url": "/admin-panel/tasks/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 40,
+    "verb": "PATCH",
+    "url": "/admin-panel/tasks/${id}/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 41,
+    "verb": "GET",
+    "url": "/admin-panel/dashboard-summary/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 50,
+    "verb": "GET",
+    "url": "/destinations/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 52,
+    "verb": "POST",
+    "url": "/destinations/${slug}/approve/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 57,
+    "verb": "GET",
+    "url": "/admin-panel/destinations-missing-images/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 66,
+    "verb": "GET",
+    "url": "/admin/users"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 67,
+    "verb": "PATCH",
+    "url": "/admin/users/${userId}/status"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 68,
+    "verb": "PATCH",
+    "url": "/admin/users/${userId}/status"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 69,
+    "verb": "PATCH",
+    "url": "/admin/users/${userId}/status"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 78,
+    "verb": "GET",
+    "url": "/favorites/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 79,
+    "verb": "GET",
+    "url": "/history/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 80,
+    "verb": "GET",
+    "url": "/budgets/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 81,
+    "verb": "GET",
+    "url": "/reviews/"
+  },
+  {
+    "file": "api/adminPanelApi.js",
+    "line": 82,
+    "verb": "GET",
+    "url": "/bookings/"
+  },
+  {
+    "file": "api/alertApi.js",
+    "line": 10,
+    "verb": "GET",
+    "url": "/destinations/"
+  },
+  {
+    "file": "api/alertApi.js",
+    "line": 11,
+    "verb": "POST",
+    "url": "/destinations/"
+  },
+  {
+    "file": "api/alertApi.js",
+    "line": 12,
+    "verb": "PUT",
+    "url": "/destinations/${id}/"
+  },
+  {
+    "file": "api/alertApi.js",
+    "line": 13,
+    "verb": "DELETE",
+    "url": "/destinations/${id}/"
+  },
+  {
+    "file": "api/alertApi.js",
+    "line": 15,
+    "verb": "GET",
+    "url": "/alerts/"
+  },
+  {
+    "file": "api/alertApi.js",
+    "line": 16,
+    "verb": "POST",
+    "url": "/alerts/"
+  },
+  {
+    "file": "api/authApi.js",
+    "line": 4,
+    "verb": "POST",
+    "url": "/auth/login/"
+  },
+  {
+    "file": "api/authApi.js",
+    "line": 6,
+    "verb": "POST",
+    "url": "/auth/register/"
+  },
+  {
+    "file": "api/authApi.js",
+    "line": 9,
+    "verb": "POST",
+    "url": "/auth/forgot-password/"
+  },
+  {
+    "file": "api/authApi.js",
+    "line": 12,
+    "verb": "POST",
+    "url": "/auth/reset-password/"
+  },
+  {
+    "file": "api/authApi.js",
+    "line": 20,
+    "verb": "POST",
+    "url": "/auth/reset-password/otp/request/"
+  },
+  {
+    "file": "api/authApi.js",
+    "line": 22,
+    "verb": "POST",
+    "url": "/auth/reset-password/otp/verify/"
+  },
+  {
+    "file": "api/authApi.js",
+    "line": 28,
+    "verb": "POST",
+    "url": "/auth/verify-email/"
+  },
+  {
+    "file": "api/authApi.js",
+    "line": 36,
+    "verb": "POST",
+    "url": "/auth/resend-verification/"
+  },
+  {
+    "file": "api/authApi.js",
+    "line": 39,
+    "verb": "POST",
+    "url": "/auth/token/refresh/"
+  },
+  {
+    "file": "api/authApi.js",
+    "line": 46,
+    "verb": "POST",
+    "url": "/auth/logout/"
+  },
+  {
+    "file": "api/authApi.js",
+    "line": 48,
+    "verb": "GET",
+    "url": "/auth/profile/"
+  },
+  {
+    "file": "api/authApi.js",
+    "line": 50,
+    "verb": "POST",
+    "url": "/auth/account/delete/"
+  },
+  {
+    "file": "api/authApi.js",
+    "line": 51,
+    "verb": "GET",
+    "url": "/auth/capabilities/"
+  },
+  {
+    "file": "api/authApi.js",
+    "line": 60,
+    "verb": "POST",
+    "url": "/auth/verify-phone/"
+  },
+  {
+    "file": "api/authApi.js",
+    "line": 61,
+    "verb": "POST",
+    "url": "/auth/resend-phone-otp/"
+  },
+  {
+    "file": "api/authApi.js",
+    "line": 70,
+    "verb": "POST",
+    "url": "/auth/google/callback/"
+  },
+  {
+    "file": "api/authApi.js",
+    "line": 73,
+    "verb": "POST",
+    "url": "/auth/github/callback/"
+  },
+  {
+    "file": "api/bookingApi.js",
+    "line": 4,
+    "verb": "GET",
+    "url": "/bookings/"
+  },
+  {
+    "file": "api/bookingApi.js",
+    "line": 5,
+    "verb": "GET",
+    "url": "/bookings/${id}/"
+  },
+  {
+    "file": "api/bookingApi.js",
+    "line": 6,
+    "verb": "POST",
+    "url": "/bookings/"
+  },
+  {
+    "file": "api/bookingApi.js",
+    "line": 7,
+    "verb": "POST",
+    "url": "/bookings/${id}/cancel/"
+  },
+  {
+    "file": "api/bookingApi.js",
+    "line": 8,
+    "verb": "POST",
+    "url": "/bookings/${id}/confirm/"
+  },
+  {
+    "file": "api/bookingApi.js",
+    "line": 10,
+    "verb": "POST",
+    "url": "/hotel-reviews/"
+  },
+  {
+    "file": "api/bookingApi.js",
+    "line": 11,
+    "verb": "GET",
+    "url": "/hotels/"
+  },
+  {
+    "file": "api/budgetApi.js",
+    "line": 8,
+    "verb": "POST",
+    "url": "/ml/budget/"
+  },
+  {
+    "file": "api/budgetApi.js",
+    "line": 9,
+    "verb": "GET",
+    "url": "/budget/summary/"
+  },
+  {
+    "file": "api/budgetApi.js",
+    "line": 10,
+    "verb": "GET",
+    "url": "/fx/rates/"
+  },
+  {
+    "file": "api/chatbotApi.js",
+    "line": 13,
+    "verb": "POST",
+    "url": "/chatbot/message/"
+  },
+  {
+    "file": "api/chatbotApi.js",
+    "line": 28,
+    "verb": "GET",
+    "url": "/chatbot/history/"
+  },
+  {
+    "file": "api/configApi.js",
+    "line": 8,
+    "verb": "GET",
+    "url": "/config/public/"
+  },
+  {
+    "file": "api/configApi.js",
+    "line": 10,
+    "verb": "POST",
+    "url": "/newsletter/subscribe/"
+  },
+  {
+    "file": "api/configApi.js",
+    "line": 12,
+    "verb": "POST",
+    "url": "/newsletter/unsubscribe/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 6,
+    "verb": "GET",
+    "url": "/destinations/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 9,
+    "verb": "GET",
+    "url": "/destinations/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 14,
+    "verb": "GET",
+    "url": "/destinations/nearby/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 18,
+    "verb": "GET",
+    "url": "/destinations/map-points/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 22,
+    "verb": "GET",
+    "url": "/nearby/pois/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 27,
+    "verb": "GET",
+    "url": "/destinations/${slugOrId}/nearby-pois/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 34,
+    "verb": "GET",
+    "url": "/categories/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 37,
+    "verb": "GET",
+    "url": "/destinations/${slug}/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 40,
+    "verb": "GET",
+    "url": "/destinations/${slug}/essentials/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 43,
+    "verb": "GET",
+    "url": "/destinations/${slug}/translate/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 46,
+    "verb": "GET",
+    "url": "/destinations/nearby/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 51,
+    "verb": "GET",
+    "url": "/destinations/nearby/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 66,
+    "verb": "GET",
+    "url": "/reviews/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 71,
+    "verb": "POST",
+    "url": "/reviews/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 74,
+    "verb": "GET",
+    "url": "/destinations/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 81,
+    "verb": "GET",
+    "url": "/destinations/search-discover/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 86,
+    "verb": "POST",
+    "url": "/destinations/research/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 92,
+    "verb": "GET",
+    "url": "/destinations/autocomplete/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 97,
+    "verb": "GET",
+    "url": "/destinations/${slugOrId}/images/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 100,
+    "verb": "POST",
+    "url": "/destinations/${slugOrId}/images/discover/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 103,
+    "verb": "POST",
+    "url": "/destinations/${slugOrId}/images/refresh/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 112,
+    "verb": "GET",
+    "url": "/destinations/mood-recommendations/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 125,
+    "verb": "POST",
+    "url": "/destinations/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 130,
+    "verb": "GET",
+    "url": "/destinations/my_submissions/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 134,
+    "verb": "DELETE",
+    "url": "/destinations/${slugOrId}/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 136,
+    "verb": "GET",
+    "url": "/gallery/featured/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 137,
+    "verb": "GET",
+    "url": "/gallery/districts/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 138,
+    "verb": "GET",
+    "url": "/discover-nepal/"
+  },
+  {
+    "file": "api/destinationApi.js",
+    "line": 143,
+    "verb": "GET",
+    "url": "/destinations/all-with-distances/"
+  },
+  {
+    "file": "api/districtApi.js",
+    "line": 5,
+    "verb": "GET",
+    "url": "/provinces/"
+  },
+  {
+    "file": "api/districtApi.js",
+    "line": 6,
+    "verb": "GET",
+    "url": "/districts/"
+  },
+  {
+    "file": "api/districtApi.js",
+    "line": 7,
+    "verb": "GET",
+    "url": "/districts/${slug}/"
+  },
+  {
+    "file": "api/emergencyApi.js",
+    "line": 5,
+    "verb": "GET",
+    "url": "/destinations/${encodeURIComponent(destinationRef)}/emergency/"
+  },
+  {
+    "file": "api/emergencyApi.js",
+    "line": 7,
+    "verb": "GET",
+    "url": "/emergency/nearby/"
+  },
+  {
+    "file": "api/emergencyApi.js",
+    "line": 8,
+    "verb": "GET",
+    "url": "/emergency/national-hotlines/"
+  },
+  {
+    "file": "api/emergencyService.js",
+    "line": 21,
+    "verb": "GET",
+    "url": "/emergency-contacts/nearest/"
+  },
+  {
+    "file": "api/exploreApi.js",
+    "line": 7,
+    "verb": "GET",
+    "url": "/search/"
+  },
+  {
+    "file": "api/exploreApi.js",
+    "line": 8,
+    "verb": "GET",
+    "url": "/discover/"
+  },
+  {
+    "file": "api/exploreApi.js",
+    "line": 9,
+    "verb": "GET",
+    "url": "/discover/options/"
+  },
+  {
+    "file": "api/exploreApi.js",
+    "line": 10,
+    "verb": "GET",
+    "url": "/season-guide/"
+  },
+  {
+    "file": "api/exploreApi.js",
+    "line": 11,
+    "verb": "GET",
+    "url": "/decide/"
+  },
+  {
+    "file": "api/exploreApi.js",
+    "line": 12,
+    "verb": "GET",
+    "url": "/destinations/${slugOrId}/sentiment/"
+  },
+  {
+    "file": "api/exploreApi.js",
+    "line": 13,
+    "verb": "POST",
+    "url": "/travel-plans/${planId}/share/"
+  },
+  {
+    "file": "api/exploreApi.js",
+    "line": 14,
+    "verb": "DELETE",
+    "url": "/travel-plans/${planId}/share/"
+  },
+  {
+    "file": "api/exploreApi.js",
+    "line": 15,
+    "verb": "GET",
+    "url": "/shared-plans/${token}/"
+  },
+  {
+    "file": "api/hotelApi.js",
+    "line": 8,
+    "verb": "GET",
+    "url": "/hotels/"
+  },
+  {
+    "file": "api/hotelApi.js",
+    "line": 13,
+    "verb": "GET",
+    "url": "/hotels/nearby/"
+  },
+  {
+    "file": "api/hotelApi.js",
+    "line": 15,
+    "verb": "GET",
+    "url": "/hotels/${id}/"
+  },
+  {
+    "file": "api/hotelApi.js",
+    "line": 22,
+    "verb": "GET",
+    "url": "/hotels/"
+  },
+  {
+    "file": "api/hotelApi.js",
+    "line": 25,
+    "verb": "GET",
+    "url": "/hotels/"
+  },
+  {
+    "file": "api/hotelApi.js",
+    "line": 34,
+    "verb": "GET",
+    "url": "/hotels/search/"
+  },
+  {
+    "file": "api/itineraryApi.js",
+    "line": 14,
+    "verb": "POST",
+    "url": "/ml/itinerary/"
+  },
+  {
+    "file": "api/itineraryApi.js",
+    "line": 15,
+    "verb": "POST",
+    "url": "/travel-plans/"
+  },
+  {
+    "file": "api/itineraryApi.js",
+    "line": 16,
+    "verb": "GET",
+    "url": "/travel-plans/"
+  },
+  {
+    "file": "api/LocalApi.js",
+    "line": 16,
+    "verb": "GET",
+    "url": "/destinations/my_submissions/"
+  },
+  {
+    "file": "api/LocalApi.js",
+    "line": 18,
+    "verb": "POST",
+    "url": "/destinations/"
+  },
+  {
+    "file": "api/LocalApi.js",
+    "line": 20,
+    "verb": "DELETE",
+    "url": "/destinations/${slugOrId}/"
+  },
+  {
+    "file": "api/navigationApi.js",
+    "line": 12,
+    "verb": "POST",
+    "url": "/navigation/route"
+  },
+  {
+    "file": "api/navigationApi.js",
+    "line": 20,
+    "verb": "POST",
+    "url": "/navigation/travel-options/"
+  },
+  {
+    "file": "api/nearbyApi.js",
+    "line": 12,
+    "verb": "GET",
+    "url": "/nearby/places"
+  },
+  {
+    "file": "api/nearbyApi.js",
+    "line": 18,
+    "verb": "GET",
+    "url": "/nearby/hospitals"
+  },
+  {
+    "file": "api/nearbyApi.js",
+    "line": 24,
+    "verb": "GET",
+    "url": "/nearby/police"
+  },
+  {
+    "file": "api/nearbyApi.js",
+    "line": 32,
+    "verb": "POST",
+    "url": "/navigation/route"
+  },
+  {
+    "file": "api/recommendationApi.js",
+    "line": 5,
+    "verb": "GET",
+    "url": "/recommendations/personalized"
+  },
+  {
+    "file": "api/recommendationApi.js",
+    "line": 9,
+    "verb": "GET",
+    "url": "/recommendations/personalized"
+  },
+  {
+    "file": "api/riskApi.js",
+    "line": 5,
+    "verb": "GET",
+    "url": "/destinations/${encodeURIComponent(destinationRef)}/risk/"
+  },
+  {
+    "file": "api/safetyApi.js",
+    "line": 7,
+    "verb": "GET",
+    "url": "/safety/trusted-contacts/"
+  },
+  {
+    "file": "api/safetyApi.js",
+    "line": 10,
+    "verb": "POST",
+    "url": "/safety/trusted-contacts/"
+  },
+  {
+    "file": "api/safetyApi.js",
+    "line": 13,
+    "verb": "DELETE",
+    "url": "/safety/trusted-contacts/${id}/"
+  },
+  {
+    "file": "api/safetyApi.js",
+    "line": 19,
+    "verb": "GET",
+    "url": "/safety/trips/"
+  },
+  {
+    "file": "api/safetyApi.js",
+    "line": 22,
+    "verb": "POST",
+    "url": "/safety/trips/"
+  },
+  {
+    "file": "api/safetyApi.js",
+    "line": 25,
+    "verb": "POST",
+    "url": "/safety/trips/${tripId}/ping/"
+  },
+  {
+    "file": "api/safetyApi.js",
+    "line": 31,
+    "verb": "POST",
+    "url": "/safety/trips/${tripId}/end/"
+  },
+  {
+    "file": "api/safetyApi.js",
+    "line": 40,
+    "verb": "GET",
+    "url": "/safety/trip-share/${token}/"
+  },
+  {
+    "file": "api/safetyApi.js",
+    "line": 48,
+    "verb": "GET",
+    "url": "/safety/sos/"
+  },
+  {
+    "file": "api/safetyApi.js",
+    "line": 51,
+    "verb": "POST",
+    "url": "/safety/sos/"
+  },
+  {
+    "file": "api/safetyApi.js",
+    "line": 57,
+    "verb": "POST",
+    "url": "/safety/sos/${id}/resolve/"
+  },
+  {
+    "file": "api/safetyApi.js",
+    "line": 72,
+    "verb": "GET",
+    "url": "/safety/family-links/"
+  },
+  {
+    "file": "api/safetyApi.js",
+    "line": 75,
+    "verb": "POST",
+    "url": "/safety/family-links/"
+  },
+  {
+    "file": "api/safetyApi.js",
+    "line": 78,
+    "verb": "POST",
+    "url": "/safety/family-links/${id}/accept/"
+  },
+  {
+    "file": "api/safetyApi.js",
+    "line": 81,
+    "verb": "POST",
+    "url": "/safety/family-links/${id}/decline/"
+  },
+  {
+    "file": "api/safetyApi.js",
+    "line": 84,
+    "verb": "DELETE",
+    "url": "/safety/family-links/${id}/"
+  },
+  {
+    "file": "api/safetyApi.js",
+    "line": 88,
+    "verb": "GET",
+    "url": "/safety/family/members/"
+  },
+  {
+    "file": "api/translationApi.js",
+    "line": 19,
+    "verb": "POST",
+    "url": "/translate/batch/"
+  },
+  {
+    "file": "api/translationApi.js",
+    "line": 22,
+    "verb": "POST",
+    "url": "/translate/"
+  },
+  {
+    "file": "api/travelApi.js",
+    "line": 8,
+    "verb": "GET",
+    "url": "/fx/rates/"
+  },
+  {
+    "file": "api/travelApi.js",
+    "line": 10,
+    "verb": "GET",
+    "url": "/travel-requirements/"
+  },
+  {
+    "file": "api/travelApi.js",
+    "line": 12,
+    "verb": "GET",
+    "url": "/travel-requirements/destination/${id}/"
+  },
+  {
+    "file": "api/travelApi.js",
+    "line": 20,
+    "verb": "POST",
+    "url": "/navigation/calculate/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 31,
+    "verb": "GET",
+    "url": "/auth/profile/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 33,
+    "verb": "GET",
+    "url": "/auth/capabilities/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 36,
+    "verb": "PUT",
+    "url": "/auth/profile/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 46,
+    "verb": "PATCH",
+    "url": "/auth/profile/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 55,
+    "verb": "POST",
+    "url": "/auth/change-password/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 68,
+    "verb": "GET",
+    "url": "/favorites/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 72,
+    "verb": "POST",
+    "url": "/favorites/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 81,
+    "verb": "DELETE",
+    "url": "/favorites/${favoriteId}/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 86,
+    "verb": "GET",
+    "url": "/history/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 91,
+    "verb": "GET",
+    "url": "/notifications/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 95,
+    "verb": "PUT",
+    "url": "/notifications/${id}/mark_read/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 96,
+    "verb": "PUT",
+    "url": "/notifications/${id}/mark_unread/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 97,
+    "verb": "POST",
+    "url": "/notifications/mark_all_read/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 98,
+    "verb": "POST",
+    "url": "/notifications/mark_all_unread/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 99,
+    "verb": "DELETE",
+    "url": "/notifications/${id}/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 100,
+    "verb": "GET",
+    "url": "/notification-preferences/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 101,
+    "verb": "PATCH",
+    "url": "/notification-preferences/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 110,
+    "verb": "GET",
+    "url": "/languages/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 113,
+    "verb": "PUT",
+    "url": "/auth/profile/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 115,
+    "verb": "GET",
+    "url": "/marketplace/listings/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 116,
+    "verb": "GET",
+    "url": "/marketplace/listings/${slug}/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 117,
+    "verb": "POST",
+    "url": "/marketplace/partners/apply/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 118,
+    "verb": "POST",
+    "url": "/marketplace/checkout/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 119,
+    "verb": "GET",
+    "url": "/marketplace/partner/desk/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 120,
+    "verb": "POST",
+    "url": "/marketplace/partner/desk/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 121,
+    "verb": "PATCH",
+    "url": "/marketplace/partner/desk/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 122,
+    "verb": "GET",
+    "url": "/marketplace/orders/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 123,
+    "verb": "GET",
+    "url": "/marketplace/orders/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 128,
+    "verb": "POST",
+    "url": "/marketplace/checkout/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 148,
+    "verb": "GET",
+    "url": "/traveler-documents/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 154,
+    "verb": "POST",
+    "url": "/traveler-documents/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 159,
+    "verb": "PATCH",
+    "url": "/traveler-documents/${id}/"
+  },
+  {
+    "file": "api/userApi.js",
+    "line": 163,
+    "verb": "DELETE",
+    "url": "/traveler-documents/${id}/"
+  },
+  {
+    "file": "api/weatherApi.js",
+    "line": 5,
+    "verb": "GET",
+    "url": "/weather/current/"
+  },
+  {
+    "file": "api/workforceApi.js",
+    "line": 9,
+    "verb": "GET",
+    "url": "/workforce/guides/"
+  },
+  {
+    "file": "api/workforceApi.js",
+    "line": 10,
+    "verb": "GET",
+    "url": "/workforce/guides/${id}/"
+  },
+  {
+    "file": "api/workforceApi.js",
+    "line": 13,
+    "verb": "GET",
+    "url": "/workforce/guide-profile/"
+  },
+  {
+    "file": "api/workforceApi.js",
+    "line": 14,
+    "verb": "PUT",
+    "url": "/workforce/guide-profile/"
+  },
+  {
+    "file": "api/workforceApi.js",
+    "line": 15,
+    "verb": "GET",
+    "url": "/workforce/guide-applications/"
+  },
+  {
+    "file": "api/workforceApi.js",
+    "line": 16,
+    "verb": "POST",
+    "url": "/workforce/guide-applications/"
+  },
+  {
+    "file": "api/workforceApi.js",
+    "line": 19,
+    "verb": "GET",
+    "url": "/workforce/guides/${id}/reviews/"
+  },
+  {
+    "file": "api/workforceApi.js",
+    "line": 20,
+    "verb": "GET",
+    "url": "/workforce/guide-bookings/"
+  },
+  {
+    "file": "api/workforceApi.js",
+    "line": 21,
+    "verb": "POST",
+    "url": "/workforce/guide-bookings/"
+  },
+  {
+    "file": "api/workforceApi.js",
+    "line": 23,
+    "verb": "POST",
+    "url": "/workforce/guide-bookings/${id}/action/"
+  },
+  {
+    "file": "api/workforceApi.js",
+    "line": 24,
+    "verb": "POST",
+    "url": "/workforce/guide-bookings/${id}/review/"
+  },
+  {
+    "file": "api/workforceApi.js",
+    "line": 27,
+    "verb": "GET",
+    "url": "/workforce/jobs/"
+  },
+  {
+    "file": "api/workforceApi.js",
+    "line": 28,
+    "verb": "POST",
+    "url": "/workforce/jobs/"
+  },
+  {
+    "file": "api/workforceApi.js",
+    "line": 29,
+    "verb": "GET",
+    "url": "/workforce/job-applications/"
+  },
+  {
+    "file": "api/workforceApi.js",
+    "line": 30,
+    "verb": "POST",
+    "url": "/workforce/job-applications/"
+  },
+  {
+    "file": "api/workforceApi.js",
+    "line": 34,
+    "verb": "GET",
+    "url": "/workforce/admin/applications/"
+  },
+  {
+    "file": "api/workforceApi.js",
+    "line": 36,
+    "verb": "POST",
+    "url": "/workforce/admin/applications/${id}/action/"
+  },
+  {
+    "file": "api/workforceApi.js",
+    "line": 38,
+    "verb": "POST",
+    "url": "/workforce/admin/guides/${id}/action/"
+  },
+  {
+    "file": "api/workforceApi.js",
+    "line": 40,
+    "verb": "GET",
+    "url": "/workforce/admin/jobs/"
+  },
+  {
+    "file": "api/workforceApi.js",
+    "line": 41,
+    "verb": "POST",
+    "url": "/workforce/admin/jobs/${id}/action/"
+  },
+  {
+    "file": "api/workforceApi.js",
+    "line": 42,
+    "verb": "GET",
+    "url": "/workforce/admin/job-applications/"
+  },
+  {
+    "file": "api/workforceApi.js",
+    "line": 44,
+    "verb": "POST",
+    "url": "/workforce/admin/job-applications/${id}/action/"
+  },
+  {
+    "file": "api/workforceApi.js",
+    "line": 45,
+    "verb": "GET",
+    "url": "/workforce/admin/overview/"
+  },
+  {
+    "file": "api/workforceApi.js",
+    "line": 46,
+    "verb": "GET",
+    "url": "/workforce/guide-stats/"
+  },
+  {
+    "file": "components/admin/AdminReportManagerPanel.jsx",
+    "line": 24,
+    "verb": "GET",
+    "url": "/admin/data-reports/"
+  },
+  {
+    "file": "components/admin/AdminReportManagerPanel.jsx",
+    "line": 41,
+    "verb": "PATCH",
+    "url": "/admin/data-reports/${selectedReport.id}/"
+  },
+  {
+    "file": "components/admin/AdminRouteManagerPanel.jsx",
+    "line": 99,
+    "verb": "POST",
+    "url": "/navigation/calculate/"
+  },
+  {
+    "file": "components/admin/ContentLifecyclePanel.jsx",
+    "line": 70,
+    "verb": "GET",
+    "url": "/admin/destinations"
+  },
+  {
+    "file": "components/admin/ContentLifecyclePanel.jsx",
+    "line": 85,
+    "verb": "GET",
+    "url": "/admin/approvals/"
+  },
+  {
+    "file": "components/admin/ContentLifecyclePanel.jsx",
+    "line": 90,
+    "verb": "GET",
+    "url": "/admin/import-conflicts/"
+  },
+  {
+    "file": "components/admin/ContentLifecyclePanel.jsx",
+    "line": 95,
+    "verb": "GET",
+    "url": "/admin/duplicates/"
+  },
+  {
+    "file": "components/admin/ContentLifecyclePanel.jsx",
+    "line": 100,
+    "verb": "GET",
+    "url": "/admin/data-integrity/"
+  },
+  {
+    "file": "components/admin/ContentLifecyclePanel.jsx",
+    "line": 105,
+    "verb": "GET",
+    "url": "/admin/audit-activity/"
+  },
+  {
+    "file": "components/admin/ContentLifecyclePanel.jsx",
+    "line": 125,
+    "verb": "POST",
+    "url": "/admin/destinations/${row.id}/lifecycle/"
+  },
+  {
+    "file": "components/admin/ContentLifecyclePanel.jsx",
+    "line": 135,
+    "verb": "GET",
+    "url": "/admin/destinations/${row.id}/preview/"
+  },
+  {
+    "file": "components/admin/ContentLifecyclePanel.jsx",
+    "line": 147,
+    "verb": "POST",
+    "url": "/admin/destinations/bulk/"
+  },
+  {
+    "file": "components/admin/ContentLifecyclePanel.jsx",
+    "line": 162,
+    "verb": "POST",
+    "url": "/admin/import-conflicts/"
+  },
+  {
+    "file": "components/admin/ContentLifecyclePanel.jsx",
+    "line": 173,
+    "verb": "POST",
+    "url": "/admin/approvals/"
+  },
+  {
+    "file": "components/admin/ContentLifecyclePanel.jsx",
+    "line": 192,
+    "verb": "POST",
+    "url": "/admin/duplicates/decision/"
+  },
+  {
+    "file": "components/admin/ContentLifecyclePanel.jsx",
+    "line": 202,
+    "verb": "GET",
+    "url": "/admin/destinations/revisions/"
+  },
+  {
+    "file": "components/admin/ContentLifecyclePanel.jsx",
+    "line": 210,
+    "verb": "POST",
+    "url": "/admin/destinations/revisions/"
+  },
+  {
+    "file": "components/admin/DataHealthPanel.jsx",
+    "line": 20,
+    "verb": "GET",
+    "url": "/admin/data-health/"
+  },
+  {
+    "file": "components/admin/DataHealthPanel.jsx",
+    "line": 27,
+    "verb": "GET",
+    "url": "/admin/navigation-analytics/"
+  },
+  {
+    "file": "components/admin/DestinationTranslationsPanel.jsx",
+    "line": 85,
+    "verb": "GET",
+    "url": "/destinations/"
+  },
+  {
+    "file": "components/admin/DestinationTranslationsPanel.jsx",
+    "line": 92,
+    "verb": "POST",
+    "url": "/destinations/${d.slug || d.id}/translate/"
+  },
+  {
+    "file": "components/admin/UITranslationsPanel.jsx",
+    "line": 39,
+    "verb": "GET",
+    "url": "/translation/ui-strings/"
+  },
+  {
+    "file": "components/admin/UITranslationsPanel.jsx",
+    "line": 40,
+    "verb": "GET",
+    "url": "/translation/ui-strings/"
+  },
+  {
+    "file": "components/admin/UITranslationsPanel.jsx",
+    "line": 89,
+    "verb": "POST",
+    "url": "/translation/ui-strings/bulk/"
+  },
+  {
+    "file": "components/admin/UITranslationsPanel.jsx",
+    "line": 111,
+    "verb": "POST",
+    "url": "/translation/ui-strings/bulk/"
+  },
+  {
+    "file": "components/admin/UITranslationsPanel.jsx",
+    "line": 143,
+    "verb": "POST",
+    "url": "/translate/"
+  },
+  {
+    "file": "components/admin/UITranslationsPanel.jsx",
+    "line": 152,
+    "verb": "POST",
+    "url": "/translation/ui-strings/bulk/"
+  },
+  {
+    "file": "components/BulkExport.jsx",
+    "line": 43,
+    "verb": "GET",
+    "url": "/export/"
+  },
+  {
+    "file": "components/cms/CMSBlock.jsx",
+    "line": 50,
+    "verb": "GET",
+    "url": "/marketplace/listings/"
+  },
+  {
+    "file": "components/cms/CMSBlock.jsx",
+    "line": 486,
+    "verb": "POST",
+    "url": "/feedback/"
+  },
+  {
+    "file": "components/common/LikeButton.jsx",
+    "line": 47,
+    "verb": "POST",
+    "url": "/likes/${targetType}/${targetId}"
+  },
+  {
+    "file": "components/common/ReportErrorModal.jsx",
+    "line": 19,
+    "verb": "POST",
+    "url": "/reports/submit/"
+  },
+  {
+    "file": "components/destinations/DestinationWeather.jsx",
+    "line": 48,
+    "verb": "GET",
+    "url": "/weather/"
+  },
+  {
+    "file": "components/EnhancedSearch.jsx",
+    "line": 79,
+    "verb": "GET",
+    "url": "/destinations/autocomplete/"
+  },
+  {
+    "file": "components/EnhancedSearch.jsx",
+    "line": 104,
+    "verb": "GET",
+    "url": "/destinations/"
+  },
+  {
+    "file": "components/HealthCheck.jsx",
+    "line": 33,
+    "verb": "GET",
+    "url": "/health/"
+  },
+  {
+    "file": "components/landing/TestimonialsSection.jsx",
+    "line": 31,
+    "verb": "GET",
+    "url": "/reviews/"
+  },
+  {
+    "file": "components/LocationHistory.jsx",
+    "line": 30,
+    "verb": "GET",
+    "url": "/location-history/"
+  },
+  {
+    "file": "components/LocationHistory.jsx",
+    "line": 54,
+    "verb": "DELETE",
+    "url": "/location-history/clear/"
+  },
+  {
+    "file": "components/LoyaltyRewards.jsx",
+    "line": 64,
+    "verb": "GET",
+    "url": "/loyalty/status/"
+  },
+  {
+    "file": "components/LoyaltyRewards.jsx",
+    "line": 105,
+    "verb": "POST",
+    "url": "/loyalty/redeem/"
+  },
+  {
+    "file": "components/NotificationPreferences.jsx",
+    "line": 28,
+    "verb": "GET",
+    "url": "/notification-preferences/"
+  },
+  {
+    "file": "components/NotificationPreferences.jsx",
+    "line": 63,
+    "verb": "PATCH",
+    "url": "/notification-preferences/"
+  },
+  {
+    "file": "components/ReviewModeration.jsx",
+    "line": 34,
+    "verb": "GET",
+    "url": "/reviews/moderation-queue/"
+  },
+  {
+    "file": "components/ReviewModeration.jsx",
+    "line": 57,
+    "verb": "POST",
+    "url": "/reviews/${reviewId}/moderate/"
+  },
+  {
+    "file": "components/ReviewModeration.jsx",
+    "line": 75,
+    "verb": "POST",
+    "url": "/reviews/bulk-moderate/"
+  },
+  {
+    "file": "components/TripCollaboration.jsx",
+    "line": 26,
+    "verb": "GET",
+    "url": "/trips/${tripId}/collaborators/"
+  },
+  {
+    "file": "components/TripCollaboration.jsx",
+    "line": 52,
+    "verb": "POST",
+    "url": "/trips/${tripId}/generate-share-link/"
+  },
+  {
+    "file": "components/TripCollaboration.jsx",
+    "line": 78,
+    "verb": "POST",
+    "url": "/trips/${tripId}/collaborators/"
+  },
+  {
+    "file": "components/TripCollaboration.jsx",
+    "line": 98,
+    "verb": "DELETE",
+    "url": "/trips/${tripId}/collaborators/${collabId}/"
+  },
+  {
+    "file": "components/user/AddExpenseModal.jsx",
+    "line": 29,
+    "verb": "POST",
+    "url": "/budgets/"
+  },
+  {
+    "file": "components/user/UserFeedbackModal.jsx",
+    "line": 61,
+    "verb": "POST",
+    "url": "/feedback"
+  },
+  {
+    "file": "components/user/UserFeedbackModal.jsx",
+    "line": 81,
+    "verb": "GET",
+    "url": "/feedback?id=${resp.data.id}"
+  },
+  {
+    "file": "components/user/UserFeedbackModal.jsx",
+    "line": 99,
+    "verb": "POST",
+    "url": "/feedback/${selectedThread.id}/message"
+  },
+  {
+    "file": "components/WeatherForecast.jsx",
+    "line": 64,
+    "verb": "GET",
+    "url": "/weather/forecast/"
+  },
+  {
+    "file": "hooks/useTurnByTurn.js",
+    "line": 80,
+    "verb": "GET",
+    "url": "/navigation/route-context/"
+  },
+  {
+    "file": "hooks/useTurnByTurn.js",
+    "line": 96,
+    "verb": "POST",
+    "url": "/navigation/road-route/"
+  },
+  {
+    "file": "hooks/useTurnByTurn.js",
+    "line": 132,
+    "verb": "POST",
+    "url": "/navigation/progress/"
+  },
+  {
+    "file": "hooks/useTurnByTurn.js",
+    "line": 177,
+    "verb": "POST",
+    "url": "/navigation/select-alternative/"
+  },
+  {
+    "file": "hooks/useTurnByTurn.js",
+    "line": 196,
+    "verb": "POST",
+    "url": "/navigation/itinerary-route/"
+  },
+  {
+    "file": "hooks/useTurnByTurn.js",
+    "line": 303,
+    "verb": "POST",
+    "url": "/navigation/end/"
+  },
+  {
+    "file": "i18n/dynamicTranslate.js",
+    "line": 86,
+    "verb": "POST",
+    "url": "/translate/batch/"
+  },
+  {
+    "file": "pages/CustomerSupport.jsx",
+    "line": 103,
+    "verb": "POST",
+    "url": "/feedback"
+  },
+  {
+    "file": "pages/CustomerSupport.jsx",
+    "line": 117,
+    "verb": "GET",
+    "url": "/feedback?id=${resp.data.id}"
+  },
+  {
+    "file": "pages/CustomerSupport.jsx",
+    "line": 135,
+    "verb": "POST",
+    "url": "/feedback/${selectedThread.id}/message"
+  },
+  {
+    "file": "pages/Dashboard.jsx",
+    "line": 171,
+    "verb": "GET",
+    "url": "/reports/submit/"
+  },
+  {
+    "file": "pages/Dashboard.jsx",
+    "line": 244,
+    "verb": "POST",
+    "url": "/ml/itinerary/modify/"
+  },
+  {
+    "file": "pages/DistrictDetail.jsx",
+    "line": 34,
+    "verb": "GET",
+    "url": "/districts/${encodeURIComponent(districtName)}/"
+  },
+  {
+    "file": "pages/DistrictsIndex.jsx",
+    "line": 22,
+    "verb": "GET",
+    "url": "/districts/"
+  },
+  {
+    "file": "pages/Itinerary.jsx",
+    "line": 206,
+    "verb": "POST",
+    "url": "/ml/itinerary/modify/"
+  },
+  {
+    "file": "pages/Navigation.jsx",
+    "line": 247,
+    "verb": "GET",
+    "url": "/alerts/nearby/"
+  },
+  {
+    "file": "pages/Recommendation.jsx",
+    "line": 186,
+    "verb": "POST",
+    "url": "/recommendation-events/"
+  },
+  {
+    "file": "pages/SubmitServicePage.jsx",
+    "line": 36,
+    "verb": "POST",
+    "url": "/infrastructure-submissions/"
+  },
+  {
+    "file": "pages/SubmitServicePage.jsx",
+    "line": 41,
+    "verb": "POST",
+    "url": "/infrastructure-submissions/${submission.id}/media/"
+  },
+  {
+    "file": "pages/TravelGuide.jsx",
+    "line": 23,
+    "verb": "GET",
+    "url": "/travel-guides/${encodeURIComponent(slug)}/"
+  },
+  {
+    "file": "services/adminService.js",
+    "line": 4,
+    "verb": "GET",
+    "url": "/admin/users"
+  },
+  {
+    "file": "services/adminService.js",
+    "line": 5,
+    "verb": "POST",
+    "url": "/admin/users"
+  },
+  {
+    "file": "services/adminService.js",
+    "line": 6,
+    "verb": "PUT",
+    "url": "/admin/users/${id}/"
+  },
+  {
+    "file": "services/adminService.js",
+    "line": 7,
+    "verb": "DELETE",
+    "url": "/admin/users/${id}/"
+  },
+  {
+    "file": "services/adminService.js",
+    "line": 8,
+    "verb": "PUT",
+    "url": "/admin/users/${id}/status"
+  },
+  {
+    "file": "services/adminService.js",
+    "line": 9,
+    "verb": "GET",
+    "url": "/admin/pending-images/"
+  },
+  {
+    "file": "services/adminService.js",
+    "line": 10,
+    "verb": "POST",
+    "url": "/admin/pending-images/${id}/"
+  },
+  {
+    "file": "services/adminService.js",
+    "line": 11,
+    "verb": "POST",
+    "url": "/admin/pending-images/${id}/"
+  },
+  {
+    "file": "services/analyticsService.js",
+    "line": 4,
+    "verb": "GET",
+    "url": "/admin/stats"
+  },
+  {
+    "file": "services/analyticsService.js",
+    "line": 5,
+    "verb": "GET",
+    "url": "/admin/user-tracking/"
+  },
+  {
+    "file": "services/analyticsService.js",
+    "line": 6,
+    "verb": "GET",
+    "url": "/admin/emergencies/"
+  },
+  {
+    "file": "services/analyticsService.js",
+    "line": 7,
+    "verb": "POST",
+    "url": "/admin/emergencies/${id}/resolve/"
+  },
+  {
+    "file": "services/analyticsService.js",
+    "line": 8,
+    "verb": "GET",
+    "url": "/expense-feedback/"
+  },
+  {
+    "file": "services/analyticsService.js",
+    "line": 9,
+    "verb": "GET",
+    "url": "/risk-feedback/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 19,
+    "verb": "POST",
+    "url": "/auth/register/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 21,
+    "verb": "POST",
+    "url": "/auth/login/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 28,
+    "verb": "POST",
+    "url": "/auth/logout/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 32,
+    "verb": "POST",
+    "url": "/auth/verify-email/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 33,
+    "verb": "POST",
+    "url": "/auth/forgot-password/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 34,
+    "verb": "POST",
+    "url": "/auth/reset-password/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 35,
+    "verb": "GET",
+    "url": "/auth/profile/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 36,
+    "verb": "PATCH",
+    "url": "/auth/profile/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 39,
+    "verb": "POST",
+    "url": "/auth/update-location/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 70,
+    "verb": "GET",
+    "url": "/destinations/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 71,
+    "verb": "GET",
+    "url": "/destinations/${slug}/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 75,
+    "verb": "GET",
+    "url": "/destinations/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 79,
+    "verb": "GET",
+    "url": "/destinations/nearby/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 84,
+    "verb": "POST",
+    "url": "/destinations/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 86,
+    "verb": "GET",
+    "url": "/destinations/my_submissions/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 87,
+    "verb": "POST",
+    "url": "/destinations/${slug}/approve/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 88,
+    "verb": "POST",
+    "url": "/destinations/${slug}/translate/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 92,
+    "verb": "GET",
+    "url": "/reviews/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 93,
+    "verb": "POST",
+    "url": "/reviews/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 97,
+    "verb": "POST",
+    "url": "/ratings/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 101,
+    "verb": "GET",
+    "url": "/favorites/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 102,
+    "verb": "POST",
+    "url": "/favorites/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 103,
+    "verb": "DELETE",
+    "url": "/favorites/${id}/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 107,
+    "verb": "GET",
+    "url": "/history/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 108,
+    "verb": "DELETE",
+    "url": "/history/${id}/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 112,
+    "verb": "GET",
+    "url": "/navigation/routes/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 113,
+    "verb": "POST",
+    "url": "/navigation/routes/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 114,
+    "verb": "PATCH",
+    "url": "/navigation/routes/${id}/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 115,
+    "verb": "DELETE",
+    "url": "/navigation/routes/${id}/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 116,
+    "verb": "POST",
+    "url": "/navigation/routes/${id}/recalculate/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 117,
+    "verb": "POST",
+    "url": "/navigation/route-options/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 118,
+    "verb": "GET",
+    "url": "/navigation/provinces/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 123,
+    "verb": "GET",
+    "url": "/alerts/nearby/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 128,
+    "verb": "GET",
+    "url": "/emergency-contacts/nearest/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 132,
+    "verb": "GET",
+    "url": "/notifications/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 133,
+    "verb": "POST",
+    "url": "/notifications/${id}/mark_read/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 134,
+    "verb": "POST",
+    "url": "/notifications/mark_all_read/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 146,
+    "verb": "GET",
+    "url": "/destinations/${slug}/photos/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 148,
+    "verb": "POST",
+    "url": "/destinations/${slug}/photos/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 149,
+    "verb": "GET",
+    "url": "/destinations/${slug}/videos/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 151,
+    "verb": "POST",
+    "url": "/destinations/${slug}/videos/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 155,
+    "verb": "GET",
+    "url": "/hotels/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 159,
+    "verb": "GET",
+    "url": "/destinations/${slug}/weather/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 164,
+    "verb": "GET",
+    "url": "/places/osm-nearby/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 172,
+    "verb": "POST",
+    "url": "/translate/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 181,
+    "verb": "POST",
+    "url": "/ml/recommendations/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 185,
+    "verb": "POST",
+    "url": "/ml/safety/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 189,
+    "verb": "POST",
+    "url": "/ml/budget/"
+  },
+  {
+    "file": "services/api.js",
+    "line": 193,
+    "verb": "POST",
+    "url": "/ml/best-route/"
+  },
+  {
+    "file": "services/emergencyService.js",
+    "line": 18,
+    "verb": "GET",
+    "url": "/chatbot/nearby-emergency/"
+  },
+  {
+    "file": "services/mlService.js",
+    "line": 11,
+    "verb": "POST",
+    "url": "/ml/recommendations/"
+  },
+  {
+    "file": "services/mlService.js",
+    "line": 18,
+    "verb": "GET",
+    "url": "/recommendations/personalized"
+  },
+  {
+    "file": "services/mlService.js",
+    "line": 27,
+    "verb": "POST",
+    "url": "/ml/safety/"
+  },
+  {
+    "file": "services/mlService.js",
+    "line": 33,
+    "verb": "GET",
+    "url": "/emergency/contacts"
+  },
+  {
+    "file": "services/mlService.js",
+    "line": 41,
+    "verb": "POST",
+    "url": "/ml/budget/"
+  },
+  {
+    "file": "services/mlService.js",
+    "line": 49,
+    "verb": "POST",
+    "url": "/translate/"
+  },
+  {
+    "file": "services/navigationService.js",
+    "line": 4,
+    "verb": "POST",
+    "url": "/navigation/route"
+  },
+  {
+    "file": "services/navigationService.js",
+    "line": 8,
+    "verb": "GET",
+    "url": "/nearby/places"
+  },
+  {
+    "file": "services/navigationService.js",
+    "line": 10,
+    "verb": "GET",
+    "url": "/nearby/hospitals"
+  },
+  {
+    "file": "services/navigationService.js",
+    "line": 12,
+    "verb": "GET",
+    "url": "/nearby/police"
+  },
+  {
+    "file": "services/navigationService.js",
+    "line": 13,
+    "verb": "GET",
+    "url": "/weather/current/"
+  },
+  {
+    "file": "services/photoApi.js",
+    "line": 8,
+    "verb": "GET",
+    "url": "/destinations/${slug}/photos/"
+  },
+  {
+    "file": "services/photoApi.js",
+    "line": 13,
+    "verb": "POST",
+    "url": "/destinations/${slug}/photos/"
+  },
+  {
+    "file": "services/photoApi.js",
+    "line": 26,
+    "verb": "GET",
+    "url": "/destination-images/${id}/"
+  },
+  {
+    "file": "services/photoApi.js",
+    "line": 31,
+    "verb": "DELETE",
+    "url": "/destination-images/${id}/"
+  },
+  {
+    "file": "services/photoApi.js",
+    "line": 36,
+    "verb": "POST",
+    "url": "/destination-images/${id}/view/"
+  },
+  {
+    "file": "services/submissionService.js",
+    "line": 5,
+    "verb": "POST",
+    "url": "/destinations/"
+  },
+  {
+    "file": "services/submissionService.js",
+    "line": 8,
+    "verb": "GET",
+    "url": "/destinations/my_submissions/"
+  },
+  {
+    "file": "services/submissionService.js",
+    "line": 11,
+    "verb": "GET",
+    "url": "/admin/pending-places/"
+  },
+  {
+    "file": "services/submissionService.js",
+    "line": 14,
+    "verb": "POST",
+    "url": "/admin/pending-places/${id}/"
+  },
+  {
+    "file": "services/submissionService.js",
+    "line": 17,
+    "verb": "POST",
+    "url": "/admin/pending-places/${id}/"
+  }
+]

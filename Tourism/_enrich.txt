@@ -1,0 +1,4 @@
+﻿Nearby-service enrichment: 6695 public destinations
+  services: hospital=373 police=928 hotel=1617
+  updated: hospital=1410, police=926, hotel=2395 (4731 field writes across 3602 destinations)
+Nearby-service enrichment complete: 3602 destinations updated.

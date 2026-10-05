@@ -1,0 +1,1969 @@
+From 3dc6398fdd22a477c74f64bbccb095d0feec016c Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 3 Oct 2026 17:54:29 +0000
+Subject: [PATCH 1/6] fix(budget): restore BudgetPredictionView (site did not
+ boot) and give every place a labelled dataset baseline
+
+3f10e572 spliced the CSV-budget fallback into the middle of SafetyPredictionView and deleted BudgetPredictionView + its request handling, so urls.py raised AttributeError at import. Restore views_ml.py from af30e966 and re-add the fallback inside the budget view.
+When ML is down: own BudgetEstimation row -> else median of recorded rows in the same district -> else province -> else official fees only. Area baselines say so (baseline_scope + note); nothing is invented.
+Test: 4 cases.
+---
+ Tourism/tourist/tests_budget_baseline.py |  57 ++++
+ Tourism/tourist/views_ml.py              | 339 ++++++++++++++++++++---
+ 2 files changed, 355 insertions(+), 41 deletions(-)
+ create mode 100644 Tourism/tourist/tests_budget_baseline.py
+
+diff --git a/Tourism/tourist/tests_budget_baseline.py b/Tourism/tourist/tests_budget_baseline.py
+new file mode 100644
+index 00000000..9b879be2
+--- /dev/null
++++ b/Tourism/tourist/tests_budget_baseline.py
+@@ -0,0 +1,57 @@
++from unittest import mock
++
++import requests
++from django.test import TestCase
++
++from tourist.models import BudgetEstimation, Destination
++
++ML_DOWN = mock.patch("tourist.views_ml.requests.post", side_effect=requests.ConnectionError("ml down"))
++
++
++def _dest(name, slug, district, province="Gandaki"):
++    return Destination.objects.create(name=name, slug=slug, district=district, province=province, city=district,
++                                      latitude=28.2, longitude=84.0)
++
++
++def _row(dest, daily, hotel=20, food=10, transport=5, local=2):
++    return BudgetEstimation.objects.create(
++        destination=dest, district=dest.district, province=dest.province, transport_cost=transport, food_cost_per_day=food,
++        accommodation_per_night=hotel, local_transport=local, entry_fee=0, estimated_daily_budget=daily, estimated_trip_budget=daily * 3)
++
++
++class RecordedBudgetFallbackTests(TestCase):
++    def _post(self, dest):
++        with ML_DOWN:
++            return self.client.post("/api/v1/ml/budget/", {"destination": dest.id, "days": 3, "travelers": 2, "budget_level": "mid"},
++                                    content_type="application/json")
++
++    def test_own_row_is_used_and_labelled_destination(self):
++        d = _dest("Bandipur", "bandipur", "Tanahun")
++        _row(d, 80)
++        body = self._post(d).json()
++        self.assertEqual(body["source"], "dataset_csv")
++        self.assertEqual(body["baseline_scope"], "destination")
++        self.assertEqual(body["total_budget_usd"], 480.0)  # 80 * 3 days * 2 people
++
++    def test_place_without_a_row_gets_the_labelled_district_median(self):
++        a, b, target = _dest("A", "a", "Kaski"), _dest("B", "b", "Kaski"), _dest("Lakeside Viewpoint", "lv", "Kaski")
++        _row(a, 60)
++        _row(b, 100)
++        body = self._post(target).json()
++        self.assertEqual(body["baseline_scope"], "district")
++        self.assertEqual(body["total_budget_usd"], 480.0)  # median 80 * 3 * 2
++        self.assertIn("area baseline", body["living_costs_note"])
++
++    def test_province_median_is_used_when_the_district_has_no_rows(self):
++        a, target = _dest("A", "a", "Kaski"), _dest("Far Village", "fv", "Mustang")
++        _row(a, 50)
++        body = self._post(target).json()
++        self.assertEqual(body["baseline_scope"], "province")
++
++    def test_no_dataset_coverage_returns_fees_only_not_invented_costs(self):
++        target = _dest("Nowhere", "nw", "Dolpa", province="Karnali")
++        res = self._post(target)
++        self.assertEqual(res.status_code, 200)
++        body = res.json()
++        self.assertTrue(body["official_fees_only"])
++        self.assertIsNone(body["total_budget_usd"])
+diff --git a/Tourism/tourist/views_ml.py b/Tourism/tourist/views_ml.py
+index 9b97622a..e373adce 100644
+--- a/Tourism/tourist/views_ml.py
++++ b/Tourism/tourist/views_ml.py
+@@ -436,57 +436,313 @@ class SafetyPredictionView(APIView):
+ 
+ 
+         if result is None:
+-            # Render's free instance intentionally runs without the pandas/
+-            # sklearn ML sidecar. The verified budget_features.csv is imported
+-            # into BudgetEstimation, so use that recorded row instead of
+-            # returning an "Unavailable" total or inventing a generic price.
+-            if destination is not None:
+-                recorded = BudgetEstimation.objects.filter(destination=destination).first()
+-                if recorded is not None:
+-                    days = max(1, int(data["days"]))
+-                    travelers = max(1, int(data["travelers"]))
+-                    daily = float(recorded.estimated_daily_budget or 0)
+-                    accommodation = float(recorded.accommodation_per_night or 0)
+-                    food = float(recorded.food_cost_per_day or 0)
+-                    transport = float(recorded.transport_cost or 0) + float(recorded.local_transport or 0)
+-                    total = daily * days * travelers
++            # The AI safety microservice is optional and often not running —
++            # degrade to the honest rule-based estimate instead of a bare 503,
++            # so the Risk page always shows something real.
++            result = _rule_based_safety_fallback(latitude, longitude, destination)
++            if destination:
++                MLInsight.objects.create(
++                    destination=destination,
++                    insight_type=MLInsight.InsightType.CROWD_PREDICTION,
++                    label=result["risk_category"],
++                    score=result["tourism_risk_index"],
++                    raw_result=result,
++                )
++            return Response(result)
++
++
++
++        if destination:
++
++            MLInsight.objects.create(
++                destination=destination,
++                insight_type=MLInsight.InsightType.CROWD_PREDICTION,
++                label=result["risk_level"],
++                score=result["safety_score"],
++                raw_result=result,
++            )
++
++
++        return Response(result)
++
++
++
++
++def _official_budget_context(result, data, destination):
++    """NRB conversion + official fee lines for a USD-based ML estimate.
++
++    Nothing here is guessed: USD->NPR uses the NRB buying rate of the day
++    (or is reported unavailable), fee lines come from the cited
++    travel-requirements dataset, and the suggested contingency buffer is
++    explicitly labelled as a suggestion, not a cost.
++    """
++    from . import fx
++    from . import travel_requirements as tr
++
++    snap = fx.latest_snapshot()
++    rate = fx.npr_per_unit(snap, "USD") if snap else None
++    travelers = int(data.get("travelers") or 1)
++    days = int(data.get("days") or 1)
++    nationality = data.get("nationality") or "foreign"
++
++    def to_npr(usd):
++        if usd is None or rate is None:
++            return None
++        return round(float(usd) * float(rate), 2)
++
++    breakdown_usd = {k: v for k, v in (result.get("breakdown") or {}).items() if isinstance(v, (int, float))}
++    known_usd = result.get("known_cost_total_usd")
++    if known_usd is None and breakdown_usd:
++        known_usd = round(sum(breakdown_usd.values()), 2)
++
++    fee_lines = []
++    requirements = None
++    if destination is not None:
++        requirements = tr.destination_requirements(
++            destination, nationality=nationality, days=days, month=data.get("travel_month"), travelers=travelers)
++        fee_lines = list(requirements["fees"])
++    visa = tr.visa_summary(tr.normalize_nationality(nationality), days)
++    if data.get("include_visa", True) and visa.get("fee_usd_for_stay"):
++        tier = visa["fee_usd_for_stay"]
++        fee_lines.insert(0, {
++            "label": f"Nepal tourist visa on arrival ({tier['days']} days)", "currency": "USD",
++            "amount_per_person": tier["usd"], "basis": f"Trip of {days} day(s); Department of Immigration fee schedule.",
++            "source_key": "doi_visa", "estimate": False,
++        })
++    totals = tr.fee_totals(fee_lines, travelers, snap)
++    calibrated_npr = result.get("total_budget_npr") or result.get("known_cost_total_npr")
++    known_npr = calibrated_npr if calibrated_npr is not None else to_npr(known_usd)
++    grand_npr = round(known_npr + totals["group_npr"], 2) if known_npr is not None else None
++
++    res_breakdown_npr = {k: v for k, v in (result.get("breakdown_npr") or {}).items() if isinstance(v, (int, float))}
++    clean_breakdown_npr = {k: res_breakdown_npr.get(k) if res_breakdown_npr.get(k) is not None else to_npr(v) for k, v in breakdown_usd.items()}
++    if "emergency_reserve" in res_breakdown_npr:
++        clean_breakdown_npr["emergency_reserve"] = res_breakdown_npr["emergency_reserve"]
++
++    return {
++        "exchange_rate": fx.snapshot_meta(snap) | ({"usd_to_npr": float(rate)} if rate is not None else {}),
++        "known_cost_total_npr": known_npr,
++        "breakdown_npr": clean_breakdown_npr,
++        "official_fees": {
++            "lines": totals["lines"],
++            "per_person_npr": totals["per_person_npr"],
++            "group_npr": totals["group_npr"],
++            "unconverted": totals["unconverted"],
++            "nationality": tr.normalize_nationality(nationality),
++            "sources": (requirements or {}).get("sources", []),
++            "matching_note": (requirements or {}).get("matching_note", ""),
++            "insurance": (requirements or {}).get("insurance"),
++        },
++        "trip_total_npr": grand_npr,
++        "per_person_npr": round(grand_npr / travelers, 2) if grand_npr is not None else None,
++        "per_day_npr": round(grand_npr / days, 2) if grand_npr is not None else None,
++        "contingency_suggested_npr": round(grand_npr * 0.10, 2) if grand_npr is not None else None,
++        "contingency_note": "Suggested 10% buffer for delays, weather days and rescue excess — a planning suggestion, not a quoted cost.",
++    }
++
++
++def _recorded_budget_baseline(destination):
++    """(row, scope) for the best recorded budget baseline of this destination.
++
++    scope is "destination" for the place's own row; otherwise the MEDIAN of the
++    recorded rows in the same district, then the same province ("district" /
++    "province"), so a place with no row of its own still gets a real,
++    dataset-derived figure that is labelled as an area baseline. (None, None)
++    when nothing in the dataset covers the area.
++    """
++    from types import SimpleNamespace
++    from statistics import median
++
++    own = BudgetEstimation.objects.filter(destination=destination).first()
++    if own is not None:
++        return own, "destination"
++    fields = ("estimated_daily_budget", "accommodation_per_night", "food_cost_per_day", "transport_cost", "local_transport")
++    for scope, lookup in (("district", {"destination__district__iexact": destination.district}),
++                          ("province", {"destination__province__iexact": destination.province})):
++        value = next(iter(lookup.values()))
++        if not value:
++            continue
++        rows = list(BudgetEstimation.objects.filter(**lookup))
++        if rows:
++            return SimpleNamespace(**{f: median(float(getattr(r, f) or 0) for r in rows) for f in fields}), scope
++    return None, None
++
++
++def _recorded_budget_response(recorded, data, destination, scope="destination"):
++    """Budget from the recorded dataset row (ML sidecar disabled).
++
++    Values are the dataset's per-person-per-day USD baselines scaled by days and
++    travellers; categories the dataset does not hold stay None (never invented).
++    The dataset has no budget/mid/luxury bands, and the response says so.
++    """
++    days = max(1, int(data["days"]))
++    travelers = max(1, int(data["travelers"]))
++    daily = float(recorded.estimated_daily_budget or 0)
++    accommodation = float(recorded.accommodation_per_night or 0)
++    food = float(recorded.food_cost_per_day or 0)
++    transport = float(recorded.transport_cost or 0) + float(recorded.local_transport or 0)
++    total = daily * days * travelers
++    result = {
++        "source": "dataset_csv",
++        "baseline_source": "dataset_csv",
++        "dataset": {"name": "budget_features.csv", "destinations": BudgetEstimation.objects.count()},
++        "currency": "USD",
++        "total_budget_usd": round(total, 2),
++        "daily_cost_usd": round(daily * travelers, 2),
++        "total": round(total, 2),
++        "estimated_total": round(total, 2),
++        "known_cost_total_usd": round(total, 2),
++        "breakdown": {
++            "accommodation": round(accommodation * days * travelers, 2),
++            "food": round(food * days * travelers, 2),
++            "transport": round(transport * travelers, 2),
++            "activities": None,
++            "shopping": None,
++        },
++        "living_costs_available": True,
++        "living_costs_note": (
++            "Recorded baseline from the bundled Nepal travel-cost dataset; not a live hotel or operator quote."
++            if scope == "destination" else
++            f"No cost row exists for {destination.name} itself, so this is the median of recorded places in the same "
++            f"{scope} of the bundled Nepal travel-cost dataset. Treat it as an area baseline, not this place's price."
++        ),
++        "baseline_scope": scope,
++        "style_note": "The source dataset has no separate budget/mid/luxury bands; the recorded destination baseline is used.",
++        "days": days,
++        "travelers": travelers,
++        "official_fees_only": False,
++    }
++    result.update(_official_budget_context(result, data, destination))
++    result["matched_destination"] = {"id": destination.id, "name": destination.name, "district": destination.district or ""}
++    return result
++
++
++class BudgetPredictionView(APIView):
++
++    permission_classes = [permissions.AllowAny]
++    serializer_class = BudgetPredictionRequestSerializer
++
++
++    def post(self, request):
++
++        data = request.data.copy()
++
++
++        if (
++            "budget_level" not in data
++            and "style" in data
++        ):
++            data["budget_level"] = {
++                "standard": "mid"
++            }.get(
++                data["style"],
++                data["style"]
++            )
++
++
++        destination_value = data.get("destination")
++        if destination_value:
++            dest_str = str(destination_value).strip()
++            if dest_str.isdigit():
++                match = Destination.objects.filter(pk=dest_str).first()
++                if match:
++                    data["destination"] = match.id
++                else:
+                     return Response({
+-                        "source": "dataset_csv",
+-                        "baseline_source": "dataset_csv",
+-                        "dataset": {"name": "budget_features.csv", "destinations": BudgetEstimation.objects.count()},
+-                        "currency": "USD",
+-                        "total_budget_usd": round(total, 2),
+-                        "daily_cost_usd": round(daily * travelers, 2),
+-                        "total": round(total, 2),
+-                        "estimated_total": round(total, 2),
+-                        "breakdown": {
+-                            "accommodation": round(accommodation * days * travelers, 2),
+-                            "food": round(food * days * travelers, 2),
+-                            "transport": round(transport * travelers, 2),
+-                            "activities": None,
+-                            "shopping": None,
+-                        },
+-                        "living_costs_available": True,
+-                        "living_costs_note": "Recorded baseline from the bundled Nepal travel-cost dataset; not a live hotel or operator quote.",
+-                        "style_note": "The source dataset does not contain separate budget/mid/luxury bands; the recorded destination baseline is used.",
+-                        "matched_destination": {"id": destination.id, "name": destination.name, "district": destination.district or ""},
+-                        "days": days,
+-                        "travelers": travelers,
+-                        "official_fees_only": False,
+-                        **_official_budget_context({}, data, destination),
+-                    }, status=status.HTTP_200_OK)
++                        "detail": "Destination not found. Please select a valid Nepal destination.",
++                        "suggestions": ["Use a destination recorded in the catalogue."]
++                    }, status=status.HTTP_400_BAD_REQUEST)
++            elif len(dest_str) < 2 or re.fullmatch(r"[0-9\W]+", dest_str):
++                return Response({
++                    "detail": "Destination not found. Please select a valid Nepal destination.",
++                    "suggestions": ["Use a destination recorded in the catalogue."]
++                }, status=status.HTTP_400_BAD_REQUEST)
++            else:
++                # Deterministic best match: exact name, then prefix, then
++                # substring -- among publicly visible places first. The
++                # matched place is echoed back so the UI can show it.
++                visible = Destination.publicly_visible()
++                match = (visible.filter(name__iexact=dest_str).first()
++                         or visible.filter(name__istartswith=dest_str).order_by("name").first()
++                         or visible.filter(name__icontains=dest_str).order_by("name").first()
++                         or Destination.objects.filter(name__iexact=dest_str).first())
++                if match:
++                    data["destination"] = match.id
++                else:
++                    data.pop("destination", None)
++                    data.setdefault("city", dest_str)
++
++
++        serializer = BudgetPredictionRequestSerializer(
++            data=data
++        )
++
++        serializer.is_valid(
++            raise_exception=True
++        )
++
++        data = serializer.validated_data
++
+ 
++        destination = data.get(
++            "destination"
++        )
++
++
++        city = (
++            destination.city
++            if destination
++            else data.get("city")
++        )
++
++
++        country = (
++            destination.country
++            if destination
++            else data.get("country")
++        )
++
++        latitude = float(destination.latitude) if destination and destination.latitude else None
++        longitude = float(destination.longitude) if destination and destination.longitude else None
++
++        result = get_ml_budget_prediction(
++            city=city,
++            country=country,
++            days=data["days"],
++            travelers=data["travelers"],
++            budget_level=data["budget_level"],
++            latitude=latitude,
++            longitude=longitude,
++            user_latitude=data.get("user_latitude"),
++            user_longitude=data.get("user_longitude"),
++            district=getattr(destination, "district", None) if destination else data.get("district"),
++            province=getattr(destination, "province", None) if destination else data.get("province"),
++            destination_name=getattr(destination, "name", None) if destination else data.get("city"),
++        )
++
++
++        if result is None:
++            # The pandas/sklearn ML sidecar is intentionally absent on the free
++            # Render instance. The verified budget_features.csv is imported into
++            # BudgetEstimation, so use that recorded row for the matched
++            # destination instead of returning an "Unavailable" total.
++            if destination is not None:
++                recorded, scope = _recorded_budget_baseline(destination)
++                if recorded is not None:
++                    return Response(_recorded_budget_response(recorded, data, destination, scope))
+             if destination is None:
+                 return Response(
+-                    {"detail": "No recorded budget row exists for that destination. Select a destination from the catalogue."},
++                    {"detail": "Budget prediction service unavailable."},
+                     status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                 )
+-
++            # Living-cost model is down, but the official visa / park /
++            # permit fees do not depend on it -- still return them, and say
++            # plainly that living costs are missing (never invent them).
+             partial = {"breakdown": {}, "known_cost_total_usd": None, "estimated_total": None, "total_budget_usd": None}
+             body = {
+                 **partial,
+                 "living_costs_available": False,
+-                "living_costs_note": "No recorded destination budget row is available and the estimate service is unavailable.",
++                "living_costs_note": "The living-cost estimate service is unavailable right now, so hotel, food and transport costs are not included.",
+                 **_official_budget_context(partial, data, destination),
+                 "matched_destination": {"id": destination.id, "name": destination.name, "district": destination.district or ""},
+                 "days": data.get("days"), "travelers": data.get("travelers"),
+@@ -494,6 +750,7 @@ class SafetyPredictionView(APIView):
+             body["official_fees_only"] = True
+             return Response(body, status=status.HTTP_200_OK)
+ 
++
+         flattened = dict(result)
+         flattened.update(_official_budget_context(result, data, destination))
+         flattened["matched_destination"] = (
+-- 
+2.43.0
+
+
+From 035fd19d6a86d3ff14a61244bc422da29d2e0593 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 3 Oct 2026 12:34:06 +0000
+Subject: [PATCH 2/6] feat(nav): street-level turn-by-turn by default (OSRM),
+ named + located steps
+
+- settings: ROUTING_BASE_URL defaults to OSRM (not in tests) so routes are navigation-grade
+- osrm_provider: steps carry street name + turn location
+- views_compat: /navigation/route prefers the street-level route for car/motorcycle; steps gain turn/distance_km
+- tests: mocked-engine turn-by-turn + honest fallback
+---
+ Tourism/Tourism/settings.py           | 10 ++-
+ Tourism/navigation/osrm_provider.py   |  6 ++
+ Tourism/tourist/tests_turn_by_turn.py | 96 +++++++++++++++++++++++++++
+ Tourism/tourist/views_compat.py       | 78 +++++++++++++++++++++-
+ 4 files changed, 188 insertions(+), 2 deletions(-)
+ create mode 100644 Tourism/tourist/tests_turn_by_turn.py
+
+diff --git a/Tourism/Tourism/settings.py b/Tourism/Tourism/settings.py
+index aa35798f..9570fc88 100644
+--- a/Tourism/Tourism/settings.py
++++ b/Tourism/Tourism/settings.py
+@@ -640,7 +640,15 @@ ROUTING_API_URL = config("ROUTING_API_URL", default="")
+ # unreachable the endpoints fall back to the bundled tourism graph and,
+ # last, to an explicitly-labelled straight-line estimate.
+ ROUTING_PROVIDER = config("ROUTING_PROVIDER", default="osrm")
+-ROUTING_BASE_URL = config("ROUTING_BASE_URL", default=ROUTING_API_URL)
++# Default to the public OSRM server so real street-level, turn-by-turn routing
++# works out of the box. With no server configured every route fell back to the
++# bundled tourism graph ("navigation_grade": false), and the live navigation
++# panel disables "Start navigation" for such routes, so the page behaved like a
++# nearby-places list. The public demo hosts the driving profile only and is
++# rate limited: set ROUTING_BASE_URL to your own OSRM/compatible server for
++# production traffic. Tests stay hermetic (no outbound calls).
++_DEFAULT_ROUTING_BASE_URL = "" if "test" in sys.argv else "https://router.project-osrm.org"
++ROUTING_BASE_URL = config("ROUTING_BASE_URL", default=ROUTING_API_URL or _DEFAULT_ROUTING_BASE_URL)
+ ROUTING_TIMEOUT = config("ROUTING_TIMEOUT", default=6, cast=float)
+ ROUTING_MAX_RETRIES = config("ROUTING_MAX_RETRIES", default=2, cast=int)
+ ROUTING_CACHE_TTL = config("ROUTING_CACHE_TTL", default=600, cast=int)
+diff --git a/Tourism/navigation/osrm_provider.py b/Tourism/navigation/osrm_provider.py
+index 4e9e66e7..312743ec 100644
+--- a/Tourism/navigation/osrm_provider.py
++++ b/Tourism/navigation/osrm_provider.py
+@@ -111,11 +111,17 @@ class OSRMProvider(RoutingProvider):
+         steps = []
+         for leg in osrm_route.get("legs", []):
+             for st in leg.get("steps", []):
++                loc = (st.get("maneuver") or {}).get("location") or []
+                 steps.append({
+                     "instruction": _step_instruction(st),
+                     "distance_m": round(float(st.get("distance", 0)), 1),
+                     "duration_s": round(float(st.get("duration", 0)), 1),
+                     "maneuver": _maneuver_key(st),
++                    # Street name and where the manoeuvre happens (lat, lng),
++                    # so the UI can show "Turn left onto X" and highlight the
++                    # turn on the map.
++                    "name": (st.get("name") or "").strip(),
++                    "location": [loc[1], loc[0]] if len(loc) == 2 else None,
+                 })
+         return {
+             "source": "osrm",
+diff --git a/Tourism/tourist/tests_turn_by_turn.py b/Tourism/tourist/tests_turn_by_turn.py
+new file mode 100644
+index 00000000..02b8c857
+--- /dev/null
++++ b/Tourism/tourist/tests_turn_by_turn.py
+@@ -0,0 +1,96 @@
++"""Navigation must give real street-level turn-by-turn steps when a routing
++engine is reachable, and stay honest (labelled approximation) when not."""
++from unittest import mock
++
++from django.core.cache import cache
++from django.test import TestCase, override_settings
++
++OSRM_PAYLOAD = {
++    "code": "Ok",
++    "routes": [{
++        "distance": 5130.0, "duration": 540.0,
++        "geometry": {"coordinates": [[83.9855, 28.2096], [83.9870, 28.2110], [83.9890, 28.2125], [83.9921, 28.2150]]},
++        "legs": [{"steps": [
++            {"distance": 900.0, "duration": 100.0, "name": "Lakeside Road",
++             "maneuver": {"type": "depart", "location": [83.9855, 28.2096]}},
++            {"distance": 2300.0, "duration": 240.0, "name": "Sarangkot Road",
++             "maneuver": {"type": "turn", "modifier": "left", "location": [83.9870, 28.2110]}},
++            {"distance": 1930.0, "duration": 200.0, "name": "",
++             "maneuver": {"type": "turn", "modifier": "slight right", "location": [83.9890, 28.2125]}},
++            {"distance": 0.0, "duration": 0.0, "name": "",
++             "maneuver": {"type": "arrive", "location": [83.9921, 28.2150]}},
++        ]}],
++    }],
++}
++
++
++class _Resp:
++    status_code = 200
++
++    def json(self):
++        return OSRM_PAYLOAD
++
++    def raise_for_status(self):
++        return None
++
++
++def fake_get(url, *args, **kwargs):
++    """OSRM answers; every other outbound call behaves as if offline."""
++    import requests
++    if "/route/v1/" in url:
++        return _Resp()
++    raise requests.ConnectionError("offline in tests")
++
++
++@override_settings(ROUTING_BASE_URL="http://osrm.test", ROUTING_PROFILES=["driving"], ROUTING_RATE_LIMIT=0)
++class StreetLevelTurnByTurnTests(TestCase):
++    def setUp(self):
++        cache.clear()
++        self.body = {"start_latitude": 28.2096, "start_longitude": 83.9855,
++                     "end_latitude": 28.2150, "end_longitude": 83.9921,
++                     "transport_mode": "Private Car / Taxi"}
++
++    def test_route_page_endpoint_returns_named_turn_steps(self):
++        with mock.patch("requests.get", side_effect=fake_get):
++            res = self.client.post("/api/v1/navigation/route", self.body, content_type="application/json")
++        self.assertEqual(res.status_code, 200, res.content)
++        data = res.json()
++        self.assertEqual(data["source"], "osrm")
++        self.assertTrue(data["navigation_grade"])
++        self.assertEqual(data["distance_km"], 5.13)
++        steps = data["steps"]
++        self.assertEqual(len(steps), 4)
++        self.assertEqual(steps[1]["turn"], "left")
++        self.assertIn("Sarangkot Road", steps[1]["instruction"])
++        self.assertEqual(steps[2]["turn"], "slight_right")
++        self.assertEqual(steps[1]["distance_km"], 2.3)
++        self.assertEqual(steps[1]["location"], [28.2110, 83.9870])
++        self.assertEqual(steps[1]["name"], "Sarangkot Road")
++        self.assertGreater(len(data["route"]), 3)
++
++    def test_live_navigation_route_is_navigation_grade(self):
++        body = {"start": {"latitude": 28.2096, "longitude": 83.9855},
++                "destination": {"latitude": 28.2150, "longitude": 83.9921}, "mode": "driving"}
++        with mock.patch("requests.get", side_effect=fake_get):
++            res = self.client.post("/api/v1/navigation/road-route/", body, content_type="application/json")
++        self.assertEqual(res.status_code, 200, res.content)
++        route = res.json()["route"]
++        self.assertTrue(route["navigation_grade"])
++        self.assertEqual(route["source"], "osrm")
++        self.assertIn("Sarangkot Road", res.json()["steps"][1]["instruction"])
++
++    def test_walking_mode_is_left_on_the_existing_path(self):
++        from tourist.views_compat import _street_level_route
++        self.assertIsNone(_street_level_route(28.2, 83.98, 28.21, 83.99, "walking / trek"))
++
++
++@override_settings(ROUTING_BASE_URL="")
++class NoEngineStaysHonestTests(TestCase):
++    def test_without_an_engine_the_route_is_labelled_not_navigation_grade(self):
++        cache.clear()
++        res = self.client.post("/api/v1/navigation/route", {
++            "start_latitude": 28.2096, "start_longitude": 83.9855,
++            "end_latitude": 28.2150, "end_longitude": 83.9921,
++            "transport_mode": "Private Car / Taxi"}, content_type="application/json")
++        self.assertEqual(res.status_code, 200)
++        self.assertFalse(res.json().get("navigation_grade"))
+diff --git a/Tourism/tourist/views_compat.py b/Tourism/tourist/views_compat.py
+index 637ae76c..a7f4985d 100644
+--- a/Tourism/tourist/views_compat.py
++++ b/Tourism/tourist/views_compat.py
+@@ -424,6 +424,80 @@ def _nearest_contacts_response(request, contact_type):
+     return Response(_attach_emergency_routes(request, all_contacts, lat, lon))
+ 
+ 
++_TURN_BY_MANEUVER = (
++    ("sharp-left", "sharp_left"), ("sharp-right", "sharp_right"),
++    ("slight-left", "slight_left"), ("slight-right", "slight_right"),
++    ("uturn", "uturn"), ("left", "left"), ("right", "right"),
++)
++
++
++def _normalise_route_steps(steps):
++    """Give engine steps the keys the Navigation page reads.
++
++    OSRM steps carry ``maneuver`` ("turn-left"), ``distance_m`` and the street
++    ``name``/manoeuvre ``location``. The page reads ``turn``, ``instruction`` and
++    ``distance_km``; without them a real street-level route rendered as an
++    unlabelled list. Existing keys are never removed.
++    """
++    out = []
++    for st in steps or []:
++        if not isinstance(st, dict):
++            continue
++        step = dict(st)
++        # OSRM modifiers contain spaces ("slight right"); keys use hyphens.
++        man = str(step.get("maneuver") or "").replace(" ", "-")
++        if not step.get("turn"):
++            step["turn"] = next((key for needle, key in _TURN_BY_MANEUVER if needle in man), "straight")
++        if step.get("distance_km") is None and step.get("distance_m") is not None:
++            step["distance_km"] = round(float(step["distance_m"]) / 1000, 2)
++        out.append(step)
++    return out
++
++
++def _street_level_route(start_lat, start_lon, end_lat, end_lon, transport_mode):
++    """A real street-level (OSRM) route for car/motorcycle, else None.
++
++    None means no street-level engine is configured or reachable, and the
++    caller keeps using the bundled-graph route exactly as before (still
++    labelled as an approximation, never as navigation-grade).
++    """
++    if transport_mode not in ("private car / taxi", "motorcycle"):
++        return None
++    try:
++        from navigation.osrm_provider import OSRMProvider
++        from navigation.route_engine import cached_route
++
++        if not OSRMProvider().supports("driving"):
++            return None
++        engine_route, _cached = cached_route(
++            (float(start_lat), float(start_lon)), (float(end_lat), float(end_lon)), "driving", request=None)
++    except Exception:  # noqa: BLE001 - an enhancement must never break routing
++        return None
++    route = (engine_route or {}).get("route") or {}
++    if route.get("source") != "osrm":
++        return None
++    coords = [
++        {"lat": float(pt[0]), "lng": float(pt[1])}
++        for pt in (route.get("geometry") or []) if isinstance(pt, (list, tuple)) and len(pt) >= 2
++    ]
++    if not coords:
++        return None
++    km = round(float(route.get("distance_m") or 0) / 1000.0, 2)
++    seconds = route.get("duration_s")
++    return {
++        "distance_km": km,
++        "duration_min": max(1, round(float(seconds) / 60)) if seconds else None,
++        "duration_source": "routing_engine",
++        "duration_note": "Duration from the street-level routing engine; not a live traffic prediction.",
++        "route": coords,
++        "steps": _normalise_route_steps(route.get("steps")),
++        "routing_engine": "road_provider:osrm",
++        "straight_line_km": round(haversine_distance(start_lat, start_lon, end_lat, end_lon), 2),
++        "road_distance_km": km,
++        "note": route.get("note"),
++    }
++
++
+ class NavigationRouteView(APIView):
+     """
+     POST /api/v1/navigation/route
+@@ -692,7 +766,9 @@ class NavigationRouteView(APIView):
+                 "note": "Multi-stop route: every leg routed on the same engine as single-stop routes; totals are leg sums.",
+             }
+         else:
+-            result = get_ml_best_route(start_lat, start_lon, end_lat, end_lon, route_type=mode_route_type or "fastest")
++            result = _street_level_route(start_lat, start_lon, end_lat, end_lon, transport_mode)
++            if result is None:
++                result = get_ml_best_route(start_lat, start_lon, end_lat, end_lon, route_type=mode_route_type or "fastest")
+         if result is None:
+             return Response(
+                 {"detail": "Routing service is currently unavailable."},
+-- 
+2.43.0
+
+
+From 4c8f6e8fb95f549af9df9ec9417bb767a7379701 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 3 Oct 2026 12:34:20 +0000
+Subject: [PATCH 3/6] feat(i18n,pagination): translate page content on language
+ switch; keep the list mounted while paging
+
+- translation: cached POST /translate/batch/ (ordered, deduped, failures return the original, max 50 items)
+- i18n: DOM bridge sends non-dictionary strings (page text, placeholders, aria-labels) to the batch endpoint; restores English; survives React text updates; skips code/inputs/data-no-translate; caches in memory+sessionStorage; outage-safe
+- DestinationList: skeleton only on first load; page + pager stay mounted (dimmed, aria-busy) while the next page loads
+- tests: jsdom behaviour tests for pagination and language switching, backend batch tests
+---
+ Tourism/tourist/urls.py                       |   2 +
+ Tourism/translation/tests_batch.py            |  47 +++++++
+ Tourism/translation/urls.py                   |   1 +
+ Tourism/translation/views.py                  |  84 +++++++++++-
+ frontend/Tourism/.gitignore                   |   2 +
+ .../Tourism/scripts/i18n-behavior-test.cjs    |  53 ++++++++
+ .../scripts/pagination-behavior-test.cjs      |  89 +++++++++++++
+ frontend/Tourism/src/i18n/dynamicTranslate.js | 125 ++++++++++++++++++
+ frontend/Tourism/src/i18n/index.js            |  98 +++++++++++---
+ .../pages/destinations/DestinationList.jsx    |   8 +-
+ frontend/Tourism/tests-i18n/entry.js          |  17 +++
+ frontend/Tourism/tests-pagination/entry.jsx   |  69 ++++++++++
+ 12 files changed, 574 insertions(+), 21 deletions(-)
+ create mode 100644 Tourism/translation/tests_batch.py
+ create mode 100644 frontend/Tourism/scripts/i18n-behavior-test.cjs
+ create mode 100644 frontend/Tourism/scripts/pagination-behavior-test.cjs
+ create mode 100644 frontend/Tourism/src/i18n/dynamicTranslate.js
+ create mode 100644 frontend/Tourism/tests-i18n/entry.js
+ create mode 100644 frontend/Tourism/tests-pagination/entry.jsx
+
+diff --git a/Tourism/tourist/urls.py b/Tourism/tourist/urls.py
+index bbbe6328..9c8ef23a 100644
+--- a/Tourism/tourist/urls.py
++++ b/Tourism/tourist/urls.py
+@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
+ from rest_framework_simplejwt.views import TokenRefreshView
+ 
+ from . import views
++from translation import views as translation_views
+ from . import views_auth
+ from . import views_admin
+ from . import views_compat
+@@ -314,6 +315,7 @@ urlpatterns = [
+     path("translate/", views.TranslateTextView.as_view(), name="translate-text"),
+     path("translation/ui-strings/", views.UITranslationListView.as_view(), name="ui-strings"),
+     path("translation/ui-strings/bulk/", views.UITranslationBulkView.as_view(), name="ui-strings-bulk"),
++    path("translate/batch/", translation_views.TranslateBatchView.as_view(), name="translate-batch"),
+     path("images/resolve/", views_images.ImageResolveView.as_view(), name="images-resolve"),
+     # Multi-source Image Acquisition & Provenance Pipeline API
+     path("destinations/<str:slug>/images", views_images.DestinationImagesListView.as_view(), name="destination-images-list-no-slash"),
+diff --git a/Tourism/translation/tests_batch.py b/Tourism/translation/tests_batch.py
+new file mode 100644
+index 00000000..d0d382a9
+--- /dev/null
++++ b/Tourism/translation/tests_batch.py
+@@ -0,0 +1,47 @@
++from unittest import mock
++
++from django.core.cache import cache
++from django.test import TestCase
++
++
++class TranslateBatchTests(TestCase):
++    def setUp(self):
++        cache.clear()
++
++    def _post(self, texts, target="ne"):
++        return self.client.post("/api/v1/translate/batch/", {"texts": texts, "target_language": target, "source_language": "en"},
++                                content_type="application/json")
++
++    def test_order_preserved_and_duplicates_translated_once(self):
++        with mock.patch("translation.views.translate_text", side_effect=lambda t, *a: f"NE:{t}") as m:
++            res = self._post(["Hotels", "Budget", "Hotels"])
++        self.assertEqual(res.status_code, 200)
++        self.assertEqual(res.json()["translations"], ["NE:Hotels", "NE:Budget", "NE:Hotels"])
++        self.assertEqual(m.call_count, 2)
++
++    def test_second_request_is_served_from_cache(self):
++        with mock.patch("translation.views.translate_text", side_effect=lambda t, *a: f"NE:{t}") as m:
++            self._post(["Hotels"])
++            res = self._post(["Hotels"])
++        self.assertEqual(res.json()["translations"], ["NE:Hotels"])
++        self.assertEqual(m.call_count, 1)
++
++    def test_provider_failure_returns_original_and_is_not_cached(self):
++        with mock.patch("translation.views.translate_text", side_effect=lambda t, *a: t):
++            self.assertEqual(self._post(["Hotels"]).json()["translations"], ["Hotels"])
++        with mock.patch("translation.views.translate_text", side_effect=lambda t, *a: "होटल") as m:
++            self.assertEqual(self._post(["Hotels"]).json()["translations"], ["होटल"])
++        self.assertEqual(m.call_count, 1)
++
++    def test_an_exception_for_one_item_does_not_fail_the_request(self):
++        def flaky(text, *a):
++            if text == "Bad":
++                raise RuntimeError("boom")
++            return f"NE:{text}"
++        with mock.patch("translation.views.translate_text", side_effect=flaky):
++            res = self._post(["Good", "Bad"])
++        self.assertEqual(res.status_code, 200)
++        self.assertEqual(res.json()["translations"], ["NE:Good", "Bad"])
++
++    def test_oversized_batch_is_rejected(self):
++        self.assertEqual(self._post([f"t{i}" for i in range(51)]).status_code, 400)
+diff --git a/Tourism/translation/urls.py b/Tourism/translation/urls.py
+index 09999772..6f3aee54 100644
+--- a/Tourism/translation/urls.py
++++ b/Tourism/translation/urls.py
+@@ -4,4 +4,5 @@ from . import views
+ 
+ urlpatterns = [
+     path("translate/", views.TranslateTextView.as_view(), name="translate-text"),
++    path("translate/batch/", views.TranslateBatchView.as_view(), name="translate-batch"),
+ ]
+\ No newline at end of file
+diff --git a/Tourism/translation/views.py b/Tourism/translation/views.py
+index ec4c9eec..50c6094e 100644
+--- a/Tourism/translation/views.py
++++ b/Tourism/translation/views.py
+@@ -1,10 +1,92 @@
+-from rest_framework import permissions
++import concurrent.futures
++import hashlib
++import logging
++
++from django.core.cache import cache
++from rest_framework import permissions, serializers
+ from rest_framework.response import Response
+ from rest_framework.views import APIView
+ 
+ from .engine import translate_text
+ from .serializers import TranslateRequestSerializer
+ 
++logger = logging.getLogger(__name__)
++
++CACHE_SECONDS = 60 * 60 * 24 * 14
++MAX_BATCH_ITEMS = 50
++MAX_ITEM_CHARS = 600
++
++
++def _cache_key(text, target, source):
++    return f"tx:{source}:{target}:{hashlib.sha1(text.encode('utf-8')).hexdigest()}"
++
++
++def cached_translate(text, target, source="auto"):
++    """translate_text() with a result cache (one provider call per string per language).
++
++    An answer equal to the input means the provider failed or the string is
++    untranslatable (a name, a number): it is returned but NOT cached, so a
++    temporary outage cannot freeze English into the cache.
++    """
++    text = str(text or "")
++    if not text.strip():
++        return text
++    key = _cache_key(text, target, source)
++    hit = cache.get(key)
++    if hit is not None:
++        return hit
++    result = translate_text(text, target, source) or text
++    if result.strip() and result.strip() != text.strip():
++        cache.set(key, result, CACHE_SECONDS)
++    return result
++
++
++class TranslateBatchRequestSerializer(serializers.Serializer):
++    texts = serializers.ListField(
++        child=serializers.CharField(allow_blank=True, max_length=MAX_ITEM_CHARS),
++        allow_empty=False, max_length=MAX_BATCH_ITEMS)
++    target_language = serializers.CharField(max_length=10)
++    source_language = serializers.CharField(max_length=10, required=False, default="en")
++
++
++class TranslateBatchView(APIView):
++    """POST /api/v1/translate/batch/
++
++    {"texts": ["Hotels", "Budget"], "target_language": "ne", "source_language": "en"}
++    -> {"translations": ["होटल", "बजेट"], "target_language": "ne"}
++
++    The page-level translator sends every untranslated visible string of a page
++    here. Order is preserved, duplicates are translated once, results are
++    cached, and a failed item comes back unchanged (never an error for the page).
++    """
++    permission_classes = [permissions.AllowAny]
++    throttle_scope = None
++
++    def post(self, request):
++        ser = TranslateBatchRequestSerializer(data=request.data)
++        ser.is_valid(raise_exception=True)
++        texts = ser.validated_data["texts"]
++        target = ser.validated_data["target_language"]
++        source = ser.validated_data["source_language"]
++        unique = list(dict.fromkeys(t for t in texts if t.strip()))
++        done = {}
++
++        def work(text):
++            try:
++                return text, cached_translate(text, target, source)
++            except Exception:  # noqa: BLE001 - one bad string must not fail the page
++                logger.exception("batch translate item failed")
++                return text, text
++
++        if unique:
++            with concurrent.futures.ThreadPoolExecutor(max_workers=min(6, len(unique))) as pool:
++                for text, result in pool.map(work, unique):
++                    done[text] = result
++        return Response({
++            "translations": [done.get(t, t) for t in texts],
++            "target_language": target,
++        })
++
+ 
+ class TranslateTextView(APIView):
+     """
+diff --git a/frontend/Tourism/.gitignore b/frontend/Tourism/.gitignore
+index 1583e17a..c254983c 100644
+--- a/frontend/Tourism/.gitignore
++++ b/frontend/Tourism/.gitignore
+@@ -19,3 +19,5 @@ playwright/.cache
+ tests-nav/nav-test-bundle.cjs
+ .layout-failed
+ test-results.json
++tests-pagination/bundle.cjs
++tests-i18n/bundle.cjs
+diff --git a/frontend/Tourism/scripts/i18n-behavior-test.cjs b/frontend/Tourism/scripts/i18n-behavior-test.cjs
+new file mode 100644
+index 00000000..20f1e128
+--- /dev/null
++++ b/frontend/Tourism/scripts/i18n-behavior-test.cjs
+@@ -0,0 +1,53 @@
++const { JSDOM } = require("jsdom")
++const path = require("path")
++let failures = 0
++const check = (n, ok, d) => { console.log(`${ok ? "PASS" : "FAIL"}  ${n}${!ok && d ? "  -> " + d : ""}`); if (!ok) failures++ }
++const dom = new JSDOM("<!doctype html><html><body><main id='app'></main></body></html>", { url: "http://localhost/", pretendToBeVisual: true })
++const { window } = dom
++for (const k of ["AbortController", "AbortSignal", "window", "document", "navigator", "localStorage", "sessionStorage", "Node", "NodeFilter", "MutationObserver", "Element", "HTMLElement", "Event", "location", "history", "getComputedStyle", "requestAnimationFrame"]) {
++  try { Object.defineProperty(global, k, { value: window[k], configurable: true, writable: true }) } catch { /* ignore */ }
++}
++const entry = require(path.resolve(__dirname, "../tests-i18n/bundle.cjs"))
++const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
++const app = window.document.getElementById("app")
++app.innerHTML = `<h1>Welcome to Pashupatinath Temple</h1><p>Open daily from sunrise to sunset.</p><span>4,603</span><code>npm run build</code><div data-no-translate>Do Not Touch</div><input placeholder="Search for a quiet monastery">`
++
++;(async () => {
++  entry.setLang("ne"); await sleep(600)
++  const h1 = app.querySelector("h1").textContent, p = app.querySelector("p").textContent
++  check("heading (not in the dictionary) is translated", h1 === "NE[Welcome to Pashupatinath Temple]", h1)
++  check("paragraph is translated", p === "NE[Open daily from sunrise to sunset.]", p)
++  check("pure number is left alone", app.querySelector("span").textContent === "4,603")
++  check("code is left alone", app.querySelector("code").textContent === "npm run build")
++  check("data-no-translate is respected", app.querySelector("[data-no-translate]").textContent === "Do Not Touch")
++  check("placeholder is translated", app.querySelector("input").getAttribute("placeholder") === "NE[Search for a quiet monastery]", app.querySelector("input").getAttribute("placeholder"))
++  check("all strings went in ONE batch request", entry.requests.length === 1 && entry.requests[0].texts.length >= 3, JSON.stringify(entry.requests.map((r) => r.texts.length)))
++
++  // content added later (route change / pagination) gets translated too
++  const added = window.document.createElement("p"); added.textContent = "Page two result: Rara Lake"; app.appendChild(added)
++  await sleep(600)
++  check("content added after the switch is translated", added.textContent === "NE[Page two result: Rara Lake]", added.textContent)
++
++  // React-style in-place text change
++  const textNode = added.firstChild; textNode.nodeValue = "Page three result: Phewa Lake"; await sleep(600)
++  check("in-place text update is translated", added.textContent === "NE[Page three result: Phewa Lake]", added.textContent)
++
++  // cache: switching away and back does not re-request
++  const before = entry.requests.length
++  entry.setLang("en"); await sleep(200)
++  check("switching back to English restores the original text", h1 !== app.querySelector("h1").textContent && app.querySelector("h1").textContent === "Welcome to Pashupatinath Temple", app.querySelector("h1").textContent)
++  check("placeholder restored", app.querySelector("input").getAttribute("placeholder") === "Search for a quiet monastery")
++  entry.setLang("ne"); await sleep(500)
++  check("switching back to Nepali reuses the cache (no new requests)", entry.requests.length === before, `new=${entry.requests.length - before}`)
++  check("…and shows the translation again", app.querySelector("h1").textContent === "NE[Welcome to Pashupatinath Temple]")
++
++  // outage: page keeps English, no crash, no request storm
++  entry.resetForTests(); entry.setLang("en"); await sleep(100)
++  window.sessionStorage.clear(); entry.setFailing(true)
++  const n0 = entry.requests.length
++  entry.setLang("ne"); await sleep(700)
++  check("provider outage leaves English text in place", app.querySelector("h1").textContent === "Welcome to Pashupatinath Temple", app.querySelector("h1").textContent)
++  check("outage does not trigger a request storm", entry.requests.length - n0 <= 2, `requests=${entry.requests.length - n0}`)
++  console.log(failures ? `\n${failures} FAILED` : "\nAll language checks passed")
++  process.exit(failures ? 1 : 0)
++})().catch((e) => { console.error("harness error:", e); process.exit(2) })
+diff --git a/frontend/Tourism/scripts/pagination-behavior-test.cjs b/frontend/Tourism/scripts/pagination-behavior-test.cjs
+new file mode 100644
+index 00000000..97dcfc9a
+--- /dev/null
++++ b/frontend/Tourism/scripts/pagination-behavior-test.cjs
+@@ -0,0 +1,89 @@
++/* Drives the REAL DestinationList + Pagination inside jsdom.
++   Usage: node scripts/pagination-behavior-test.cjs  (after esbuild bundle) */
++const { JSDOM } = require("jsdom")
++const path = require("path")
++let failures = 0
++const check = (name, ok, detail) => { console.log(`${ok ? "PASS" : "FAIL"}  ${name}${!ok && detail ? "  -> " + detail : ""}`); if (!ok) failures++ }
++
++const dom = new JSDOM("<!doctype html><html><body><div id='root'></div></body></html>", { url: "http://localhost/", pretendToBeVisual: true })
++const { window } = dom
++// Expose every DOM constructor/global the page and framer-motion touch.
++const extra = ["AbortController", "AbortSignal", "window", "document", "navigator", "getComputedStyle", "requestAnimationFrame", "cancelAnimationFrame", "localStorage", "sessionStorage", "location", "history"]
++for (const k of [...Object.getOwnPropertyNames(window).filter((n) => /^(HTML|SVG|DOM|Mutation|Resize|Intersection)?[A-Z]\w*(Element|Event|Node|List|Observer|Text|Comment|Document|Fragment|Range|Selection|Collection|Rect|Style|Sheet)$/.test(n) || ["Element", "Node", "Event", "CustomEvent", "FormData", "File", "Blob", "FileReader", "Image", "XMLHttpRequest"].includes(n)), ...extra]) {
++  if (k === "navigator" || k === "location" || k === "history") { try { Object.defineProperty(global, k, { value: window[k], configurable: true, writable: true }) } catch { /* ignore */ } continue }
++  try { Object.defineProperty(global, k, { value: window[k], configurable: true, writable: true }) } catch { /* node-provided */ }
++}
++window.matchMedia = window.matchMedia || ((q) => ({ matches: false, media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} }))
++window.scrollTo = () => {}
++window.IntersectionObserver = window.IntersectionObserver || class { observe() {} unobserve() {} disconnect() {} }
++global.IntersectionObserver = window.IntersectionObserver
++global.IS_REACT_ACT_ENVIRONMENT = true
++
++const entry = require(path.resolve(__dirname, "../tests-pagination/bundle.cjs"))
++const { act } = require("react")
++const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
++const settle = async (ms = 150) => { await act(async () => { await sleep(ms) }) }
++const lastPage = () => entry.calls.length ? entry.calls[entry.calls.length - 1].page : null
++const $ = (sel) => window.document.querySelector(sel)
++const click = async (el) => { await act(async () => { el.dispatchEvent(new window.MouseEvent("click", { bubbles: true, cancelable: true })) }); await settle() }
++const typeInto = async (input, value) => {
++  const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set
++  await act(async () => { setter.call(input, value); input.dispatchEvent(new window.Event("input", { bubbles: true })) })
++}
++const submit = async (form) => { await act(async () => { form.dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true })) }); await settle(250) }
++const rendered = () => [...window.document.querySelectorAll("a[href*='/destinations/']")].length
++
++;(async () => {
++  const root = entry.mount(window.document.getElementById("root"))
++  await settle(400)
++  check("first load requests page 1 with 12 per page", lastPage() === 1 && entry.calls[0].size === 12, JSON.stringify(entry.calls[0]))
++  check("pager shows 'Page 1 of 384'", /Page 1 of 384/.test(window.document.body.textContent), window.document.body.textContent.match(/Page \d+ of \d+/)?.[0])
++
++  // While a page is loading, the pager and current cards must stay mounted.
++  entry.setLatency(400)
++  const pagerNodeBefore = $("button[aria-label='Next page']")
++  const cardsBefore = rendered()
++  await act(async () => { pagerNodeBefore.dispatchEvent(new window.MouseEvent("click", { bubbles: true, cancelable: true })) })
++  await act(async () => { await sleep(100) })
++  check("pager stays mounted while the next page loads (no reload flash)", window.document.body.contains(pagerNodeBefore) && $("button[aria-label='Next page']") === pagerNodeBefore)
++  check("current cards stay visible while loading", rendered() === cardsBefore && cardsBefore >= 12, `before=${cardsBefore} during=${rendered()}`)
++  check("busy state is exposed to assistive tech", !!window.document.querySelector("[aria-busy='true']"))
++  await act(async () => { await sleep(700) })
++  entry.setLatency(0)
++  await settle()
++  check("page 2 arrives after the delay", lastPage() === 2, `last=${lastPage()}`)
++  const callsBefore = entry.calls.length
++  await click($("button[aria-label='Next page']"))
++  check("Next goes on to page 3", lastPage() === 3, `last=${lastPage()}`)
++  check("URL carries page=3", /page=3/.test(entry.getLocation()), entry.getLocation())
++  check("Next fetched exactly once (no reload loop)", entry.calls.length - callsBefore === 1, `extra calls=${entry.calls.length - callsBefore}`)
++
++  await click($("button[aria-label='Page 3']") || $("button[aria-label='Page 2']"))
++  const afterWindowClick = lastPage()
++  check("clicking a numbered page requests that page", afterWindowClick === 3 || afterWindowClick === 2, `last=${afterWindowClick}`)
++
++  await click($("button[aria-label='Previous page']"))
++  check("Previous moves back one page", lastPage() === afterWindowClick - 1, `last=${lastPage()}`)
++
++  const input = $("input[placeholder^='Jump']")
++  check("jump box exists", !!input)
++  await typeInto(input, "50")
++  await submit(input.closest("form"))
++  check("jump to 50 loads page 50", lastPage() === 50, `last=${lastPage()}, text=${window.document.body.textContent.match(/Page must[^.]*\./)?.[0] || ""}`)
++  check("URL carries page=50", /page=50/.test(entry.getLocation()), entry.getLocation())
++  check("page 50 still shows 12 destination cards", rendered() >= 12, `links=${rendered()}`)
++
++  await typeInto($("input[placeholder^='Jump']"), "384")
++  await submit($("input[placeholder^='Jump']").closest("form"))
++  check("jump to last page (384) loads page 384", lastPage() === 384, `last=${lastPage()}`)
++  check("pager shows 'Page 384 of 384'", /Page 384 of 384/.test(window.document.body.textContent))
++  check("Next is disabled on the last page", $("button[aria-label='Next page']")?.disabled === true)
++
++  await typeInto($("input[placeholder^='Jump']"), "385")
++  await submit($("input[placeholder^='Jump']").closest("form"))
++  check("jump beyond the last page shows a clear message and keeps page 384", /between 1 and 384/.test(window.document.body.textContent) && lastPage() === 384, `last=${lastPage()}`)
++
++  root.unmount()
++  console.log(failures ? `\n${failures} FAILED` : "\nAll pagination checks passed")
++  process.exit(failures ? 1 : 0)
++})().catch((e) => { console.error("harness error:", e); process.exit(2) })
+diff --git a/frontend/Tourism/src/i18n/dynamicTranslate.js b/frontend/Tourism/src/i18n/dynamicTranslate.js
+new file mode 100644
+index 00000000..d25e4889
+--- /dev/null
++++ b/frontend/Tourism/src/i18n/dynamicTranslate.js
+@@ -0,0 +1,125 @@
++// Page-content translation. The dictionary bridge in i18n/index.js can only
++// translate strings that exactly match an English dictionary entry, so on
++// every page except the navbar/sidebar (whose labels ARE in the dictionary)
++// destination names, descriptions, headings and buttons stayed English. This
++// module sends the remaining visible strings to POST /translate/batch/ in small
++// debounced batches, caches the answers (memory + sessionStorage), and tells the
++// caller when a string has been translated so it can update its text node.
++import axiosClient from "../api/axiosClient"
++
++const MAX_BATCH = 40
++const MAX_CHARS = 400
++const DEBOUNCE_MS = 180
++const RETRY_AFTER_MS = 30000
++const STORE_PREFIX = "tx_cache_v1:"
++const STORE_LIMIT = 1500
++
++const memory = new Map() // `${lang}\u0000${text}` -> translation
++const failedUntil = new Map()
++const waiting = new Map() // key -> { lang, text, callbacks:Set }
++let timer = null
++let inFlight = 0
++let storeTimer = null
++const loadedLangs = new Set()
++
++const keyOf = (lang, text) => `${lang}\u0000${text}`
++
++function loadStore(lang) {
++  if (loadedLangs.has(lang)) return
++  loadedLangs.add(lang)
++  try {
++    const raw = window.sessionStorage.getItem(STORE_PREFIX + lang)
++    if (!raw) return
++    const obj = JSON.parse(raw)
++    Object.entries(obj).forEach(([text, translated]) => memory.set(keyOf(lang, text), translated))
++  } catch {
++    /* storage unavailable or corrupt: start empty */
++  }
++}
++
++function saveStoreSoon(lang) {
++  clearTimeout(storeTimer)
++  storeTimer = setTimeout(() => {
++    try {
++      const out = {}
++      const prefix = `${lang}\u0000`
++      let n = 0
++      for (const [k, v] of memory) {
++        if (!k.startsWith(prefix)) continue
++        out[k.slice(prefix.length)] = v
++        if (++n >= STORE_LIMIT) break
++      }
++      window.sessionStorage.setItem(STORE_PREFIX + lang, JSON.stringify(out))
++    } catch {
++      /* quota or privacy mode: the in-memory cache still works */
++    }
++  }, 500)
++}
++
++/** Should this visible string be sent for translation at all? */
++export function isTranslatable(text) {
++  if (!text || text.length < 2 || text.length > MAX_CHARS) return false
++  if (!/[A-Za-z]{2}/.test(text)) return false // numbers, symbols, single letters
++  if (/^(https?:\/\/|www\.)/i.test(text) || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) return false
++  const letters = text.replace(/[^\p{L}]/gu, "")
++  if (!letters) return false
++  const nonLatin = letters.replace(/[A-Za-z]/g, "").length
++  return nonLatin / letters.length < 0.3 // already (mostly) in another script
++}
++
++export function lookup(lang, text) {
++  loadStore(lang)
++  return memory.get(keyOf(lang, text)) ?? null
++}
++
++async function flush() {
++  timer = null
++  if (inFlight >= 2) { timer = setTimeout(flush, DEBOUNCE_MS); return }
++  const entries = [...waiting.entries()].slice(0, MAX_BATCH)
++  if (!entries.length) return
++  entries.forEach(([k]) => waiting.delete(k))
++  const lang = entries[0][1].lang
++  const group = entries.filter(([, v]) => v.lang === lang)
++  entries.filter(([, v]) => v.lang !== lang).forEach(([k, v]) => waiting.set(k, v))
++  inFlight += 1
++  try {
++    const { data } = await axiosClient.post("/translate/batch/", {
++      texts: group.map(([, v]) => v.text),
++      target_language: lang,
++      source_language: "en",
++    })
++    const out = Array.isArray(data?.translations) ? data.translations : []
++    group.forEach(([k, v], i) => {
++      const translated = out[i]
++      if (typeof translated === "string" && translated.trim() && translated.trim() !== v.text.trim()) {
++        memory.set(k, translated)
++        v.callbacks.forEach((cb) => { try { cb(translated) } catch { /* node gone */ } })
++      } else {
++        failedUntil.set(k, Date.now() + RETRY_AFTER_MS) // untranslatable (a name) or provider down
++      }
++    })
++    saveStoreSoon(lang)
++  } catch {
++    group.forEach(([k]) => failedUntil.set(k, Date.now() + RETRY_AFTER_MS))
++  } finally {
++    inFlight -= 1
++    if (waiting.size) { clearTimeout(timer); timer = setTimeout(flush, DEBOUNCE_MS) }
++  }
++}
++
++/** Ask for a translation; `onDone(translated)` is called when it arrives. */
++export function request(lang, text, onDone) {
++  if (lang === "en" || !isTranslatable(text)) return
++  const key = keyOf(lang, text)
++  if (memory.has(key)) return
++  if ((failedUntil.get(key) || 0) > Date.now()) return
++  const slot = waiting.get(key) || { lang, text, callbacks: new Set() }
++  slot.callbacks.add(onDone)
++  waiting.set(key, slot)
++  if (!timer) timer = setTimeout(flush, DEBOUNCE_MS)
++}
++
++export function resetForTests() {
++  memory.clear(); failedUntil.clear(); waiting.clear(); loadedLangs.clear()
++  clearTimeout(timer); timer = null; inFlight = 0
++}
+diff --git a/frontend/Tourism/src/i18n/index.js b/frontend/Tourism/src/i18n/index.js
+index 1bf17930..c8f05ff3 100644
+--- a/frontend/Tourism/src/i18n/index.js
++++ b/frontend/Tourism/src/i18n/index.js
+@@ -8,6 +8,7 @@
+  * translations), and an extensible dictionary. To add a language, append
+  * its block to LANGS and register it in ALL_LANGS.
+  */
++import { lookup as dynamicLookup, request as dynamicRequest } from "./dynamicTranslate"
+ import { useEffect, useState } from "react"
+ 
+ const STORAGE_KEY = "tourism_lang"
+@@ -1533,33 +1534,89 @@ function persistLang(code) {
+   }
+ }
+ 
+-const originalText = new WeakMap()
++// Per text node: the English original and the text this bridge last wrote.
++// React rewrites nodeValue itself when its state changes; comparing against
++// `applied` tells "React changed it (new original)" from "still our output".
++const nodeState = new WeakMap()
+ let translationObserver = null
++let reverseDictionary = null
++
++const NEVER_TRANSLATE = "[data-no-translate],[translate='no'],script,style,code,pre,textarea,input,select,svg,[contenteditable='true'],.leaflet-container"
++
++function reverseLookup() {
++  if (!reverseDictionary) reverseDictionary = new Map(Object.entries(en).map(([key, value]) => [value, key]))
++  return reverseDictionary
++}
++
++function translateTextNode(node) {
++  const parent = node.parentElement
++  if (!parent || !node.isConnected) return
++  const state = nodeState.get(node)
++  const original = state && (node.nodeValue === state.applied || node.nodeValue === state.original)
++    ? state.original
++    : node.nodeValue
++  if (currentLang === "en") {
++    if (state && node.nodeValue !== state.original && node.nodeValue === state.applied) node.nodeValue = state.original
++    nodeState.set(node, { original: node.nodeValue, applied: node.nodeValue })
++    return
++  }
++  const trimmed = original.trim()
++  let translated = null
++  if (trimmed) {
++    const key = reverseLookup().get(trimmed)
++    if (key) {
++      translated = (DICTS[currentLang] || en)[key] || null
++    } else if (!parent.closest(NEVER_TRANSLATE)) {
++      // Not a dictionary string: page content. Use the batch translator.
++      translated = dynamicLookup(currentLang, trimmed)
++      if (translated == null) {
++        const lang = currentLang
++        dynamicRequest(lang, trimmed, (value) => {
++          if (currentLang === lang) translateTextNode(node)
++          else void value
++        })
++      }
++    }
++  }
++  if (translated != null && translated !== trimmed) {
++    const next = original.replace(trimmed, translated)
++    node.nodeValue = next
++    nodeState.set(node, { original, applied: next })
++  } else {
++    nodeState.set(node, { original, applied: node.nodeValue })
++  }
++}
+ 
+ function translateLegacyDom(root = document.body) {
+   if (typeof document === "undefined" || !root) return
+-  const reverse = new Map(Object.entries(en).map(([key, value]) => [value, key]))
+   const target = DICTS[currentLang] || en
++  const reverse = reverseLookup()
+   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
++  const nodes = []
+   let node
+-  while ((node = walker.nextNode())) {
+-    if (!node.parentElement || ["SCRIPT","STYLE","CODE","PRE"].includes(node.parentElement.tagName)) continue
+-    if (!originalText.has(node)) originalText.set(node, node.nodeValue)
+-    const original = originalText.get(node)
+-    const trimmed = original.trim()
+-    const key = reverse.get(trimmed)
+-    if (!key) continue
+-    const translated = target[key] || trimmed
+-    node.nodeValue = original.replace(trimmed, translated)
+-  }
+-  root.querySelectorAll?.("[placeholder],[title]").forEach((element) => {
+-    for (const attribute of ["placeholder", "title"]) {
++  while ((node = walker.nextNode())) nodes.push(node)
++  nodes.forEach(translateTextNode)
++  root.querySelectorAll?.("[placeholder],[title],[aria-label]").forEach((element) => {
++    for (const attribute of ["placeholder", "title", "aria-label"]) {
+       if (!element.hasAttribute(attribute)) continue
+-      const storageKey = `i18nOriginal${attribute}`
++      const storageKey = `i18nOriginal${attribute.replace(/-./g, (m) => m[1].toUpperCase())}`
+       if (!element.dataset[storageKey]) element.dataset[storageKey] = element.getAttribute(attribute)
+       const original = element.dataset[storageKey]
+       const key = reverse.get(original)
+-      if (key) element.setAttribute(attribute, target[key] || original)
++      if (key) {
++        element.setAttribute(attribute, target[key] || original)
++      } else if (currentLang === "en") {
++        element.setAttribute(attribute, original)
++      } else if (!element.closest(NEVER_TRANSLATE) || attribute !== "title") {
++        const cached = dynamicLookup(currentLang, original)
++        if (cached != null) element.setAttribute(attribute, cached)
++        else {
++          const lang = currentLang
++          dynamicRequest(lang, original, (value) => {
++            if (currentLang === lang && element.isConnected) element.setAttribute(attribute, value)
++          })
++        }
++      }
+     }
+   })
+ }
+@@ -1572,11 +1629,16 @@ function enableLegacyTranslationBridge() {
+       for (const mutation of mutations) {
+         mutation.addedNodes.forEach((node) => {
+           if (node.nodeType === Node.ELEMENT_NODE) translateLegacyDom(node)
+-          else if (node.nodeType === Node.TEXT_NODE && node.parentElement) translateLegacyDom(node.parentElement)
++          else if (node.nodeType === Node.TEXT_NODE && node.parentElement) translateTextNode(node)
+         })
++        // React updating an existing text node (page change, filter, pagination).
++        if (mutation.type === "characterData" && mutation.target.nodeType === Node.TEXT_NODE) {
++          const state = nodeState.get(mutation.target)
++          if (!state || mutation.target.nodeValue !== state.applied) translateTextNode(mutation.target)
++        }
+       }
+     })
+-    translationObserver.observe(document.documentElement, { childList: true, subtree: true })
++    translationObserver.observe(document.documentElement, { childList: true, subtree: true, characterData: true })
+   }
+ }
+ 
+diff --git a/frontend/Tourism/src/pages/destinations/DestinationList.jsx b/frontend/Tourism/src/pages/destinations/DestinationList.jsx
+index 2d426d03..8d3fe2d8 100644
+--- a/frontend/Tourism/src/pages/destinations/DestinationList.jsx
++++ b/frontend/Tourism/src/pages/destinations/DestinationList.jsx
+@@ -484,14 +484,18 @@ export default function DestinationList() {
+       {!loading && !loadError && <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-[var(--ny-text-secondary)]"><span>Showing <strong className="text-[var(--ny-text)]">{totalCount.toLocaleString()}</strong> places{isGpsSorted ? " nearest to your location" : ""}{query ? ` for “${query}”` : ""}{letter ? ` starting with “${letter}”` : ""}</span>{(query || letter || categoryChip) && <button type="button" onClick={() => { setQuery(""); setLetter(""); setCategoryChip(""); setPage(1) }} className="inline-flex min-h-11 items-center gap-1 font-semibold text-[var(--ny-green)] hover:underline"><FiX size={14} aria-hidden="true" /> Clear filters</button>}</div>}
+ 
+       {/* Results View */}
+-      {loading ? (
++      {/* Skeletons only for the first load. On a page change the current page stays
++          mounted (dimmed) until the next one arrives: swapping the whole grid and the
++          pager for skeletons made every Next/Previous/Jump look like a full reload,
++          dropped the typed page number, and lost keyboard focus. */}
++      {loading && destinations.length === 0 ? (
+         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 min-[1240px]:grid-cols-3 gap-6">
+           {[...Array(6)].map((_, i) => <DestinationCardSkeleton key={i} />)}
+         </div>
+       ) : loadError ? (
+         <ErrorState title="Could not load destinations" message={loadError} onRetry={() => setReloadNonce((value) => value + 1)} />
+       ) : displayedDestinations.length > 0 ? (
+-        <div className="space-y-8">
++        <div className={`space-y-8 transition-opacity duration-150 ${loading ? "opacity-60 pointer-events-none" : ""}`} aria-busy={loading}>
+           <div className="flex flex-wrap items-end justify-between gap-2">
+             <h2 className="text-xl sm:text-2xl font-black">
+               {query ? `Results for “${query}”` : letter ? `Destinations starting with “${letter}”` : "All Nepal destinations"}
+diff --git a/frontend/Tourism/tests-i18n/entry.js b/frontend/Tourism/tests-i18n/entry.js
+new file mode 100644
+index 00000000..630c48ee
+--- /dev/null
++++ b/frontend/Tourism/tests-i18n/entry.js
+@@ -0,0 +1,17 @@
++import axios from "axios"
++import axiosClient from "../src/api/axiosClient"
++import { setLang } from "../src/i18n"
++import { resetForTests } from "../src/i18n/dynamicTranslate"
++
++export const requests = []
++let failing = false
++export const setFailing = (v) => { failing = v }
++const adapter = async (config) => {
++  const body = typeof config.data === "string" ? JSON.parse(config.data) : config.data
++  requests.push(body)
++  if (failing) { const e = new Error("down"); e.response = { status: 503, data: {}, config }; e.config = config; throw e }
++  return { data: { translations: body.texts.map((t) => `NE[${t}]`) }, status: 200, statusText: "OK", headers: {}, config, request: {} }
++}
++axiosClient.defaults.adapter = adapter
++axios.defaults.adapter = adapter
++export { setLang, resetForTests }
+diff --git a/frontend/Tourism/tests-pagination/entry.jsx b/frontend/Tourism/tests-pagination/entry.jsx
+new file mode 100644
+index 00000000..f78f3512
+--- /dev/null
++++ b/frontend/Tourism/tests-pagination/entry.jsx
+@@ -0,0 +1,69 @@
++// Pagination behaviour test entry: renders the REAL DestinationList (real
++// Pagination, real router/URL sync) against a deterministic fake catalogue API
++// shaped like /api/v1/destinations/ (4,603 places, 12 per page, 384 pages).
++import React from "react"
++import { createRoot } from "react-dom/client"
++import { MemoryRouter, useLocation } from "react-router-dom"
++import { AuthProvider } from "../src/context/AuthContext"
++import { ThemeProvider } from "../src/context/ThemeContext"
++import { ToastProvider } from "../src/context/ToastContext"
++import DestinationList from "../src/pages/destinations/DestinationList"
++import axios from "axios"
++import axiosClient from "../src/api/axiosClient"
++
++export const TOTAL = 4603
++export const PER_PAGE = 12
++export const calls = []
++let LATENCY_MS = 0
++export const setLatency = (ms) => { LATENCY_MS = ms }
++
++const stubAdapter = async (config) => {
++  const url = String(config.url || "")
++  const params = { ...(config.params || {}) }
++  const respond = (data, status = 200) => ({ data, status, statusText: "OK", headers: {}, config, request: {} })
++  if (/\/destinations\/?$/.test(url.split("?")[0])) {
++    const page = Number(params.page || 1)
++    const size = Number(params.limit || params.page_size || PER_PAGE)
++    if (params.featured) return respond({ results: [], count: 0, total_pages: 1, current_page: 1 })
++    calls.push({ page, size, params })
++    const pages = Math.ceil(TOTAL / size)
++    if (LATENCY_MS) await new Promise((r) => setTimeout(r, LATENCY_MS))
++    if (page < 1 || page > pages) {
++      const err = new Error("Invalid page"); err.response = respond({ error: { code: "not_found" } }, 404); err.config = config
++      throw err
++    }
++    const start = (page - 1) * size
++    const n = Math.min(size, TOTAL - start)
++    return respond({
++      count: TOTAL, total_pages: pages, current_page: page, next: null, previous: null,
++      results: Array.from({ length: n }, (_, i) => ({
++        id: start + i + 1, slug: `place-${start + i + 1}`, name: `Place ${start + i + 1}`,
++        district: "Kaski", province: "Gandaki", cover_image_url: "", latitude: 28.2, longitude: 84,
++      })),
++    })
++  }
++  return respond({ results: [], count: 0, settings: {}, pages: [], navigation: [] })
++}
++axiosClient.defaults.adapter = stubAdapter
++axios.defaults.adapter = stubAdapter
++
++let currentLocation = "/"
++function LocationProbe() {
++  const loc = useLocation()
++  currentLocation = loc.pathname + loc.search
++  return null
++}
++export const getLocation = () => currentLocation
++
++export function mount(container, initialEntry = "/destinations") {
++  const root = createRoot(container)
++  root.render(
++    <MemoryRouter initialEntries={[initialEntry]}>
++      <ThemeProvider><AuthProvider><ToastProvider>
++        <LocationProbe />
++        <DestinationList />
++      </ToastProvider></AuthProvider></ThemeProvider>
++    </MemoryRouter>
++  )
++  return root
++}
+-- 
+2.43.0
+
+
+From 09af22d8fe44df3864dc4565fb4bf93db0878686 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 3 Oct 2026 17:25:22 +0000
+Subject: [PATCH 4/6] fix(pagination): jump-to-page never accepted a number
+
+Pagination.jsx tested the jump value with /^\\d+$/ (a literal backslash + 'd') and set pattern="\\d+" on the input, so no page number validated: Go did nothing / the browser blocked the form. Use /^\d+$/ and pattern="[0-9]*", and show an inline alert for non-numbers and out-of-range pages.
+Test: jsdom drives next/prev/numbered/jump/last/out-of-range (fails on upstream, passes now). Cover tests adapted to the postcard fallback.
+---
+ .../Tourism/scripts/pagination-behavior-test.cjs  |  5 +++--
+ .../Tourism/src/components/common/Pagination.jsx  | 15 ++++++++++++---
+ 2 files changed, 15 insertions(+), 5 deletions(-)
+
+diff --git a/frontend/Tourism/scripts/pagination-behavior-test.cjs b/frontend/Tourism/scripts/pagination-behavior-test.cjs
+index 97dcfc9a..740fbb4d 100644
+--- a/frontend/Tourism/scripts/pagination-behavior-test.cjs
++++ b/frontend/Tourism/scripts/pagination-behavior-test.cjs
+@@ -31,6 +31,7 @@ const typeInto = async (input, value) => {
+   await act(async () => { setter.call(input, value); input.dispatchEvent(new window.Event("input", { bubbles: true })) })
+ }
+ const submit = async (form) => { await act(async () => { form.dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true })) }); await settle(250) }
++const pageBtn = (n) => [...window.document.querySelectorAll("nav[aria-label='Pagination'] button")].find((b) => b.textContent.trim() === String(n))
+ const rendered = () => [...window.document.querySelectorAll("a[href*='/destinations/']")].length
+ 
+ ;(async () => {
+@@ -58,9 +59,9 @@ const rendered = () => [...window.document.querySelectorAll("a[href*='/destinati
+   check("URL carries page=3", /page=3/.test(entry.getLocation()), entry.getLocation())
+   check("Next fetched exactly once (no reload loop)", entry.calls.length - callsBefore === 1, `extra calls=${entry.calls.length - callsBefore}`)
+ 
+-  await click($("button[aria-label='Page 3']") || $("button[aria-label='Page 2']"))
++  await click(pageBtn(4) || pageBtn(3) || pageBtn(2))
+   const afterWindowClick = lastPage()
+-  check("clicking a numbered page requests that page", afterWindowClick === 3 || afterWindowClick === 2, `last=${afterWindowClick}`)
++  check("clicking a numbered page requests that page", [2, 3, 4].includes(afterWindowClick), `last=${afterWindowClick}`)
+ 
+   await click($("button[aria-label='Previous page']"))
+   check("Previous moves back one page", lastPage() === afterWindowClick - 1, `last=${lastPage()}`)
+diff --git a/frontend/Tourism/src/components/common/Pagination.jsx b/frontend/Tourism/src/components/common/Pagination.jsx
+index 1c4f93d5..bb15a423 100644
+--- a/frontend/Tourism/src/components/common/Pagination.jsx
++++ b/frontend/Tourism/src/components/common/Pagination.jsx
+@@ -3,12 +3,14 @@ import { FiChevronLeft, FiChevronRight, FiMoreHorizontal } from "react-icons/fi"
+ 
+ export default function Pagination({ page, totalPages, onPageChange, pageSize, onPageSizeChange, totalItems }) {
+   const [jumpValue, setJumpValue] = useState(String(page || 1))
++  const [jumpError, setJumpError] = useState("")
+   // Keep the jump input in sync with the page prop by adjusting during render
+   // (the effect that used to do this was banned by react-hooks/set-state-in-effect).
+   const [prevPage, setPrevPage] = useState(page)
+   if (page !== prevPage) {
+     setPrevPage(page)
+     setJumpValue(String(page || 1))
++    setJumpError("")
+   }
+   const currentPage = Math.min(Math.max(Number(page) || 1, 1), Math.max(Number(totalPages) || 1, 1))
+   const safeTotalPages = Math.max(Number(totalPages) || 1, 1)
+@@ -26,9 +28,16 @@ export default function Pagination({ page, totalPages, onPageChange, pageSize, o
+   const jumpToPage = (event) => {
+     event.preventDefault()
+     const value = jumpValue.trim()
+-    if (!/^\\d+$/.test(value)) return
++    // A doubled backslash here (/^\\d+$/) matched a literal "\d", so no page number
++    // was ever accepted and "Go" did nothing. Say what is wrong instead of failing silently.
++    if (!/^\d+$/.test(value)) { setJumpError("Enter a page number, for example 5"); return }
+     const requested = Number(value)
+-    if (requested < 1 || requested > safeTotalPages) { setJumpValue(String(currentPage)); return }
++    if (requested < 1 || requested > safeTotalPages) {
++      setJumpError(`Page must be between 1 and ${safeTotalPages}`)
++      setJumpValue(String(currentPage))
++      return
++    }
++    setJumpError("")
+     onPageChange(requested)
+   }
+   if (safeTotalPages <= 1 && !onPageSizeChange) return null
+@@ -44,7 +53,7 @@ export default function Pagination({ page, totalPages, onPageChange, pageSize, o
+         <button type="button" onClick={() => onPageChange(currentPage - 1)} disabled={currentPage <= 1} className="ny-btn ny-btn-secondary ny-btn-sm" aria-label="Previous page"><FiChevronLeft size={15} aria-hidden="true" /><span className="hidden sm:inline">Previous</span></button>
+         <div className="hidden items-center gap-1 sm:flex">{getPageNumbers().map((number, index) => number === "..." ? <span key={"ellipsis-" + index} className="grid h-9 w-8 place-items-center text-[var(--ny-text-muted)]" aria-hidden="true"><FiMoreHorizontal size={15} /></span> : <button key={number} type="button" onClick={() => onPageChange(number)} aria-current={number === currentPage ? "page" : undefined} className={number === currentPage ? "grid h-9 min-w-9 place-items-center rounded-lg bg-[var(--ny-green)] px-2 text-sm font-bold text-white" : "grid h-9 min-w-9 place-items-center rounded-lg border border-[var(--ny-border)] bg-[var(--ny-white)] px-2 text-sm font-semibold text-[var(--ny-text-secondary)] hover:bg-[var(--ny-soft-green)]"}>{number}</button>)}</div>
+         <span className="px-2 text-xs font-semibold text-[var(--ny-text-secondary)] sm:hidden">Page {currentPage} of {safeTotalPages}</span>
+-        <form onSubmit={jumpToPage} className="hidden items-center gap-1.5 md:flex" aria-label="Jump to page"><label htmlFor="pagination-jump" className="sr-only">Jump to page</label><input id="pagination-jump" value={jumpValue} onChange={(event) => setJumpValue(event.target.value)} inputMode="numeric" pattern="\\d+" placeholder="Jump to…" aria-label="Jump to page number" className="h-9 w-24 rounded-lg border border-[var(--ny-border)] bg-[var(--ny-white)] px-2 text-center text-sm" /><button type="submit" className="ny-btn ny-btn-secondary ny-btn-sm">Go</button></form>
++        <form onSubmit={jumpToPage} className="hidden items-center gap-1.5 md:flex" aria-label="Jump to page"><label htmlFor="pagination-jump" className="sr-only">Jump to page</label><input id="pagination-jump" value={jumpValue} onChange={(event) => setJumpValue(event.target.value)} inputMode="numeric" pattern="[0-9]*" placeholder="Jump to…" aria-invalid={jumpError ? "true" : undefined} aria-describedby={jumpError ? "pagination-jump-error" : undefined} aria-label="Jump to page number" className="h-9 w-24 rounded-lg border border-[var(--ny-border)] bg-[var(--ny-white)] px-2 text-center text-sm" /><button type="submit" className="ny-btn ny-btn-secondary ny-btn-sm">Go</button>{jumpError && <span id="pagination-jump-error" role="alert" className="text-xs font-semibold text-red-600">{jumpError}</span>}</form>
+         <span className="hidden px-2 text-xs font-semibold text-[var(--ny-text-secondary)] lg:inline">Page {currentPage} of {safeTotalPages}</span>
+         <button type="button" onClick={() => onPageChange(currentPage + 1)} disabled={currentPage >= safeTotalPages} className="ny-btn ny-btn-secondary ny-btn-sm" aria-label="Next page"><span className="hidden sm:inline">Next</span><FiChevronRight size={15} aria-hidden="true" /></button>
+       </div>
+-- 
+2.43.0
+
+
+From d2abfcfe7786360c12e93245e31a7ddc56a49186 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 3 Oct 2026 17:57:27 +0000
+Subject: [PATCH 5/6] fix(images): crash on mismatched photos + stop wrong
+ photos on places
+
+- serializers: is_destination_specific_image used known_places before assigning it (UnboundLocalError -> 500 on any destination with an approved photo whose URL names another place). Define it first.
+- serializers: cover column and gallery photos now need place evidence. A named photo must name THIS place (city/district alone no longer counts, a business needs more than its city); photos reused by 3+ destinations are rejected; camera-style filenames (IMG_2041) stay visible per #22; staff-chosen photos always pass.
+- Measured on the seed data: 5,354 places showed a photo shared by 3+ places and 1,661 hostels/hotels showed landmark photos; after: 238 / 20.
+- tests: cover integrity
+---
+ Tourism/tourist/serializers.py           | 151 ++++++++++++++++++++++-
+ Tourism/tourist/tests_cover_integrity.py |  79 ++++++++++++
+ 2 files changed, 227 insertions(+), 3 deletions(-)
+ create mode 100644 Tourism/tourist/tests_cover_integrity.py
+
+diff --git a/Tourism/tourist/serializers.py b/Tourism/tourist/serializers.py
+index b4c4d05b..bc9c6519 100644
+--- a/Tourism/tourist/serializers.py
++++ b/Tourism/tourist/serializers.py
+@@ -224,6 +224,148 @@ def _cover_backed_by_unverified_media(destination, cover_value):
+     return False
+ 
+ 
++_COVER_EXTRA_GENERIC_TOKENS = {
++    "municipality", "metropolitan", "rural", "sub", "bazaar", "bazar", "tole",
++    "dham", "gaun", "village", "ward", "district", "zone", "province", "pradesh",
++    "garden", "gardens", "sacred", "durbar", "square", "river", "falls",
++    "waterfall", "cave", "forest", "trek", "trail", "camp", "base", "heritage",
++    "monastery", "gompa", "buddha", "buddhist", "hindu", "private", "limited",
++    "spring", "springs", "pond", "bank", "school", "college", "office",
++}
++_SERVICE_NAME_RE = re.compile(
++    r"\b(hotel|lodge|hostel|guest\s?house|homestay|home\s?stay|resort|restaurant|cafe|caf\u00e9|bhojanalaya|school|college|campus|consultancy|inn)\b",
++    re.IGNORECASE,
++)
++_OVERSHARED_CACHE = {"at": 0.0, "urls": frozenset()}
++_OVERSHARE_THRESHOLD = 3
++
++
++def _cover_title_matches_own_name(obj, url):
++    """True/False/None: does a named photo's title name THIS place itself?
++
++    ``image_url_matches_destination`` also accepts the city, district and
++    province, which is right for a gallery but wrong for a cover: every
++    Kathmandu hotel then "matched" the SAARC Secretariat photo because the title
++    contains "Kathmandu". The title must share a distinctive token with the
++    destination's own name/aliases. None = opaque URL (nothing to verify).
++    """
++    generic = _IMAGE_STOPWORDS | _COVER_EXTRA_GENERIC_TOKENS
++    title = _named_external_photo_title(url)
++    if title is None:
++        return None
++    own = " ".join(filter(None, [obj.name, getattr(obj, "aliases", "") or ""])).lower()
++    own_tokens = {t for t in re.findall(r"[a-z0-9]{4,}", own) if t not in generic}
++    if _SERVICE_NAME_RE.search(obj.name or ""):
++        # "Lumbini Garden Lodge" shares only its city with the Lumbini landmark
++        # photo; a business name must match on more than the place it stands in.
++        place = " ".join(str(getattr(obj, f, "") or "") for f in ("city", "district", "province")).lower()
++        own_tokens -= set(re.findall(r"[a-z0-9]{4,}", place))
++        own_tokens -= {"lumbini", "kathmandu", "pokhara", "chitwan", "bhaktapur", "patan", "nagarkot"}
++    if not own_tokens:
++        return False
++    title_tokens = {t for t in re.findall(r"[a-z0-9]{4,}", title.lower()) if t not in generic}
++    # Camera/filename-style titles ("IMG_2041", "DSC00123", "Nepal 2019") name no place at
++    # all: no evidence either way, so they follow the opaque-photo (reuse) rule instead of
++    # being rejected -- they are the "generic source filenames" real photos that must stay.
++    if not title_tokens or re.fullmatch(r"(img|dsc|dscn|dscf|pxl|p|image|photo|picture|nepal)?[\s_\-]*\d[\w\s\-]*", title.strip(), re.I):
++        return None
++    return bool(own_tokens & title_tokens)
++
++
++def _overshared_image_urls():
++    """External photo URLs attached to 3+ different destinations (cached 1 h).
++
++    Opaque URLs (hash-named files) carry no title to verify, so the only
++    evidence is reuse: one frame standing in for five unrelated villages is a
++    placeholder, not a photograph of any of them.
++    """
++    import time
++
++    now = time.time()
++    if _OVERSHARED_CACHE["at"] and now - _OVERSHARED_CACHE["at"] < 3600:
++        return _OVERSHARED_CACHE["urls"]
++    try:
++        from django.db.models import Count
++
++        urls = set(
++            DestinationImage.objects.exclude(external_url="")
++            .values("external_url")
++            .annotate(n=Count("destination_id", distinct=True))
++            .filter(n__gte=_OVERSHARE_THRESHOLD)
++            .values_list("external_url", flat=True)
++        )
++        urls |= set(
++            Destination.objects.exclude(cover_image="")
++            .values("cover_image")
++            .annotate(n=Count("id"))
++            .filter(n__gte=_OVERSHARE_THRESHOLD)
++            .values_list("cover_image", flat=True)
++        )
++        urls = frozenset(str(u) for u in urls)
++    except Exception:  # pragma: no cover - never break a page over a cache
++        urls = _OVERSHARED_CACHE["urls"]
++    _OVERSHARED_CACHE.update(at=now or 1.0, urls=urls)
++    return urls
++
++
++def _photo_is_for_this_place(obj, photo):
++    """Strict public-display gate for one gallery photo.
++
++    Builds on ``is_destination_specific_image`` and adds the two missing rules:
++    a named external photo must name the destination itself (not just its
++    city/district), and an unverifiable photo reused by 3+ destinations is not
++    shown. Local uploads and photos staff deliberately attached always pass.
++    """
++    if not is_destination_specific_image(obj, photo):
++        return False
++    external = getattr(photo, "external_url", "") or ""
++    if not external:
++        return True
++    uploader = getattr(photo, "uploaded_by", None) if getattr(photo, "uploaded_by_id", None) else None
++    if (
++        getattr(photo, "source", "") == DestinationImage.Source.ADMIN
++        and uploader is not None
++        and (uploader.is_staff or uploader.is_superuser)
++    ):
++        return True
++    verdict = _cover_title_matches_own_name(obj, external)
++    if verdict is True:
++        return True
++    if verdict is False:
++        return False
++    return external not in _overshared_image_urls()
++
++
++def _cover_column_is_for_this_place(obj):
++    """Gate the raw ``Destination.cover_image`` column with place-match evidence.
++
++    It used to be served unchecked, so bulk-import covers leaked to the public
++    site (a Boudhanath photo on "Mahaboudha Temple", one Lumbini garden photo
++    on 41 places). A wrong photo is worse than an honest "no photo yet". Local
++    media is kept; a staff-chosen photo (approved gallery row that passes the
++    gallery gate) is kept; a named photo of another place and an opaque photo
++    reused by 3+ places are rejected.
++    """
++    raw = str(getattr(obj, "cover_image", "") or "").strip()
++    if not raw.lower().startswith(("http://", "https://")):
++        return True
++    verdict = _cover_title_matches_own_name(obj, raw)
++    if verdict is True:
++        return True
++    if verdict is None and raw not in _overshared_image_urls():
++        return True
++    gallery = getattr(obj, "gallery", None)
++    if gallery is None:
++        return False
++    for photo in gallery.all():
++        if (getattr(photo, "external_url", "") or "") == raw \
++                and getattr(photo, "verification_status", "") == DestinationImage.ImageStatus.APPROVED \
++                and getattr(photo, "source", "") == DestinationImage.Source.ADMIN \
++                and _photo_is_for_this_place(obj, photo):
++            return True
++    return False
++
++
+ def destination_cover_image(obj, request=None):
+     """Resolve only an approved, verified, destination-specific photograph.
+ 
+@@ -233,7 +375,7 @@ def destination_cover_image(obj, request=None):
+     """
+     from .utils import resolve_image_url
+ 
+-    if getattr(obj, "cover_image", None) and not _cover_backed_by_unverified_media(
++    if getattr(obj, "cover_image", None) and _cover_column_is_for_this_place(obj) and not _cover_backed_by_unverified_media(
+         obj, obj.cover_image
+     ):
+         resolved = resolve_image_url(obj.cover_image, request)
+@@ -2070,6 +2212,10 @@ def is_destination_specific_image(destination, photo):
+     # use photographer IDs or generic filenames (for example IMG_2041.jpg).
+     # Keep the strong known-place conflict guard below so a clearly labelled
+     # Pokhara image cannot silently become an Everest/Lumbini cover.
++    # Defined BEFORE its first use below. It used to be assigned after the loop that
++    # reads it, so any approved photo whose URL names a different place raised
++    # UnboundLocalError and the destination list/detail endpoint returned a 500.
++    known_places = {"kathmandu", "patan", "bhaktapur", "pokhara", "rara", "lumbini", "mustang", "chitwan", "janakpur", "everest", "annapurna", "tilicho", "gosaikunda", "bardiya", "ilam", "dhangadhi", "dadeldhura", "pashupatinath", "boudhanath", "swayambhunath"}
+     for candidate_url in (external_url, getattr(photo, "source_url", "") or ""):
+         if image_url_matches_destination(destination, candidate_url) is False:
+             evidence_lower = evidence
+@@ -2083,7 +2229,6 @@ def is_destination_specific_image(destination, photo):
+     strict_subject = any(term in destination_text for term in ["cave", "gupha", "gufa", "balloon", "ultralight", "paragliding", "zipflyer", "zip flyer"])
+     if strict_subject and not own_match:
+         return False
+-    known_places = {"kathmandu", "patan", "bhaktapur", "pokhara", "rara", "lumbini", "mustang", "chitwan", "janakpur", "everest", "annapurna", "tilicho", "gosaikunda", "bardiya", "ilam", "dhangadhi", "dadeldhura", "pashupatinath", "boudhanath", "swayambhunath"}
+     conflicts = {place for place in known_places if place in evidence and place not in allowed}
+     if conflicts and not own_match:
+         return False
+@@ -2101,7 +2246,7 @@ def verified_destination_photos(destination):
+         photo for photo in destination.gallery.all()
+         if photo.verification_status == DestinationImage.ImageStatus.APPROVED
+         and photo.is_verified
+-        and is_destination_specific_image(destination, photo)
++        and _photo_is_for_this_place(destination, photo)
+     ]
+ 
+ 
+diff --git a/Tourism/tourist/tests_cover_integrity.py b/Tourism/tourist/tests_cover_integrity.py
+new file mode 100644
+index 00000000..d1c213c4
+--- /dev/null
++++ b/Tourism/tourist/tests_cover_integrity.py
+@@ -0,0 +1,79 @@
++"""A destination must never show another place's photograph, and itineraries
++must be made of places to visit rather than hotels or other businesses."""
++from django.test import TestCase
++
++from tourist.models import Destination, DestinationImage
++from tourist.serializers import destination_cover_image, _overshared_image_urls, _OVERSHARED_CACHE
++
++WM = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/{}/960px-{}"
++
++
++def wm(title):
++    return WM.format(title, title)
++
++
++class CoverMatchesPlaceTests(TestCase):
++    def assertNotPhoto(self, destination):
++        """A rejected photo must fall back to the generated postcard (the site
++        no longer shows a broken "image unavailable" card), never to the wrong
++        place's photograph."""
++        url = destination_cover_image(destination)
++        self.assertTrue(
++            url is None or str(url).startswith("/api/v1/postcard/"),
++            f"expected no photo / generated postcard, got {url}",
++        )
++        self.assertNotEqual(url, destination.cover_image)
++
++    def setUp(self):
++        _OVERSHARED_CACHE.update(at=0.0, urls=frozenset())
++
++    def _dest(self, name, slug, cover, district="Kathmandu"):
++        return Destination.objects.create(name=name, slug=slug, cover_image=cover, district=district, city=district)
++
++    def test_cover_naming_the_place_is_kept(self):
++        d = self._dest("Boudhanath Stupa", "boud", wm("Boudhanath_Stupa_Kathmandu_Nepal.jpg"))
++        self.assertEqual(destination_cover_image(d), d.cover_image)
++
++    def test_cover_of_a_different_place_is_rejected(self):
++        d = self._dest("Mahaboudha Temple", "maha", wm("Boudhanath_Stupa_Kathmandu_Nepal.jpg"))
++        self.assertNotPhoto(d)
++
++    def test_city_name_in_title_does_not_count_as_a_match(self):
++        d = self._dest("Hotel Elite", "elite", wm("SAARC_Secretariat_at_Kathmandu.JPG"))
++        self.assertNotPhoto(d)
++
++    def test_opaque_photo_reused_by_three_places_is_rejected(self):
++        url = "https://live.staticflickr.com/65535/321679d01426026a3_k.jpg"
++        ds = [self._dest(f"Village {i}", f"v{i}", url, district="Gorkha") for i in range(3)]
++        self.assertNotPhoto(ds[0])
++
++    def test_opaque_photo_used_once_is_kept(self):
++        d = self._dest("Barpak", "barpak", "https://live.staticflickr.com/65535/unique_k.jpg", district="Gorkha")
++        self.assertEqual(destination_cover_image(d), d.cover_image)
++
++    def test_staff_chosen_gallery_photo_overrides_the_filename_heuristic(self):
++        from tourist.models import User
++        staff = User.objects.create_superuser("cover-staff@test.local", "Sup!Pass123")
++        url = "https://cdn.example.com/Boudhanath_Stupa_Kathmandu_Nepal.jpg"
++        d = self._dest("Mahaboudha Temple", "maha2", url)
++        DestinationImage.objects.create(
++            destination=d, external_url=url, verification_status="approved", is_verified=True,
++            source=DestinationImage.Source.ADMIN, uploaded_by=staff)
++        self.assertEqual(destination_cover_image(d), url)
++
++    def test_hotel_does_not_borrow_the_landmark_photo_of_its_city(self):
++        d = self._dest("Lumbini Garden Lodge", "llodge", wm("Lumbini_Sacred_Garden-118029.jpg"), district="Rupandehi")
++        self.assertNotPhoto(d)
++
++    def test_camera_style_filename_is_neutral_and_stays_visible(self):
++        """Upstream #22: generic source filenames (IMG_2041.jpg) are real photos and must show."""
++        d = self._dest("Barpak", "barpak-img", wm("IMG_2041.jpg"), district="Gorkha")
++        self.assertEqual(destination_cover_image(d), d.cover_image)
++
++    def test_named_photo_of_another_town_is_rejected_for_a_hostel(self):
++        d = self._dest("PG girls hostel", "pgh", wm("Kirtipur%2C_1950_-_1955.jpg"), district="Kathmandu")
++        self.assertNotPhoto(d)
++
++    def test_real_landmark_keeps_its_own_photo(self):
++        d = self._dest("Lumbini Sacred Garden", "lsg", wm("Lumbini_Sacred_Garden-118029.jpg"), district="Rupandehi")
++        self.assertEqual(destination_cover_image(d), d.cover_image)
+-- 
+2.43.0
+
+
+From ce024d026957c3bcd0c3c660d743a0c5e96562ea Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 4 Oct 2026 01:31:38 +0000
+Subject: [PATCH 6/6] fix(nearby): label shared town-centre coordinates as area
+ points
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Hospital/police/hotel directory rows imported from district lists share one town-centre point (28 Biratnagar hospitals on one coordinate; coordinate_source/status blank on all rows). Three or more rows on one 4-decimal point now count as approximate: distance_label becomes '≈ X km (area point)', is_approximate=true, and precise rows sort first. Rows that merely coincide with a destination point are NOT flagged (OSM destination records carry real coordinates).
+Tests: 3 cases, fail without the change.
+---
+ Tourism/tourist/tests_nearby_approximate.py | 47 +++++++++++++++++++++
+ Tourism/tourist/views.py                    | 14 +++++-
+ 2 files changed, 60 insertions(+), 1 deletion(-)
+ create mode 100644 Tourism/tourist/tests_nearby_approximate.py
+
+diff --git a/Tourism/tourist/tests_nearby_approximate.py b/Tourism/tourist/tests_nearby_approximate.py
+new file mode 100644
+index 00000000..d32bea39
+--- /dev/null
++++ b/Tourism/tourist/tests_nearby_approximate.py
+@@ -0,0 +1,47 @@
++from unittest import mock
++
++from django.core.cache import cache
++from django.test import TestCase
++
++from tourist.models import Destination, Hospital
++
++
++class SharedPointDistanceTests(TestCase):
++    """Directory rows imported from district lists share one town-centre point.
++    Their distance is not metre-precise and must not be shown as if it were."""
++
++    def setUp(self):
++        cache.clear()  # nearby results are cached per destination id
++        self.dest = Destination.objects.create(
++            name="Rani Pokhari", slug="rani-pokhari", district="Kathmandu", city="Kathmandu",
++            latitude=27.7060, longitude=85.3150)
++
++    def _hospitals(self):
++        with mock.patch("requests.post", side_effect=Exception("offline")), \
++                mock.patch("requests.get", side_effect=Exception("offline")):
++            res = self.client.get(f"/api/v1/destinations/{self.dest.id}/nearby-pois/?categories=hospitals")
++        self.assertEqual(res.status_code, 200)
++        return {r["name"]: r for r in res.json()["categories"]["hospitals"]["results"]}
++
++    def test_rows_sharing_one_point_are_labelled_as_an_area_point(self):
++        for n in ("Town Eye Hospital", "Town Nursing Home", "Town Medical College"):
++            Hospital.objects.create(destination=self.dest, name=n, latitude=27.7100, longitude=85.3200)
++        rows = self._hospitals()
++        # Same-site duplicates collapse to one entry; whichever survives is flagged.
++        self.assertEqual(len(rows), 1)
++        row = next(iter(rows.values()))
++        self.assertTrue(row["is_approximate"])
++        self.assertIn("area point", row["distance_label"])
++
++    def test_a_row_with_its_own_point_keeps_a_precise_label(self):
++        Hospital.objects.create(destination=self.dest, name="Single Site Hospital", latitude=27.7080, longitude=85.3170)
++        row = self._hospitals()["Single Site Hospital"]
++        self.assertFalse(row["is_approximate"])
++        self.assertNotIn("area point", row["distance_label"])
++
++    def test_precise_rows_sort_before_approximate_ones(self):
++        for n in ("A1", "A2", "A3"):
++            Hospital.objects.create(destination=self.dest, name=n, latitude=27.7062, longitude=85.3152)  # nearest, but shared point
++        Hospital.objects.create(destination=self.dest, name="Real Site", latitude=27.7100, longitude=85.3200)
++        names = list(self._hospitals())
++        self.assertEqual(names[0], "Real Site")
+diff --git a/Tourism/tourist/views.py b/Tourism/tourist/views.py
+index 6ef9ffcf..cac985de 100644
+--- a/Tourism/tourist/views.py
++++ b/Tourism/tourist/views.py
+@@ -2505,12 +2505,24 @@ class DestinationNearbyPOIsView(APIView):
+             pool = candidate_pool(key)
+             if not pool:
+                 return [], radii[-1]
++            # Directory rows imported from district lists carry a town-centre point
++            # rather than the building's coordinates (28 Biratnagar hospitals share
++            # ONE point, and coordinate_source/status are blank on every row).
++            # Three or more rows on the same 4-decimal point is that signature, so
++            # their distance is only good to a few km and is labelled as an area
++            # point instead of a metre-precise figure.
++            from collections import Counter
++            shared_points = Counter((round(r[1], 4), round(r[2], 4)) for r in pool)
+             for radius in radii:
+                 found = []
+                 for name, rlat, rlon, extra in pool:
+                     d = haversine_distance(lat, lon, rlat, rlon)
+                     if d is not None and d <= radius:
+-                        is_approx = bool(extra.get("is_approximate") or (round(rlat, 4) == round(lat, 4) and round(rlon, 4) == round(lon, 4)))
++                        is_approx = bool(
++                            extra.get("is_approximate")
++                            or (round(rlat, 4) == round(lat, 4) and round(rlon, 4) == round(lon, 4))
++                            or shared_points[(round(rlat, 4), round(rlon, 4))] >= 3
++                        )
+                         dist_label = f"≈ {round(d, 2)} km (area point)" if is_approx else f"{round(d, 2)} km"
+                         row_item = {
+                             "name": name,
+-- 
+2.43.0
+

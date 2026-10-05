@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react"
 import { Link, NavLink, useLocation } from "react-router-dom"
 import {
-  BsX, BsBoxArrowInRight, BsPersonPlus, BsChevronDown, BsChevronRight,
+  BsX, BsChevronDown, BsChevronRight,
 } from "react-icons/bs"
-import { FiSun, FiMoon } from "react-icons/fi"
 import { UI_ICON } from "../../utils/uiIcons"
 
 import useAuth from "../../hooks/useAuth"
@@ -11,8 +10,6 @@ import useSidebarState, { closeSidebar } from "../../hooks/useSidebarState"
 import { useI18n } from "../../i18n"
 import usePublicConfig from "../../hooks/usePublicConfig"
 import { userDisplayName, userRoleLabel } from "../../utils/placeUtils"
-import LanguageSwitcher from "../common/LanguageSwitcher"
-import useTheme from "../../context/ThemeContext"
 
 // link.icon is a name from the real UI icon set (public/icons/ui/) —
 // original duotone pictograms (node scripts/generate-ui-icons.mjs).
@@ -36,7 +33,6 @@ const GROUPS = [
   {
     label: "Plan", tk: "sidebar.planning",
     links: [
-      { to: "/travel-toolkit", label: "Travel Toolkit", icon: "compass", color: "emerald" },
       { to: "/itinerary", label: "Trip Planner & Itineraries", tk: "sidebar.trip_planner", icon: "calendar", color: "emerald" },
       { to: "/expenditure", label: "Expense Tracker", tk: "sidebar.expenditure", icon: "wallet", color: "emerald" },
       { to: "/budget-estimator", label: "Budget Estimator", tk: "sidebar.budget", icon: "calculator", color: "orange" },
@@ -63,7 +59,7 @@ const GROUPS = [
       { to: "/navigation", label: "Location", tk: "sidebar.navigation", icon: "navigate", color: "sky" },
       { to: "/language", label: "Phrasebook", tk: "sidebar.phrasebook", icon: "quote", color: "emerald" },
       { to: "/translation", label: "Live Translation", tk: "sidebar.translation", icon: "translate", color: "cyan" },
-      { to: "/chatbot", label: "Himal Travel Guide", tk: "sidebar.chatbot", icon: "compass", color: "terracotta" },
+      { to: "/chatbot", label: "Himal AI Assistant", tk: "sidebar.chatbot", icon: "robot", color: "terracotta" },
     ],
   },
   {
@@ -73,8 +69,6 @@ const GROUPS = [
       { to: "/personal-details", label: "Personal Details", tk: "sidebar.personal_details", icon: "card", color: "himalaya" },
       { to: "/notifications", label: "Notifications", icon: "inbox", color: "saffron" },
       { to: "/my-submissions", label: "My Submissions", tk: "sidebar.submissions", icon: "check-square", color: "saffron" },
-      { to: "/support", label: "Customer Support", icon: "inbox", color: "emerald" },
-      { to: "/contact", label: "Contact & Feedback", icon: "mail", color: "sky" },
       { to: "/history", label: "Visit History", tk: "sidebar.history", icon: "clock", color: "stone" },
       { to: "/destinations/submit", label: "Submit Place", tk: "sidebar.submit", icon: "plus", color: "saffron" },
       { to: "/submit-service", label: "Submit a Service", icon: "hospital", color: "emerald" },
@@ -120,7 +114,6 @@ export default function Sidebar() {
   const { isAuthenticated, user, isAdmin, isStaff, isLocal } = useAuth()
   const { t } = useI18n()
   const { navigation } = usePublicConfig()
-  const { isDark, toggleTheme } = useTheme()
   const location = useLocation()
   const [managedItems, setManagedItems] = useState([])
   // Groups are click-controlled (brief §17): nothing auto-expands except the
@@ -145,8 +138,7 @@ export default function Sidebar() {
     "/", "/destinations", "/recommendation", "/gallery", "/compare", "/nearby-places",
     "/distances", "/itinerary", "/explore-map", "/discover-nepal", "/packages", "/guides", "/guide-portal", "/tourism-jobs", "/guide-bookings", "/collaborate", "/hotels/search",
     "/emergency", "/risk-alerts", "/budget-estimator", "/before-you-travel", "/navigation", "/language", "/translation", "/chatbot", "/travel",
-    "/about", "/contact", "/support", "/how-it-works", "/privacy", "/terms", "/privacy-policy", "/terms-of-service", "/cookie-policy", "/data-deletion", "/unsubscribe", "/login", "/register",
-    "/travel-toolkit",
+    "/about", "/contact", "/support", "/how-it-works", "/privacy", "/terms", "/privacy-policy", "/terms-of-service", "/cookie-policy", "/data-deletion", "/unsubscribe", "/login", "/register"
   ])
 
   const managedByRoute = new Map(managedItems.filter(item => String(item.route).startsWith("/")).map(item => [item.route, item]))
@@ -242,48 +234,16 @@ export default function Sidebar() {
             </button>
           </div>
 
-          {isAuthenticated ? (
+          {isAuthenticated && (
             <div className={`p-3.5 rounded-2xl bg-[#063B32] border border-white/10 flex items-center gap-3 ${iconMode ? "lg:justify-center lg:p-2" : ""}`}>
               <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white font-black flex items-center justify-center text-sm shadow shrink-0">
                 {userDisplayName(user)?.[0]?.toUpperCase() || "T"}
               </div>
               <div className={`min-w-0 ${iconMode ? "lg:hidden" : ""}`}>
                 <p className="font-bold text-xs text-white truncate">{userDisplayName(user)}</p>
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-emerald-800 text-[#BDEBD9]">
+                <span className="text-xs font-extrabold uppercase px-2 py-0.5 rounded-md bg-emerald-800 text-[#BDEBD9]">
                   {userRoleLabel(user)}
                 </span>
-              </div>
-            </div>
-          ) : (
-            <div className={`p-3 rounded-2xl bg-[#063B32] border border-white/10 flex gap-2 ${iconMode ? "lg:hidden" : ""}`}>
-              <Link to="/login" onClick={handleNav} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-500">
-                <BsBoxArrowInRight size={13} /> Login
-              </Link>
-              <Link to="/register" onClick={handleNav} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-emerald-600 text-[#C7D9D2] text-xs font-bold hover:bg-emerald-800">
-                <BsPersonPlus size={13} /> Sign up
-              </Link>
-            </div>
-          )}
-
-          {/* Language — lives here (expanded view) so it stays reachable on
-              phones, where the navbar's switcher is hidden. The navbar shows
-              it too on md+ screens. Hidden in the collapsed icon-rail. */}
-          {!iconMode && (
-            <div className="px-1">
-              <p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-400 mb-1.5 px-1">
-                {t("sidebar.language")}
-              </p>
-              <div className="flex items-center gap-2 px-1">
-                <LanguageSwitcher compact />
-                <button
-                  type="button"
-                  onClick={toggleTheme}
-                  aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
-                  title={isDark ? "Light mode" : "Dark mode"}
-                  className="inline-flex items-center justify-center rounded-lg border border-emerald-700 px-2 py-1.5 text-emerald-200 transition-colors hover:bg-emerald-800"
-                >
-                  {isDark ? <FiSun size={16} /> : <FiMoon size={16} />}
-                </button>
               </div>
             </div>
           )}

@@ -23,11 +23,15 @@ const TILE_PROVIDERS = {
     name: "Detailed Road Map",
     url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     attr: "&copy; OpenStreetMap contributors",
+    language: "English (map labels follow the selected tile provider)",
+
   },
   standard: {
     name: "Standard Light",
     url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     attr: "&copy; OpenStreetMap contributors",
+    language: "English (map labels follow the selected tile provider)",
+
   },
   satellite: {
     name: "Satellite",

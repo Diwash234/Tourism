@@ -1,0 +1,2 @@
+﻿Nearby-service enrichment: 0 destinations to evaluate (blank fields only; pass --force to redo all)
+  nothing to do - every public destination already has its nearest services.

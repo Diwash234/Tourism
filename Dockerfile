@@ -11,7 +11,7 @@ COPY frontend/Tourism/package.json ./package.json
 COPY frontend/Tourism/package-lock.json ./package-lock.json
 
 # Keep the build deterministic. npm 10 + lockfile v3 is supported by Node 20.
-RUN npm --version && node --version && rm -f npm-shrinkwrap.json && npm install --no-audit --no-fund --prefer-offline
+RUN npm --version && node --version && npm ci --no-audit --no-fund
 
 COPY frontend/Tourism/ ./
 
@@ -70,15 +70,10 @@ RUN mkdir -p /app/Tourism/media \
     /var/lib/tourism/media \
     /var/lib/tourism/data
 
-# ML microservice source, models and data: budget estimator (budget_model.joblib),
-# itinerary/recommendation/safety engines, and the OSM amenity CSV that
-# import_emergency_services reads (hospitals, clinics, pharmacies, police).
-# None of ml_service/ was in the image before -- so budget/itinerary said
-# "not available" in production and the emergency import crashed the boot.
-# Its Python deps (fastapi/uvicorn/sklearn/pandas/networkx) are already in
-# Tourism/requirements.txt; the entrypoint starts uvicorn on :8001 in the
-# background, which is where ML_SERVICE_URL points.
-COPY ml_service/ /app/ml_service/
+# Real OSM amenity layer consumed by import_emergency_services (hospitals,
+# clinics, pharmacies, police, banks) -- without it the entrypoint command
+# crashes on a missing ml_service/ tree and the boot never reaches daphne.
+COPY ml_service/data/emergency/emergency_services.csv /app/ml_service/data/emergency/emergency_services.csv
 
 # Collect Django static files
 RUN python manage.py collectstatic --noinput
