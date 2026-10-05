@@ -603,6 +603,183 @@ class UITranslationBulkView(APIView):
         return Response({"saved": saved})
 
 
+class AdminImageManagerView(APIView):
+    """Admin CMS image management — search, add, update, remove images.
+
+    GET  /api/v1/admin/image-manager/?q=pokhara — search destinations/hotels
+    POST /api/v1/admin/image-manager/add/ — add image to destination/hotel
+    POST /api/v1/admin/image-manager/update/ — update image metadata
+    POST /api/v1/admin/image-manager/remove/ — remove image
+    """
+    serializer_class = None
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        q = (request.query_params.get("q") or "").strip()
+        if not q:
+            return Response({"detail": "Query param 'q' is required."}, status=400)
+
+        from tourist.utils import haversine_distance
+        from tourist.models import EmergencyContact, Hospital, PoliceStation
+
+        # Search destinations
+        destinations = Destination.objects.filter(
+            models.Q(name__icontains=q) | models.Q(district__icontains=q)
+        ).annotate(img_count=models.Count("gallery"))[:20]
+
+        # Search hotels
+        hotels = Hotel.objects.filter(
+            models.Q(name__icontains=q) | models.Q(destination__name__icontains=q)
+        )[:20]
+
+        dest_list = []
+        for d in destinations:
+            # Nearby places (within 50km)
+            nearby = []
+            if d.latitude and d.longitude:
+                for other in Destination.objects.filter(is_active=True).exclude(id=d.id):
+                    if other.latitude and other.longitude:
+                        dist = haversine_distance(
+                            float(d.latitude), float(d.longitude),
+                            float(other.latitude), float(other.longitude)
+                        )
+                        if dist <= 50:
+                            nearby.append({
+                                "id": other.id,
+                                "name": other.name,
+                                "distance_km": round(dist, 1),
+                            })
+                nearby.sort(key=lambda x: x["distance_km"])
+                nearby = nearby[:10]
+
+            # Emergency contacts
+            emergency = []
+            if d.latitude and d.longitude:
+                for h in Hospital.objects.all():
+                    if h.latitude and h.longitude:
+                        dist = haversine_distance(
+                            float(d.latitude), float(d.longitude),
+                            float(h.latitude), float(h.longitude)
+                        )
+                        if dist <= 50:
+                            emergency.append({
+                                "type": "hospital",
+                                "name": h.name,
+                                "phone": h.phone,
+                                "distance_km": round(dist, 1),
+                            })
+                for p in PoliceStation.objects.all():
+                    if p.latitude and p.longitude:
+                        dist = haversine_distance(
+                            float(d.latitude), float(d.longitude),
+                            float(p.latitude), float(p.longitude)
+                        )
+                        if dist <= 50:
+                            emergency.append({
+                                "type": "police",
+                                "name": p.name,
+                                "phone": p.phone,
+                                "distance_km": round(dist, 1),
+                            })
+                emergency.sort(key=lambda x: x["distance_km"])
+                emergency = emergency[:10]
+
+            dest_list.append({
+                "id": d.id,
+                "name": d.name,
+                "slug": d.slug,
+                "district": d.district,
+                "latitude": str(d.latitude) if d.latitude else None,
+                "longitude": str(d.longitude) if d.longitude else None,
+                "image_count": d.img_count,
+                "images": [
+                    {
+                        "id": img.id,
+                        "url": img.external_url or (img.image.url if img.image else ""),
+                        "is_cover": img.is_cover,
+                        "verification_status": img.verification_status,
+                        "photographer": img.photographer,
+                        "license_type": img.license_type,
+                    }
+                    for img in d.gallery.all()[:5]
+                ],
+                "nearby_places": nearby,
+                "emergency_services": emergency,
+            })
+
+        return Response({
+            "destinations": dest_list,
+            "hotels": [
+                {
+                    "id": h.id,
+                    "name": h.name,
+                    "destination": h.destination.name if h.destination else "",
+                    "cover_image": h.cover_image if h.cover_image else "",
+                    "external_image_url": h.external_image_url if h.external_image_url else "",
+                }
+                for h in hotels
+            ],
+        })
+
+    def post(self, request):
+        action = request.data.get("action")
+        if action == "add":
+            return self._add_image(request)
+        elif action == "update":
+            return self._update_image(request)
+        elif action == "remove":
+            return self._remove_image(request)
+        return Response({"detail": "Invalid action. Use: add, update, remove"}, status=400)
+
+    def _add_image(self, request):
+        dest_id = request.data.get("destination_id")
+        image_url = request.data.get("image_url")
+        is_cover = request.data.get("is_cover", False)
+
+        if not dest_id or not image_url:
+            return Response({"detail": "destination_id and image_url required"}, status=400)
+
+        dest = Destination.objects.filter(pk=dest_id).first()
+        if not dest:
+            return Response({"detail": "Destination not found"}, status=404)
+
+        img = DestinationImage.objects.create(
+            destination=dest,
+            external_url=image_url,
+            source=DestinationImage.Source.WIKIMEDIA,
+            source_platform="Admin CMS",
+            verification_status=DestinationImage.ImageStatus.APPROVED,
+            is_verified=True,
+            is_cover=is_cover,
+        )
+        return Response({"id": img.id, "detail": "Image added"})
+
+    def _update_image(self, request):
+        image_id = request.data.get("image_id")
+        is_cover = request.data.get("is_cover")
+        verification_status = request.data.get("verification_status")
+
+        img = DestinationImage.objects.filter(pk=image_id).first()
+        if not img:
+            return Response({"detail": "Image not found"}, status=404)
+
+        if is_cover is not None:
+            img.is_cover = is_cover
+        if verification_status:
+            img.verification_status = verification_status
+        img.save()
+        return Response({"id": img.id, "detail": "Image updated"})
+
+    def _remove_image(self, request):
+        image_id = request.data.get("image_id")
+        img = DestinationImage.objects.filter(pk=image_id).first()
+        if not img:
+            return Response({"detail": "Image not found"}, status=404)
+
+        img.delete()
+        return Response({"detail": "Image removed"})
+
+
 class TravelGuideListView(APIView):
     """GET /api/v1/travel-guides/ — public.
 

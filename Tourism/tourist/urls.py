@@ -320,6 +320,7 @@ urlpatterns = [
     path("translation/ui-strings/bulk/", views.UITranslationBulkView.as_view(), name="ui-strings-bulk"),
     path("travel-guides/", views.TravelGuideListView.as_view(), name="travel-guides-list"),
     path("travel-guides/<str:slug>/", views.TravelGuideDetailView.as_view(), name="travel-guide-detail"),
+    path("admin/image-manager/", views.AdminImageManagerView.as_view(), name="admin-image-manager"),
     path("translate/batch/", translation_views.TranslateBatchView.as_view(), name="translate-batch"),
     path("images/resolve/", views_images.ImageResolveView.as_view(), name="images-resolve"),
     # Multi-source Image Acquisition & Provenance Pipeline API

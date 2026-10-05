@@ -28,6 +28,7 @@ import RedirectsPanel from "../../components/admin/RedirectsPanel"
 import TranslationsPanel from "../../components/admin/TranslationsPanel"
 import UITranslationsPanel from "../../components/admin/UITranslationsPanel"
 import DestinationTranslationsPanel from "../../components/admin/DestinationTranslationsPanel"
+import AdminImageManager from "../../components/admin/AdminImageManager"
 import HeaderNavbarPanel from "../../components/admin/HeaderNavbarPanel"
 import CookieConsentPanel from "../../components/admin/CookieConsentPanel"
 import StaffPermissionsPanel from "../../components/admin/StaffPermissionsPanel"
@@ -864,6 +865,7 @@ const AdminDashboard = () => {
         {activeTab === "content_translations" && <TranslationsPanel />}
         {activeTab === "ui_translations" && <UITranslationsPanel />}
         {activeTab === "destination_translations" && <DestinationTranslationsPanel />}
+        {activeTab === "image_manager" && <AdminImageManager />}
         {activeTab === "header_navbar" && <HeaderNavbarPanel />}
         {activeTab === "cookie_consent" && <CookieConsentPanel />}
         {activeTab === "staff_permissions" && <StaffPermissionsPanel />}
