@@ -51,11 +51,14 @@ const LocationHistory = ({ maxItems = 20, showMap = true }) => {
     if (!window.confirm("Are you sure you want to clear all location history?")) return
     setClearing(true)
     try {
-      await axiosClient.delete("/location-history/clear/")
+      // Clearing is a DELETE on the collection itself (the caller's own rows);
+      // there is no separate /location-history/clear/ route.
+      await axiosClient.delete("/location-history/")
       setHistory([])
       setSelectedId(null)
     } catch (err) {
       setError(
+        err?.response?.data?.error?.message || err?.response?.data?.detail ||
         err?.response?.data?.message || "Failed to clear history. Please try again."
       )
     } finally {

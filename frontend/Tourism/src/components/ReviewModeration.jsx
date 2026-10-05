@@ -11,15 +11,19 @@ import {
   FiMapPin,
   FiUser,
 } from "react-icons/fi"
-import axiosClient from "../api/axiosClient"
-import useToast from "../hooks/useToast"
+import adminApi from "../api/adminApi"
 
 /**
  * Review moderation queue for staff/admin. Lists pending reviews with
  * approve/reject actions, status filtering, and bulk operations.
+ *
+ * This used three routes that were never built (/reviews/moderation-queue/,
+ * /reviews/<id>/moderate/, /reviews/bulk-moderate/), so every action here
+ * 404'd. The real moderation surface is AdminReviewModerationView at
+ * /admin/review-moderation/ (GET for the queue, PATCH for approve / flag /
+ * archive / restore, and it is bulk-capable via `ids`).
  */
 const ReviewModeration = () => {
-  const showToast = useToast()
   const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -31,13 +35,16 @@ const ReviewModeration = () => {
     setLoading(true)
     setError(null)
     try {
-      const { data } = await axiosClient.get("/reviews/moderation-queue/", {
-        params: { status: filter, page_size: 50 },
+      const { data } = await adminApi.getReviewModeration({
+        type: "all",
+        status: filter,
+        page_size: 50,
       })
-      setReviews(data?.results || data || [])
+      setReviews(data?.results || [])
     } catch (err) {
+      setReviews([])
       setError(
-        err?.response?.data?.message || "Unable to load reviews. Please try again later."
+        err?.response?.data?.detail || "Unable to load reviews. Please try again later."
       )
     } finally {
       setLoading(false)
@@ -51,49 +58,58 @@ const ReviewModeration = () => {
     return () => clearTimeout(t)
   }, [fetchReviews])
 
-  const actOnReview = async (reviewId, action) => {
+  // Rows are tagged by `type` ("destination" | "hotel") because the two live
+  // in different tables, and the API refuses an ambiguous id set.
+  // Destination reviews and hotel reviews live in different tables, so a bare
+  // id is ambiguous. Selection is keyed by "<type>:<id>".
+  const keyOf = (review) => `${review.type}:${review.id}`
+
+  const actOnReview = async (review, action) => {
     setActing(true)
+    setError(null)
     try {
-      await axiosClient.post(`/reviews/${reviewId}/moderate/`, { action })
-      setReviews((prev) => prev.filter((r) => r.id !== reviewId))
-      showToast(`Review ${action === "approve" ? "approved" : "rejected"} successfully.`, "success")
+      await adminApi.moderateReviews({ type: review.type, ids: [review.id], action })
+      setReviews((prev) => prev.filter((r) => keyOf(r) !== keyOf(review)))
+      setSelected((prev) => {
+        const next = new Set(prev)
+        next.delete(keyOf(review))
+        return next
+      })
     } catch (err) {
-      showToast(
-        err?.response?.data?.message || `Failed to ${action} review.`,
-        "error"
-      )
+      setError(err?.response?.data?.detail || `Failed to ${action} that review.`)
     } finally {
       setActing(false)
     }
   }
 
   const bulkAction = async (action) => {
-    if (selected.size === 0) return
-    if (!window.confirm(`Are you sure you want to ${action} ${selected.size} review(s)?`)) return
+    const rows = reviews.filter((r) => selected.has(keyOf(r)))
+    if (rows.length === 0) return
+    if (!window.confirm(`Are you sure you want to ${action} ${rows.length} review(s)?`)) return
     setActing(true)
+    setError(null)
     try {
-      await axiosClient.post("/reviews/bulk-moderate/", {
-        ids: Array.from(selected),
-        action,
-      })
-      setReviews((prev) => prev.filter((r) => !selected.has(r.id)))
+      // One call per type — the endpoint moderates a single `type` at a time.
+      for (const type of ["destination", "hotel"]) {
+        const ids = rows.filter((r) => r.type === type).map((r) => r.id)
+        if (ids.length === 0) continue
+        await adminApi.moderateReviews({ type, ids, action })
+      }
+      const done = new Set(rows.map(keyOf))
+      setReviews((prev) => prev.filter((r) => !done.has(keyOf(r))))
       setSelected(new Set())
-      showToast(`${selected.size} review(s) ${action}d successfully.`, "success")
     } catch (err) {
-      showToast(
-        err?.response?.data?.message || `Failed to ${action} reviews.`,
-        "error"
-      )
+      setError(err?.response?.data?.detail || `Failed to ${action} those reviews.`)
     } finally {
       setActing(false)
     }
   }
 
-  const toggleSelect = (id) => {
+  const toggleSelect = (key) => {
     setSelected((prev) => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
       return next
     })
   }
@@ -102,13 +118,14 @@ const ReviewModeration = () => {
     if (selected.size === reviews.length) {
       setSelected(new Set())
     } else {
-      setSelected(new Set(reviews.map((r) => r.id)))
+      setSelected(new Set(reviews.map(keyOf)))
     }
   }
 
   const statusIcon = (status) => {
     if (status === "approved") return <FiCheckCircle size={14} className="text-green-600" />
-    if (status === "rejected") return <FiX size={14} className="text-red-600" />
+    if (status === "flagged") return <FiAlertCircle size={14} className="text-amber-600" />
+    if (status === "archived") return <FiX size={14} className="text-red-600" />
     return <FiClock size={14} className="text-amber-600" />
   }
 
@@ -116,15 +133,19 @@ const ReviewModeration = () => {
     const colors = {
       pending: "bg-amber-100 text-amber-800",
       approved: "bg-green-100 text-green-800",
-      rejected: "bg-red-100 text-red-800",
+      flagged: "bg-orange-100 text-orange-800",
+      archived: "bg-red-100 text-red-800",
     }
     return `inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${colors[status] || "bg-gray-100 text-gray-800"}`
   }
 
+  // The moderation API's states are pending / approved / flagged / archived.
+  // It has no "rejected" state — rejecting a review is `archive`.
   const filters = [
     { key: "pending", label: "Pending", icon: FiClock },
     { key: "approved", label: "Approved", icon: FiCheckCircle },
-    { key: "rejected", label: "Rejected", icon: FiX },
+    { key: "flagged", label: "Flagged", icon: FiAlertCircle },
+    { key: "archived", label: "Archived", icon: FiX },
   ]
 
   return (
@@ -182,12 +203,12 @@ const ReviewModeration = () => {
               <FiCheck size={12} /> Approve
             </button>
             <button
-              onClick={() => bulkAction("reject")}
+              onClick={() => bulkAction("archive")}
               disabled={selected.size === 0 || acting}
               className="ny-btn ny-btn-danger ny-btn-sm"
               type="button"
             >
-              <FiX size={12} /> Reject
+              <FiX size={12} /> Archive
             </button>
           </div>
         </div>
@@ -218,33 +239,38 @@ const ReviewModeration = () => {
         <div className="space-y-3">
           {reviews.map((review) => (
             <div
-              key={review.id}
+              key={keyOf(review)}
               className="p-4 rounded-xl border border-ny-border hover:border-ny-green/30 transition-colors"
             >
               <div className="flex items-start gap-3">
                 {filter === "pending" && (
                   <input
                     type="checkbox"
-                    checked={selected.has(review.id)}
-                    onChange={() => toggleSelect(review.id)}
+                    checked={selected.has(keyOf(review))}
+                    onChange={() => toggleSelect(keyOf(review))}
                     className="mt-1 accent-ny-green"
-                    aria-label={`Select review by ${review.author_name || "user"}`}
+                    aria-label={`Select review by ${review.user || "user"}`}
                   />
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <span className="flex items-center gap-1 text-sm font-semibold text-ny-text">
-                      <FiUser size={12} /> {review.author_name || "Anonymous"}
+                      <FiUser size={12} /> {review.user || "Anonymous"}
                     </span>
-                    <span className="flex items-center gap-0.5">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <FiStar
-                          key={i}
-                          size={12}
-                          className={i < review.rating ? "text-ny-gold fill-ny-gold" : "text-gray-300"}
-                        />
-                      ))}
+                    <span className="px-1.5 py-0.5 rounded bg-ny-soft-green text-ny-green text-[10px] uppercase">
+                      {review.type}
                     </span>
+                    {review.rating != null && (
+                      <span className="flex items-center gap-0.5">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <FiStar
+                            key={i}
+                            size={12}
+                            className={i < review.rating ? "text-ny-gold fill-ny-gold" : "text-gray-300"}
+                          />
+                        ))}
+                      </span>
+                    )}
                     <span className={statusBadge(review.status)}>
                       {statusIcon(review.status)} {review.status}
                     </span>
@@ -252,7 +278,7 @@ const ReviewModeration = () => {
                   <p className="text-sm text-ny-text-secondary mb-2">{review.comment}</p>
                   <div className="flex items-center gap-3 text-xs text-ny-text-muted">
                     <span className="flex items-center gap-1">
-                      <FiMapPin size={10} /> {review.destination_name || review.destination}
+                      <FiMapPin size={10} /> {review.subject || "—"}
                     </span>
                     <span className="flex items-center gap-1">
                       <FiClock size={10} /> {new Date(review.created_at).toLocaleDateString()}
@@ -262,7 +288,7 @@ const ReviewModeration = () => {
                 {filter === "pending" && (
                   <div className="flex gap-2 flex-shrink-0">
                     <button
-                      onClick={() => actOnReview(review.id, "approve")}
+                      onClick={() => actOnReview(review, "approve")}
                       disabled={acting}
                       className="ny-btn ny-btn-primary ny-btn-sm"
                       type="button"
@@ -271,11 +297,11 @@ const ReviewModeration = () => {
                       <FiCheck size={12} />
                     </button>
                     <button
-                      onClick={() => actOnReview(review.id, "reject")}
+                      onClick={() => actOnReview(review, "archive")}
                       disabled={acting}
                       className="ny-btn ny-btn-danger ny-btn-sm"
                       type="button"
-                      aria-label="Reject review"
+                      aria-label="Archive review"
                     >
                       <FiX size={12} />
                     </button>

@@ -4724,6 +4724,30 @@ class LocationHistoryView(APIView):
             "message": "Location recorded successfully",
         }, status=status.HTTP_201_CREATED)
 
+    def delete(self, request):
+        """DELETE /api/v1/location-history/ — the traveller's own clear button.
+
+        Only the caller's rows are removed, and the deletion is audited so a
+        privacy-data clear is traceable rather than silent.
+        """
+        from .models import LocationHistory
+
+        qs = LocationHistory.objects.filter(user=request.user)
+        removed = qs.count()
+        qs.delete()
+        try:
+            from audit.logging_services import log_action
+            log_action(
+                request=request, action="location_history.clear",
+                category="users", severity="warning",
+                message=f"Cleared {removed} location history record(s)",
+                object_type="LocationHistory",
+                extra={"removed": removed},
+            )
+        except Exception:  # auditing must never block a privacy action
+            pass
+        return Response({"removed": removed, "message": "Location history cleared"})
+
 
 class EnhancedSearchView(APIView):
     """GET /api/v1/search/enhanced/?q=pokhara&category=trekking&district=Gandaki&min_rating=4&sort=distance

@@ -40,7 +40,10 @@ const BulkExport = () => {
         setProgress((prev) => Math.min(prev + 15, 90))
       }, 200)
 
-      const response = await axiosClient.get("/export/", {
+      // The export route is admin-namespaced: /admin/export/ (BulkExportView).
+      // It was called as "/export/", which does not exist, so every export
+      // here 404'd and the button reported "Export failed".
+      const response = await axiosClient.get("/admin/export/", {
         params: { type: dataType, format },
         responseType: "blob",
       })
@@ -70,7 +73,12 @@ const BulkExport = () => {
 
       showToast(`Export completed: ${filename}`, "success")
     } catch (err) {
-      const msg = err?.response?.data?.message || "Export failed. Please try again."
+      // BulkExportView reports failures as {"error": {"code", "message"}},
+      // so the message is nested one level deeper than a normal DRF error.
+      const data = err?.response?.data
+      const msg =
+        data?.error?.message || data?.detail || data?.message ||
+        "Export failed. Please try again."
       setError(msg)
       showToast(msg, "error")
     } finally {
