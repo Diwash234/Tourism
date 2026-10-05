@@ -219,3 +219,9 @@ ml_service/model/destinations.csv
 Tourism/frontend_dist
 Tourism/frontend_dist/
 frontend/Tourism/site-audit.json
+
+# Resolved-Django-URL dump used by frontend/Tourism/scripts/dead-end-audit.mjs.
+# Regenerated on demand; must not be committed.
+Tourism/_urls.json
+Tourism/_urls.err
+
