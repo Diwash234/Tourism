@@ -2,7 +2,7 @@ import axiosClient from "./axiosClient"
 
 // Matches POST /api/v1/translate/. NOTE: I checked the backend directly
 // (tourist/serializers.py TranslateRequestSerializer + views.py
-// TranslateTextView) ÔÇö `provider` is sent below but is NOT currently a
+// TranslateTextView) — `provider` is sent below but is NOT currently a
 // field the serializer accepts, and the view doesn't pass one to
 // translate_text() either, even though translate_text() itself fully
 // supports provider="standard"/"gemini"/"groq"/"openai"/"auto" (see
@@ -16,12 +16,7 @@ import axiosClient from "./axiosClient"
 //      4th arg to translate_text() in TranslateTextView.post()
 const translationApi = {
 
-  translateBatch: (payload) =>
-    // Page-level batches translate up to 40 strings per POST through a
-    // tiered provider fallback; give the backend more headroom than the
-    // 20s default so a slow batch still lands instead of silently leaving
-    // the page in its previous language.
-    axiosClient.post("/translate/batch/", payload, { timeout: 30000 }),
+  translateBatch: (payload) => axiosClient.post("/translate/batch/", payload),
 
   translateText: (payload) => {
     return axiosClient.post(

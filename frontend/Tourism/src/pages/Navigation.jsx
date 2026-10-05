@@ -171,12 +171,9 @@ export default function Navigation() {
   const usingMyLocation = originQuery.trim().toLowerCase() === "my current location"
 
   const handleUseMyLocation = () => {
-    if (position) {
-      setOriginQuery("My Current Location")
-      return
-    }
-    retryGeo()
+    // Explicit current-location actions always request a fresh browser fix.
     setOriginQuery("My Current Location")
+    retryGeo()
   }
 
   const handleGetRoute = async (targetDest = null, targetOrigin = null) => {
