@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Link, useParams } from "react-router-dom"
+import { Link, useParams, useNavigate } from "react-router-dom"
 import { FiMapPin, FiClock, FiNavigation, FiAlertCircle, FiHeart } from "react-icons/fi"
 import axiosClient from "../api/axiosClient"
 
@@ -8,13 +8,23 @@ import axiosClient from "../api/axiosClient"
  * hotel, hospital and attraction data from the backend.
  *
  * URL: /travel-guides/15-day-pokhara
+ * City selector: dropdown to switch between all 200 city guides.
  */
 export default function TravelGuidePage() {
   const { slug } = useParams()
+  const navigate = useNavigate()
   const [guide, setGuide] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [activeDay, setActiveDay] = useState(1)
+  const [allGuides, setAllGuides] = useState([])
+
+  // Load all guides for the city selector
+  useEffect(() => {
+    axiosClient.get("/travel-guides/")
+      .then(({ data }) => setAllGuides(data || []))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (!slug) return
@@ -39,6 +49,30 @@ export default function TravelGuidePage() {
 
   return (
     <div className="ny-page container-app py-6 sm:py-8 space-y-8">
+      {/* City selector */}
+      {allGuides.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3">
+          <label htmlFor="city-select" className="text-sm font-semibold text-gray-700">Select a city:</label>
+          <select
+            id="city-select"
+            value={slug || ""}
+            onChange={(e) => {
+              if (e.target.value) {
+                setActiveDay(1)
+                navigate(`/travel-guides/${encodeURIComponent(e.target.value)}`)
+              }
+            }}
+            className="input-field min-h-11 max-w-xs"
+          >
+            {allGuides.map((g) => (
+              <option key={g.slug} value={g.slug}>
+                {g.destination_name} ({g.days_count} days)
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Header */}
       <header className="max-w-3xl">
         <span className="ny-kicker">{guide.destination.name}</span>

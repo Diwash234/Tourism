@@ -603,6 +603,27 @@ class UITranslationBulkView(APIView):
         return Response({"saved": saved})
 
 
+class TravelGuideListView(APIView):
+    """GET /api/v1/travel-guides/ — public.
+
+    Returns all published guides with basic info for the city selector.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        guides = TravelGuide.objects.filter(is_published=True).select_related("destination")
+        return Response([
+            {
+                "slug": g.slug,
+                "title": g.title,
+                "days_count": g.days_count,
+                "destination_name": g.destination.name,
+                "destination_slug": g.destination.slug,
+            }
+            for g in guides
+        ])
+
+
 class TravelGuideDetailView(APIView):
     """GET /api/v1/travel-guides/<slug>/ — public.
 
@@ -610,6 +631,11 @@ class TravelGuideDetailView(APIView):
     attractions (names, slugs, coordinates) so the frontend can render
     a full itinerary page with real data.
     """
+    # Response is assembled by hand from the guide's days plus related hotels,
+    # hospitals and attractions, so there is no single model serializer for
+    # drf-spectacular to infer. Declaring it explicitly keeps the operation in
+    # the OpenAPI document instead of logging "unable to guess serializer".
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, slug):
@@ -3111,6 +3137,124 @@ class DestinationRiskAssessmentView(APIView):
         return Response(payload)
 
 
+class RiskProfileAdminView(APIView):
+    """Admin read/update of a destination's curated risk profile.
+
+    Lets staff with the safety.change capability assign and review
+    the structured risk factors — accident history, travel safety,
+    weather exposure, emergency coverage and risk causes — for any
+    approved destination, resolved by slug/id/name. Updates stamp
+    ``last_reviewed`` and ``reviewed_by`` so the review trail is
+    visible to travellers.
+    """
+    serializer_class = None
+    permission_classes = [HasCapability]
+    capability_module = "safety"
+
+    # Curated, admin-editable risk factors.
+    CURATED_FIELDS = [
+        # accident history
+        "accidents", "accidents_last_year", "fatal_accidents_last_year",
+        "accidents_last_5y", "accident_trend", "last_major_incident_date",
+        # hazard counts
+        "landslide", "avalanche", "flood", "earthquake_damage",
+        # travel safety
+        "travel_safety_score", "travel_safety_rating",
+        "solo_travel_safety", "night_safety", "family_safety",
+        "female_traveler_safety", "road_quality", "trail_marking",
+        "mobile_network_coverage",
+        # weather exposure
+        "monsoon_risk", "winter_snow_risk", "summer_heat_risk",
+        "lightning_risk", "high_altitude_risk", "uv_exposure",
+        # emergency & life safety
+        "hospital_count", "police_count", "fire_station_count",
+        "hospital_coverage", "emergency_response_minutes",
+        "rescue_availability", "medical_facility_level", "police_presence",
+        # causes & overall
+        "risk_causes", "overall_safety_score", "safety_summary",
+        "emergency_risk", "natural_disaster_risk", "tourism_risk_index",
+        "risk_category",
+    ]
+
+    def _resolve(self, destination_ref):
+        lookup = Q(slug__iexact=destination_ref) | Q(name__iexact=destination_ref)
+        if str(destination_ref).isdigit():
+            lookup |= Q(pk=int(destination_ref))
+        destination = Destination.objects.filter(
+            lookup, is_active=True, status=Destination.SubmissionStatus.APPROVED
+        ).select_related("risk_analysis").first()
+        if destination is None:
+            destination = Destination.objects.filter(
+                Q(name__icontains=destination_ref) | Q(city__icontains=destination_ref) |
+                Q(district__icontains=destination_ref),
+                is_active=True, status=Destination.SubmissionStatus.APPROVED,
+            ).select_related("risk_analysis").first()
+        return destination
+
+    def get(self, request, destination_ref):
+        destination = self._resolve(destination_ref)
+        if destination is None:
+            return Response({"detail": "Destination not found."}, status=status.HTTP_404_NOT_FOUND)
+        risk = getattr(destination, "risk_analysis", None)
+        if risk is None:
+            return Response({"detail": "No risk profile recorded for this destination yet."},
+                            status=status.HTTP_404_NOT_FOUND)
+        from .serializers import RiskProfileSerializer
+        return Response(RiskProfileSerializer(risk).data)
+
+    def patch(self, request, destination_ref):
+        destination = self._resolve(destination_ref)
+        if destination is None:
+            return Response({"detail": "Destination not found."}, status=status.HTTP_404_NOT_FOUND)
+        payload = request.data if isinstance(request.data, dict) else {}
+        risk = getattr(destination, "risk_analysis", None)
+        if risk is None:
+            from .models import RiskAnalysis
+            risk = RiskAnalysis.objects.create(
+                destination=destination,
+                emergency_risk=float(payload.get("emergency_risk", 50) or 50),
+                natural_disaster_risk=float(payload.get("natural_disaster_risk", 50) or 50),
+                tourism_risk_index=float(payload.get("tourism_risk_index", 50) or 50),
+                risk_category=str(payload.get("risk_category", "moderate") or "moderate"),
+            )
+
+        updates = {}
+        for field in self.CURATED_FIELDS:
+            if field in payload:
+                value = payload[field]
+                # Normalize empty strings to None for nullable fields.
+                if value == "" and field in {
+                    "travel_safety_score", "overall_safety_score",
+                    "emergency_response_minutes", "last_major_incident_date",
+                    "safety_summary",
+                }:
+                    value = None
+                updates[field] = value
+
+        if not updates:
+            return Response({"detail": "No recognised risk fields to update."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        for field, value in updates.items():
+            setattr(risk, field, value)
+        risk.last_reviewed = timezone.now()
+        risk.reviewed_by = request.user
+        risk.save(update_fields=list(updates.keys()) + ["last_reviewed", "reviewed_by", "updated_at"])
+
+        from .serializers import RiskProfileSerializer
+        from audit.models import AuditLog
+        AuditLog.objects.create(
+            user=request.user, user_email=request.user.email,
+            actor_role=getattr(request.user, "role", ""),
+            category="safety", severity="info", source="backend",
+            action="risk.profile.update",
+            message=f"Updated curated risk profile for {destination.name}",
+            object_type="RiskAnalysis", object_id=str(risk.id),
+            extra={"destination": destination.name, "fields": list(updates.keys())},
+        )
+        return Response(RiskProfileSerializer(risk).data)
+
+
 NEPAL_HIGHWAYS = {
     "kaski": "H04 Prithvi Highway & H05 Siddhartha Highway",
     "pokhara": "H04 Prithvi Highway & H05 Siddhartha Highway",
@@ -3407,15 +3551,19 @@ class MoodRecommendationsView(generics.ListAPIView):
         # low score on season/proximity alone. Pre-selecting category matches,
         # keyword matches, featured places and the most-visited places keeps
         # the ranking honest while cutting the loop to the relevant rows.
-        # Only keywords long enough to be selective are used as a SQL filter;
-        # short ones like the Nepali pass marker "la" would match everything.
+        #
+        # Only long keywords are used as a SQL filter. Short ones are substring
+        # matches in SQL, so "pass" pulls in Pasupatinath and "la" matches
+        # half the catalogue, which made broad moods (trekking) slower than the
+        # whole-catalogue path they were meant to replace. Short keywords still
+        # score inside the loop, so ranking quality is unchanged.
         mood_cat_slugs = set(cat_weights.keys())
         if mood_cat_slugs or kws:
             from django.db.models import Q as _PoolQ
             pool_q = _PoolQ()
             if mood_cat_slugs:
                 pool_q |= _PoolQ(category__slug__in=sorted(mood_cat_slugs))
-            for kw in [k for k in kws if len(k) >= 4]:
+            for kw in [k for k in kws if len(k) >= 5]:
                 pool_q |= _PoolQ(name__icontains=kw)
                 pool_q |= _PoolQ(short_description__icontains=kw)
             pool_q |= _PoolQ(is_featured=True)
@@ -3453,6 +3601,38 @@ class MoodRecommendationsView(generics.ListAPIView):
             "origin_lng": request.query_params.get("longitude"),
         })
         rows = []
+        # Season guidance only depends on (month, activity, altitude zone,
+        # district, province) for its level and score. Thousands of destinations
+        # share those, so memoize the numeric verdict for the scoring pass and
+        # build the full explainable bundle only for the rows actually returned.
+        _zones = _tf.season_dataset()["zones"]
+        _season_score_cache = {}
+
+        def season_verdict(facts_row):
+            elevation = facts_row["elevation_m"]
+            if elevation is None:
+                zone = "unknown"
+            elif elevation >= _zones["high_altitude_min_m"]:
+                zone = "high"
+            elif elevation < _zones["tarai_max_m"]:
+                zone = "tarai"
+            else:
+                zone = "mid"
+            key = (facts_row["activity"], zone,
+                   (facts_row["district"] or "").lower(),
+                   (facts_row["province"] or "").lower())
+            hit = _season_score_cache.get(key)
+            if hit is None:
+                fit = _tf.season_fit(month=plan_month, activity=facts_row["activity"],
+                                     elevation_m=elevation, district=facts_row["district"],
+                                     province=facts_row["province"])
+                # level, label, month_name and reason are all built from the
+                # constant NTB fact strings plus the booleans captured in the
+                # key, so they are identical for every row sharing the key.
+                hit = (fit["level"], fit["label"], fit["month_name"], fit["reason"])
+                _season_score_cache[key] = hit
+            return hit
+
         for destination in qs.iterator(chunk_size=500):
             facts_row = fact_by_id.get(destination.id)
             if facts_row is None:
@@ -3488,16 +3668,16 @@ class MoodRecommendationsView(generics.ListAPIView):
             breakdown["interests"] = round(category_score + keyword_score, 3)
 
             # Season (NTB climate guidance) for the month being planned.
-            fit = tf.season_fit(month=plan_month, activity=facts_row["activity"],
-                                elevation_m=facts_row["elevation_m"], district=facts_row["district"],
-                                province=facts_row["province"])
-            season_score = {"best": 0.20, "good": 0.10, "fair": 0.0, "caution": -0.08, "poor": -0.18}[fit["level"]]
+            # Memoized verdict for scoring; the full explainable bundle is built
+            # later, for the rows actually returned.
+            season_level, season_label, season_month, season_reason = season_verdict(facts_row)
+            season_score = {"best": 0.20, "good": 0.10, "fair": 0.0, "caution": -0.08, "poor": -0.18}[season_level]
             score += season_score
             breakdown["season"] = round(season_score, 3)
-            if fit["level"] in {"best", "poor", "caution"}:
+            if season_level in {"best", "poor", "caution"}:
                 # Good news leads; warnings stay visible right after the match reason.
-                reasons.insert(0 if fit["level"] == "best" else min(1, len(reasons)),
-                               f"{fit['label']} in {fit['month_name']}: {fit['reason']}")
+                reasons.insert(0 if season_level == "best" else min(1, len(reasons)),
+                               f"{season_label} in {season_month}: {season_reason}")
 
             # Effort from measured elevation (unknown elevation = no claim).
             difficulty_info = facts_row["difficulty"]
@@ -3656,7 +3836,10 @@ class MoodRecommendationsView(generics.ListAPIView):
                     "verified": warning["verified"], "source_type": warning["source_type"],
                 } if warning else None,
             }
-            extra = {"season": fit, "cost": cost, "difficulty": difficulty_info, "acclimatization": acclim,
+            extra = {"season": _tf.season_fit(month=plan_month, activity=facts_row["activity"],
+                                             elevation_m=elevation_m, district=facts_row["district"],
+                                             province=facts_row["province"]),
+                     "cost": cost, "difficulty": difficulty_info, "acclimatization": acclim,
                      "distance_km": distance_km, "elevation_m": elevation_m}
             rows.append((score, destination, reasons[:5], breakdown, inferred_difficulty, cost["label"], extra, risk_level, safety_context))
 
