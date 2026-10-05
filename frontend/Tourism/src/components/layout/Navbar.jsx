@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react"
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom"
-import { FiMenu, FiBell, FiSearch, FiChevronDown, FiSun, FiMoon, FiX, FiUser } from "react-icons/fi"
+import { FiMenu, FiBell, FiSearch, FiChevronDown, FiSun, FiMoon, FiX } from "react-icons/fi"
 
 import useAuth from "../../hooks/useAuth"
 import useSidebarState from "../../hooks/useSidebarState"
@@ -9,7 +9,6 @@ import { resolveSmartSearch } from "../../utils/smartSearch"
 import TourismLogo from "../branding/TourismLogo"
 import LanguageSwitcher from "../common/LanguageSwitcher"
 import ProfileMenu from "./ProfileMenu"
-import Topbar from "./Topbar"
 import { useI18n } from "../../i18n"
 import usePublicConfig from "../../hooks/usePublicConfig"
 import useTheme from "../../context/ThemeContext"
@@ -20,7 +19,6 @@ const PUBLIC_NAV_PATHS = new Set([
   "/itinerary", "/budget-estimator", "/before-you-travel", "/hotels/search", "/emergency", "/risk-alerts", "/navigation",
   "/distances", "/language", "/translation", "/nearby-places", "/packages", "/guides", "/guide-portal",
   "/tourism-jobs", "/guide-bookings", "/collaborate", "/chatbot", "/travel", "/about", "/contact", "/support",
-  "/travel-toolkit",
 ])
 
 const NavChildren = ({ items, depth = 0, onNavigate }) => items.map(child => <div key={child.path}><NavLink to={child.path} onClick={onNavigate} className="block px-3 py-2 rounded-lg text-sm text-[#C7D9D2] hover:bg-white/10 hover:text-white transition-colors" style={{ paddingLeft: `${12 + depth * 14}px` }}>{child.label}</NavLink>{!!child.children?.length && <NavChildren items={child.children} depth={depth + 1} onNavigate={onNavigate}/>}</div>)
@@ -39,7 +37,7 @@ const Navbar = () => {
   const features = resolveNavbarFeatures(settings?.navbar_features)
   const { isDark, toggleTheme } = useTheme()
   const navRef = useRef(null)
-  const [navOverflow, setNavOverflow] = useState(false)
+  const [_navOverflow, setNavOverflow] = useState(false)
 
   // Detect if navbar content overflows at current width
   useEffect(() => {
@@ -115,29 +113,9 @@ const Navbar = () => {
 
   const { inline: inlineLinks, overflow: overflowLinks } = getVisibleLinks()
 
-  // Structural choices published from the admin Settings desk.
-  const structure = settings?.branding || {}
-  // The announcement bar (when on) is fixed at the very top,
-  // so the header sits just below it.
-  const barActive = Boolean(structure.show_announcement_bar) && Boolean((structure.announcement_bar_text || "").trim())
-  const barOffset = barActive ? "top-9" : "top-0"
-  const headerPosition = structure.header_style === "static"
-    ? "relative"
-    : structure.header_style === "floating"
-      ? `fixed inset-x-2 sm:inset-x-4 ${barActive ? "top-14" : "top-2"} rounded-3xl`
-      : `fixed inset-x-0 ${barOffset}`
-  const headerLayout = structure.header_layout === "centered"
-    ? "justify-center"
-    : structure.header_layout === "compact"
-      ? "justify-start px-1"
-      : "justify-between"
-  const navPadding = structure.header_layout === "compact" ? "px-1 sm:px-2" : "px-2 sm:px-3 lg:px-4 xl:px-6"
-  const navItemRadius = structure.nav_style === "pills" ? "rounded-full" : structure.nav_style === "tabs" ? "rounded-t-xl" : "rounded-lg"
-
   return (
-    <header className={`ny-header ${headerPosition} z-[60] min-w-0 w-full border-b border-white/10 text-white shadow-[0_4px_18px_rgba(4,42,36,0.16)] backdrop-blur ${structure.header_style === "floating" ? "border border-white/15" : ""}`}>
-      <Topbar />
-      <nav ref={navRef} data-nav-root aria-label="Main navigation" className={`relative mx-auto flex h-16 min-w-0 w-full items-center gap-1.5 sm:gap-2 ${navPadding} xl:gap-3 ${headerLayout}`}>
+    <header className="ny-header fixed inset-x-0 top-0 z-[60] min-w-0 w-full border-b border-white/10 text-white shadow-[0_4px_18px_rgba(4,42,36,0.16)] backdrop-blur">
+      <nav ref={navRef} data-nav-root aria-label="Main navigation" className="relative mx-auto flex h-16 min-w-0 w-full items-center gap-1.5 px-2 sm:gap-2 sm:px-3 lg:px-4 xl:gap-3 xl:px-6">
 
         {/* Sidebar Toggle */}
         <button
@@ -176,7 +154,7 @@ const Navbar = () => {
           <button
             type="button"
             onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))}
-            className="nav-kbd hidden shrink-0 items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold text-[#BDEBD9] bg-[#063B32] hover:bg-white/10 border border-white/20 rounded-md transition-colors min-[1400px]:flex"
+            className="nav-kbd hidden shrink-0 items-center gap-0.5 px-1.5 py-0.5 text-xs font-bold text-[#BDEBD9] bg-[#063B32] hover:bg-white/10 border border-white/20 rounded-md transition-colors min-[1400px]:flex"
             title="Open Command Palette (Ctrl+K)"
           >
             <span>Ctrl</span>
@@ -202,7 +180,7 @@ const Navbar = () => {
           {inlineLinks.map((link, idx) => (
             <div key={link.id || `${link.path}-${idx}`} className="relative group" onMouseLeave={() => setOpenMenu(null)}>
               <div className="flex items-center gap-0.5">
-                <NavLink to={link.path} onClick={() => setOpenMenu(null)} className={({ isActive }) => `text-sm font-medium transition-colors whitespace-nowrap px-2 py-1.5 xl:px-2.5 xl:py-2 ${navItemRadius} ${isActive ? "bg-white/10 text-white" : "text-[#C7D9D2] hover:bg-white/10 hover:text-white"}`}>{link.label}</NavLink>
+                <NavLink to={link.path} onClick={() => setOpenMenu(null)} className={({ isActive }) => `text-sm font-medium transition-colors whitespace-nowrap rounded-lg px-2 py-1.5 xl:px-2.5 xl:py-2 ${isActive ? "bg-white/10 text-white" : "text-[#C7D9D2] hover:bg-white/10 hover:text-white"}`}>{link.label}</NavLink>
                 {!!link.children?.length && (
                   <button
                     type="button"
@@ -297,15 +275,6 @@ const Navbar = () => {
               <Link to="/register" className="btn-primary min-h-10 text-sm py-1.5 px-3 xl:px-4 xl:py-2">
                 {t("nav.signup")}
               </Link>
-              {features.theme_toggle && <button
-                type="button"
-                onClick={toggleTheme}
-                className="text-[#BDEBD9] hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors"
-                aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
-                title={isDark ? "Light mode" : "Dark mode"}
-              >
-                {isDark ? <FiSun size={18} /> : <FiMoon size={18} />}
-              </button>}
             </>
           )}
         </div>

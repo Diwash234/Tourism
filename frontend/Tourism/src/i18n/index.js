@@ -8,7 +8,6 @@
  * translations), and an extensible dictionary. To add a language, append
  * its block to LANGS and register it in ALL_LANGS.
  */
-import { lookup as dynamicLookup, request as dynamicRequest } from "./dynamicTranslate"
 import { useEffect, useState } from "react"
 import { SUPPORTED_LANGUAGES } from "./languages"
 import translationApi from "../api/translationApi"
@@ -16,7 +15,8 @@ import translationApi from "../api/translationApi"
 const STORAGE_KEY = "tourism_lang"
 const COOKIE_KEY = "django_language"
 
-export const ALL_LANGS = SUPPORTED_LANGUAGES.map((language) => ({ ...language, flag: language.code === "ne" ? "🇳🇵" : language.code === "hi" ? "🇮🇳" : language.code === "en" ? "🇬🇧" : "🌐" }))
+// ALL_LANGS is declared right after DICTS (further down) so the selectable
+// language set can never drift from the dictionaries we actually ship.
 
 const en = {
   // nav / layout
@@ -38,7 +38,7 @@ const en = {
   "sidebar.packages": "Travel Packages",
   "sidebar.submit": "Submit Place",
   "sidebar.explore_map": "Explore by Province",
-  "sidebar.recommendations": "Curated Recommendations",
+  "sidebar.recommendations": "AI Recommendations",
   "sidebar.navigation": "Location",
   "sidebar.hotels": "Hotels & Lodges",
   "sidebar.budget": "Budget Estimator",
@@ -50,7 +50,7 @@ const en = {
   "sidebar.emergency": "Emergency Hub",
   "sidebar.phrasebook": "Nepal Phrasebook",
   "sidebar.translation": "Live Translation",
-  "sidebar.chatbot": "Himal Travel Guide",
+  "sidebar.chatbot": "Himal AI Assistant",
   "sidebar.dashboard": "My Dashboard",
   "sidebar.favorites": "Saved Favorites",
   "sidebar.bookings": "My Bookings",
@@ -133,42 +133,6 @@ const en = {
   "settings.saved": "Preferences saved!",
   // gallery
   "gallery.title": "Nepal Photo Gallery",
-  "gallery.kicker": "Visual stories",
-  "gallery.subtitle": "Browse destination-linked images from the Nepal Yatra media library. Search by place, filter by subject, and open a photo for its available attribution details.",
-  "gallery.filters_label": "Gallery filters",
-  "gallery.categories_label": "Photo categories",
-  "gallery.filter_all": "All photos",
-  "gallery.filter_mountain": "Mountains & alpine",
-  "gallery.filter_lake": "Lakes & waters",
-  "gallery.filter_temple": "Temples & stupas",
-  "gallery.filter_wildlife": "Wildlife",
-  "gallery.filter_heritage": "Heritage",
-  "gallery.filter_landscape": "Landscapes & hills",
-  "gallery.search_label": "Search photos",
-  "gallery.search_placeholder": "Search by place or district",
-  "gallery.load_error": "Some gallery sources could not be loaded. Available photos are still shown below.",
-  "gallery.retry": "Retry gallery",
-  "gallery.district_index_kicker": "All Nepal District Visual Index",
-  "gallery.district_marquee": "77 District Photo Marquee",
-  "gallery.avg_per_district": "{n} images per district on average",
-  "gallery.district_index": "District photo index",
-  "gallery.swipe_hint": "swipe or browse below",
-  "gallery.no_photos_title": "No photos found",
-  "gallery.no_photos_sub": "No published photos match this category or search yet.",
-  "gallery.clear_filters": "Clear gallery filters",
-  "gallery.results_label": "Photo results",
-  "gallery.explore_destination": "Explore destination",
-  "gallery.link_unavailable": "Destination link unavailable",
-  "gallery.open_photo": "Open photo: {caption}",
-  "gallery.click_fullscreen": "Click to Fullscreen",
-  "gallery.viewer_label": "Photo viewer",
-  "gallery.photographer": "Photographer",
-  "gallery.license": "License",
-  "gallery.view_place_details": "View place details",
-  "gallery.close_viewer": "Close photo viewer",
-  "gallery.prev_photo": "Previous photo",
-  "gallery.next_photo": "Next photo",
-  "gallery.open_photo_n": "Open photo {n}",
   // compare
   "compare.title": "Compare Destinations",
   "common.home": "Home",
@@ -178,21 +142,6 @@ const en = {
   "common.history": "History",
   "dest.search_placeholder": "Search destinations...",
   "dest.all": "All destinations",
-  "destlist.title": "Explore Nepal destinations",
-  "destlist.subtitle": "Discover recorded temples, lakes, Himalayan viewpoints, national parks and heritage places across Nepal's seven provinces.",
-  "destlist.submit_place": "Submit a place",
-  "destlist.filters_label": "Destination filters",
-  "destlist.type_label": "Place type",
-  "destlist.type_attractions": "Attractions",
-  "destlist.type_hotels": "Hotels & stays",
-  "destlist.type_all": "All places",
-  "destlist.search_placeholder": "Search destinations, districts or places",
-  "destlist.more_filters": "More filters",
-  "destlist.fewer_filters": "Fewer filters",
-  "destlist.finding_location": "Finding location…",
-  "destlist.turn_off_nearby": "Turn off nearby",
-  "destlist.use_my_location": "Use my location",
-  "destlist.location_not_shared": "Location was not shared. You can browse all destinations or try again.",
   "family.link_member": "Link a family member",
   "family.my_family": "My Family",
   "family.live_location": "Live Location",
@@ -308,83 +257,6 @@ const en = {
   "emergency.nearby_hospitals": "Nearby Hospitals",
   "emergency.nearby_police": "Nearby Police Stations",
   "emergency.call_now": "Call Now",
-  "emergency.kicker": "Safety first",
-  "emergency.hero_title": "Nearest Help for Every Destination",
-  "emergency.hero_subtitle": "Search an approved destination or share your location to see recorded hospitals, police and other emergency facilities nearby.",
-  "emergency.sos_cta": "Request emergency help",
-  "emergency.sos_sending": "Recording request…",
-  "emergency.sos_sent": "Request recorded",
-  "emergency.sos_login": "Sign in to request an SOS",
-  "emergency.offline_dossier": "Offline SOS Dossier",
-  "emergency.dispatch_note": "The platform records a request; it does not replace emergency dispatch.",
-  "emergency.find_help_title": "Find help near a destination",
-  "emergency.search_label": "Search destination",
-  "emergency.search_placeholder": "Search Pokhara, Rara Lake, Janakpur…",
-  "emergency.find_help": "Find help",
-  "emergency.use_gps": "Use my GPS",
-  "emergency.finding_location": "Finding location…",
-  "emergency.try_location_again": "Try location again",
-  "emergency.use_my_location": "Use my location",
-  "emergency.radius": "Radius",
-  "emergency.apply_radius": "Apply radius",
-  "emergency.verified_contacts": "Verified national contacts",
-  "emergency.contacts_subtitle": "These contacts are available without sharing a location. Use the number that matches your emergency.",
-  "emergency.retry_contacts": "Retry contacts",
-  "emergency.offline_copy": "You appear to be offline. Showing the copy saved on this device.",
-  "emergency.loading_contacts": "Loading verified contacts…",
-  "emergency.no_contacts": "No national contact records are currently available from the directory.",
-  "emergency.contact_record": "Contact record",
-  "emergency.phone_unavailable_long": "Phone unavailable",
-  "emergency.no_number_listed": "No verified number is listed.",
-  "emergency.choose_place_title": "Choose a place to see local help",
-  "emergency.choose_place_sub": "Search a destination, use your location, or pick a city below. We never guess a default city or invent facilities.",
-  "emergency.coverage_around": "Emergency coverage around",
-  "emergency.coverage_gap": "No hospital or police record is available for this area.",
-  "emergency.submit_facility": "Submit a facility for review.",
-  "emergency.directory_supplied": "These records are supplied by the emergency directory response.",
-  "emergency.nearest_facilities": "Nearest emergency facilities",
-  "emergency.coverage_label": "Directory coverage",
-  "emergency.hospitals_unit": "hospitals",
-  "emergency.police_unit": "police stations",
-  "emergency.filter_all": "All",
-  "emergency.filter_hospitals": "Hospitals",
-  "emergency.filter_police": "Police",
-  "emergency.filter_pharmacy": "Pharmacy",
-  "emergency.filter_fire": "Fire",
-  "emergency.no_filter_match_title": "No facilities match this filter",
-  "emergency.no_filter_match_sub": "No record is listed for this category and radius. The directory does not invent pharmacies or facilities.",
-  "emergency.submit_facility_short": "Submit a facility",
-  "emergency.type_hospital": "Hospital / clinic",
-  "emergency.type_police": "Police station",
-  "emergency.type_ambulance": "Ambulance",
-  "emergency.type_blood_bank": "Blood bank",
-  "emergency.type_pharmacy": "Pharmacy",
-  "emergency.type_fire": "Fire and rescue",
-  "emergency.type_tourist_police": "Tourist police",
-  "emergency.type_traffic_police": "Traffic police",
-  "emergency.type_default": "Emergency facility",
-  "emergency.straight_line_note": "Straight-line distance; no road route was requested.",
-  "emergency.approx_min": "approx. ~{n} min",
-  "emergency.road_time_unavailable": "road time unavailable",
-  "emergency.facility_name_unavailable": "Facility name unavailable",
-  "emergency.address_unavailable": "Address unavailable",
-  "emergency.outside_radius": "No service was found inside the selected radius; the nearest known result is shown.",
-  "emergency.phone_fallback_note": "The local phone number is not recorded; use the verified national contacts panel for national assistance.",
-  "emergency.call_facility": "Call {name}",
-  "emergency.phone_unavailable": "Phone unavailable",
-  "emergency.route": "Route",
-  "emergency.open_in_maps": "Open facility in maps",
-  "emergency.source": "Source",
-  "emergency.updated": "Updated",
-  "emergency.location_error": "Location unavailable",
-  "emergency.location_denied": "permission denied or timed out",
-  "emergency.search_instead": "Search a destination instead.",
-  "emergency.contacts_load_error": "Verified national contacts could not be loaded. Try again or use the emergency services available to you locally.",
-  "emergency.destination_unavailable": "Destination emergency data is unavailable.",
-  "emergency.nearby_unavailable": "Nearby emergency directory is unavailable.",
-  "emergency.sos_need_location": "Search a destination or use GPS first so the request has a location.",
-  "emergency.sos_recorded": "SOS request recorded. Use the verified contact options shown below for immediate help.",
-  "emergency.sos_failed": "The platform could not confirm the request. Use a verified contact option below.",
   "nav.start": "Start Navigation",
   "nav.stop": "Stop Navigation",
   "nav.walking": "Walking",
@@ -393,83 +265,13 @@ const en = {
   "nav.distance": "Distance",
   "nav.duration": "Duration",
   "nav.turn_by_turn": "Turn by turn",
-  "nav.live_engine": "🔴 Live Nepal Navigation Engine",
-  "nav.any_origin_dest": "Any Origin ➔ Any Destination in 7 Provinces",
-  "nav.title": "Maps & Navigation",
-  "nav.game_hud_on": "🎮 Game HUD: ON",
-  "nav.standard_map": "🗺️ Standard Map",
-  "nav.map_tools": "🛠️ Map Tools",
-  "nav.satellite": "🛰️ Satellite",
-  "nav.terrain": "🗺️ Terrain",
   "settings.save": "Save Settings",
   "settings.dark_mode": "Dark Mode",
   "hotels.book_now": "Request booking",
   "hotels.price_night": "Price per night",
   "hotels.rooms": "Rooms available",
-  "hotelsearch.title": "Find a hotel or lodge",
-  "hotelsearch.subtitle": "Search the live stay catalogue by place, property or area. Prices, ratings and availability appear only when the record provides them.",
-  "hotelsearch.search_label": "Search hotels and lodges",
-  "hotelsearch.search_placeholder": "Search Pokhara, a hotel name or an area",
-  "hotelsearch.searching": "Searching…",
-  "hotelsearch.search_cta": "Search stays",
-  "hotelsearch.enter_query": "Enter a place, property or area to search.",
-  "hotelsearch.load_error": "We could not load the stay catalogue right now. Please try again.",
-  "hotelsearch.no_match_title": "No stays match this search",
-  "hotelsearch.no_match_sub": "Try a broader place name or browse the full destination catalogue to continue exploring.",
-  "hotelsearch.browse_destinations": "Browse destinations",
-  "hotelsearch.request_booking": "Request a booking",
-  "hotelsearch.empty_title": "Search the stay catalogue",
-  "hotelsearch.empty_sub": "Enter a destination, property or area to see recorded stays and the details the catalogue actually provides.",
-  "hotelcard.amenities_listed": "Amenities listed",
-  "hotelcard.name_unavailable": "Hotel name unavailable",
-  "hotelcard.near": "Near {name}",
-  "hotelcard.price_on_request": "Price on request",
-  "hotelcard.view_on_map": "View on map",
-  "hotelcard.view_on_map_name": "View {name} on map",
-  "hotelcard.call_desk": "Call hotel desk",
-  "hotelcard.call_name": "Call {name}",
-  "hotelcard.official_website": "Official website",
-  "hotelcard.web": "Web",
-  "hotelcard.view_booking": "View booking",
-  "hotelcard.booking_unavailable": "Booking details unavailable",
   "budget.calculate": "Calculate Budget",
   "budget.daily": "Daily budget",
-  "budgetest.title": "Budget Estimator",
-  "budgetest.subtitle": "Plan your Nepal trip expenses. The estimate updates automatically when you change your trip details.",
-  "budgetest.destination": "Destination",
-  "budgetest.destination_ph": "Enter a destination",
-  "budgetest.travelers": "Number of Travelers",
-  "budgetest.duration": "Duration (days)",
-  "budgetest.style": "Travel Style",
-  "budgetest.style_budget": "Budget",
-  "budgetest.style_mid": "Mid-range",
-  "budgetest.style_luxury": "Luxury",
-  "budgetest.estimate_cta": "Estimate Budget",
-  "budgetest.calculating": "Calculating...",
-  "budgetest.display_currency": "Display currency",
-  "budgetest.currency_note": "Currency values are shown only when the estimate service provides a verified conversion rate.",
-  "budgetest.updating": "Updating estimate...",
-  "budgetest.unavailable": "Unavailable",
-  "budgetest.unavailable_title": "Estimate unavailable",
-  "budgetest.total": "Estimated Total Cost",
-  "budgetest.usd_note": "USD estimate",
-  "budgetest.npr_note": "NPR estimate",
-  "budgetest.fx_unavailable": "Selected currency conversion is not available from the verified estimate response",
-  "budgetest.dataset_badge": "✓ Based on real Nepal travel-cost dataset",
-  "budgetest.places_unit": "places",
-  "budgetest.source_note": "Source returned by the estimate service: {source}. Treat this as planning guidance, not a quoted price.",
-  "budgetest.not_specified": "not specified",
-  "budgetest.emergency_reserve": "Emergency reserve (if recorded)",
-  "budgetest.cat_hotel": "Hotel & Lodging",
-  "budgetest.cat_food": "Food & Dining",
-  "budgetest.cat_transport": "Transport & Transit",
-  "budgetest.cat_activities": "Sightseeing & Activities",
-  "budgetest.cat_shopping": "Local Shopping & Souvenirs",
-  "budgetest.cur_npr": "Nepali Rupee",
-  "budgetest.cur_usd": "US Dollar",
-  "budgetest.cur_inr": "Indian Rupee",
-  "budgetest.cur_eur": "Euro",
-  "budgetest.cur_gbp": "British Pound",
   "about.title": "About Us",
   "about.mission": "Our Mission",
   "contact.title": "Contact Us",
@@ -527,65 +329,6 @@ const en = {
   "tp.nearest": "Nearest destinations",
   "tp.plan_route": "Plan route",
   "tp.plan": "Plan",
-
-  // itinerary planner page
-  "itin.title": "Itinerary Planner",
-  "itin.subtitle": "Tell us your days, budget and interests, then press Generate. Plans include altitude checks, official permits & fees and a trip-readiness checklist.",
-  "itin.days": "Days",
-  "itin.budget_level": "Budget level",
-  "itin.budget_budget": "Budget",
-  "itin.budget_mid": "Mid-range",
-  "itin.budget_standard": "Standard",
-  "itin.budget_luxury": "Luxury",
-  "itin.style_leisure": "Leisure",
-  "itin.style_culture": "Culture",
-  "itin.style_nature": "Nature",
-  "itin.style_adventure": "Adventure",
-  "itin.style_city": "City",
-  "itin.type_solo": "Solo",
-  "itin.type_couple": "Couple",
-  "itin.type_family": "Family",
-  "itin.type_group": "Group",
-  "itin.budget_ph": "e.g. 50000",
-  "itin.start_city": "Start city",
-  "itin.start_city_ph": "Enter a start city",
-  "itin.nationality": "Nationality (official fees)",
-  "itin.travel_month": "Travel month",
-  "itin.not_decided": "Not decided",
-  "itin.generating": "Generating…",
-  "itin.generate": "Generate itinerary",
-  "itin.regenerate": "Regenerate itinerary",
-  "itin.generating_plan": "Generating your itinerary…",
-  "itin.inputs_changed": "Your inputs changed — press “Regenerate itinerary” to update the plan.",
-  "itin.tailor_hint": "Tailor this route dynamically according to your pace, preferences, and Himalayan trail conditions:",
-  "itin.mod_cheaper": "Budget-Friendly (कम खर्च)",
-  "itin.mod_luxurious": "Extra Comfort & Boutique (आरामदायी)",
-  "itin.mod_culture": "Deep Cultural Heritage (संस्कृति)",
-  "itin.mod_nature": "Scenic Viewpoints (प्रकृति दृश्य)",
-  "itin.mod_slower": "Gentle Acclimatization (सुस्त गति)",
-  "itin.mod_replan": "Trail & Weather Adapt (मौसम अनुकूल)",
-  "itin.planning_focus": "Planning focus",
-  "itin.notepad_title": "Trip Cost Notepad",
-  "itin.notepad_sub": "Add custom lodge rates or local flight quotes to your trip total.",
-  "itin.cost_category": "Cost category",
-  "itin.item_label": "Item, for example a lodge or flight",
-  "itin.item_ph": "e.g. Annapurna View Hotel",
-  "itin.amount_label": "Amount in rupees",
-  "itin.add_note": "Add cost note",
-  "itin.note_hotel": "Hotel",
-  "itin.note_transport": "Transport",
-  "itin.note_food": "Food",
-  "itin.note_activity": "Activity",
-  "itin.note_other": "Other",
-  "itin.notepad_total": "Notepad Total",
-  "itin.grand_total": "Grand Total (plan + notes)",
-  "itin.notes_label": "Notes",
-  "itin.saved_to_account": "Saved to your account",
-  "itin.share_readonly": "Share a read-only copy (no name, email or notes).",
-  "itin.save_plan": "Save this plan",
-  "itin.save_plan_sub": "Keep the generated itinerary in your account, then share it",
-  "itin.total_estimate": "Total estimate",
-  "itin.usd_unavailable": "USD estimate unavailable",
 
   // distances & directions explorer
   "sidebar.distances": "Distances & Directions",
@@ -646,7 +389,7 @@ const ne = {
   "sidebar.packages": "यात्रा प्याकेजहरू",
   "sidebar.submit": "स्थान पेश गर्नुहोस्",
   "sidebar.explore_map": "प्रदेश अनुसार अन्वेषण",
-  "sidebar.recommendations": "विशेष यात्रा सिफारिसहरू",
+  "sidebar.recommendations": "एआई सिफारिसहरू",
   "sidebar.navigation": "लोकेशन",
   "sidebar.hotels": "होटल र लज",
   "sidebar.budget": "बजट अनुमान",
@@ -658,7 +401,7 @@ const ne = {
   "sidebar.emergency": "आपतकालीन केन्द्र",
   "sidebar.phrasebook": "नेपाली वाक्यांशपुस्तक",
   "sidebar.translation": "प्रत्यक्ष अनुवाद",
-  "sidebar.chatbot": "हिमाल यात्रा सहयोगी",
+  "sidebar.chatbot": "हिमाल एआई सहायक",
   "sidebar.dashboard": "मेरो ड्यासबोर्ड",
   "sidebar.favorites": "रुचाइएका",
   "sidebar.bookings": "मेरा बुकिङहरू",
@@ -734,42 +477,6 @@ const ne = {
   "settings.notifications": "सूचनाहरू",
   "settings.saved": "प्राथमिकताहरू सुरक्षित भयो!",
   "gallery.title": "नेपाल तस्बिर ग्यालेरी",
-  "gallery.kicker": "दृश्य कथाहरू",
-  "gallery.subtitle": "नेपाल यात्रा मिडिया पुस्तकालयबाट गन्तव्य-जोडिएका तस्बिरहरू ब्राउज गर्नुहोस्। ठाउँ अनुसार खोज्नुहोस्, विषय अनुसार फिल्टर गर्नुहोस्, र उपलब्ध श्रेय विवरणका लागि तस्बिर खोल्नुहोस्।",
-  "gallery.filters_label": "ग्यालेरी फिल्टरहरू",
-  "gallery.categories_label": "तस्बिर श्रेणीहरू",
-  "gallery.filter_all": "सबै तस्बिरहरू",
-  "gallery.filter_mountain": "हिमाल र अल्पाइन",
-  "gallery.filter_lake": "ताल र पानी",
-  "gallery.filter_temple": "मन्दिर र स्तूप",
-  "gallery.filter_wildlife": "वन्यजन्तु",
-  "gallery.filter_heritage": "सम्पदा",
-  "gallery.filter_landscape": "परिदृश्य र पहाड",
-  "gallery.search_label": "तस्बिरहरू खोज्नुहोस्",
-  "gallery.search_placeholder": "ठाउँ वा जिल्ला अनुसार खोज्नुहोस्",
-  "gallery.load_error": "केही ग्यालेरी स्रोतहरू लोड हुन सकेन। उपलब्ध तस्बिरहरू तल देखाइएका छन्।",
-  "gallery.retry": "ग्यालेरी पुनः प्रयास गर्नुहोस्",
-  "gallery.district_index_kicker": "सम्पूर्ण नेपाल जिल्ला दृश्य सूचकाङ्क",
-  "gallery.district_marquee": "७७ जिल्ला तस्बिर मार्ची",
-  "gallery.avg_per_district": "औसतमा प्रति जिल्ला {n} तस्बिरहरू",
-  "gallery.district_index": "जिल्ला तस्बिर सूचकाङ्क",
-  "gallery.swipe_hint": "स्वाइप गर्नुहोस् वा तल ब्राउज गर्नुहोस्",
-  "gallery.no_photos_title": "कुनै तस्बिर भेटिएन",
-  "gallery.no_photos_sub": "यो श्रेणी वा खोजसँग मिल्ने कुनै प्रकाशित तस्बिर अहिलेसम्म छैन।",
-  "gallery.clear_filters": "ग्यालेरी फिल्टरहरू हटाउनुहोस्",
-  "gallery.results_label": "तस्बिर नतिजाहरू",
-  "gallery.explore_destination": "गन्तव्य अन्वेषण गर्नुहोस्",
-  "gallery.link_unavailable": "गन्तव्य लिङ्क उपलब्ध छैन",
-  "gallery.open_photo": "तस्बिर खोल्नुहोस्: {caption}",
-  "gallery.click_fullscreen": "पूर्णस्क्रिनका लागि क्लिक गर्नुहोस्",
-  "gallery.viewer_label": "तस्बिर दर्शक",
-  "gallery.photographer": "फोटोग्राफर",
-  "gallery.license": "इजाजतपत्र",
-  "gallery.view_place_details": "ठाउँ विवरण हेर्नुहोस्",
-  "gallery.close_viewer": "तस्बिर दर्शक बन्द गर्नुहोस्",
-  "gallery.prev_photo": "अघिल्लो तस्बिर",
-  "gallery.next_photo": "अर्को तस्बिर",
-  "gallery.open_photo_n": "तस्बिर {n} खोल्नुहोस्",
   "compare.title": "गन्तव्य तुलना गर्नुहोस्",
   "common.home": "गृहपृष्ठ",
   "common.back": "फर्कनुहोस्",
@@ -778,21 +485,6 @@ const ne = {
   "common.history": "इतिहास",
   "dest.search_placeholder": "गन्तव्य खोज्नुहोस्...",
   "dest.all": "सबै गन्तव्यहरू",
-  "destlist.title": "नेपालका गन्तव्यहरू अन्वेषण गर्नुहोस्",
-  "destlist.subtitle": "नेपालका सात प्रदेशभरि दर्ता भएका मन्दिर, ताल, हिमाली दृश्य, राष्ट्रिय निकुञ्ज र सम्पदा स्थलहरू पत्ता लगाउनुहोस्।",
-  "destlist.submit_place": "ठाउँ पेश गर्नुहोस्",
-  "destlist.filters_label": "गन्तव्य फिल्टरहरू",
-  "destlist.type_label": "ठाउँको प्रकार",
-  "destlist.type_attractions": "आकर्षणहरू",
-  "destlist.type_hotels": "होटल र बास",
-  "destlist.type_all": "सबै ठाउँहरू",
-  "destlist.search_placeholder": "गन्तव्य, जिल्ला वा ठाउँ खोज्नुहोस्",
-  "destlist.more_filters": "थप फिल्टरहरू",
-  "destlist.fewer_filters": "कम फिल्टरहरू",
-  "destlist.finding_location": "स्थान खोजिँदैछ…",
-  "destlist.turn_off_nearby": "नजिकै बन्द गर्नुहोस्",
-  "destlist.use_my_location": "मेरो स्थान प्रयोग गर्नुहोस्",
-  "destlist.location_not_shared": "स्थान साझा गरिएको थिएन। तपाईं सबै गन्तव्यहरू ब्राउज गर्न सक्नुहुन्छ वा फेरि प्रयास गर्नुहोस्।",
   "family.link_member": "परिवारको सदस्य लिङ्क गर्नुहोस्",
   "family.my_family": "मेरो परिवार",
   "family.live_location": "प्रत्यक्ष स्थान",
@@ -908,83 +600,6 @@ const ne = {
   "emergency.nearby_hospitals": "नजिकैका अस्पतालहरू",
   "emergency.nearby_police": "नजिकैका प्रहरी चौकीहरू",
   "emergency.call_now": "अहिले कल गर्नुहोस्",
-  "emergency.kicker": "सुरक्षा पहिले",
-  "emergency.hero_title": "हरेक गन्तव्यका लागि नजिकको सहयोग",
-  "emergency.hero_subtitle": "नजिकैका दर्ता भएका अस्पताल, प्रहरी र अन्य आपतकालीन सुविधाहरू हेर्न स्वीकृत गन्तव्य खोज्नुहोस् वा आफ्नो स्थान साझा गर्नुहोस्।",
-  "emergency.sos_cta": "आपतकालीन सहयोग अनुरोध गर्नुहोस्",
-  "emergency.sos_sending": "अनुरोध दर्ता हुँदैछ…",
-  "emergency.sos_sent": "अनुरोध दर्ता भयो",
-  "emergency.sos_login": "SOS अनुरोध गर्न साइन इन गर्नुहोस्",
-  "emergency.offline_dossier": "अफलाइन SOS विवरण",
-  "emergency.dispatch_note": "प्लेटफर्मले अनुरोध दर्ता गर्छ; यसले आपतकालीन प्रेषणलाई प्रतिस्थापन गर्दैन।",
-  "emergency.find_help_title": "गन्तव्य नजिक सहयोग खोज्नुहोस्",
-  "emergency.search_label": "गन्तव्य खोज्नुहोस्",
-  "emergency.search_placeholder": "पोखरा, रारा ताल, जनकपुर खोज्नुहोस्…",
-  "emergency.find_help": "सहयोग खोज्नुहोस्",
-  "emergency.use_gps": "मेरो GPS प्रयोग गर्नुहोस्",
-  "emergency.finding_location": "स्थान खोजिँदैछ…",
-  "emergency.try_location_again": "स्थान फेरि प्रयास गर्नुहोस्",
-  "emergency.use_my_location": "मेरो स्थान प्रयोग गर्नुहोस्",
-  "emergency.radius": "परिधि",
-  "emergency.apply_radius": "परिधि लागू गर्नुहोस्",
-  "emergency.verified_contacts": "प्रमाणीकृत राष्ट्रिय सम्पर्कहरू",
-  "emergency.contacts_subtitle": "यी सम्पर्कहरू स्थान साझा नगरी उपलब्ध छन्। आफ्नो आपतकालसँग मिल्ने नम्बर प्रयोग गर्नुहोस्।",
-  "emergency.retry_contacts": "सम्पर्कहरू पुनः प्रयास गर्नुहोस्",
-  "emergency.offline_copy": "तपाईं अफलाइन देखिनुहुन्छ। यस उपकरणमा सुरक्षित प्रतिलिपि देखाइँदैछ।",
-  "emergency.loading_contacts": "प्रमाणीकृत सम्पर्कहरू लोड हुँदैछ…",
-  "emergency.no_contacts": "निर्देशिकाबाट हाल कुनै राष्ट्रिय सम्पर्क अभिलेख उपलब्ध छैन।",
-  "emergency.contact_record": "सम्पर्क अभिलेख",
-  "emergency.phone_unavailable_long": "फोन उपलब्ध छैन",
-  "emergency.no_number_listed": "कुनै प्रमाणीकृत नम्बर सूचीबद्ध छैन।",
-  "emergency.choose_place_title": "स्थानीय सहयोग हेर्न ठाउँ छान्नुहोस्",
-  "emergency.choose_place_sub": "गन्तव्य खोज्नुहोस्, आफ्नो स्थान प्रयोग गर्नुहोस्, वा तलको सहर छान्नुहोस्। हामी पूर्वनिर्धारित सहर अनुमान गर्दैनौं वा सुविधाहरू आविष्कार गर्दैनौं।",
-  "emergency.coverage_around": "वरपर आपतकालीन कभरेज",
-  "emergency.coverage_gap": "यस क्षेत्रका लागि कुनै अस्पताल वा प्रहरी अभिलेख उपलब्ध छैन।",
-  "emergency.submit_facility": "समीक्षाका लागि सुविधा पेश गर्नुहोस्।",
-  "emergency.directory_supplied": "यी अभिलेखहरू आपतकालीन निर्देशिका प्रतिक्रियाद्वारा प्रदान गरिन्छ।",
-  "emergency.nearest_facilities": "नजिकका आपतकालीन सुविधाहरू",
-  "emergency.coverage_label": "निर्देशिका कभरेज",
-  "emergency.hospitals_unit": "अस्पतालहरू",
-  "emergency.police_unit": "प्रहरी चौकीहरू",
-  "emergency.filter_all": "सबै",
-  "emergency.filter_hospitals": "अस्पतालहरू",
-  "emergency.filter_police": "प्रहरी",
-  "emergency.filter_pharmacy": "फार्मेसी",
-  "emergency.filter_fire": "दमकल",
-  "emergency.no_filter_match_title": "यो फिल्टरसँग कुनै सुविधा मिल्दैन",
-  "emergency.no_filter_match_sub": "यो श्रेणी र परिधिका लागि कुनै अभिलेख सूचीबद्ध छैन। निर्देशिकाले फार्मेसी वा सुविधाहरू आविष्कार गर्दैन।",
-  "emergency.submit_facility_short": "सुविधा पेश गर्नुहोस्",
-  "emergency.type_hospital": "अस्पताल / क्लिनिक",
-  "emergency.type_police": "प्रहरी चौकी",
-  "emergency.type_ambulance": "एम्बुलेन्स",
-  "emergency.type_blood_bank": "रक्त बैंक",
-  "emergency.type_pharmacy": "फार्मेसी",
-  "emergency.type_fire": "दमकल र उद्धार",
-  "emergency.type_tourist_police": "पर्यटक प्रहरी",
-  "emergency.type_traffic_police": "ट्राफिक प्रहरी",
-  "emergency.type_default": "आपतकालीन सुविधा",
-  "emergency.straight_line_note": "सिधा-रेखा दूरी; कुनै सडक मार्ग अनुरोध गरिएको थिएन।",
-  "emergency.approx_min": "लगभग ~{n} मिनेट",
-  "emergency.road_time_unavailable": "सडक समय उपलब्ध छैन",
-  "emergency.facility_name_unavailable": "सुविधाको नाम उपलब्ध छैन",
-  "emergency.address_unavailable": "ठेगाना उपलब्ध छैन",
-  "emergency.outside_radius": "चयन गरिएको परिधिभित्र कुनै सेवा भेटिएन; नजिकको ज्ञात परिणाम देखाइएको छ।",
-  "emergency.phone_fallback_note": "स्थानीय फोन नम्बर दर्ता छैन; राष्ट्रिय सहयोगका लागि प्रमाणीकृत राष्ट्रिय सम्पर्क प्यानल प्रयोग गर्नुहोस्।",
-  "emergency.call_facility": "{name} लाई कल गर्नुहोस्",
-  "emergency.phone_unavailable": "फोन उपलब्ध छैन",
-  "emergency.route": "मार्ग",
-  "emergency.open_in_maps": "नक्सामा सुविधा खोल्नुहोस्",
-  "emergency.source": "स्रोत",
-  "emergency.updated": "अद्यावधिक",
-  "emergency.location_error": "स्थान उपलब्ध छैन",
-  "emergency.location_denied": "अनुमति अस्वीकृत वा समय सकियो",
-  "emergency.search_instead": "यसको सट्टा गन्तव्य खोज्नुहोस्।",
-  "emergency.contacts_load_error": "प्रमाणीकृत राष्ट्रिय सम्पर्कहरू लोड हुन सकेन। फेरि प्रयास गर्नुहोस् वा स्थानीय रूपमा उपलब्ध आपतकालीन सेवाहरू प्रयोग गर्नुहोस्।",
-  "emergency.destination_unavailable": "गन्तव्य आपतकालीन डेटा उपलब्ध छैन।",
-  "emergency.nearby_unavailable": "नजिकैको आपतकालीन निर्देशिका उपलब्ध छैन।",
-  "emergency.sos_need_location": "अनुरोधमा स्थान होस् भनेर पहिले गन्तव्य खोज्नुहोस् वा GPS प्रयोग गर्नुहोस्।",
-  "emergency.sos_recorded": "SOS अनुरोध दर्ता भयो। तत्काल सहयोगका लागि तल देखाइएका प्रमाणीकृत सम्पर्क विकल्पहरू प्रयोग गर्नुहोस्।",
-  "emergency.sos_failed": "प्लेटफर्मले अनुरोध पुष्टि गर्न सकेन। तलको प्रमाणीकृत सम्पर्क विकल्प प्रयोग गर्नुहोस्।",
   "nav.start": "नेभिगेशन सुरु गर्नुहोस्",
   "nav.stop": "नेभिगेशन रोक्नुहोस्",
   "nav.walking": "पदयात्रा",
@@ -993,83 +608,13 @@ const ne = {
   "nav.distance": "दूरी",
   "nav.duration": "समय",
   "nav.turn_by_turn": "टर्न बाइ टर्न",
-  "nav.live_engine": "🔴 लाइभ नेपाल नेभिगेशन इन्जिन",
-  "nav.any_origin_dest": "७ प्रदेशमा कुनै पनि सुरुवात ➔ कुनै पनि गन्तव्य",
-  "nav.title": "नक्सा र नेभिगेशन",
-  "nav.game_hud_on": "🎮 गेम HUD: अन",
-  "nav.standard_map": "🗺️ मानक नक्सा",
-  "nav.map_tools": "🛠️ नक्सा उपकरणहरू",
-  "nav.satellite": "🛰️ स्याटेलाइट",
-  "nav.terrain": "🗺️ भू-भाग",
   "settings.save": "सेटिङ सेभ गर्नुहोस्",
   "settings.dark_mode": "डार्क मोड",
   "hotels.book_now": "बुकिङ अनुरोध गर्नुहोस्",
   "hotels.price_night": "प्रति रात मूल्य",
   "hotels.rooms": "उपलब्ध कोठाहरू",
-  "hotelsearch.title": "होटल वा लज खोज्नुहोस्",
-  "hotelsearch.subtitle": "ठाउँ, सम्पत्ति वा क्षेत्र अनुसार लाइभ बास सूची खोज्नुहोस्। मूल्य, मूल्याङ्कन र उपलब्धता अभिलेखले प्रदान गर्दा मात्र देखिन्छ।",
-  "hotelsearch.search_label": "होटल र लज खोज्नुहोस्",
-  "hotelsearch.search_placeholder": "पोखरा, होटलको नाम वा क्षेत्र खोज्नुहोस्",
-  "hotelsearch.searching": "खोजिँदैछ…",
-  "hotelsearch.search_cta": "बास खोज्नुहोस्",
-  "hotelsearch.enter_query": "खोज्न ठाउँ, सम्पत्ति वा क्षेत्र लेख्नुहोस्।",
-  "hotelsearch.load_error": "बास सूची अहिले लोड हुन सकेन। कृपया फेरि प्रयास गर्नुहोस्।",
-  "hotelsearch.no_match_title": "यो खोजसँग कुनै बास मिल्दैन",
-  "hotelsearch.no_match_sub": "फराकिलो ठाउँको नाम प्रयास गर्नुहोस् वा अन्वेषण जारी राख्न पूर्ण गन्तव्य सूची ब्राउज गर्नुहोस्।",
-  "hotelsearch.browse_destinations": "गन्तव्यहरू ब्राउज गर्नुहोस्",
-  "hotelsearch.request_booking": "बुकिङ अनुरोध गर्नुहोस्",
-  "hotelsearch.empty_title": "बास सूची खोज्नुहोस्",
-  "hotelsearch.empty_sub": "दर्ता भएका बास र सूचीले वास्तवमा प्रदान गर्ने विवरण हेर्न गन्तव्य, सम्पत्ति वा क्षेत्र लेख्नुहोस्।",
-  "hotelcard.amenities_listed": "सुविधाहरू सूचीबद्ध",
-  "hotelcard.name_unavailable": "होटलको नाम उपलब्ध छैन",
-  "hotelcard.near": "{name} नजिक",
-  "hotelcard.price_on_request": "अनुरोधमा मूल्य",
-  "hotelcard.view_on_map": "नक्सामा हेर्नुहोस्",
-  "hotelcard.view_on_map_name": "नक्सामा {name} हेर्नुहोस्",
-  "hotelcard.call_desk": "होटल डेस्कमा कल गर्नुहोस्",
-  "hotelcard.call_name": "{name} लाई कल गर्नुहोस्",
-  "hotelcard.official_website": "आधिकारिक वेबसाइट",
-  "hotelcard.web": "वेब",
-  "hotelcard.view_booking": "बुकिङ हेर्नुहोस्",
-  "hotelcard.booking_unavailable": "बुकिङ विवरण उपलब्ध छैन",
   "budget.calculate": "बजट गणना गर्नुहोस्",
   "budget.daily": "दैनिक बजट",
-  "budgetest.title": "बजट अनुमानक",
-  "budgetest.subtitle": "आफ्नो नेपाल यात्रा खर्च योजना बनाउनुहोस्। यात्रा विवरण परिवर्तन गर्दा अनुमान स्वतः अद्यावधिक हुन्छ।",
-  "budgetest.destination": "गन्तव्य",
-  "budgetest.destination_ph": "गन्तव्य लेख्नुहोस्",
-  "budgetest.travelers": "यात्रु सङ्ख्या",
-  "budgetest.duration": "अवधि (दिन)",
-  "budgetest.style": "यात्रा शैली",
-  "budgetest.style_budget": "बजट",
-  "budgetest.style_mid": "मध्यम",
-  "budgetest.style_luxury": "विलासी",
-  "budgetest.estimate_cta": "बजट अनुमान गर्नुहोस्",
-  "budgetest.calculating": "गणना हुँदैछ...",
-  "budgetest.display_currency": "मुद्रा देखाउनुहोस्",
-  "budgetest.currency_note": "अनुमान सेवाले प्रमाणीकृत विनिमय दर प्रदान गर्दा मात्र मुद्रा मान देखाइन्छ।",
-  "budgetest.updating": "अनुमान अद्यावधिक हुँदैछ...",
-  "budgetest.unavailable": "उपलब्ध छैन",
-  "budgetest.unavailable_title": "अनुमान उपलब्ध छैन",
-  "budgetest.total": "अनुमानित कुल लागत",
-  "budgetest.usd_note": "USD अनुमान",
-  "budgetest.npr_note": "NPR अनुमान",
-  "budgetest.fx_unavailable": "प्रमाणीकृत अनुमान प्रतिक्रियाबाट चयन गरिएको मुद्रा रूपान्तरण उपलब्ध छैन",
-  "budgetest.dataset_badge": "✓ वास्तविक नेपाल यात्रा-लागत डेटासेटमा आधारित",
-  "budgetest.places_unit": "ठाउँहरू",
-  "budgetest.source_note": "अनुमान सेवाले फर्काएको स्रोत: {source}। यसलाई उद्धृत मूल्य होइन, योजना मार्गदर्शन मान्नुहोस्।",
-  "budgetest.not_specified": "निर्दिष्ट छैन",
-  "budgetest.emergency_reserve": "आपतकालीन जगेडा (दर्ता भएमा)",
-  "budgetest.cat_hotel": "होटल र बास",
-  "budgetest.cat_food": "खाना र भोजन",
-  "budgetest.cat_transport": "यातायात",
-  "budgetest.cat_activities": "घुमफिर र गतिविधिहरू",
-  "budgetest.cat_shopping": "स्थानीय किनमेल र स्मृतिचिन्ह",
-  "budgetest.cur_npr": "नेपाली रुपैयाँ",
-  "budgetest.cur_usd": "अमेरिकी डलर",
-  "budgetest.cur_inr": "भारतीय रुपैयाँ",
-  "budgetest.cur_eur": "युरो",
-  "budgetest.cur_gbp": "ब्रिटिश पाउन्ड",
   "about.title": "हाम्रो बारेमा",
   "about.mission": "हाम्रो दृष्टि",
   "contact.title": "सम्पर्क गर्नुहोस्",
@@ -1187,7 +732,7 @@ const hi = {
   "sidebar.packages": "यात्रा पैकेज",
   "sidebar.submit": "स्थान जोड़ें",
   "sidebar.explore_map": "प्रांत के अनुसार खोजें",
-  "sidebar.recommendations": "विशेष यात्रा सिफारिशें",
+  "sidebar.recommendations": "एआई सिफारिशें",
   "sidebar.navigation": "लोकेशन",
   "sidebar.hotels": "होटल और लॉज",
   "sidebar.budget": "बजट अनुमान",
@@ -1199,7 +744,7 @@ const hi = {
   "sidebar.emergency": "आपातकालीन केंद्र",
   "sidebar.phrasebook": "नेपाली वाक्यांश पुस्तक",
   "sidebar.translation": "लाइव अनुवाद",
-  "sidebar.chatbot": "हिमाल यात्रा साथी",
+  "sidebar.chatbot": "हिमाल एआई सहायक",
   "sidebar.dashboard": "मेरा डैशबोर्ड",
   "sidebar.favorites": "सहेजे गए",
   "sidebar.bookings": "मेरी बुकिंग",
@@ -1275,42 +820,6 @@ const hi = {
   "settings.notifications": "सूचनाएं",
   "settings.saved": "प्राथमिकताएं सहेजी गईं!",
   "gallery.title": "नेपाल फोटो गैलरी",
-  "gallery.kicker": "दृश्य कहानियाँ",
-  "gallery.subtitle": "नेपाल यात्रा मीडिया लाइब्रेरी से गंतव्य से जुड़ी तस्वीरें ब्राउज़ करें। स्थान से खोजें, विषय से फ़िल्टर करें, और उपलब्ध श्रेय विवरण के लिए फ़ोटो खोलें।",
-  "gallery.filters_label": "गैलरी फ़िल्टर",
-  "gallery.categories_label": "फ़ोटो श्रेणियाँ",
-  "gallery.filter_all": "सभी फ़ोटो",
-  "gallery.filter_mountain": "पर्वत और अल्पाइन",
-  "gallery.filter_lake": "झीलें और जल",
-  "gallery.filter_temple": "मंदिर और स्तूप",
-  "gallery.filter_wildlife": "वन्यजीव",
-  "gallery.filter_heritage": "विरासत",
-  "gallery.filter_landscape": "परिदृश्य और पहाड़ियाँ",
-  "gallery.search_label": "फ़ोटो खोजें",
-  "gallery.search_placeholder": "स्थान या जिले से खोजें",
-  "gallery.load_error": "कुछ गैलरी स्रोत लोड नहीं हो सके। उपलब्ध फ़ोटो नीचे दिखाए गए हैं।",
-  "gallery.retry": "गैलरी पुनः प्रयास करें",
-  "gallery.district_index_kicker": "समस्त नेपाल जिला दृश्य सूचकांक",
-  "gallery.district_marquee": "77 जिला फ़ोटो मार्ची",
-  "gallery.avg_per_district": "औसतन प्रति जिले {n} तस्वीरें",
-  "gallery.district_index": "जिला फ़ोटो सूचकांक",
-  "gallery.swipe_hint": "स्वाइप करें या नीचे ब्राउज़ करें",
-  "gallery.no_photos_title": "कोई फ़ोटो नहीं मिला",
-  "gallery.no_photos_sub": "इस श्रेणी या खोज से मेल खाने वाली कोई प्रकाशित फ़ोटो अभी नहीं है।",
-  "gallery.clear_filters": "गैलरी फ़िल्टर हटाएँ",
-  "gallery.results_label": "फ़ोटो परिणाम",
-  "gallery.explore_destination": "गंतव्य का अन्वेषण करें",
-  "gallery.link_unavailable": "गंतव्य लिंक उपलब्ध नहीं",
-  "gallery.open_photo": "फ़ोटो खोलें: {caption}",
-  "gallery.click_fullscreen": "पूर्णस्क्रीन के लिए क्लिक करें",
-  "gallery.viewer_label": "फ़ोटो दर्शक",
-  "gallery.photographer": "फोटोग्राफर",
-  "gallery.license": "लाइसेंस",
-  "gallery.view_place_details": "स्थान विवरण देखें",
-  "gallery.close_viewer": "फ़ोटो दर्शक बंद करें",
-  "gallery.prev_photo": "पिछली फ़ोटो",
-  "gallery.next_photo": "अगली फ़ोटो",
-  "gallery.open_photo_n": "फ़ोटो {n} खोलें",
   "compare.title": "गंतव्य तुलना करें",
   "common.home": "होम",
   "common.back": "वापस",
@@ -1319,21 +828,6 @@ const hi = {
   "common.history": "इतिहास",
   "dest.search_placeholder": "गंतव्य खोजें...",
   "dest.all": "सभी गंतव्य",
-  "destlist.title": "नेपाल के गंतव्यों का अन्वेषण करें",
-  "destlist.subtitle": "नेपाल के सात प्रांतों में दर्ज मंदिर, झीलें, हिमालयी दृश्य, राष्ट्रीय उद्यान और विरासत स्थल खोजें।",
-  "destlist.submit_place": "स्थान जोड़ें",
-  "destlist.filters_label": "गंतव्य फ़िल्टर",
-  "destlist.type_label": "स्थान का प्रकार",
-  "destlist.type_attractions": "आकर्षण",
-  "destlist.type_hotels": "होटल और ठहरने",
-  "destlist.type_all": "सभी स्थान",
-  "destlist.search_placeholder": "गंतव्य, जिले या स्थान खोजें",
-  "destlist.more_filters": "अधिक फ़िल्टर",
-  "destlist.fewer_filters": "कम फ़िल्टर",
-  "destlist.finding_location": "स्थान खोजा जा रहा है…",
-  "destlist.turn_off_nearby": "आस-पास बंद करें",
-  "destlist.use_my_location": "मेरा स्थान उपयोग करें",
-  "destlist.location_not_shared": "स्थान साझा नहीं किया गया। आप सभी गंतव्य ब्राउज़ कर सकते हैं या पुनः प्रयास करें।",
   "family.link_member": "परिवार सदस्य लिंक करें",
   "family.my_family": "मेरा परिवार",
   "family.live_location": "लाइव स्थान",
@@ -1449,83 +943,6 @@ const hi = {
   "emergency.nearby_hospitals": "नज़दीकी अस्पताल",
   "emergency.nearby_police": "नज़दीकी पुलिस स्टेशन",
   "emergency.call_now": "अभी कॉल करें",
-  "emergency.kicker": "सुरक्षा पहले",
-  "emergency.hero_title": "हर गंतव्य के लिए निकटतम सहायता",
-  "emergency.hero_subtitle": "आस-पास के दर्ज अस्पताल, पुलिस और अन्य आपातकालीन सुविधाएँ देखने के लिए स्वीकृत गंतव्य खोजें या अपना स्थान साझा करें।",
-  "emergency.sos_cta": "आपातकालीन सहायता का अनुरोध करें",
-  "emergency.sos_sending": "अनुरोध दर्ज हो रहा है…",
-  "emergency.sos_sent": "अनुरोध दर्ज हो गया",
-  "emergency.sos_login": "SOS अनुरोध के लिए साइन इन करें",
-  "emergency.offline_dossier": "ऑफलाइन SOS विवरण",
-  "emergency.dispatch_note": "प्लेटफ़ॉर्म अनुरोध दर्ज करता है; यह आपातकालीन प्रेषण का विकल्प नहीं है।",
-  "emergency.find_help_title": "गंतव्य के पास सहायता खोजें",
-  "emergency.search_label": "गंतव्य खोजें",
-  "emergency.search_placeholder": "पोखरा, रारा झील, जनकपुर खोजें…",
-  "emergency.find_help": "सहायता खोजें",
-  "emergency.use_gps": "मेरा GPS उपयोग करें",
-  "emergency.finding_location": "स्थान खोजा जा रहा है…",
-  "emergency.try_location_again": "स्थान पुनः प्रयास करें",
-  "emergency.use_my_location": "मेरा स्थान उपयोग करें",
-  "emergency.radius": "दायरा",
-  "emergency.apply_radius": "दायरा लागू करें",
-  "emergency.verified_contacts": "सत्यापित राष्ट्रीय संपर्क",
-  "emergency.contacts_subtitle": "ये संपर्क स्थान साझा किए बिना उपलब्ध हैं। अपनी आपात स्थिति से मेल खाने वाले नंबर का उपयोग करें।",
-  "emergency.retry_contacts": "संपर्क पुनः प्रयास करें",
-  "emergency.offline_copy": "आप ऑफ़लाइन प्रतीत हो रहे हैं। इस डिवाइस पर सहेजी गई प्रति दिखाई जा रही है।",
-  "emergency.loading_contacts": "सत्यापित संपर्क लोड हो रहे हैं…",
-  "emergency.no_contacts": "निर्देशिका से वर्तमान में कोई राष्ट्रीय संपर्क रिकॉर्ड उपलब्ध नहीं है।",
-  "emergency.contact_record": "संपर्क रिकॉर्ड",
-  "emergency.phone_unavailable_long": "फ़ोन उपलब्ध नहीं",
-  "emergency.no_number_listed": "कोई सत्यापित नंबर सूचीबद्ध नहीं है।",
-  "emergency.choose_place_title": "स्थानीय सहायता देखने के लिए स्थान चुनें",
-  "emergency.choose_place_sub": "गंतव्य खोजें, अपना स्थान उपयोग करें, या नीचे शहर चुनें। हम डिफ़ॉल्ट शहर का अनुमान नहीं लगाते या सुविधाएँ नहीं गढ़ते।",
-  "emergency.coverage_around": "आस-पास आपातकालीन कवरेज",
-  "emergency.coverage_gap": "इस क्षेत्र के लिए कोई अस्पताल या पुलिस रिकॉर्ड उपलब्ध नहीं है।",
-  "emergency.submit_facility": "समीक्षा के लिए सुविधा जमा करें।",
-  "emergency.directory_supplied": "ये रिकॉर्ड आपातकालीन निर्देशिका प्रतिक्रिया द्वारा प्रदान किए जाते हैं।",
-  "emergency.nearest_facilities": "निकटतम आपातकालीन सुविधाएँ",
-  "emergency.coverage_label": "निर्देशिका कवरेज",
-  "emergency.hospitals_unit": "अस्पताल",
-  "emergency.police_unit": "पुलिस स्टेशन",
-  "emergency.filter_all": "सभी",
-  "emergency.filter_hospitals": "अस्पताल",
-  "emergency.filter_police": "पुलिस",
-  "emergency.filter_pharmacy": "फार्मेसी",
-  "emergency.filter_fire": "दमकल",
-  "emergency.no_filter_match_title": "इस फ़िल्टर से कोई सुविधा मेल नहीं खाती",
-  "emergency.no_filter_match_sub": "इस श्रेणी और दायरे के लिए कोई रिकॉर्ड सूचीबद्ध नहीं है। निर्देशिका फार्मेसी या सुविधाएँ नहीं गढ़ती।",
-  "emergency.submit_facility_short": "सुविधा जमा करें",
-  "emergency.type_hospital": "अस्पताल / क्लिनिक",
-  "emergency.type_police": "पुलिस स्टेशन",
-  "emergency.type_ambulance": "एम्बुलेंस",
-  "emergency.type_blood_bank": "ब्लड बैंक",
-  "emergency.type_pharmacy": "फार्मेसी",
-  "emergency.type_fire": "दमकल और बचाव",
-  "emergency.type_tourist_police": "पर्यटक पुलिस",
-  "emergency.type_traffic_police": "यातायात पुलिस",
-  "emergency.type_default": "आपातकालीन सुविधा",
-  "emergency.straight_line_note": "सीधी-रेखा दूरी; कोई सड़क मार्ग अनुरोध नहीं किया गया था।",
-  "emergency.approx_min": "लगभग ~{n} मिनट",
-  "emergency.road_time_unavailable": "सड़क समय उपलब्ध नहीं",
-  "emergency.facility_name_unavailable": "सुविधा का नाम उपलब्ध नहीं",
-  "emergency.address_unavailable": "पता उपलब्ध नहीं",
-  "emergency.outside_radius": "चयनित दायरे के अंदर कोई सेवा नहीं मिली; निकटतम ज्ञात परिणाम दिखाया गया है।",
-  "emergency.phone_fallback_note": "स्थानीय फ़ोन नंबर दर्ज नहीं है; राष्ट्रीय सहायता के लिए सत्यापित राष्ट्रीय संपर्क पैनल का उपयोग करें।",
-  "emergency.call_facility": "{name} को कॉल करें",
-  "emergency.phone_unavailable": "फ़ोन उपलब्ध नहीं",
-  "emergency.route": "मार्ग",
-  "emergency.open_in_maps": "मानचित्र में सुविधा खोलें",
-  "emergency.source": "स्रोत",
-  "emergency.updated": "अद्यतन",
-  "emergency.location_error": "स्थान उपलब्ध नहीं",
-  "emergency.location_denied": "अनुमति अस्वीकृत या समय समाप्त",
-  "emergency.search_instead": "इसके बजाय गंतव्य खोजें।",
-  "emergency.contacts_load_error": "सत्यापित राष्ट्रीय संपर्क लोड नहीं हो सके। पुनः प्रयास करें या स्थानीय रूप से उपलब्ध आपातकालीन सेवाओं का उपयोग करें।",
-  "emergency.destination_unavailable": "गंतव्य आपातकालीन डेटा उपलब्ध नहीं है।",
-  "emergency.nearby_unavailable": "आस-पास की आपातकालीन निर्देशिका उपलब्ध नहीं है।",
-  "emergency.sos_need_location": "पहले गंतव्य खोजें या GPS उपयोग करें ताकि अनुरोध में स्थान हो।",
-  "emergency.sos_recorded": "SOS अनुरोध दर्ज हो गया। तत्काल सहायता के लिए नीचे दिखाए गए सत्यापित संपर्क विकल्पों का उपयोग करें।",
-  "emergency.sos_failed": "प्लेटफ़ॉर्म अनुरोध की पुष्टि नहीं कर सका। नीचे सत्यापित संपर्क विकल्प का उपयोग करें।",
   "nav.start": "नेविगेशन शुरू करें",
   "nav.stop": "नेविगेशन रोकें",
   "nav.walking": "पैदल",
@@ -1534,83 +951,13 @@ const hi = {
   "nav.distance": "दूरी",
   "nav.duration": "अवधि",
   "nav.turn_by_turn": "टर्न बाय टर्न",
-  "nav.live_engine": "🔴 लाइव नेपाल नेविगेशन इंजन",
-  "nav.any_origin_dest": "7 प्रांतों में कोई भी स्रोत ➔ कोई भी गंतव्य",
-  "nav.title": "मानचित्र और नेविगेशन",
-  "nav.game_hud_on": "🎮 गेम HUD: चालू",
-  "nav.standard_map": "🗺️ मानक मानचित्र",
-  "nav.map_tools": "🛠️ मानचित्र उपकरण",
-  "nav.satellite": "🛰️ सैटेलाइट",
-  "nav.terrain": "🗺️ भूभाग",
   "settings.save": "सेटिंग सेव करें",
   "settings.dark_mode": "डार्क मोड",
   "hotels.book_now": "बुकिंग का अनुरोध करें",
   "hotels.price_night": "प्रति रात मूल्य",
   "hotels.rooms": "उपलब्ध कमरे",
-  "hotelsearch.title": "होटल या लॉज खोजें",
-  "hotelsearch.subtitle": "स्थान, संपत्ति या क्षेत्र के अनुसार लाइव आवास सूची खोजें। मूल्य, रेटिंग और उपलब्धता तभी दिखती है जब रिकॉर्ड प्रदान करता है।",
-  "hotelsearch.search_label": "होटल और लॉज खोजें",
-  "hotelsearch.search_placeholder": "पोखरा, होटल का नाम या क्षेत्र खोजें",
-  "hotelsearch.searching": "खोजा जा रहा है…",
-  "hotelsearch.search_cta": "आवास खोजें",
-  "hotelsearch.enter_query": "खोजने के लिए स्थान, संपत्ति या क्षेत्र लिखें।",
-  "hotelsearch.load_error": "आवास सूची अभी लोड नहीं हो सकी। कृपया पुनः प्रयास करें।",
-  "hotelsearch.no_match_title": "इस खोज से कोई आवास मेल नहीं खाता",
-  "hotelsearch.no_match_sub": "व्यापक स्थान का नाम आज़माएँ या खोज जारी रखने के लिए पूर्ण गंतव्य सूची ब्राउज़ करें।",
-  "hotelsearch.browse_destinations": "गंतव्य ब्राउज़ करें",
-  "hotelsearch.request_booking": "बुकिंग का अनुरोध करें",
-  "hotelsearch.empty_title": "आवास सूची खोजें",
-  "hotelsearch.empty_sub": "दर्ज आवास और सूची द्वारा वास्तव में प्रदान किए गए विवरण देखने के लिए गंतव्य, संपत्ति या क्षेत्र लिखें।",
-  "hotelcard.amenities_listed": "सुविधाएँ सूचीबद्ध",
-  "hotelcard.name_unavailable": "होटल का नाम उपलब्ध नहीं",
-  "hotelcard.near": "{name} के पास",
-  "hotelcard.price_on_request": "अनुरोध पर मूल्य",
-  "hotelcard.view_on_map": "मानचित्र में देखें",
-  "hotelcard.view_on_map_name": "मानचित्र में {name} देखें",
-  "hotelcard.call_desk": "होटल डेस्क पर कॉल करें",
-  "hotelcard.call_name": "{name} को कॉल करें",
-  "hotelcard.official_website": "आधिकारिक वेबसाइट",
-  "hotelcard.web": "वेब",
-  "hotelcard.view_booking": "बुकिंग देखें",
-  "hotelcard.booking_unavailable": "बुकिंग विवरण उपलब्ध नहीं",
   "budget.calculate": "बजट की गणना करें",
   "budget.daily": "दैनिक बजट",
-  "budgetest.title": "बजट अनुमानक",
-  "budgetest.subtitle": "अपने नेपाल यात्रा खर्च की योजना बनाएँ। यात्रा विवरण बदलने पर अनुमान स्वतः अपडेट होता है।",
-  "budgetest.destination": "गंतव्य",
-  "budgetest.destination_ph": "गंतव्य लिखें",
-  "budgetest.travelers": "यात्रियों की संख्या",
-  "budgetest.duration": "अवधि (दिन)",
-  "budgetest.style": "यात्रा शैली",
-  "budgetest.style_budget": "बजट",
-  "budgetest.style_mid": "मध्यम",
-  "budgetest.style_luxury": "विलासी",
-  "budgetest.estimate_cta": "बजट का अनुमान लगाएँ",
-  "budgetest.calculating": "गणना हो रही है...",
-  "budgetest.display_currency": "मुद्रा दिखाएँ",
-  "budgetest.currency_note": "अनुमान सेवा द्वारा सत्यापित विनिमय दर प्रदान करने पर ही मुद्रा मान दिखाए जाते हैं।",
-  "budgetest.updating": "अनुमान अपडेट हो रहा है...",
-  "budgetest.unavailable": "उपलब्ध नहीं",
-  "budgetest.unavailable_title": "अनुमान उपलब्ध नहीं",
-  "budgetest.total": "अनुमानित कुल लागत",
-  "budgetest.usd_note": "USD अनुमान",
-  "budgetest.npr_note": "NPR अनुमान",
-  "budgetest.fx_unavailable": "सत्यापित अनुमान प्रतिक्रिया से चयनित मुद्रा रूपांतरण उपलब्ध नहीं है",
-  "budgetest.dataset_badge": "✓ वास्तविक नेपाल यात्रा-लागत डेटासेट पर आधारित",
-  "budgetest.places_unit": "स्थान",
-  "budgetest.source_note": "अनुमान सेवा द्वारा लौटाया गया स्रोत: {source}। इसे उद्धृत मूल्य नहीं, योजना मार्गदर्शन मानें।",
-  "budgetest.not_specified": "निर्दिष्ट नहीं",
-  "budgetest.emergency_reserve": "आपातकालीन आरक्षित (दर्ज होने पर)",
-  "budgetest.cat_hotel": "होटल और आवास",
-  "budgetest.cat_food": "भोजन",
-  "budgetest.cat_transport": "परिवहन",
-  "budgetest.cat_activities": "भ्रमण और गतिविधियाँ",
-  "budgetest.cat_shopping": "स्थानीय खरीदारी और स्मृति चिन्ह",
-  "budgetest.cur_npr": "नेपाली रुपया",
-  "budgetest.cur_usd": "अमेरिकी डॉलर",
-  "budgetest.cur_inr": "भारतीय रुपया",
-  "budgetest.cur_eur": "यूरो",
-  "budgetest.cur_gbp": "ब्रिटिश पाउंड",
   "about.title": "हमारे बारे में",
   "about.mission": "हमारा मिशन",
   "contact.title": "संपर्क करें",
@@ -1712,65 +1059,13 @@ const hi = {
 
 const DICTS = { en, ne, hi }
 
-// --- backend overrides (admin-editable UI strings) -------------------------
-// The backend serves admin-edited translations at
-// /api/v1/translation/ui-strings/?lang=XX. They are merged OVER the bundled
-// dictionaries so an admin edit applies instantly — no rebuild, no redeploy.
-// Cached in localStorage so the translated UI paints on first load even
-// before the network responds.
-const OVERRIDE_CACHE_PREFIX = "tourism_i18n_override_"
-
-function cachedOverrides(lang) {
-  try {
-    const raw = window.localStorage?.getItem(OVERRIDE_CACHE_PREFIX + lang)
-    return raw ? JSON.parse(raw) : {}
-  } catch {
-    return {}
-  }
-}
-
-function applyOverrides(lang, strings) {
-  if (!DICTS[lang] || !strings || typeof strings !== "object") return
-  Object.assign(DICTS[lang], strings)
-  try {
-    window.localStorage?.setItem(OVERRIDE_CACHE_PREFIX + lang, JSON.stringify(strings))
-  } catch {
-    /* storage may be unavailable; ignore */
-  }
-}
-
-// Apply cached overrides immediately (synchronous, before first paint).
-if (typeof window !== "undefined") {
-  for (const code of Object.keys(DICTS)) {
-    if (code === "en") continue
-    applyOverrides(code, cachedOverrides(code))
-  }
-}
-
-let overridesInflight = {}
-
-export function fetchOverrideStrings(lang) {
-  if (typeof window === "undefined" || !DICTS[lang]) return Promise.resolve({})
-  if (overridesInflight[lang]) return overridesInflight[lang]
-  const base = (import.meta.env?.VITE_API_BASE_URL || "/api/v1").replace(/\/$/, "")
-  overridesInflight[lang] = fetch(`${base}/translation/ui-strings/?lang=${encodeURIComponent(lang)}`, {
-    headers: { Accept: "application/json" },
-  })
-    .then((res) => (res.ok ? res.json() : {}))
-    .then((strings) => {
-      applyOverrides(lang, strings)
-      // Re-render every subscribed component AND re-run the legacy DOM
-      // bridge so hardcoded page content picks up the fresh strings.
-      if (lang === currentLang) {
-        listeners.forEach((fn) => fn(lang))
-        if (lang !== "en") translateLegacyDom()
-      }
-      return strings
-    })
-    .catch(() => ({}))
-    .finally(() => { delete overridesInflight[lang] })
-  return overridesInflight[lang]
-}
+// A language is only selectable/storable if we can actually serve it. This
+// used to be built from the 28-entry SUPPORTED_LANGUAGES list, so one click
+// on 한국어 persisted `tourism_lang=ko`; every later visit then booted Korean
+// and the machine-translation bridge rewrote up to 100 visible strings via
+// POST /translate/batch/ -- intermittently, which is why pages came back in
+// Korean or some other language and varied per browser.
+export const ALL_LANGS = SUPPORTED_LANGUAGES.filter((language) => DICTS[language.code]).map((language) => ({ ...language, flag: language.code === "ne" ? "🇳🇵" : language.code === "hi" ? "🇮🇳" : language.code === "en" ? "🇬🇧" : "🌐" }))
 
 // --- reactive store -------------------------------------------------------
 let currentLang = detectLang()
@@ -1779,7 +1074,10 @@ const listeners = new Set()
 function detectLang() {
   if (typeof window === "undefined") return "en"
   const saved = window.localStorage?.getItem(STORAGE_KEY)
-  if (saved && ALL_LANGS.some((language) => language.code === saved)) return saved
+  // Dictionary allowlist, not the display list: a stale `ko`/`es`/... left
+  // behind by an older build silently falls back to English (persistLang()
+  // rewrites it on boot) instead of booting a language we cannot serve.
+  if (saved && DICTS[saved]) return saved
   // The Settings page persists its choice under a different key
   // (tourism_preferred_language) — honour it so a language picked in
   // Settings switches the whole site (this was previously a dead key).
@@ -1789,8 +1087,9 @@ function detectLang() {
     english: "en",
   }
   if (prefMap[String(pref).toLowerCase()]) return prefMap[String(pref).toLowerCase()]
-  const nav = (window.navigator?.language || "en").slice(0, 2)
-  return DICTS[nav] ? nav : "en"
+  // English is the product default. Never infer a different UI language
+  // from the browser/OS locale; users can explicitly select Nepali or Hindi.
+  return "en"
 }
 
 function persistLang(code) {
@@ -1807,89 +1106,33 @@ function persistLang(code) {
   }
 }
 
-// Per text node: the English original and the text this bridge last wrote.
-// React rewrites nodeValue itself when its state changes; comparing against
-// `applied` tells "React changed it (new original)" from "still our output".
-const nodeState = new WeakMap()
+const originalText = new WeakMap()
 let translationObserver = null
-let reverseDictionary = null
-
-const NEVER_TRANSLATE = "[data-no-translate],[translate='no'],script,style,code,pre,textarea,input,svg,[contenteditable='true'],.leaflet-container"
-
-function reverseLookup() {
-  if (!reverseDictionary) reverseDictionary = new Map(Object.entries(en).map(([key, value]) => [value, key]))
-  return reverseDictionary
-}
-
-function translateTextNode(node) {
-  const parent = node.parentElement
-  if (!parent || !node.isConnected) return
-  const state = nodeState.get(node)
-  const original = state && (node.nodeValue === state.applied || node.nodeValue === state.original)
-    ? state.original
-    : node.nodeValue
-  if (currentLang === "en") {
-    if (state && node.nodeValue !== state.original && node.nodeValue === state.applied) node.nodeValue = state.original
-    nodeState.set(node, { original: node.nodeValue, applied: node.nodeValue })
-    return
-  }
-  const trimmed = original.trim()
-  let translated = null
-  if (trimmed) {
-    const key = reverseLookup().get(trimmed)
-    if (key) {
-      translated = (DICTS[currentLang] || en)[key] || null
-    } else if (!parent.closest(NEVER_TRANSLATE)) {
-      // Not a dictionary string: page content. Use the batch translator.
-      translated = dynamicLookup(currentLang, trimmed)
-      if (translated == null) {
-        const lang = currentLang
-        dynamicRequest(lang, trimmed, (value) => {
-          if (currentLang === lang) translateTextNode(node)
-          else void value
-        })
-      }
-    }
-  }
-  if (translated != null && translated !== trimmed) {
-    const next = original.replace(trimmed, translated)
-    node.nodeValue = next
-    nodeState.set(node, { original, applied: next })
-  } else {
-    nodeState.set(node, { original, applied: node.nodeValue })
-  }
-}
 
 function translateLegacyDom(root = document.body) {
   if (typeof document === "undefined" || !root) return
+  const reverse = new Map(Object.entries(en).map(([key, value]) => [value, key]))
   const target = DICTS[currentLang] || en
-  const reverse = reverseLookup()
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
-  const nodes = []
   let node
-  while ((node = walker.nextNode())) nodes.push(node)
-  nodes.forEach(translateTextNode)
-  root.querySelectorAll?.("[placeholder],[title],[aria-label],[alt]").forEach((element) => {
-    for (const attribute of ["placeholder", "title", "aria-label", "alt"]) {
+  while ((node = walker.nextNode())) {
+    if (!node.parentElement || ["SCRIPT","STYLE","CODE","PRE"].includes(node.parentElement.tagName)) continue
+    if (!originalText.has(node)) originalText.set(node, node.nodeValue)
+    const original = originalText.get(node)
+    const trimmed = original.trim()
+    const key = reverse.get(trimmed)
+    if (!key) continue
+    const translated = target[key] || trimmed
+    node.nodeValue = original.replace(trimmed, translated)
+  }
+  root.querySelectorAll?.("[placeholder],[title]").forEach((element) => {
+    for (const attribute of ["placeholder", "title"]) {
       if (!element.hasAttribute(attribute)) continue
-      const storageKey = `i18nOriginal${attribute.replace(/-./g, (m) => m[1].toUpperCase())}`
+      const storageKey = `i18nOriginal${attribute}`
       if (!element.dataset[storageKey]) element.dataset[storageKey] = element.getAttribute(attribute)
       const original = element.dataset[storageKey]
       const key = reverse.get(original)
-      if (key) {
-        element.setAttribute(attribute, target[key] || original)
-      } else if (currentLang === "en") {
-        element.setAttribute(attribute, original)
-      } else if (!element.closest(NEVER_TRANSLATE) || attribute !== "title") {
-        const cached = dynamicLookup(currentLang, original)
-        if (cached != null) element.setAttribute(attribute, cached)
-        else {
-          const lang = currentLang
-          dynamicRequest(lang, original, (value) => {
-            if (currentLang === lang && element.isConnected) element.setAttribute(attribute, value)
-          })
-        }
-      }
+      if (key) element.setAttribute(attribute, target[key] || original)
     }
   })
 }
@@ -1897,38 +1140,51 @@ function translateLegacyDom(root = document.body) {
 const translationCache = new Map()
 
 async function translatePageUi(root = document.body) {
-  if (typeof document === "undefined" || currentLang === "en" || !root) return
-  const reverse = new Map(Object.entries(en).map(([key, value]) => [value, key]))
+  if (typeof document === "undefined" || currentLang === "en" || !DICTS[currentLang] || !root) return
   const texts = []
   const nodes = []
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
   let node
   while ((node = walker.nextNode())) {
-    if (!node.parentElement || ["SCRIPT","STYLE","CODE","PRE"].includes(node.parentElement.tagName)) continue
+    const parent = node.parentElement
+    if (!parent || ["SCRIPT", "STYLE", "CODE", "PRE", "NOSCRIPT"].includes(parent.tagName)) continue
+    if (parent.closest?.("[data-no-translate], input, textarea, select, option, svg")) continue
     const original = originalText.get(node) || node.nodeValue
     const trimmed = original.trim()
-    if (!trimmed || !reverse.has(trimmed)) continue
-    if (translationCache.has(`${currentLang}:${trimmed}`)) {
-      node.nodeValue = original.replace(trimmed, translationCache.get(`${currentLang}:${trimmed}`))
+    if (!trimmed || trimmed.length < 2) continue
+    if (/^[\\d\\W_]+$/.test(trimmed)) continue
+    const cacheKey = `${currentLang}:${trimmed}`
+    if (translationCache.has(cacheKey)) {
+      node.nodeValue = original.replace(trimmed, translationCache.get(cacheKey))
       continue
     }
-    texts.push(trimmed); nodes.push(node)
+    texts.push(trimmed)
+    nodes.push(node)
   }
-  const unique = [...new Set(texts)].slice(0, 100)
-  if (!unique.length) return
-  try {
-    const { data } = await translationApi.translateBatch({ items: unique, target_language: currentLang, source_language: "en" })
-    const translated = Array.isArray(data?.translations) ? data.translations : []
-    unique.forEach((text, index) => translationCache.set(`${currentLang}:${text}`, translated[index] || text))
-    nodes.forEach((textNode) => {
-      const original = originalText.get(textNode) || textNode.nodeValue
-      const trimmed = original.trim()
-      const value = translationCache.get(`${currentLang}:${trimmed}`)
-      if (value) textNode.nodeValue = original.replace(trimmed, value)
-    })
-  } catch {}
+  const unique = [...new Set(texts)]
+  for (let start = 0; start < unique.length; start += 100) {
+    const batch = unique.slice(start, start + 100)
+    try {
+      const { data } = await translationApi.translateBatch({
+        items: batch,
+        target_language: currentLang,
+        source_language: "en",
+      })
+      const translated = Array.isArray(data?.translations) ? data.translations : []
+      batch.forEach((text, index) => {
+        translationCache.set(`${currentLang}:${text}`, translated[index] || text)
+      })
+    } catch {
+      /* Keep the original English text when the translation service is unavailable. */
+    }
+  }
+  nodes.forEach((textNode) => {
+    const original = originalText.get(textNode) || textNode.nodeValue
+    const trimmed = original.trim()
+    const value = translationCache.get(`${currentLang}:${trimmed}`)
+    if (value) textNode.nodeValue = original.replace(trimmed, value)
+  })
 }
-
 function enableLegacyTranslationBridge() {
   if (typeof document === "undefined") return
   queueMicrotask(() => { translateLegacyDom(); translatePageUi() })
@@ -1942,29 +1198,24 @@ function enableLegacyTranslationBridge() {
             translateLegacyDom(node.parentElement); translatePageUi(node.parentElement)
           }
         })
-        // React updating an existing text node (page change, filter, pagination).
-        if (mutation.type === "characterData" && mutation.target.nodeType === Node.TEXT_NODE) {
-          const state = nodeState.get(mutation.target)
-          if (!state || mutation.target.nodeValue !== state.applied) translateTextNode(mutation.target)
-        }
       }
     })
-    translationObserver.observe(document.documentElement, { childList: true, subtree: true, characterData: true })
+    translationObserver.observe(document.documentElement, { childList: true, subtree: true })
   }
 }
 
 export function setLang(code) {
-  if (!ALL_LANGS.some((language) => language.code === code)) return
+  if (!DICTS[code]) return
   currentLang = code
   persistLang(code)
-  listeners.forEach((fn) => fn(code))
-  // Pull admin-edited strings for this language; the merge re-renders
-  // subscribers and re-runs the DOM bridge when it lands.
-  fetchOverrideStrings(code)
-  enableLegacyTranslationBridge()
-  if (typeof document !== "undefined") {
-    translateLegacyDom(document.body || document.documentElement)
+  try {
+    window.localStorage.setItem("tourism_preferred_language", code)
+    window.dispatchEvent(new CustomEvent("tourism-language-change", { detail: { code } }))
+  } catch {
+    /* preference persistence is best effort */
   }
+  listeners.forEach((fn) => fn(code))
+  enableLegacyTranslationBridge()
 }
 
 export function getLang() {
@@ -1998,9 +1249,5 @@ export function useI18n() {
 if (typeof window !== "undefined") {
   persistLang(currentLang)
   if (currentLang !== "en") enableLegacyTranslationBridge()
-  // Fetch the active language AND English: the legacy DOM bridge
-  // reverse-maps English source text to keys, so it needs the full EN
-  // dictionary (including admin-added keys) to translate hardcoded pages.
-  fetchOverrideStrings("en")
-  fetchOverrideStrings(currentLang)
 }
+
