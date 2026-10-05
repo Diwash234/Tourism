@@ -258,6 +258,9 @@ with connection.cursor() as cur:
     usable_images = cur.fetchone()[0]
     cur.execute("SELECT COUNT(*) FROM tourist_user")
     users = cur.fetchone()[0]
+    # These counts are intentionally runtime diagnostics: they make a Render
+    # deployment visibly fail its data audit instead of looking healthy while
+    # one of the public catalogue tables stayed empty.
     tables = {
         "hotels": "tourist_hotel",
         "hospitals": "tourist_hospital",
