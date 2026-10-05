@@ -9,10 +9,20 @@ from django.conf import settings
 from django.conf.urls.static import static
 from .spa import spa_index
 from drf_spectacular.views import (
-    SpectacularAPIView,
     SpectacularSwaggerView,
     SpectacularRedocView,
 )
+from .schema_cache import CachedSchemaAPIView
+
+# Schema generation walks the whole v1/v2 API surface (852 paths, ~2.4 MB of
+# JSON) and costs 10-40s of CPU. Running that on the request path held the GIL
+# and stalled every other endpoint, which is what produced the
+# "Slow request: GET /health" warnings and the "Broken pipe" client timeouts.
+#
+# CachedSchemaAPIView builds the document once per code change and then serves
+# it from an in-process + on-disk cache, so the cost is paid once per deploy
+# instead of once per request. See Tourism/schema_cache.py for the details.
+_schema_view = CachedSchemaAPIView.as_view()
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -28,10 +38,10 @@ urlpatterns = [
     path("api/v1/chatbot/", include("chatbot.urls")),
     path("api/v1/audit/", include("audit.urls")),
     path("api/v1/system/health/", include("system_health.urls")),
-    path("api/v1/models/", SpectacularAPIView.as_view(), name="api-v1-models"),
+    path("api/v1/models/", _schema_view, name="api-v1-models"),
     # Also allow /v1/models/ without /api/ prefix for flexibility
-    path("v1/models/", SpectacularAPIView.as_view(), name="api-v1-models-legacy"),
-    path("v1/models", SpectacularAPIView.as_view(), name="api-v1-models-legacy-noslash"),
+    path("v1/models/", _schema_view, name="api-v1-models-legacy"),
+    path("v1/models", _schema_view, name="api-v1-models-legacy-noslash"),
     path("api/v1/docs/", SpectacularSwaggerView.as_view(url_name="api-v1-models"), name="api-v1-docs"),
     path("api/v1/redoc/", SpectacularRedocView.as_view(url_name="api-v1-models"), name="api-v1-redoc"),
     path("api/v1/health/", views_seo.HealthView.as_view(), name="health-v1"),
@@ -77,8 +87,8 @@ urlpatterns = [
     # OpenAPI document already describes every v2 operation — these routes only
     # exist so /api/v2/models/, /api/v2/docs/ and /api/v2/redoc/ resolve instead
     # of 404-ing for clients pinned to the v2 prefix.
-    path("api/v2/models/", SpectacularAPIView.as_view(), name="api-v2-models"),
-    path("api/v2/models", SpectacularAPIView.as_view(), name="api-v2-models-noslash"),
+    path("api/v2/models/", _schema_view, name="api-v2-models"),
+    path("api/v2/models", _schema_view, name="api-v2-models-noslash"),
     path("api/v2/docs/", SpectacularSwaggerView.as_view(url_name="api-v2-models"), name="api-v2-docs"),
     path("api/v2/redoc/", SpectacularRedocView.as_view(url_name="api-v2-models"), name="api-v2-redoc"),
 
@@ -95,7 +105,7 @@ urlpatterns = [
     # ==================================================================
     # Swagger / OpenAPI Documentation
     # ==================================================================
-    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("api/schema/", _schema_view, name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 ]

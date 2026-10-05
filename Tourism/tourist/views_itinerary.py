@@ -484,6 +484,11 @@ class CuratedItineraryPackingView(APIView):
 
 class City15DayItineraryListView(APIView):
     """Public index of the additive 200-city, 15-day planner."""
+    # This view assembles its response from CITY_CATALOG rather than a model, so
+    # there is no serializer to infer. Declaring it explicitly stops
+    # drf-spectacular logging "unable to guess serializer" and dropping the
+    # operation from the OpenAPI document. Matches the other curated-* views.
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
@@ -496,6 +501,9 @@ class City15DayItineraryListView(APIView):
 
 class City15DayItineraryDetailView(APIView):
     """Build one 15-day city plan from the project's real database records."""
+    # See City15DayItineraryListView: response is a hand-built dict, so declare
+    # the absence of a serializer rather than letting spectacular guess and warn.
+    serializer_class = None
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, city):

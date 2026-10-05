@@ -55,6 +55,11 @@ db.sqlite3-shm
 staticfiles/
 media/
 
+# Generated OpenAPI schema cache (Tourism/schema_cache.py). Rebuilt on demand
+# whenever the project's Python sources change, so it must never be committed.
+Tourism/.openapi_cache/
+.openapi_cache/
+
 # Logs
 *.log
 

@@ -1,3 +1,4 @@
+import re
 import uuid
 from decimal import Decimal
 
@@ -717,6 +718,28 @@ class Destination(TimeStampedModel):
     )
     ai_override_reason = models.TextField(blank=True)
 
+    # Precomputed verdict of Destination.is_unreadable_import_name() for `name`.
+    #
+    # This used to be evaluated as a REGEXP subquery inside
+    # Destination.publicly_visible(), which is THE canonical public-visibility
+    # filter and therefore ran on every listing, search, autocomplete, facet,
+    # map, sitemap and stats query. SQLite evaluates REGEXP in Python, once per
+    # row, so each public query walked all 8,816 destinations twice to hide just
+    # 2 rows -- measured at +288ms per COUNT and seconds per page. Persisting
+    # the answer turns that into one indexed boolean test.
+    #
+    # save() recomputes it whenever the name changes, so the flag cannot drift
+    # from the regex it replaces.
+    is_unreadable_import = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text=(
+            "True when the name is unreadable import garbage (CJK/Hangul only, "
+            "no Latin or Devanagari letters). Maintained automatically by save(); "
+            "use the recompute_unreadable_import_names command after a bulk import."
+        ),
+    )
+
     class Meta:
         ordering = ["-created_at"]
 
@@ -725,6 +748,14 @@ class Destination(TimeStampedModel):
             models.Index(fields=["city", "country"]),
             models.Index(fields=["status"]),
             models.Index(fields=["is_featured", "is_active"]),
+            # Covers the canonical public listing filter and its default order:
+            # is_active + status + is_unreadable_import + -created_at. Including
+            # created_at lets SQLite satisfy `ordering = ["-created_at"]` straight
+            # from the index instead of building a temp B-tree to sort.
+            models.Index(
+                fields=["is_active", "status", "is_unreadable_import", "-created_at"],
+                name="tourist_dest_public_idx",
+            ),
         ]
 
 
@@ -740,6 +771,12 @@ class Destination(TimeStampedModel):
                 counter += 1
 
             self.slug = slug
+
+        # Keep the cached readability verdict in step with the name it describes.
+        # is_unreadable_import_name(name) takes the name as an argument; calling
+        # it bare raised TypeError on EVERY Destination.save(), which broke
+        # creating any destination at all.
+        self.is_unreadable_import = self.is_unreadable_import_name(self.name)
 
         super().save(*args, **kwargs)
 
@@ -766,6 +803,26 @@ class Destination(TimeStampedModel):
         )
 
 
+    # A name made only of CJK/Hangul characters is unreadable import garbage.
+    # A name that ALSO carries Latin or Devanagari is a real place.
+    _UNREADABLE_NAME_RE = re.compile("[\u4e00-\u9fff\uac00-\ud7af]")
+    _READABLE_NAME_RE = re.compile("[A-Za-z\u0900-\u097f]")
+
+    @classmethod
+    def is_unreadable_import_name(cls, name):
+        """True when `name` is unreadable import garbage.
+
+        Single source of truth for the rule that the ``is_unreadable_import``
+        column caches, so the stored flag and the documented behaviour cannot
+        diverge.
+        """
+        if not name:
+            return False
+        return bool(
+            cls._UNREADABLE_NAME_RE.search(name)
+            and not cls._READABLE_NAME_RE.search(name)
+        )
+
     @classmethod
     def publicly_visible(cls, queryset=None):
         """THE canonical public-visibility rule.
@@ -781,13 +838,18 @@ class Destination(TimeStampedModel):
         never belong in a public catalogue and are the "image unavailable"
         cards. A name that also carries Devanagari or Latin stays visible:
         "मकालु 马卡鲁峰" is Makalu, not garbage.
+
+        The garbage test reads the indexed ``is_unreadable_import`` column,
+        which ``save()`` keeps in step with ``name``. It used to evaluate the
+        regex as a ``NOT IN`` subquery here, on every public query in the
+        project; see that field's comment for the measured cost.
         """
         qs = queryset if queryset is not None else cls.objects.all()
-        qs = qs.filter(is_active=True, status=cls.SubmissionStatus.APPROVED)
-        unreadable = qs.filter(name__regex="[\u4e00-\u9fff\uac00-\ud7af]").exclude(
-            name__regex="[A-Za-z\u0900-\u097f]"
+        return qs.filter(
+            is_active=True,
+            status=cls.SubmissionStatus.APPROVED,
+            is_unreadable_import=False,
         )
-        return qs.exclude(pk__in=unreadable.values("pk"))
 
     @classmethod
     def sightseeing(cls, queryset=None):
@@ -2034,8 +2096,15 @@ class RiskIncident(TimeStampedModel):
         SNOWSTORM = "snowstorm", "Snowstorm"
         FOREST_FIRE = "forest_fire", "Forest fire"
         LIGHTNING = "lightning", "Lightning"
+        # Composite severe-weather incidents (cold wave, hail, unseasonal rain)
+        # are recorded distinctly from the single-event types above.
+        EXTREME_WEATHER = "extreme_weather", "Extreme weather"
         ROAD_ACCIDENT = "road_accident", "Road accident"
         HEALTH = "health", "Health / altitude"
+        # Protests, bandhs and strikes are a recurring travel risk in Nepal:
+        # they close roads and airports with no natural event involved.
+        CIVIL_UNREST = "civil_unrest", "Civil unrest / protest / strike"
+        CRIME = "crime", "Crime"
         OTHER = "other", "Other"
 
     class Severity(models.TextChoices):

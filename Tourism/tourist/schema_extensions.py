@@ -177,3 +177,42 @@ class ImageImportResponseSerializer(serializers.Serializer):
     destination_id = serializers.IntegerField(required=False)
     destination_name = serializers.CharField(required=False)
     detail = serializers.CharField(required=False)
+
+
+# ---------------------------------------------------------------------------
+# AI itinerary modification (POST /api/v1/ml/itinerary/modify/)
+# Mirrors the ``action in {...}`` branches in tourist.views_ml.
+# ---------------------------------------------------------------------------
+# Every value the view actually branches on. An unknown value is not an error:
+# the view falls through to "Custom adjustment applied: <action>" and echoes the
+# itinerary back unchanged, so this is documented as a free-form string rather
+# than a ChoiceField to keep the published contract honest.
+ITINERARY_MODIFY_ACTIONS = (
+    "cheaper",
+    "make_cheaper",
+    "luxurious",
+    "make_luxurious",
+    "more_culture",
+    "culture",
+    "more_nature",
+    "more_trekking",
+    "hidden_gems",
+    "slower_pace",
+    "relaxed",
+    "replan",
+    "impact_check",
+    "weather_replan",
+)
+
+
+class ItineraryModifyRequestSerializer(serializers.Serializer):
+    """Body accepted by AIItineraryModificationView.
+
+    ``itinerary_data`` is the structured plan to rewrite; ``itinerary`` is
+    accepted as an alias. ``itinerary_data.itinerary`` must be a non-empty list
+    of day objects, otherwise the view answers 400.
+    """
+
+    action = serializers.CharField(required=False, allow_blank=True)
+    itinerary_data = serializers.DictField(required=False)
+    itinerary = serializers.DictField(required=False)
