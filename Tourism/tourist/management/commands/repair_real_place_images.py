@@ -490,8 +490,14 @@ class Command(BaseCommand):
             key = (normalise_image_url(hotel.external_image_url)
                    or normalise_image_url(hotel.cover_image))
             if not key:
+                # No image at all — include when --include-unreused is set
+                if options["include_unreused"]:
+                    targets.append((hotel, [], 0))
                 continue
             if reused.get(key, 0) < int(options["min_places"]):
+                # Image exists but not shared — include when --include-unreused
+                if options["include_unreused"]:
+                    targets.append((hotel, [key], 1))
                 continue
             targets.append((hotel, [key], 1))
         return targets
