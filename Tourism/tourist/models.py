@@ -3668,6 +3668,12 @@ class ManagedNavigationItem(TimeStampedModel):
     location = models.CharField(max_length=20, choices=[("navbar","Navbar"),("sidebar","Sidebar"),("footer","Footer")])
     label = models.CharField(max_length=120)
     route = models.CharField(max_length=240)
+    target = models.CharField(
+        max_length=10,
+        default="_self",
+        choices=[("_self", "Same tab"), ("_blank", "New tab")],
+        help_text="Where the navigation link opens",
+    )
     icon = models.CharField(max_length=50, blank=True)
     parent = models.ForeignKey("self", null=True, blank=True, on_delete=models.CASCADE, related_name="children")
     allowed_roles = models.JSONField(default=list, blank=True)
