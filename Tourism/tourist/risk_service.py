@@ -17,18 +17,40 @@ from .models import Alert, CurrentHazard, RiskIncident, RiskNewsReport, RiskObse
 SEVERITY_WEIGHT = {"low": 1.0, "moderate": 2.0, "high": 3.5, "critical": 5.0}
 HAZARD_LABELS = dict(RiskIncident.HazardType.choices)
 
-# Risk categories with their impact weights
+# Risk categories with their impact weights.
+#
+# Keys MUST match RiskIncident.HazardType exactly. This table used to carry
+# "wildfire", "storm", "avian_flu", "civil_unrest" and "health_outbreak" --
+# names the model cannot store -- while omitting glof, heavy_rain, snowstorm,
+# lightning, forest_fire and health, which it can. Consequences: GLOF (one of
+# the most serious hazards in the Himalaya) was never scored, and the dead keys
+# could never match a row, so category_risk could not report them at all.
+#
+# base_weight MULTIPLIES the severity weight rather than replacing it, so a
+# "high" landslide still outranks a "low" one. It is applied in
+# _calculate_precise_score.
 RISK_CATEGORIES = {
-    "landslide": {"base_weight": 1.5, "seasonal_peak": [6, 7, 8, 9]},  # Monsoon
+    # --- Natural hazards ---
+    "glof": {"base_weight": 1.6, "seasonal_peak": [6, 7, 8, 9]},          # Glacial lake outburst
+    "landslide": {"base_weight": 1.5, "seasonal_peak": [6, 7, 8, 9]},
     "flood": {"base_weight": 1.4, "seasonal_peak": [6, 7, 8, 9]},
-    "avalanche": {"base_weight": 1.3, "seasonal_peak": [1, 2, 3, 11, 12]},
+    "avalanche": {"base_weight": 1.3, "seasonal_peak": [12, 1, 2, 3]},
     "earthquake": {"base_weight": 1.2, "seasonal_peak": []},
-    "road_accident": {"base_weight": 1.0, "seasonal_peak": [6, 7, 8, 9]},
-    "avian_flu": {"base_weight": 0.8, "seasonal_peak": [1, 2, 3, 11, 12]},
-    "wildfire": {"base_weight": 0.9, "seasonal_peak": [3, 4, 5, 10, 11]},
-    "storm": {"base_weight": 1.1, "seasonal_peak": [6, 7, 8, 9]},
-    "civil_unrest": {"base_weight": 1.2, "seasonal_peak": []},
-    "health_outbreak": {"base_weight": 1.3, "seasonal_peak": []},
+    "forest_fire": {"base_weight": 0.9, "seasonal_peak": [3, 4, 5, 10, 11]},
+    # --- Weather ---
+    "heavy_rain": {"base_weight": 1.2, "seasonal_peak": [6, 7, 8, 9]},
+    "snowstorm": {"base_weight": 1.1, "seasonal_peak": [12, 1, 2, 3]},
+    "lightning": {"base_weight": 1.0, "seasonal_peak": [5, 6, 7, 8]},
+    "extreme_weather": {"base_weight": 1.3, "seasonal_peak": [6, 7, 8, 9]},
+    # --- Transport ---
+    "road_accident": {"base_weight": 1.15, "seasonal_peak": [6, 7, 8, 9, 10, 11]},
+    # --- Health ---
+    "health": {"base_weight": 1.25, "seasonal_peak": []},
+    # --- Civil / security ---
+    "civil_unrest": {"base_weight": 1.3, "seasonal_peak": []},            # Protests, strikes, bandhs
+    "crime": {"base_weight": 1.2, "seasonal_peak": []},
+    # --- Fallback ---
+    "other": {"base_weight": 0.8, "seasonal_peak": []},
 }
 
 def _haversine_km(lat1, lon1, lat2, lon2):
@@ -97,8 +119,15 @@ def _calculate_precise_score(incidents, current_hazards, feedback, baseline, des
     # Historical score with seasonal adjustments
     historical_scores = []
     for incident in incidents:
-        base_weight = SEVERITY_WEIGHT.get(incident.severity, 2.0)
+        severity_weight = SEVERITY_WEIGHT.get(incident.severity, 2.0)
         hazard_config = RISK_CATEGORIES.get(incident.hazard_type, {})
+        # The hazard's own impact weight MULTIPLIES the severity weight. This
+        # was previously assigned to a local and then never used, so every
+        # hazard scored identically for a given severity: a "high" landslide
+        # and a "high" road accident contributed the same, and GLOF -- which
+        # outranks almost everything here -- carried no extra weight at all.
+        hazard_weight = float(hazard_config.get("base_weight", 1.0))
+        base_weight = severity_weight * hazard_weight
         seasonal_factor = _calculate_seasonal_factor(incident.hazard_type, incident.event_date.month if incident.event_date else month)
         # Weight by recency (more recent = higher weight).
         # event_date is a DateField while timezone.now() returns a datetime,
@@ -143,17 +172,42 @@ def _calculate_precise_score(incidents, current_hazards, feedback, baseline, des
     # Historical: 35%, Current: 45%, Seasonal/Contextual: 20%
     seasonal_context_score = 0
     if destination.latitude and destination.longitude:
-        # Add elevation risk
-        if destination.altitude and destination.altitude > 4000:
-            seasonal_context_score += 15
-        elif destination.altitude and destination.altitude > 2500:
-            seasonal_context_score += 8
+        # Add elevation risk.
+        # Destination.altitude is a free-text CharField (e.g. "2,175m / 7,135 ft"),
+        # so comparing it to a number raises TypeError and 500s every risk /
+        # emergency-services endpoint for any place with an altitude recorded.
+        # Parse the text, and fall back to the DEM elevation when it is missing
+        # or unreadable.
+        from .elevation import best_elevation
+
+        elevation_m = best_elevation(destination).get("elevation_m")
+        if elevation_m is not None:
+            if elevation_m > 4000:
+                seasonal_context_score += 15
+            elif elevation_m > 2500:
+                seasonal_context_score += 8
         
         # Add seasonal risk based on current month
         for hazard_type in RISK_CATEGORIES:
             seasonal_context_score += _calculate_seasonal_factor(hazard_type, month) * 2
     
     model_score = round(min(100.0, historical_score * 0.35 + current_score * 0.45 + seasonal_context_score * 0.20), 1)
+    
+    # Blend in the admin-curated safety profile when it exists.
+    # `overall_safety_score` / `travel_safety_score` are 0-100 where
+    # higher = SAFER, so the risk contribution is (100 - score). The
+    # curated review carries real weight (30%) because it reflects
+    # verified on-the-ground facts the model has never seen.
+    curated_safety = None
+    if baseline is not None:
+        for attr in ("overall_safety_score", "travel_safety_score"):
+            value = getattr(baseline, attr, None)
+            if value is not None:
+                curated_safety = float(value)
+                break
+    if curated_safety is not None:
+        risk_from_safety = min(100.0, max(0.0, 100.0 - curated_safety))
+        model_score = round(min(100.0, model_score * 0.70 + risk_from_safety * 0.30), 1)
     
     # If critical current conditions, boost score
     if current_score >= 70:
@@ -335,7 +389,14 @@ def build_destination_risk(destination):
     for hazard_type, config in RISK_CATEGORIES.items():
         count = hazard_counts.get(hazard_type, 0)
         if count > 0:
-            base_score = count * config["base_weight"] * SEVERITY_WEIGHT.get(hazard_type, 2)
+            # SEVERITY_WEIGHT is keyed by severity, so SEVERITY_WEIGHT.get(
+            # hazard_type, 2) could never hit and always fell back to 2. Use the
+            # recorded severity of these hazards instead, times the hazard's own
+            # impact weight.
+            type_incidents = [i for i in incidents if i.hazard_type == hazard_type]
+            severities = [SEVERITY_WEIGHT.get(i.severity, 2.0) for i in type_incidents]
+            severity_weight = (sum(severities) / len(severities)) if severities else 2.0
+            base_score = count * float(config["base_weight"]) * severity_weight
             seasonal = _calculate_seasonal_factor(hazard_type, now.month)
             category_risk[hazard_type] = {
                 "label": HAZARD_LABELS.get(hazard_type, hazard_type.replace("_", " ").title()),
@@ -364,11 +425,56 @@ def build_destination_risk(destination):
         navigation_risk["specific_warnings"].append("High risk area - consider alternative routes")
     if current_score >= 50:
         navigation_risk["specific_warnings"].append("Active hazards reported in area")
-    if destination.altitude and destination.altitude > 4000:
+    # Same CharField trap as in _calculate_precise_score: altitude is free text
+    # like "2,175m / 7,135 ft" and can never be compared to a number directly.
+    # This second occurrence 500'd the whole risk payload for any place with a
+    # recorded altitude.
+    from .elevation import best_elevation
+
+    _nav_elevation = best_elevation(destination).get("elevation_m")
+    if _nav_elevation is not None and _nav_elevation > 4000:
         navigation_risk["specific_warnings"].append("High altitude - acclimatization required")
-    elif destination.altitude and destination.altitude > 2500:
+    elif _nav_elevation is not None and _nav_elevation > 2500:
         navigation_risk["specific_warnings"].append("Altitude sickness risk above 2,500m")
     
+    # Curated safety profile (admin-reviewed factors): accident
+    # history, travel safety, weather exposure, emergency /
+    # life-safety coverage. Surfaced so travellers see the
+    # reviewed facts behind the model score.
+    safety_profile = None
+    if baseline is not None:
+        safety_profile = {
+            "travel_safety_score": baseline.travel_safety_score,
+            "travel_safety_rating": baseline.travel_safety_rating,
+            "overall_safety_score": baseline.overall_safety_score,
+            "accident_trend": baseline.accident_trend,
+            "accidents_last_year": baseline.accidents_last_year,
+            "fatal_accidents_last_year": baseline.fatal_accidents_last_year,
+            "accidents_last_5y": baseline.accidents_last_5y,
+            "last_major_incident_date": baseline.last_major_incident_date,
+            "solo_travel_safety": baseline.solo_travel_safety,
+            "night_safety": baseline.night_safety,
+            "family_safety": baseline.family_safety,
+            "female_traveler_safety": baseline.female_traveler_safety,
+            "road_quality": baseline.road_quality,
+            "trail_marking": baseline.trail_marking,
+            "mobile_network_coverage": baseline.mobile_network_coverage,
+            "monsoon_risk": baseline.monsoon_risk,
+            "winter_snow_risk": baseline.winter_snow_risk,
+            "summer_heat_risk": baseline.summer_heat_risk,
+            "lightning_risk": baseline.lightning_risk,
+            "high_altitude_risk": baseline.high_altitude_risk,
+            "uv_exposure": baseline.uv_exposure,
+            "hospital_coverage": baseline.hospital_coverage,
+            "emergency_response_minutes": baseline.emergency_response_minutes,
+            "rescue_availability": baseline.rescue_availability,
+            "medical_facility_level": baseline.medical_facility_level,
+            "police_presence": baseline.police_presence,
+            "risk_causes": baseline.risk_causes or [],
+            "safety_summary": baseline.safety_summary,
+            "last_reviewed": baseline.last_reviewed,
+        }
+
     return {
         "destination": {
             "id": destination.id, "name": destination.name, "slug": destination.slug,
@@ -383,6 +489,7 @@ def build_destination_risk(destination):
             "confidence": "high" if len(incidents) > 5 else "medium" if len(incidents) > 0 else "low"
         },
         "navigation_risk": navigation_risk,
+        "safety_profile": safety_profile,
         "current_conditions": {
             "level": current_level, "score": current_score,
             "active_count": len(current_items), "items": current_items,

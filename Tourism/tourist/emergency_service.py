@@ -1,5 +1,7 @@
 """Location-aware emergency directory built from the SQLite source of truth."""
-from django.db.models import Q
+import time
+
+from django.db.models import Count, Max, Q
 
 from .models import Destination, EmergencyContact, Hospital, OSMEssentialService, PoliceStation, SiteSetting
 from .phone_quality import is_placeholder_phone
@@ -175,6 +177,149 @@ def _nearest_rows(rows, latitude, longitude, limit, radius_km, mapper):
         item["estimated_travel_time_min"] = max(1, round(item["distance_km"] / 30 * 60))
         item["travel_time_basis"] = "Rough estimate: straight-line distance at 30 km/h — not a road route"
     return items
+
+
+# ---------------------------------------------------------------------------
+# Cached "nearest hospital / police" lookup
+# ---------------------------------------------------------------------------
+# build_emergency_directory() above is the full emergency-page payload: it also
+# ranks every EmergencyContact (with no spatial filter at all) and every OSM
+# essential service. That is correct for /emergency, but far too expensive for
+# callers that only need the nearest hospital and police station — the AI
+# recommendation view used it once per result, which cost ~5.6 s per call and
+# over 100 s per request.
+#
+# The snapshot below loads both tables once, reuses them briefly, and answers
+# from a small spatial grid. Item keys match the full directory.
+_FACILITY_CACHE = {"signature": None, "rows": [], "grid": None, "checked_at": 0.0}
+_FACILITY_RECHECK_SECONDS = 60.0
+_FACILITY_FIELDS = (
+    "id", "name", "address", "district", "phone", "latitude", "longitude",
+    "opening_hours", "emergency_available", "is_verified", "verified_at",
+    "updated_at", "source_name", "source_url", "coordinate_status",
+)
+
+
+def _facility_signature():
+    return (
+        Hospital.objects.filter(is_archived=False).aggregate(n=Count("id"), m=Max("updated_at")),
+        PoliceStation.objects.filter(is_archived=False).aggregate(n=Count("id"), m=Max("updated_at")),
+    )
+
+
+class _PointGrid:
+    """Small spatial hash so nearest-facility lookups stay cheap."""
+
+    CELL = 0.25  # degrees, about 27 km
+
+    def __init__(self, rows):
+        self.cells = {}
+        for row in rows:
+            try:
+                cell = (int(float(row["latitude"]) // self.CELL), int(float(row["longitude"]) // self.CELL))
+            except (TypeError, ValueError):
+                continue
+            self.cells.setdefault(cell, []).append(row)
+
+    def nearest(self, lat, lng, kinds):
+        ci, cj = int(lat // self.CELL), int(lng // self.CELL)
+        best = {}
+        for ring in range(0, 5):
+            for i in range(ci - ring, ci + ring + 1):
+                for j in range(cj - ring, cj + ring + 1):
+                    if max(abs(i - ci), abs(j - cj)) != ring:
+                        continue
+                    for row in self.cells.get((i, j), ()):
+                        kind = row["_kind"]
+                        if kind not in kinds:
+                            continue
+                        distance = haversine_distance(lat, lng, row["latitude"], row["longitude"])
+                        if kind not in best or distance < best[kind][0]:
+                            best[kind] = (distance, row)
+            if len(best) >= len(kinds):
+                break
+        return best
+
+
+def _facility_snapshot():
+    """(rows, grid) from a short-lived cache."""
+    now = time.monotonic()
+    if (
+        _FACILITY_CACHE["signature"] is not None
+        and now - _FACILITY_CACHE["checked_at"] < _FACILITY_RECHECK_SECONDS
+    ):
+        return _FACILITY_CACHE["rows"], _FACILITY_CACHE["grid"]
+    hospitals = list(Hospital.objects.filter(is_archived=False).values(*_FACILITY_FIELDS))
+    police = list(PoliceStation.objects.filter(is_archived=False).values(*_FACILITY_FIELDS))
+    rows = [dict(row, _kind="hospital") for row in hospitals]
+    rows += [dict(row, _kind="police") for row in police]
+    grid = _PointGrid(rows)
+    _FACILITY_CACHE.update(
+        signature=_facility_signature(), rows=rows, grid=grid, checked_at=now
+    )
+    return rows, grid
+
+
+def _is_approximate(row):
+    """Same rule as the model's ``is_approximate_coordinate`` property.
+
+    Recomputed here because a ``.values()`` snapshot cannot carry a Python
+    property, and dropping the flag would mislabel an approximate area-point
+    coordinate as an exact facility position.
+    """
+    status = row.get("coordinate_status")
+    if status == "APPROXIMATE":
+        return True
+    if status in ("VERIFIED", "EXACT", "OFFICIAL"):
+        return False
+    return row.get("latitude") is None or row.get("longitude") is None
+
+
+def _facility_item(row, distance, radius_km):
+    is_approx = _is_approximate(row)
+    distance = round(distance, 2)
+    outside = distance > radius_km
+    phone, _ = clean_phone(row.get("phone"), "")
+    dist_label = f"≈ {distance} km (area point)" if is_approx else f"{distance} km"
+    return {
+        "id": f"{row['_kind']}-{row['id']}", "type": row["_kind"], "name": row.get("name") or "",
+        "address": row.get("address") or "", "district": row.get("district") or "",
+        "phone_number": phone, "phone_is_national_fallback": False,
+        "latitude": float(row["latitude"]), "longitude": float(row["longitude"]),
+        "distance_km": distance, "distance_label": dist_label,
+        "km": distance, "is_approximate": is_approx,
+        "outside_requested_radius": outside,
+        "image_url": None,
+        "opening_hours": row.get("opening_hours"),
+        "hours": _hours(row.get("opening_hours")),
+        "emergency_available": row.get("emergency_available"),
+        "verified": bool(row.get("is_verified")), "verified_at": row.get("verified_at"),
+        "updated_at": row.get("updated_at"),
+        "source_name": row.get("source_name") or "", "source_url": row.get("source_url") or "",
+        "estimated_travel_time_min": max(1, round(distance / 30 * 60)),
+        "travel_time_basis": "Rough estimate: straight-line distance at 30 km/h — not a road route",
+    }
+
+
+def nearest_facilities(latitude, longitude, radius_km=100, kinds=("hospital", "police")):
+    """Nearest hospital / police station per requested kind.
+
+    Same item shape as ``build_emergency_directory`` but answered from a cached
+    snapshot instead of re-querying and re-ranking every emergency contact and
+    OSM service row on each call.
+    """
+    try:
+        latitude, longitude = float(latitude), float(longitude)
+    except (TypeError, ValueError):
+        return {kind: None for kind in kinds}
+    if not is_nepal_coordinate(latitude, longitude):
+        return {kind: None for kind in kinds}
+    _rows, grid = _facility_snapshot()
+    hits = grid.nearest(latitude, longitude, set(kinds))
+    return {
+        kind: _facility_item(hits[kind][1], hits[kind][0], radius_km) if kind in hits else None
+        for kind in kinds
+    }
 
 
 def build_emergency_directory(latitude, longitude, destination=None, radius_km=50, limit=8):

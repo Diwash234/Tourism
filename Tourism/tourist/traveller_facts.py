@@ -237,9 +237,14 @@ class _CompiledRule:
         self.districts = {treq._norm(d) for d in rule.get("districts") or []}
         self.whole = {treq._norm(d) for d in rule.get("whole_districts") or []}
         self.keywords = []
+        # Normalized keyword set for the "can any rule match at all?" pre-check
+        # in cost_class_for, so the common no-match case does not have to run
+        # every rule's regex against every destination.
+        self.keyword_map = set()
         for k in rule.get("name_keywords") or []:
             kw = treq._norm(k)
             if kw:
+                self.keyword_map.add(kw)
                 self.keywords.append((k, re.compile(rf"(?<![a-z]){re.escape(kw)}(?![a-z])")))
 
     def match(self, district_norm: str, district_raw: str, haystack: str) -> str | None:
@@ -265,12 +270,77 @@ def _compiled_rules():
     }
 
 
+def _letter_tokens(text):
+    """Lowercase-letter runs, split on every other character (digits included)."""
+    return tuple(re.findall(r"[a-z]+", str(text or "")))
+
+
+@lru_cache(maxsize=1)
+def _rule_reach_probe():
+    """Fast "can any rule possibly match this place?" test.
+
+    ``_CompiledRule.match`` can only return a basis in two ways: the
+    destination's district is in a rule's ``whole_districts`` list, or one of the
+    rule's ``name_keywords`` appears in the destination text. When neither is
+    true for *any* rule, ``cost_class_for`` is guaranteed to end at
+    ``none_on_record``, so the whole per-rule chain can be skipped.
+
+    Running every rule's regex against every destination made the ~6,700-row
+    fact-table build (which recommendation requests wait on) take ~50 s.
+    Keywords are matched as letter-run token tuples rather than one giant
+    alternation regex, because a 2,300-branch regex is itself slow in Python.
+
+    Returns ``(keyword_token_tuples, whole_districts, max_keyword_words)``.
+    """
+    rules = _compiled_rules()
+    token_tuples: set[tuple] = set()
+    whole: set[str] = set()
+    for group in rules.values():
+        for _rule, compiled in group:
+            whole.update(compiled.whole)
+            for kw in compiled.keyword_map:
+                tokens = _letter_tokens(kw)
+                if tokens:
+                    token_tuples.add(tokens)
+    max_words = max((len(k) for k in token_tuples), default=1)
+    return frozenset(token_tuples), frozenset(whole), max_words
+
+
+def _haystack_hits_any_keyword(haystack: str, token_set, max_words: int) -> bool:
+    """True when any rule keyword appears in the normalized haystack.
+
+    Reproduces the per-rule ``(?<![a-z])kw(?![a-z])`` boundary rule exactly:
+    every character that is not a lowercase letter acts as a word boundary, so
+    "rara" matches inside "rara1" but not inside "rarakot".
+    """
+    words = _letter_tokens(haystack)
+    if not words:
+        return False
+    size_limit = min(max_words, len(words))
+    for size in range(1, size_limit + 1):
+        for start in range(len(words) - size + 1):
+            if words[start:start + size] in token_set:
+                return True
+    return False
+
+
 def cost_class_for(dest) -> dict:
     """Which official fee rule (if any) matches, from the transcribed DOI/NTB data."""
     rules = _compiled_rules()
     district_raw = getattr(dest, "district", "") or ""
     district_norm = treq._district(dest)
     haystack = treq._haystack(dest)
+
+    # Cheap rejection first: no rule keyword in the text and no whole-district
+    # match means no rule can match, so the per-rule scan is pure waste.
+    token_set, whole_districts, max_words = _rule_reach_probe()
+    if district_norm not in whole_districts and not _haystack_hits_any_keyword(
+        haystack, token_set, max_words
+    ):
+        return {"class": "none_on_record", "label": COST_LABELS["none_on_record"], "area": "",
+                "basis": ("No DOI permit, NTB park or heritage fee rule matches this place. "
+                          "Local entry charges may still apply."),
+                "source": None}
 
     def first(group):
         for rule, compiled in rules[group]:
@@ -408,53 +478,83 @@ class _Grid:
         self.cells = {}
         for p in points:
             self.cells.setdefault((int(p[0] // self.CELL), int(p[1] // self.CELL)), []).append(p)
+        self._memo = {}
 
     def nearest(self, lat, lng, max_rings=3):
+        # Destinations cluster, so many share a grid cell. The candidate list
+        # for a cell is built once and reused; the exact distance is still
+        # computed per destination, so the answer is unchanged -- only the
+        # repeated ring walking is skipped.
         ci, cj = int(lat // self.CELL), int(lng // self.CELL)
+        bucket = self._memo.get((ci, cj))
+        if bucket is None:
+            seen = []
+            for i in range(ci - max_rings, ci + max_rings + 1):
+                for j in range(cj - max_rings, cj + max_rings + 1):
+                    seen.extend(self.cells.get((i, j), ()))
+            bucket = self._memo[(ci, cj)] = seen
+        if not bucket:
+            return None
         best = None
-        for ring in range(max_rings + 1):
-            for i in range(ci - ring, ci + ring + 1):
-                for j in range(cj - ring, cj + ring + 1):
-                    if max(abs(i - ci), abs(j - cj)) != ring:
-                        continue
-                    for p in self.cells.get((i, j), ()):
-                        d = haversine_km(lat, lng, p[0], p[1])
-                        if best is None or d < best[0]:
-                            best = (d, p)
-            if best is not None and best[0] <= ring * self.CELL * 111 * 0.9:
-                break
+        for p in bucket:
+            d = haversine_km(lat, lng, p[0], p[1])
+            if best is None or d < best[0]:
+                best = (d, p)
         return best
+
+
+class _AttrRow:
+    """Read-only attribute view over a ``.values()`` dict.
+
+    ``best_elevation`` and ``cost_class_for`` only read plain columns through
+    ``getattr``, so the fact table can be built from plain dicts instead of
+    ~6,700 instantiated model objects. This runs on every request that follows
+    a catalogue change.
+    """
+
+    __slots__ = ("_data",)
+
+    def __init__(self, data: dict):
+        object.__setattr__(self, "_data", data)
+
+    def __getattr__(self, item):
+        try:
+            return object.__getattribute__(self, "_data")[item]
+        except KeyError:
+            return None
 
 
 def _build_rows():
     from .models import Destination
     grid = _Grid(_hospital_points())
-    qs = Destination.publicly_visible().select_related("category").only(
+    # Plain values(), not model instances.
+    qs = Destination.publicly_visible().values(
         "id", "name", "slug", "aliases", "municipality", "city", "district", "province",
         "latitude", "longitude", "elevation_m", "elevation_source", "elevation_retrieved_at",
         "altitude", "category__slug", "category__name", "short_description", "is_featured",
         "views_count", "cover_image",
     )
     rows = []
-    for dest in qs.iterator(chunk_size=1000):
-        cat_slug = dest.category.slug if dest.category_id else ""
+    for data in qs.iterator(chunk_size=1000):
+        cat_slug = data["category__slug"] or ""
         activity = activity_for(cat_slug)
+        dest = _AttrRow(data)
         elev = best_elevation(dest)
-        lat = float(dest.latitude) if dest.latitude is not None else None
-        lng = float(dest.longitude) if dest.longitude is not None else None
+        lat = float(data["latitude"]) if data["latitude"] is not None else None
+        lng = float(data["longitude"]) if data["longitude"] is not None else None
         nearest = grid.nearest(lat, lng) if lat is not None and lng is not None else None
         rows.append({
-            "id": dest.id, "name": dest.name or "", "slug": dest.slug or "",
-            "aliases": dest.aliases or "", "district": dest.district or "", "province": dest.province or "",
-            "category_slug": cat_slug, "category_name": dest.category.name if dest.category_id else "",
+            "id": data["id"], "name": data["name"] or "", "slug": data["slug"] or "",
+            "aliases": data["aliases"] or "", "district": data["district"] or "", "province": data["province"] or "",
+            "category_slug": cat_slug, "category_name": data["category__name"] or "",
             "activity": activity, "latitude": lat, "longitude": lng,
             "elevation_m": elev["elevation_m"], "elevation_source": elev["source"], "elevation_kind": elev["kind"],
             "difficulty": difficulty_for(elev["elevation_m"], activity),
             "cost": cost_class_for(dest),
             "nearest_hospital": ({"km": round(nearest[0], 1), "name": nearest[1][2], "verified": nearest[1][3]}
                                  if nearest else None),
-            "is_featured": bool(dest.is_featured), "views_count": dest.views_count or 0,
-            "has_cover": bool(dest.cover_image),
+            "is_featured": bool(data["is_featured"]), "views_count": data["views_count"] or 0,
+            "has_cover": bool(data["cover_image"]),
         })
     return rows
 

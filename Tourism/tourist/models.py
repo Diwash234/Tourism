@@ -1919,7 +1919,34 @@ class EmergencyContact(TimeStampedModel):
             return f"{self.get_contact_type_display()} (Ward {self.ward_number}) - {self.name}"
         return f"{self.get_contact_type_display()} - {self.name}"
 class RiskAnalysis(models.Model):
-    """Imported/modelled baseline risk features for a destination."""
+    """Imported/modelled baseline risk features for a destination.
+
+    Beyond the imported hazard counts, this now carries a structured,
+    admin-curated risk profile: the *causes* of risk, the accident
+    history, how safe the place is for travelling, the emergency /
+    life-safety coverage, and weather exposure. Every factor is
+    admin-editable so the numbers on the site are reviewed facts,
+    not just model output.
+    """
+
+    class SafetyRating(models.TextChoices):
+        VERY_SAFE = "very_safe", "Very Safe"
+        SAFE = "safe", "Safe"
+        MODERATE = "moderate", "Moderate"
+        RISKY = "risky", "Risky"
+        UNSAFE = "unsafe", "Unsafe"
+
+    class Trend(models.TextChoices):
+        IMPROVING = "improving", "Improving"
+        STABLE = "stable", "Stable"
+        WORSENING = "worsening", "Worsening"
+
+    class Coverage(models.TextChoices):
+        NONE = "none", "None nearby"
+        POOR = "poor", "Poor"
+        FAIR = "fair", "Fair"
+        GOOD = "good", "Good"
+        EXCELLENT = "excellent", "Excellent"
 
     destination = models.OneToOneField(
         Destination,
@@ -1938,6 +1965,60 @@ class RiskAnalysis(models.Model):
     natural_disaster_risk = models.FloatField()
     tourism_risk_index = models.FloatField()
     risk_category = models.CharField(max_length=50)
+
+    # --- Accident history (past risk record) ---
+    accidents_last_year = models.PositiveIntegerField(default=0, help_text="Recorded accidents in the last 12 months")
+    fatal_accidents_last_year = models.PositiveIntegerField(default=0)
+    accidents_last_5y = models.PositiveIntegerField(default=0, help_text="Recorded accidents over the last 5 years")
+    accident_trend = models.CharField(max_length=20, choices=Trend.choices, default=Trend.STABLE)
+    last_major_incident_date = models.DateField(null=True, blank=True)
+
+    # --- Travel safety (how safe for travelling) ---
+    travel_safety_score = models.FloatField(null=True, blank=True, help_text="0-100, higher = safer")
+    travel_safety_rating = models.CharField(max_length=20, choices=SafetyRating.choices, default=SafetyRating.MODERATE)
+    solo_travel_safety = models.CharField(max_length=20, choices=SafetyRating.choices, default=SafetyRating.MODERATE)
+    night_safety = models.CharField(max_length=20, choices=SafetyRating.choices, default=SafetyRating.MODERATE)
+    family_safety = models.CharField(max_length=20, choices=SafetyRating.choices, default=SafetyRating.MODERATE)
+    female_traveler_safety = models.CharField(max_length=20, choices=SafetyRating.choices, default=SafetyRating.MODERATE)
+    road_quality = models.CharField(max_length=20, choices=Coverage.choices, default=Coverage.FAIR)
+    trail_marking = models.CharField(max_length=20, choices=Coverage.choices, default=Coverage.FAIR)
+    mobile_network_coverage = models.CharField(max_length=20, choices=Coverage.choices, default=Coverage.FAIR)
+
+    # --- Weather & seasonal exposure ---
+    monsoon_risk = models.CharField(max_length=20, choices=SafetyRating.choices, default=SafetyRating.MODERATE)
+    winter_snow_risk = models.CharField(max_length=20, choices=SafetyRating.choices, default=SafetyRating.MODERATE)
+    summer_heat_risk = models.CharField(max_length=20, choices=SafetyRating.choices, default=SafetyRating.MODERATE)
+    lightning_risk = models.CharField(max_length=20, choices=SafetyRating.choices, default=SafetyRating.MODERATE)
+    high_altitude_risk = models.CharField(max_length=20, choices=SafetyRating.choices, default=SafetyRating.MODERATE)
+    uv_exposure = models.CharField(max_length=20, choices=SafetyRating.choices, default=SafetyRating.MODERATE)
+
+    # --- Emergency & life safety ---
+    hospital_coverage = models.CharField(max_length=20, choices=Coverage.choices, default=Coverage.FAIR)
+    emergency_response_minutes = models.PositiveIntegerField(null=True, blank=True, help_text="Typical emergency response time in minutes")
+    rescue_availability = models.CharField(max_length=20, choices=Coverage.choices, default=Coverage.FAIR)
+    medical_facility_level = models.CharField(max_length=20, choices=Coverage.choices, default=Coverage.FAIR)
+    police_presence = models.CharField(max_length=20, choices=Coverage.choices, default=Coverage.FAIR)
+
+    # --- Structured risk causes (admin-curated) ---
+    risk_causes = models.JSONField(default=list, blank=True, help_text="List of {cause, category, severity, frequency, note}")
+
+    # --- Overall review ---
+    overall_safety_score = models.FloatField(null=True, blank=True, help_text="0-100 composite safety score")
+    safety_summary = models.TextField(blank=True, help_text="Plain-language safety summary for travellers")
+    last_reviewed = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="risk_reviews"
+    )
+
+    def travel_safety_label(self):
+        return self.get_travel_safety_rating_display()
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["destination"]),
+            models.Index(fields=["risk_category"]),
+        ]
 
 
 class RiskIncident(TimeStampedModel):

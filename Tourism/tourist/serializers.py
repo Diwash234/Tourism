@@ -16,7 +16,7 @@ from .models import (
     PoliceStation, Hotel,
     OSMEssentialService, OSMTourismPlace, DestinationAuditLog,
     TravelExpenseFeedback, TravelRiskFeedback, InfrastructureSubmission, InfrastructureMedia,
-    CurrentHazard, RiskIncident, RiskObservation, RecommendationEvent, RiskNewsReport,
+    CurrentHazard, RiskAnalysis, RiskIncident, RiskObservation, RecommendationEvent, RiskNewsReport,
     SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, CMSContentTranslation, DestinationFeatureProfile, StaffCapabilityProfile,
     Restaurant, DestinationTransitRoute, TravelPlan, TravelPlanStop, HeroSlide,
     TravelerDocument, RedirectRule, NewsletterSignup, MLInsight,
@@ -1234,6 +1234,49 @@ class RiskObservationAdminSerializer(serializers.ModelSerializer):
         model = RiskObservation
         fields = "__all__"
         read_only_fields = ["created_at", "updated_at"]
+
+
+class RiskProfileSerializer(serializers.ModelSerializer):
+    """Structured, admin-curated risk profile for a destination.
+
+    Surfaces the *causes* of risk, the accident history, how safe
+    the place is for travelling, the emergency / life-safety
+    coverage, and weather exposure — the factors travellers actually
+    weigh before visiting.
+    """
+    destination_name = serializers.CharField(source="destination.name", read_only=True)
+    destination_slug = serializers.CharField(source="destination.slug", read_only=True)
+    travel_safety_rating_display = serializers.CharField(source="get_travel_safety_rating_display", read_only=True)
+    accident_trend_display = serializers.CharField(source="get_accident_trend_display", read_only=True)
+    reviewed_by_name = serializers.CharField(source="reviewed_by.full_name", read_only=True)
+
+    class Meta:
+        model = RiskAnalysis
+        fields = [
+            "destination", "destination_name", "destination_slug",
+            # accident history
+            "accidents", "accidents_last_year", "fatal_accidents_last_year",
+            "accidents_last_5y", "accident_trend", "accident_trend_display",
+            "last_major_incident_date",
+            # hazard counts
+            "landslide", "avalanche", "flood", "earthquake_damage",
+            # travel safety
+            "travel_safety_score", "travel_safety_rating", "travel_safety_rating_display",
+            "solo_travel_safety", "night_safety", "family_safety", "female_traveler_safety",
+            "road_quality", "trail_marking", "mobile_network_coverage",
+            # weather exposure
+            "monsoon_risk", "winter_snow_risk", "summer_heat_risk",
+            "lightning_risk", "high_altitude_risk", "uv_exposure",
+            # emergency & life safety
+            "hospital_count", "police_count", "fire_station_count",
+            "hospital_coverage", "emergency_response_minutes",
+            "rescue_availability", "medical_facility_level", "police_presence",
+            # causes & overall
+            "risk_causes", "overall_safety_score", "safety_summary",
+            "emergency_risk", "natural_disaster_risk", "tourism_risk_index",
+            "risk_category", "last_reviewed", "reviewed_by", "reviewed_by_name",
+        ]
+        read_only_fields = ["last_reviewed", "reviewed_by"]
 
 
 class RestaurantSerializer(UsablePhoneMixin, serializers.ModelSerializer):

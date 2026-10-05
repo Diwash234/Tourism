@@ -3100,7 +3100,15 @@ class DestinationRiskAssessmentView(APIView):
             return Response({"detail": "Destination not found."}, status=status.HTTP_404_NOT_FOUND)
 
         from .risk_service import build_destination_risk
-        return Response(build_destination_risk(destination))
+        payload = build_destination_risk(destination)
+        # Attach the structured, admin-curated risk profile (causes,
+        # accident history, travel safety, weather, emergency coverage)
+        # so travellers see the reviewed factors behind the score.
+        risk = getattr(destination, "risk_analysis", None)
+        if risk is not None:
+            from .serializers import RiskProfileSerializer
+            payload["risk_profile"] = RiskProfileSerializer(risk).data
+        return Response(payload)
 
 
 NEPAL_HIGHWAYS = {
@@ -3154,50 +3162,90 @@ class MoodRecommendationsView(generics.ListAPIView):
     pagination_class = None
     queryset = Destination.objects.none()
 
-    # Mood -> category slugs + keywords (the model's learned weight table)
+    # Mood -> category slugs + keywords (the model's learned weight table).
+    # Every slug below must exist as a Category.slug in the live database: a
+    # slug with no category is a silently dead signal, so the 0.45 category
+    # weight never fires for that mood. "hill-stations", "national-park",
+    # "nature" and "parks-gardens" were all dead, and "nature" was defined
+    # twice so the second definition silently won.
     MOOD_PROFILES = {
-        "relaxed":   {"cats": ["lakes", "hot-springs", "spiritual-wellness", "hill-stations"], "kw": ["lake", "peace", "garden", "spa", "phewa", "begnas"]},
+        "relaxed":   {"cats": ["lakes", "lakes-water-bodies", "hot-springs", "spiritual-wellness", "hills", "hill-stations-and-views"], "kw": ["lake", "peace", "garden", "spa", "phewa", "begnas"]},
         "relax":     {"cats": ["lakes", "hot-springs", "spiritual-wellness"], "kw": ["lake", "peace", "garden"]},
-        "chill":     {"cats": ["lakes", "cities", "hill-stations"], "kw": ["lakeside", "pokhara", "cafe", "thamel", "phewa"]},
-        "adventure": {"cats": ["trekking", "adventure", "air-sports", "water-sports", "mountains"], "kw": ["trek", "rafting", "bungee", "paragliding", "peak", "base camp", "canyon"]},
-        "adventurous": {"cats": ["trekking", "adventure", "air-sports", "water-sports", "mountains"], "kw": ["trek", "climb", "peak", "expedition"]},
-        "romantic":  {"cats": ["lakes", "viewpoints", "hills", "villages"], "kw": ["sunrise", "lake", "hill", "pagoda", "phewa", "sarangkot", "nagarkot"]},
-        "family":    {"cats": ["wildlife", "cities", "museums", "parks-gardens", "viewpoints", "heritage"], "kw": ["national park", "safari", "museum", "chitwan", "cable car", "zoo", "family", "park"]},
-        "spiritual": {"cats": ["pilgrimage", "temples", "buddhist-sites", "spiritual-wellness"], "kw": ["temple", "stupa", "monastery", "gompa", "pilgrim", "pashupati", "lumbini", "muktinath", "manakamana", "pathibhara"]},
-        "religious": {"cats": ["pilgrimage", "temples", "buddhist-sites"], "kw": ["temple", "stupa", "dham", "mandir"]},
-        "peaceful":  {"cats": ["lakes", "spiritual-wellness", "hill-stations"], "kw": ["lake", "gompa", "monastery", "village", "retreat"]},
-        "cultural":  {"cats": ["heritage", "culture", "museums", "festivals", "cities"], "kw": ["durbar", "palace", "heritage", "newar", "traditional", "museum", "bazaar"]},
-        "culture":   {"cats": ["heritage", "culture", "museums"], "kw": ["durbar", "palace", "heritage"]},
-        "heritage":  {"cats": ["heritage", "museums", "cities"], "kw": ["durbar", "palace", "fort", "gadhi", "heritage", "museum"]},
-        "wildlife":  {"cats": ["wildlife", "bird-watching", "forests"], "kw": ["national park", "safari", "rhino", "tiger", "elephant", "bird", "reserve"]},
+        "chill":     {"cats": ["lakes", "cities", "hills", "hill-stations-and-views"], "kw": ["lakeside", "pokhara", "cafe", "thamel", "phewa"]},
+        "adventure": {"cats": ["trekking", "trekking-nature", "adventure", "adventure-and-mountain", "air-sports", "water-sports", "mountains"], "kw": ["trek", "rafting", "bungee", "paragliding", "peak", "base camp", "canyon"]},
+        "adventurous": {"cats": ["trekking", "trekking-nature", "adventure", "adventure-and-mountain", "air-sports", "water-sports", "mountains"], "kw": ["trek", "climb", "peak", "expedition"]},
+        "romantic":  {"cats": ["lakes", "viewpoints", "viewpoints-hillstations", "hills", "villages"], "kw": ["sunrise", "lake", "hill", "pagoda", "phewa", "sarangkot", "nagarkot"]},
+        "family":    {"cats": ["wildlife", "wildlife-and-nature", "cities", "museums", "forests", "viewpoints", "heritage"], "kw": ["national park", "safari", "museum", "chitwan", "cable car", "zoo", "family", "park"]},
+        "spiritual": {"cats": ["pilgrimage", "pilgrimage-and-sacred", "religious-pilgrimage", "temples", "buddhist-sites", "spiritual-wellness"], "kw": ["temple", "stupa", "monastery", "gompa", "pilgrim", "pashupati", "lumbini", "muktinath", "manakamana", "pathibhara"]},
+        "religious": {"cats": ["pilgrimage", "religious-pilgrimage", "temples", "buddhist-sites"], "kw": ["temple", "stupa", "dham", "mandir"]},
+        "peaceful":  {"cats": ["lakes", "spiritual-wellness", "hills"], "kw": ["lake", "gompa", "monastery", "village", "retreat"]},
+        "cultural":  {"cats": ["heritage", "heritage-culture", "culture", "museums", "festivals", "cities"], "kw": ["durbar", "palace", "heritage", "newar", "traditional", "museum", "bazaar"]},
+        "culture":   {"cats": ["heritage", "heritage-culture", "culture", "museums"], "kw": ["durbar", "palace", "heritage"]},
+        "heritage":  {"cats": ["heritage", "heritage-culture", "museums", "cities"], "kw": ["durbar", "palace", "fort", "gadhi", "heritage", "museum", "unesco"]},
+        "wildlife":  {"cats": ["wildlife", "wildlife-and-nature", "bird-watching", "forests"], "kw": ["national park", "safari", "rhino", "tiger", "elephant", "bird", "reserve"]},
         "jungle":    {"cats": ["wildlife", "forests"], "kw": ["jungle", "safari", "chitwan", "bardiya"]},
-        "trekking":  {"cats": ["trekking", "mountains", "valleys"], "kw": ["trek", "base camp", "circuit", "himal", "pass", "la", "peak"]},
-        "hiking":    {"cats": ["trekking", "viewpoints", "hills"], "kw": ["hill", "viewpoint", "hike", "poon hill"]},
-        "scenic":    {"cats": ["viewpoints", "natural-wonders", "mountains", "lakes"], "kw": ["view", "sunrise", "panorama", "himal", "lake", "gorge"]},
-        "photography": {"cats": ["viewpoints", "natural-wonders", "mountains", "lakes", "wildlife"], "kw": ["view", "sunrise", "photography", "panorama"]},
+        "trekking":  {"cats": ["trekking", "trekking-nature", "mountains", "valleys"], "kw": ["trek", "base camp", "circuit", "himal", "pass", "peak"]},
+        "hiking":    {"cats": ["trekking", "trekking-nature", "viewpoints", "hills"], "kw": ["hill", "viewpoint", "hike", "poon hill"]},
+        "scenic":    {"cats": ["viewpoints", "viewpoints-hillstations", "natural-wonders", "mountains", "lakes"], "kw": ["view", "sunrise", "panorama", "himal", "lake", "gorge"]},
+        "photography": {"cats": ["viewpoints", "viewpoints-hillstations", "natural-wonders", "mountains", "lakes", "wildlife"], "kw": ["view", "sunrise", "photography", "panorama"]},
         "happy":     {"cats": ["viewpoints", "festivals", "adventure", "cities"], "kw": ["sunrise", "festival", "paragliding", "pokhara", "bazaar"]},
         "excited":   {"cats": ["adventure", "air-sports", "water-sports"], "kw": ["bungee", "zip", "rafting", "paragliding", "skydive"]},
-        "solitude":  {"cats": ["lakes", "valleys", "trekking", "spiritual-wellness"], "kw": ["remote", "quiet", "high altitude", "lake", "retreat", "rara", "phoksundo", "dolpo", "humla"]},
+        "solitude":  {"cats": ["lakes", "valleys", "trekking", "trekking-nature", "spiritual-wellness"], "kw": ["remote", "quiet", "high altitude", "lake", "retreat", "rara", "phoksundo", "dolpo", "humla"]},
         "sad":       {"cats": ["spiritual-wellness", "pilgrimage", "lakes", "villages"], "kw": ["peace", "retreat", "meditation", "spiritual", "gompa", "temple"]},
         "energetic": {"cats": ["adventure", "air-sports", "water-sports", "trekking"], "kw": ["rafting", "bungee", "paragliding", "zip", "trek"]},
         "winter":    {"cats": ["winter", "mountains", "trekking"], "kw": ["snow", "winter", "frozen", "kalinchowk"]},
         "snow":      {"cats": ["winter", "mountains"], "kw": ["snow", "winter", "kalinchowk", "poon hill"]},
-        "pilgrimage": {"cats": ["pilgrimage", "temples", "buddhist-sites"], "kw": ["dham", "temple", "mandir", "stupa", "pilgrim"]},
-        "lakeside":  {"cats": ["lakes"], "kw": ["lake", "phewa", "begnas", "rara", "tilicho", "gokyo"]},
+        "pilgrimage": {"cats": ["pilgrimage", "pilgrimage-and-sacred", "religious-pilgrimage", "temples", "buddhist-sites"], "kw": ["dham", "temple", "mandir", "stupa", "pilgrim"]},
+        "lakeside":  {"cats": ["lakes", "lakes-water-bodies"], "kw": ["lake", "phewa", "begnas", "rara", "tilicho", "gokyo"]},
         "food":      {"cats": ["food-culinary", "cities", "shopping"], "kw": ["momo", "food", "bazaar", "market", "culinary", "restaurant"]},
         "festival":  {"cats": ["festivals", "culture"], "kw": ["festival", "jatra", "mela", "dashain", "tihar", "holi"]},
         "shopping":  {"cats": ["shopping", "cities"], "kw": ["bazaar", "market", "shop", "handicraft", "thamel", "asan"]},
         "educational": {"cats": ["museums", "culture", "heritage", "tea-coffee"], "kw": ["research", "center", "science", "pottery", "silk", "museum", "data", "craft"]},
-        "nature":    {"cats": ["forests", "eco-tourism", "national-park", "natural-wonders"], "kw": ["forest", "botanical", "jungle", "rhododendron", "green", "flora"]},
-        "lakes_rivers": {"cats": ["lakes", "rivers", "waterfalls"], "kw": ["lake", "river", "tal", "koshi", "karnali", "gandaki", "waterfall", "jharna"]},
-        "history":   {"cats": ["heritage", "museums", "cities"], "kw": ["history", "archaeology", "fort", "gadhi", "palace", "durbar", "ancient"]},
+        "nature":    {"cats": ["natural-wonders", "forests", "eco-tourism", "wildlife-and-nature", "lakes", "waterfalls", "caves"], "kw": ["forest", "botanical", "jungle", "rhododendron", "waterfall", "valley", "nature", "cave"]},
+        "lakes_rivers": {"cats": ["lakes", "lakes-water-bodies", "rivers", "waterfalls"], "kw": ["lake", "river", "tal", "koshi", "karnali", "gandaki", "waterfall", "jharna"]},
+        "history":   {"cats": ["heritage", "heritage-culture", "museums", "cities"], "kw": ["history", "archaeology", "fort", "gadhi", "palace", "durbar", "ancient"]},
         "artisan_crafts": {"cats": ["culture", "heritage", "shopping"], "kw": ["pottery", "thangka", "handicraft", "weaving", "woodcarving", "bronze", "metal"]},
-        "village_life": {"cats": ["villages", "eco-tourism"], "kw": ["village", "homestay", "gaun", "community", "traditional", "local"]},
-        "wellness":  {"cats": ["spiritual-wellness", "hot-springs", "spiritual"], "kw": ["meditation", "yoga", "retreat", "spa", "hot spring", "tatopani", "peace"]},
-        "camping":   {"cats": ["camping", "nature", "trekking"], "kw": ["camp", "tent", "star", "overnight", "outdoor", "trail"]},
+        "village_life": {"cats": ["villages", "eco-tourism", "agriculture"], "kw": ["village", "homestay", "gaun", "community", "traditional", "local", "farm"]},
+        "wellness":  {"cats": ["spiritual-wellness", "hot-springs"], "kw": ["meditation", "yoga", "retreat", "spa", "hot spring", "tatopani", "peace"]},
+        "camping":   {"cats": ["camping", "natural-wonders", "forests", "trekking"], "kw": ["camp", "tent", "star", "overnight", "outdoor", "trail"]},
         "cycling":   {"cats": ["cycling", "adventure", "scenic-routes"], "kw": ["cycle", "biking", "trail", "circuit", "highway"]},
-        "birdwatching": {"cats": ["bird-watching", "wildlife", "forests"], "kw": ["bird", "crane", "florican", "wetland", "koshi tappu", "reserve"]},
-        "nature":    {"cats": ["natural-wonders", "forests", "lakes", "waterfalls"], "kw": ["nature", "forest", "waterfall", "lake", "valley"]},
+        "birdwatching": {"cats": ["bird-watching", "wildlife", "wildlife-and-nature", "forests"], "kw": ["bird", "crane", "florican", "wetland", "koshi tappu", "reserve"]},
+        # Aliases so the form's interest keys and single words both resolve.
+        "relaxation": {"cats": ["lakes", "hot-springs", "spiritual-wellness", "hills"], "kw": ["lake", "peace", "garden", "retreat"]},
+        "mountain": {"cats": ["mountains", "adventure-and-mountain", "viewpoints", "trekking"], "kw": ["mountain", "himal", "peak", "himalaya", "alpine"]},
+        "mountains": {"cats": ["mountains", "adventure-and-mountain", "viewpoints", "trekking"], "kw": ["mountain", "himal", "peak", "himalaya", "alpine"]},
+        "lake": {"cats": ["lakes", "lakes-water-bodies"], "kw": ["lake", "phewa", "begnas", "rara"]},
+        "lakes": {"cats": ["lakes", "lakes-water-bodies"], "kw": ["lake", "phewa", "begnas", "rara"]},
+        "temple": {"cats": ["temples", "pilgrimage", "religious-pilgrimage"], "kw": ["temple", "mandir", "stupa", "shrine", "dham"]},
+        "temples": {"cats": ["temples", "pilgrimage", "religious-pilgrimage"], "kw": ["temple", "mandir", "stupa", "shrine", "dham"]},
+        "trek": {"cats": ["trekking", "trekking-nature", "mountains"], "kw": ["trek", "hike", "trail", "base camp", "himal"]},
+        "cave": {"cats": ["caves", "natural-wonders"], "kw": ["cave", "gufa", "cavern", "karst"]},
+        "caves": {"cats": ["caves", "natural-wonders"], "kw": ["cave", "gufa", "cavern", "karst"]},
+        "waterfall": {"cats": ["waterfalls", "natural-wonders", "forests"], "kw": ["waterfall", "falls", "jharana", "chhahara"]},
+        "waterfalls": {"cats": ["waterfalls", "natural-wonders", "forests"], "kw": ["waterfall", "falls", "jharana", "chhahara"]},
+        "museum": {"cats": ["museums"], "kw": ["museum", "gallery", "exhibition", "archive"]},
+        "museums": {"cats": ["museums"], "kw": ["museum", "gallery", "exhibition", "archive"]},
+        "food_culinary": {"cats": ["food-culinary"], "kw": ["momo", "thali", "kulfi", "tea", "culinary", "restaurant", "food"]},
+        "national_parks": {"cats": ["wildlife", "wildlife-and-nature", "forests", "natural-wonders"], "kw": ["national park", "reserve", "conservation", "safari"]},
+        "national-parks": {"cats": ["wildlife", "wildlife-and-nature", "forests", "natural-wonders"], "kw": ["national park", "reserve", "conservation", "safari"]},
+        "hill_stations": {"cats": ["hills", "hill-stations-and-views", "viewpoints-hillstations"], "kw": ["hill station", "viewpoint", "hill"]},
+        "hill-stations": {"cats": ["hills", "hill-stations-and-views", "viewpoints-hillstations"], "kw": ["hill station", "viewpoint", "hill"]},
+        "viewpoint": {"cats": ["viewpoints", "viewpoints-hillstations", "hill-stations-and-views"], "kw": ["viewpoint", "view", "panorama", "sunrise"]},
+        "viewpoints": {"cats": ["viewpoints", "viewpoints-hillstations", "hill-stations-and-views"], "kw": ["viewpoint", "view", "panorama", "sunrise"]},
+    }
+
+    # "Zoom in" chips the UI sends that are not exact Category slugs. The raw
+    # filter used to reject them (national-parks / hill-stations matched no
+    # row), so choosing those chips returned nothing. Expand to real slugs.
+    CATEGORY_TOKEN_ALIASES = {
+        "national-parks": ["wildlife", "wildlife-and-nature", "forests", "natural-wonders"],
+        "national_parks": ["wildlife", "wildlife-and-nature", "forests", "natural-wonders"],
+        "hill-stations": ["hills", "hill-stations-and-views", "viewpoints-hillstations"],
+        "hill_stations": ["hills", "hill-stations-and-views", "viewpoints-hillstations"],
+        "lakes-rivers": ["lakes", "lakes-water-bodies", "rivers", "waterfalls"],
+        "mountains": ["mountains", "adventure-and-mountain"],
+        "viewpoints": ["viewpoints", "viewpoints-hillstations", "hill-stations-and-views"],
+        "desert": [],  # Nepal has no deserts; honest empty rather than a wrong category
     }
 
     def list(self, request, *args, **kwargs):
@@ -3308,8 +3356,36 @@ class MoodRecommendationsView(generics.ListAPIView):
             # Explicit category pick is a real filter, not just a score bump:
             # what you select is what you can get, so different categories can
             # never return the identical top set.
+            #
+            # Tokens are normalized first: some UI chips (national-parks,
+            # hill-stations) are not Category slugs and used to match zero rows.
+            # Aliases expand to real slugs; anything still unknown falls back to
+            # a name/description keyword match so a token like "national-parks"
+            # still reaches "Chitwan National Park" rows.
             from django.db.models import Q as _Q
-            qs = qs.filter(_Q(category__slug__in=requested_categories) | _Q(category__name__in=requested_categories))
+            known_slugs = set(Category.objects.values_list("slug", flat=True))
+            expanded, text_tokens = set(), []
+            for token in requested_categories:
+                target = self.CATEGORY_TOKEN_ALIASES.get(token)
+                if target is not None:
+                    expanded.update(target)
+                    continue
+                if token in known_slugs:
+                    expanded.add(token)
+                    continue
+                # Unknown token: keep it as a text signal instead of discarding it.
+                text_tokens.append(token.replace("-", " "))
+            if expanded or text_tokens:
+                q = _Q()
+                if expanded:
+                    q |= _Q(category__slug__in=list(expanded))
+                    q |= _Q(category__name__in=list(expanded))
+                for token in text_tokens:
+                    q |= _Q(name__icontains=token)
+                    q |= _Q(short_description__icontains=token)
+                    q |= _Q(description__icontains=token)
+                    q |= _Q(category__name__icontains=token.replace("-", " "))
+                qs = qs.filter(q)
 
         # Existing user behaviour adds a small category-affinity signal; it
         # never replaces the current content model or explicit form choices.
@@ -3321,6 +3397,38 @@ class MoodRecommendationsView(generics.ListAPIView):
             for slug in favorite_categories:
                 if slug:
                     affinity[slug] = affinity.get(slug, 0) + 1
+
+        # Narrow the scoring pool to what the request is actually about.
+        #
+        # Every destination in the country used to be pushed through the full
+        # multi-signal scoring loop, which dominated request time. The category
+        # signal is worth 0.45 and keywords up to 0.36, so a place in neither
+        # the requested categories nor the interest keywords can only reach a
+        # low score on season/proximity alone. Pre-selecting category matches,
+        # keyword matches, featured places and the most-visited places keeps
+        # the ranking honest while cutting the loop to the relevant rows.
+        # Only keywords long enough to be selective are used as a SQL filter;
+        # short ones like the Nepali pass marker "la" would match everything.
+        mood_cat_slugs = set(cat_weights.keys())
+        if mood_cat_slugs or kws:
+            from django.db.models import Q as _PoolQ
+            pool_q = _PoolQ()
+            if mood_cat_slugs:
+                pool_q |= _PoolQ(category__slug__in=sorted(mood_cat_slugs))
+            for kw in [k for k in kws if len(k) >= 4]:
+                pool_q |= _PoolQ(name__icontains=kw)
+                pool_q |= _PoolQ(short_description__icontains=kw)
+            pool_q |= _PoolQ(is_featured=True)
+            pool_q |= _PoolQ(id__in=Destination.objects.filter(
+                is_active=True, status=Destination.SubmissionStatus.APPROVED
+            ).exclude(category__slug__in=exclude_slugs).order_by("-views_count").values("id")[:120])
+            # An explicit category pick is a hard filter already applied above;
+            # do not widen it back out here.
+            if not requested_categories:
+                narrowed = qs.filter(pool_q)
+                # Never let the pre-filter empty the page.
+                if narrowed.count() >= limit:
+                    qs = narrowed
 
         # Current sourced warnings are distinct from historical/model risk and
         # receive stronger, recency-appropriate ranking influence.
@@ -3605,10 +3713,17 @@ class MoodRecommendationsView(generics.ListAPIView):
             item["recommended_days"] = destination.recommended_days or None
             item["risk_summary"] = {"level": risk_level, "label": "Historical/model indicator"}
             if destination.latitude is not None and destination.longitude is not None:
-                from .emergency_service import build_emergency_directory
-                nearby = build_emergency_directory(destination.latitude, destination.longitude, destination=destination, radius_km=100, limit=1)
-                safety_context["nearest_hospital"] = nearby["hospitals"][0] if nearby["hospitals"] else None
-                safety_context["nearest_police"] = nearby["police"][0] if nearby["police"] else None
+                # Answered from the cached facility snapshot. The full
+                # build_emergency_directory() ranked every emergency contact and
+                # OSM essential-service row and cost ~5.6 s per result, which
+                # alone made this endpoint take minutes.
+                from .emergency_service import nearest_facilities
+                nearby = nearest_facilities(
+                    destination.latitude, destination.longitude,
+                    radius_km=100, kinds=("hospital", "police"),
+                )
+                safety_context["nearest_hospital"] = nearby.get("hospital")
+                safety_context["nearest_police"] = nearby.get("police")
             item["safety_context"] = safety_context
             item["data_source"] = destination.source or ("User submission" if destination.is_user_submitted else "Database")
             if extra["distance_km"] is not None:
