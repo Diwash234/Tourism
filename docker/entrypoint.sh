@@ -3,6 +3,14 @@
 set -e
 cd /app/Tourism
 
+# Ensure the configured primary administrator exists without replacing any
+# existing users or tourism data. Credentials come from environment variables.
+if [ -n "${TOURISM_ADMIN_EMAIL:-}" ] && [ -n "${TOURISM_ADMIN_PASSWORD:-}" ]; then
+  echo "entrypoint: ensuring configured primary administrator exists"
+  python manage.py bootstrap_admin --email "${TOURISM_ADMIN_EMAIL}" --password "${TOURISM_ADMIN_PASSWORD}" \
+    || echo "entrypoint: WARNING - admin bootstrap skipped"
+fi
+
 # ML microservice (budget estimates, itinerary planning, safety scoring) runs
 # as a background uvicorn on 127.0.0.1:8001 in this same container -- Django
 # talks to it at ML_SERVICE_URL.
