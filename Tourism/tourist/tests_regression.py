@@ -15,7 +15,7 @@ Each test pins one previously-fixed behavior so it cannot silently regress:
 from unittest.mock import patch
 
 from django.core.management import call_command
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -3722,9 +3722,17 @@ class RouteAlternativesTests(TestCase):
         from model.route.route_engine import best_route
         primary = best_route(27.7172, 85.3240, 28.2096, 83.9856, "fastest")
         self.assertFalse(primary.get("error"))
-        alts = route_alternatives(27.7172, 85.3240, 28.2096, 83.9856,
-                                  primary_route_type="fastest",
-                                  primary_route=primary.get("route", []))
+        # This test is about the BUNDLED GRAPH, so no routing provider may be
+        # configured. Deleting the SiteSetting row is not enough on its own:
+        # provider_config() falls back to the ROUTING_BASE_URL environment
+        # variable, so on a machine that has one set the request went to the
+        # real OSRM router, which returned no second route, and the assertion
+        # saw 0 alternatives instead of the graph's own. The precondition is
+        # now stated explicitly, as the sibling navigation tests already do.
+        with override_settings(ROUTING_BASE_URL="", ROUTING_API_URL=""):
+            alts = route_alternatives(27.7172, 85.3240, 28.2096, 83.9856,
+                                      primary_route_type="fastest",
+                                      primary_route=primary.get("route", []))
         self.assertGreaterEqual(len(alts), 1)
         primary_sig = _route_signature(primary.get("route", []))
         for alt in alts:

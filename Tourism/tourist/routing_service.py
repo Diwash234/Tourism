@@ -312,12 +312,24 @@ def route_alternatives(start_lat, start_lon, end_lat, end_lon,
     # Bundled-graph alternatives are deterministic for the same endpoints
     # and weighting, and recomputing them re-walks the whole graph — cache
     # them exactly like route_metrics does (30 minutes).
+    #
+    # The key must cover everything the RESULT depends on. It previously held
+    # only the coordinates and the route type, which meant:
+    #   * the primary route's corridor was ignored, so alternatives identical to
+    #     the primary were not discarded consistently between requests;
+    #   * provider state was ignored, so a single "provider returned no
+    #     alternatives" response cached an empty list that was then served for
+    #     every later request -- including after the provider was removed and
+    #     the bundled graph would have produced real alternatives.
+    primary_signature = _route_signature(primary_route)
+    provider_state = "provider" if provider["enabled"] else "graph"
     cache_key = "route-alts:" + hashlib.sha256(
-        f"{values[0]},{values[1]},{values[2]},{values[3]}:{primary_route_type}".encode()
+        f"{values[0]},{values[1]},{values[2]},{values[3]}:"
+        f"{primary_route_type}:{provider_state}:{primary_signature}".encode()
     ).hexdigest()
     cached = cache.get(cache_key)
     if cached is not None:
         return cached
-    alternatives = _graph_alternatives(values, primary_route_type, _route_signature(primary_route))
+    alternatives = _graph_alternatives(values, primary_route_type, primary_signature)
     cache.set(cache_key, alternatives, timeout=1800)
     return alternatives
