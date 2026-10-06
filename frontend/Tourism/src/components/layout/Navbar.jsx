@@ -228,7 +228,21 @@ const Navbar = () => {
           )}
         </div>
 
-        {/* User actions — authentication controls are intentionally not part of the public navigation. */}
+        {/* User actions — Login and Sign Up stay visible in the public navbar. */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-auto">
+          {features.theme_toggle && <button type="button" onClick={toggleTheme} className="text-[#BDEBD9] hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors" aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"} title={isDark ? "Light mode" : "Dark mode"}>{isDark ? <FiSun size={18} /> : <FiMoon size={18} />}</button>}
+          {isAuthenticated ? (
+            <>
+              {features.notifications && <Link to="/notifications" className="text-[#BDEBD9] hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors" aria-label="Notifications"><FiBell size={18} /></Link>}
+              {features.profile && <ProfileMenu />}
+            </>
+          ) : (
+            <div className="hidden sm:flex items-center gap-1.5">
+              <Link to="/login" className="rounded-lg px-3 py-2 text-sm font-semibold text-[#D5DEDC] hover:bg-white/10 hover:text-white transition-colors">Login</Link>
+              <Link to="/register" className="rounded-lg bg-[#F5B51B] px-3 py-2 text-sm font-bold text-[#14221F] hover:brightness-105 transition-colors">Sign Up</Link>
+            </div>
+          )}
+        </div>
         <div className="hidden md:flex items-center gap-2 shrink-0 ml-auto">
           {features.theme_toggle && <button type="button" onClick={toggleTheme} className="text-[#BDEBD9] hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors" aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"} title={isDark ? "Light mode" : "Dark mode"}>{isDark ? <FiSun size={18} /> : <FiMoon size={18} />}</button>}
           {isAuthenticated && features.notifications && <Link to="/notifications" className="text-[#BDEBD9] hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors" aria-label="Notifications"><FiBell size={18} /></Link>}
