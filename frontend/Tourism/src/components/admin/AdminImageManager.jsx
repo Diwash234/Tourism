@@ -22,6 +22,8 @@ export default function AdminImageManager() {
   const [selectedDest, setSelectedDest] = useState(null)
   const [newImageUrl, setNewImageUrl] = useState("")
   const [adding, setAdding] = useState(false)
+  const [editingDest, setEditingDest] = useState(false)
+  const [editForm, setEditForm] = useState({ name: "", district: "", description: "", short_description: "" })
 
   const search = async () => {
     if (!query.trim()) {
@@ -96,6 +98,32 @@ export default function AdminImageManager() {
     }
   }
 
+  const startEdit = (dest) => {
+    setEditForm({
+      name: dest.name || "",
+      district: dest.district || "",
+      description: dest.description || "",
+      short_description: dest.short_description || "",
+    })
+    setEditingDest(true)
+  }
+
+  const saveEdit = async () => {
+    if (!selectedDest) return
+    try {
+      await axiosClient.post("/admin/image-manager/", {
+        action: "edit_destination",
+        destination_id: selectedDest.id,
+        ...editForm,
+      })
+      showToast("Destination updated", "success")
+      setEditingDest(false)
+      search()
+    } catch {
+      showToast("Failed to update destination", "error")
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -158,6 +186,50 @@ export default function AdminImageManager() {
             </h3>
             {selectedDest && (
               <>
+                {/* Edit destination details */}
+                {editingDest ? (
+                  <div className="p-3 border rounded-lg space-y-2 bg-blue-50">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-blue-600">Edit Destination</h4>
+                    <input
+                      value={editForm.name}
+                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                      placeholder="Name"
+                      className="w-full px-2 py-1.5 text-sm border rounded"
+                    />
+                    <input
+                      value={editForm.district}
+                      onChange={(e) => setEditForm({ ...editForm, district: e.target.value })}
+                      placeholder="District"
+                      className="w-full px-2 py-1.5 text-sm border rounded"
+                    />
+                    <textarea
+                      value={editForm.short_description}
+                      onChange={(e) => setEditForm({ ...editForm, short_description: e.target.value })}
+                      placeholder="Short description"
+                      rows={2}
+                      className="w-full px-2 py-1.5 text-sm border rounded resize-y"
+                    />
+                    <textarea
+                      value={editForm.description}
+                      onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                      placeholder="Full description"
+                      rows={3}
+                      className="w-full px-2 py-1.5 text-sm border rounded resize-y"
+                    />
+                    <div className="flex gap-2">
+                      <button onClick={saveEdit} className="px-3 py-1.5 text-sm text-white bg-blue-600 rounded">Save</button>
+                      <button onClick={() => setEditingDest(false)} className="px-3 py-1.5 text-sm border rounded">Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => startEdit(selectedDest)}
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    Edit destination details
+                  </button>
+                )}
+
                 {/* Add image */}
                 <div className="flex gap-2">
                   <input

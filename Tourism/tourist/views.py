@@ -689,6 +689,8 @@ class AdminImageManagerView(APIView):
                 "name": d.name,
                 "slug": d.slug,
                 "district": d.district,
+                "description": d.description or "",
+                "short_description": d.short_description or "",
                 "latitude": str(d.latitude) if d.latitude else None,
                 "longitude": str(d.longitude) if d.longitude else None,
                 "image_count": d.img_count,
@@ -729,7 +731,32 @@ class AdminImageManagerView(APIView):
             return self._update_image(request)
         elif action == "remove":
             return self._remove_image(request)
-        return Response({"detail": "Invalid action. Use: add, update, remove"}, status=400)
+        elif action == "edit_destination":
+            return self._edit_destination(request)
+        return Response({"detail": "Invalid action. Use: add, update, remove, edit_destination"}, status=400)
+
+    def _edit_destination(self, request):
+        dest_id = request.data.get("destination_id")
+        name = request.data.get("name")
+        district = request.data.get("district")
+        description = request.data.get("description")
+        short_description = request.data.get("short_description")
+
+        dest = Destination.objects.filter(pk=dest_id).first()
+        if not dest:
+            return Response({"detail": "Destination not found"}, status=404)
+
+        if name is not None:
+            dest.name = name
+        if district is not None:
+            dest.district = district
+        if description is not None:
+            dest.description = description
+        if short_description is not None:
+            dest.short_description = short_description
+
+        dest.save()
+        return Response({"id": dest.id, "name": dest.name, "detail": "Destination updated"})
 
     def _add_image(self, request):
         dest_id = request.data.get("destination_id")
@@ -3781,6 +3808,21 @@ class MoodRecommendationsView(generics.ListAPIView):
             "origin_lng": request.query_params.get("longitude"),
         })
         rows = []
+
+        # Every destination's recorded road conditions, in ONE query, for the
+        # same reason as the service counts above. The scoring loop runs
+        # `qs.iterator(...)`, and `.iterator()` silently disables
+        # prefetch_related, so `destination.transit_routes.all()` executed once
+        # per row -- roughly 4,783 extra queries, which is why a single
+        # recommendation request took 90-110 seconds and routinely timed out in
+        # front of a proxy.
+        route_conditions_by_destination = {}
+        for _dest_id, _condition in DestinationTransitRoute.objects.order_by().values_list(
+            "destination_id", "road_condition"
+        ):
+            if _dest_id is not None and _condition:
+                route_conditions_by_destination.setdefault(_dest_id, []).append(_condition)
+
         # Season guidance only depends on (month, activity, altitude zone,
         # district, province) for its level and score. Thousands of destinations
         # share those, so memoize the numeric verdict for the scoring pass and
@@ -3836,7 +3878,16 @@ class MoodRecommendationsView(generics.ListAPIView):
             # a slightly different mix, so the same filters no longer return
             # byte-identical results for every user. Near-equal scores reorder.
             import hashlib
-            _guest_id = request.COOKIES.get("ny_guest_id") or request.session.session_key or "anon"
+            # `request.session` is absent whenever session middleware is not
+            # applied (DRF request factories, some ASGI stacks), and an
+            # unguarded read raised AttributeError, 500-ing the whole
+            # recommendation response. Read every level defensively.
+            _session = getattr(request, "session", None)
+            _guest_id = (
+                request.COOKIES.get("ny_guest_id")
+                or getattr(_session, "session_key", None)
+                or "anon"
+            )
             _user_key = str(request.user.pk) if request.user.is_authenticated else _guest_id
             _fresh = hashlib.sha1(f"{_user_key}|{plan_month}|{'|'.join(moods)}|{destination.id}".encode()).hexdigest()
             score += (int(_fresh, 16) % 1000) / 1000.0 * 0.10
@@ -3846,6 +3897,19 @@ class MoodRecommendationsView(generics.ListAPIView):
             if keyword_hits:
                 reasons.append("Relevant experiences: " + ", ".join(keyword_hits[:3]))
             breakdown["interests"] = round(category_score + keyword_score, 3)
+
+            # Relevance gate. Category membership is worth 0.45 and keywords up
+            # to 0.36, but season (+0.20), proximity (+0.20), popularity and the
+            # freshness jitter (+0.10) can add up to ~0.6 on their own. For a
+            # narrow interest that let an unrelated place outrank an actual
+            # match -- asking for wellness surfaced Attraction and Caves ahead
+            # of hot springs. Penalise rows that match neither the requested
+            # categories nor the interest keywords, so a match always outranks a
+            # non-match. Rows are never dropped, so a thin interest still
+            # returns something.
+            if cat_weights and not category_score and not keyword_hits:
+                score -= 0.55
+                breakdown["relevance_gate"] = -0.55
 
             # Season (NTB climate guidance) for the month being planned.
             # Memoized verdict for scoring; the full explainable bundle is built
