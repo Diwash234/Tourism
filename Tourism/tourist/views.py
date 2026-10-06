@@ -4062,12 +4062,12 @@ class MoodRecommendationsView(generics.ListAPIView):
             if destination.short_description:
                 reasons.append(destination.short_description[:120])
 
-            route_records = list(destination.transit_routes.all())
-            route_text = " ".join((route.road_condition or "") for route in route_records).lower()
+            route_records = route_conditions_by_destination.get(destination.id, [])
+            route_text = " ".join(route_records).lower()
             route_penalty = -0.10 if any(word in route_text for word in ["blocked", "closed", "landslide", "impassable", "dangerous"]) else 0.04 if route_records else 0.0
             score += route_penalty
             breakdown["route_condition"] = route_penalty
-            recorded_condition = next((r.road_condition for r in route_records if r.road_condition), None)
+            recorded_condition = next((c for c in route_records if c), None)
             safety_context = {
                 "hospital_count": hospital_total,
                 "police_count": police_total,

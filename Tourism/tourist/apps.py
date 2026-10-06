@@ -35,17 +35,75 @@ class TouristsConfig(AppConfig):
         connection_created.connect(_harden_sqlite_connection)
         _start_notification_worker()
         _warm_traveller_facts()
+        _warm_openapi_schema()
+
+
+def _warm_openapi_schema():
+    """Build the OpenAPI document off the request path when enabled.
+
+    Registering ~1,600 URL patterns and walking every view to produce the
+    document costs 10-30s of CPU. That cost is paid once per code change
+    (the cache is fingerprinted against the project's .py sources), which is
+    useful in production to spare the first schema request. Local DEBUG runs
+    disable this by default so startup work does not compete with the website.
+
+    Warming it in a daemon thread means the document is usually ready before
+    anyone asks for it. Never fatal, skipped under management commands and
+    tests, and disabled with OPENAPI_SCHEMA_WARMUP_ENABLED=0 on
+    memory-constrained instances (the transient allocation is what pushed
+    Render's 512 MiB plan over its limit).
+    """
+    import os
+    import sys
+    import threading
+
+    from django.conf import settings
+
+    if not getattr(settings, "OPENAPI_SCHEMA_WARMUP_ENABLED", True):
+        return
+    argv = " ".join(sys.argv)
+    serving = any(k in argv for k in ("runserver", "gunicorn", "uvicorn", "daphne", "waitress"))
+    if not serving or "test" in sys.argv or "migrate" in sys.argv:
+        return
+    # runserver's autoreloader spawns a child; only the child should warm.
+    if "runserver" in argv and "--noreload" not in argv and os.environ.get("RUN_MAIN") != "true":
+        return
+
+    def warm():
+        import logging
+        import time
+
+        from django.db import close_old_connections
+
+        log = logging.getLogger("tourist.schema_cache")
+        time.sleep(2)  # let the server finish binding
+        try:
+            from Tourism.schema_cache import warm_schema_cache
+
+            started = time.monotonic()
+            if warm_schema_cache():
+                log.info("OpenAPI schema warmed in %.1fs", time.monotonic() - started)
+            else:
+                log.warning("OpenAPI schema warm-up produced no document")
+        except Exception as exc:  # noqa: BLE001 - warmup must never kill startup
+            log.warning("OpenAPI schema warm-up skipped: %s", exc)
+        finally:
+            close_old_connections()
+
+    threading.Thread(target=warm, name="openapi-schema-warmup", daemon=True).start()
 
 
 def _warm_traveller_facts():
-    """Pre-build the destination fact table off the request path.
+    """Pre-build the destination fact table off the request path when enabled.
 
     ``traveller_facts.fact_rows()`` builds one row per public destination
     (~6,700). Building it lazily meant the first request after a process start
     or a catalogue edit paid the whole build, pushing the AI recommendation
     endpoint past the frontend's 20 s request timeout and making the feature
     look broken. Warming it in a daemon thread means the first real request
-    finds a ready table. Never fatal; skipped for management commands and tests.
+    finds a ready table. Local DEBUG runs disable this by default to avoid
+    competing with the website for CPU and memory. Never fatal; skipped for
+    management commands and tests.
     """
     import os
     import sys

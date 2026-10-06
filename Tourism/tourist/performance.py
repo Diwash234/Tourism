@@ -185,11 +185,28 @@ class PerformanceMonitoringMiddleware:
                 )
 
         # Log slow requests
+        #
+        # The OpenAPI document endpoints are exempt. They are rebuilt from
+        # scratch whenever the project's Python sources change, which costs
+        # 10-30s of CPU by design and is then cached (see
+        # Tourism/schema_cache.py). Reporting that one-off build as a "slow
+        # request" on every code save buried genuine regressions underneath it,
+        # so it is logged at info level instead and kept out of the warning.
+        is_schema_endpoint = request.path.rstrip("/").endswith(
+            ("/models", "/schema")
+        ) or "/models/" in request.path or "/schema/" in request.path
+
         if duration > SLOW_REQUEST_THRESHOLD:
-            logger.warning(
-                f"Slow request: {request.method} {request.path} "
-                f"took {duration:.2f}s with {query_count} queries"
-            )
+            if is_schema_endpoint:
+                logger.info(
+                    f"OpenAPI document build: {request.method} {request.path} "
+                    f"took {duration:.2f}s (cached for subsequent requests)"
+                )
+            else:
+                logger.warning(
+                    f"Slow request: {request.method} {request.path} "
+                    f"took {duration:.2f}s with {query_count} queries"
+                )
 
         # Store metrics
         self._store_metrics(metrics)

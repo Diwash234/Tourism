@@ -30,9 +30,9 @@ What this does instead
 ``CachedSchemaAPIView`` subclasses ``SpectacularAPIView`` and replaces only
 ``_get_schema_response``:
 
-1. A **fingerprint** is computed from the mtime/size of every project ``.py``
-   file plus the drf-spectacular version and the relevant settings. This is a
-   few hundred cheap ``stat()`` calls (~10 ms).
+1. A **fingerprint** is computed from the mtime/size of the Django project and
+   installed first-party app ``.py`` files plus the drf-spectacular version and
+   schema-affecting settings.
 2. The finished document is looked up **in-process** (a module-level dict), then
    **on disk** under ``BASE_DIR/.openapi_cache``, keyed by that fingerprint.
 3. Only on a genuine miss is ``SchemaGenerator.get_schema()`` called. Its return
@@ -58,8 +58,10 @@ import hashlib
 import json
 import logging
 import os
+import threading
 from pathlib import Path
 
+from django.apps import apps
 from django.conf import settings
 from rest_framework.response import Response
 
@@ -86,25 +88,52 @@ _IGNORED_DIR_PARTS = frozenset(
 )
 
 # Only settings that can actually change the generated document.
-_FINGERPRINT_SETTINGS = ("SPECTACULAR_SETTINGS", "REST_FRAMEWORK")
+_FINGERPRINT_SETTINGS = ("ROOT_URLCONF", "SPECTACULAR_SETTINGS", "REST_FRAMEWORK")
 
 _memory_cache: dict[tuple[str, str, bool], dict] = {}
 
+# Serialises generation. Without this the start-up warm-up thread and a request
+# arriving at the same moment each run their own SchemaGenerator: the build was
+# observed taking 61s instead of ~30s (two concurrent walks of ~1,600 views),
+# and peak memory doubled -- which is exactly what a memory-limited instance
+# cannot afford. Callers now wait for the single in-flight build instead.
+_build_lock = threading.Lock()
+
 
 def _iter_source_files(base: Path):
-    """Yield every project ``.py`` file that could affect the API surface."""
-    for path in base.rglob("*.py"):
+    """Yield project and installed-app Python files that can affect the API."""
+    roots = {base / settings.SETTINGS_MODULE.split(".", 1)[0]}
+    for app_config in apps.get_app_configs():
+        app_path = Path(app_config.path)
         try:
-            relative_parts = path.relative_to(base).parts
-        except ValueError:  # pragma: no cover - defensive
+            app_path.relative_to(base)
+        except ValueError:
             continue
-        if _IGNORED_DIR_PARTS.intersection(relative_parts):
+        roots.add(app_path)
+
+    seen = set()
+    for root in sorted(roots):
+        if not root.is_dir():
             continue
-        yield path
+        for path in sorted(root.rglob("*.py")):
+            try:
+                relative_parts = path.relative_to(base).parts
+            except ValueError:  # pragma: no cover - defensive
+                continue
+            if _IGNORED_DIR_PARTS.intersection(relative_parts) or path in seen:
+                continue
+            seen.add(path)
+            yield path
+
+    # Include standalone project modules, such as manage.py, without walking
+    # unrelated repository directories.
+    for path in sorted(base.glob("*.py")):
+        if path not in seen:
+            yield path
 
 
 def _source_fingerprint() -> str:
-    """Hash the project's Python sources plus the schema-affecting settings.
+    """Hash schema-relevant project sources plus schema-affecting settings.
 
     Uses ``mtime_ns`` + size rather than file contents: it is accurate enough to
     invalidate on any edit while costing only a ``stat()`` per file, instead of
@@ -200,6 +229,65 @@ def _build_schema(view: "CachedSchemaAPIView", request, version: str) -> dict | 
     return generator.get_schema(request=request, public=view.serve_public)
 
 
+def get_cached_schema(view: "CachedSchemaAPIView", request, version: str):
+    """Return the cached document, building it only on a genuine miss.
+
+    Shared by the request path and the start-up warm-up so both take exactly the
+    same code path -- a warmed cache is indistinguishable from one built during
+    a request.
+    """
+    cache_key = (view.serve_public, version or "")
+
+    document = _memory_cache.get(cache_key)
+    if document is not None:
+        return document
+
+    # Only one generation at a time. The lock is re-checked inside, so a caller
+    # that queued behind an in-flight build returns its result rather than
+    # starting a second one.
+    with _build_lock:
+        document = _memory_cache.get(cache_key)
+        if document is not None:
+            return document
+
+        fingerprint = _source_fingerprint()
+        path = _cache_path(fingerprint, version or "")
+
+        document = _read_disk_cache(path)
+        if document is not None:
+            logger.info("OpenAPI schema loaded from disk cache (%s).", path.name)
+        else:
+            logger.info(
+                "Rebuilding OpenAPI schema; this happens once per code change, not "
+                "once per request."
+            )
+            document = _build_schema(view, request, version)
+            if document is None:
+                return None
+            _write_disk_cache(path, document)
+            _prune_stale_entries(path)
+
+        _memory_cache[cache_key] = document
+        return document
+
+
+def warm_schema_cache() -> bool:
+    """Build or load the document ahead of the first request.
+
+    Walking every registered view costs 10-30s of CPU. Without this, the first
+    request to /api/v1/models/ after any code change pays that cost, which in
+    development looks like "the site is slow" every single time a file is
+    saved -- and the client usually gives up first ("Broken pipe").
+
+    Called from ``Tourism.apps``' ready() in a daemon thread, so it overlaps
+    start-up instead of blocking it, and any request that does arrive first
+    still blocks correctly on the same build.
+    """
+    view = CachedSchemaAPIView()
+    document = get_cached_schema(view, None, "")
+    return document is not None
+
+
 class CachedSchemaAPIView(SpectacularAPIView):
     """``SpectacularAPIView`` that generates the document at most once per tree."""
 
@@ -207,37 +295,17 @@ class CachedSchemaAPIView(SpectacularAPIView):
     # so the expensive ``SchemaGenerator`` call is the only thing that changes.
     def _get_schema_response(self, request):
         version = self.api_version or request.version or self._get_version_parameter(request)
-        cache_key = (self.serve_public, version or "")
 
-        document = _memory_cache.get(cache_key)
+        document = get_cached_schema(self, request, version)
         if document is None:
-            fingerprint = _source_fingerprint()
-            path = _cache_path(fingerprint, version or "")
-
-            document = _read_disk_cache(path)
-            if document is not None:
-                logger.info("OpenAPI schema served from disk cache (%s).", path.name)
-            else:
-                logger.info(
-                    "Rebuilding OpenAPI schema; this happens once per code change, "
-                    "not once per request."
-                )
-                document = _build_schema(self, request, version)
-                if document is None:
-                    return Response(
-                        data={"detail": "Schema generation failed."}, status=503
-                    )
-                _write_disk_cache(path, document)
-                _prune_stale_entries(path)
-
-            _memory_cache[cache_key] = document
+            return Response(data={"detail": "Schema generation failed."}, status=503)
 
         return Response(
             data=document,
             headers={
                 "Content-Disposition": f'inline; filename="{self._get_filename(request, version)}"',
                 # The document only changes when the code changes, so let the
-                # browser and any CDN hold on to it instead of re-fetching 2.4 MB.
+                # browser and any CDN hold on to it instead of re-fetching it.
                 "Cache-Control": "public, max-age=300",
             },
         )

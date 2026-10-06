@@ -56,6 +56,11 @@ services:
       # the fact table is still built on first use, just not pre-warmed.
       - key: TRAVELLER_FACTS_WARMUP_ENABLED
         value: "0"
+      # Pre-builds the OpenAPI document at start-up. Useful in development
+      # (saves the ~28s first request after each code save) but it is a
+      # transient allocation, and a 512 MiB instance cannot afford it.
+      - key: OPENAPI_SCHEMA_WARMUP_ENABLED
+        value: "0"
       - key: LOCAL_GRAPH_ROUTING_ENABLED
         value: "true"
       - key: LOCAL_GRAPH_MAX_SNAP_KM
