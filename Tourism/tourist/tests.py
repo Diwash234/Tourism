@@ -529,7 +529,15 @@ class MLIntegrationTests(APITestCase):
 
     @patch("tourist.utils.requests.post")
     def test_ml_budget_pokhara_calibrated_ten_thousand_npr(self, mock_post):
-        """3 days in Pokhara for 1 traveler (mid-range) must calculate to ~11,400 NPR total ($85.50 USD)."""
+        """3 days in Pokhara for 1 traveler (mid-range) must calculate to $85.50 USD.
+
+        The NPR figures are deliberately NOT hardcoded: the API converts with
+        the Nepal Rastra Bank rate of the day (see _official_budget_context),
+        so freezing a rate here made the test assert a conversion the API does
+        not perform. The USD calibration is the actual contract, plus the
+        invariant that the response is internally consistent: the NPR breakdown
+        must sum to the NPR total at whatever rate is reported alongside them.
+        """
         import sys
         import os
         sys.path.insert(0, os.path.join(settings.BASE_DIR, "..", "ml_service"))
@@ -547,30 +555,69 @@ class MLIntegrationTests(APITestCase):
         })
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.data
-        self.assertEqual(data.get("total_budget_npr"), 11400.0)
+
+        # USD calibration is rate-independent and is what "calibrated" means:
+        # 3 nights x $11.25, 3 days x $8.25 food, plus a $10.50 local-transport
+        # total that used to be read from the baseline and then discarded.
         self.assertEqual(data.get("total_budget_usd"), 85.5)
-        self.assertEqual(data.get("daily_budget_npr"), 3800.0)
         self.assertEqual(data.get("daily_cost_usd"), 28.5)
-        npr_breakdown = data.get("breakdown_npr") or {}
-        self.assertEqual(npr_breakdown.get("accommodation"), 4500.0)
-        self.assertEqual(npr_breakdown.get("food"), 3300.0)
-        self.assertEqual(npr_breakdown.get("transport"), 2200.0)
-        self.assertEqual(npr_breakdown.get("local_transport"), 1400.0)
+        usd_breakdown = data.get("breakdown") or {}
+        self.assertEqual(usd_breakdown.get("accommodation"), 33.75)
+        self.assertEqual(usd_breakdown.get("food"), 24.75)
+        self.assertEqual(usd_breakdown.get("local_transport"), 10.5)
+
+        # Every NPR figure must come from the one reported rate.
+        rate = (data.get("exchange_rate") or {}).get("usd_to_npr")
+        if rate:
+            npr_breakdown = data.get("breakdown_npr") or {}
+            parts = ("accommodation", "food", "transport", "local_transport")
+            for key in parts:
+                self.assertAlmostEqual(
+                    npr_breakdown.get(key), usd_breakdown.get(key) * rate, places=1,
+                    msg=f"{key} NPR was not converted at the reported rate",
+                )
+            self.assertAlmostEqual(
+                data.get("total_budget_npr"), data.get("total_budget_usd") * rate, places=1,
+            )
+            self.assertAlmostEqual(
+                data.get("daily_budget_npr"), data.get("total_budget_npr") / 3, places=1,
+            )
+            # The bug this guards: components summed to 13,150.77 while the
+            # total said 11,400 because the two used different rates.
+            component_sum = sum(npr_breakdown.get(key, 0) for key in parts)
+            self.assertAlmostEqual(
+                component_sum, data.get("total_budget_npr"), delta=1.0,
+                msg="breakdown_npr does not sum to total_budget_npr",
+            )
 
     @patch("tourist.utils.requests.post")
     def test_ml_budget_across_nepal_destinations(self, mock_post):
-        """Verifies calibrated Nepal baselines across diverse locations."""
+        """Calibrated Nepal baselines differ per destination and stay consistent.
+
+        The expected figures are USD, because the API converts to NPR with the
+        NRB rate of the day; asserting frozen NPR amounts tested a conversion
+        the endpoint does not perform. Per place we check the USD calibration,
+        that each place is priced distinctly, and that the NPR payload is
+        internally consistent at the reported rate.
+        """
         import sys
         import os
         sys.path.insert(0, os.path.join(settings.BASE_DIR, "..", "ml_service"))
         from api.budget import predict_budget, BudgetRequest
 
-        for place, expected_npr in [
-            ("Kathmandu", 11400.0),
-            ("Chitwan", 11600.0),
-            ("Lumbini", 9700.0),
-            ("Mustang", 12600.0),
-        ]:
+        # Verified-table calibration (ml_service/model/budget/csv_baselines.py):
+        # a Kathmandu valley stay, a pricier Terai safari, the cheapest plains
+        # heritage stop, and an expensive high-altitude trekking region. These
+        # are USD, which is the rate-independent contract.
+        expected_usd = {
+            "Kathmandu": 85.5,
+            "Chitwan": 87.0,
+            "Lumbini": 72.75,
+            "Mustang": 94.5,
+        }
+        seen_totals = {}
+
+        for place, expected in expected_usd.items():
             ml_res = predict_budget(BudgetRequest(city=place, days=3, travelers=1, budget_level="mid"))
             mock_resp = MagicMock()
             mock_resp.status_code = 200
@@ -582,7 +629,28 @@ class MLIntegrationTests(APITestCase):
                 "city": place, "days": 3, "travelers": 1, "budget_level": "mid",
             })
             self.assertEqual(response.status_code, status.HTTP_200_OK)
-            self.assertEqual(response.data.get("total_budget_npr"), expected_npr)
+            data = response.data
+            self.assertEqual(data.get("total_budget_usd"), expected, msg=f"{place} USD total")
+            self.assertEqual(data.get("daily_cost_usd"), round(expected / 3, 2), msg=f"{place} daily")
+            seen_totals[place] = data.get("total_budget_usd")
+
+            rate = (data.get("exchange_rate") or {}).get("usd_to_npr")
+            if rate:
+                npr_breakdown = data.get("breakdown_npr") or {}
+                parts = ("accommodation", "food", "transport", "local_transport")
+                component_sum = sum(npr_breakdown.get(key, 0) for key in parts)
+                self.assertAlmostEqual(
+                    component_sum, data.get("total_budget_npr"), delta=1.0,
+                    msg=f"{place} breakdown_npr does not sum to total_budget_npr",
+                )
+                self.assertAlmostEqual(
+                    data.get("total_budget_npr"), data.get("total_budget_usd") * rate, places=1,
+                    msg=f"{place} total NPR not at the reported rate",
+                )
+
+        # Different places must not collapse to one generic price.
+        self.assertEqual(len(set(seen_totals.values())), len(expected_usd),
+                         msg=f"baselines collapsed to {seen_totals}")
 
 
 class PhotoAndDataSourceTests(APITestCase):

@@ -503,10 +503,34 @@ def _official_budget_context(result, data, destination):
     known_npr = to_npr(known_usd)
     grand_npr = round(known_npr + totals["group_npr"], 2) if known_npr is not None else None
 
+    breakdown_npr = {k: to_npr(v) for k, v in breakdown_usd.items()}
+
+    # The ML service converts to NPR with its own canonical rate. Merging those
+    # scalars with NRB-rate breakdown_npr made one response contradict itself:
+    # for 3 days in Pokhara the components summed to 13,150.77 NPR while
+    # total_budget_npr reported 11,400.00 -- a 1,750.77 NPR gap that no reader
+    # could reconcile. Convert every NPR figure from the same USD base at the
+    # rate reported alongside it, so the breakdown sums to the stated total.
+    # When no rate is available, leave the service's own figures untouched.
+    live_scalars = {}
+    if rate is not None:
+        total_usd = result.get("total_budget_usd")
+        if total_usd is not None:
+            total_npr = to_npr(total_usd)
+            live_scalars["total_budget_npr"] = total_npr
+            live_scalars["daily_budget_npr"] = round(total_npr / days, 2) if days else None
+        reserve_usd = result.get("emergency_reserve_usd")
+        if reserve_usd is not None:
+            live_scalars["emergency_reserve_npr"] = to_npr(reserve_usd)
+            reserve_npr = to_npr(reserve_usd)
+            if reserve_npr is not None:
+                breakdown_npr["emergency_reserve"] = reserve_npr
+
     return {
         "exchange_rate": fx.snapshot_meta(snap) | ({"usd_to_npr": float(rate)} if rate is not None else {}),
         "known_cost_total_npr": known_npr,
-        "breakdown_npr": {k: to_npr(v) for k, v in breakdown_usd.items()},
+        "breakdown_npr": breakdown_npr,
+        **live_scalars,
         "official_fees": {
             "lines": totals["lines"],
             "per_person_npr": totals["per_person_npr"],
