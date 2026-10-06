@@ -44,7 +44,7 @@ services:
       # Run the ML sidecar after database setup. ML models and optional
       # accelerators now load only when their corresponding API is requested.
       - key: START_ML_SERVICE
-        value: "1"
+        value: "0"
       - key: ASGI_THREADS
         value: "2"
       - key: ML_SERVICE_MAX_CONCURRENCY
