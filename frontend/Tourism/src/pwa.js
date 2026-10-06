@@ -18,7 +18,7 @@ export function registerServiceWorker() {
   const apiBase = import.meta.env.VITE_API_BASE_URL || "/api/v1"
   const sameOriginApi = apiBase.startsWith("/")
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js", { scope: "/" })
+    navigator.serviceWorker.register("/sw.js?v=5", { scope: "/" })
       .then(() => navigator.serviceWorker.ready)
       .then(() => whenIdle(() => {
         if (navigator.connection?.saveData) return
