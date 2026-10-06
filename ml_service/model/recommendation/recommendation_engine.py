@@ -1,9 +1,9 @@
 import os
 import math
 import random
+import csv
+import threading
 import joblib
-import pandas as pd
-import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -25,6 +25,11 @@ os.makedirs(MODEL_DIR, exist_ok=True)
 VEC_PATH = os.path.join(MODEL_DIR, "vectorizer.joblib")
 DEST_VEC_PATH = os.path.join(MODEL_DIR, "destination_vectors.joblib")
 DEST_CSV_PATH = os.path.join(MODEL_DIR, "destinations.csv")
+_dataset_lock = threading.Lock()
+_dataset_mtime = None
+_csv_records = None
+vectorizer = None
+destinations = None
 
 def haversine_km(lat1, lon1, lat2, lon2):
     if None in (lat1, lon1, lat2, lon2):
@@ -40,7 +45,9 @@ def haversine_km(lat1, lon1, lat2, lon2):
         return 9999.0
 
 def load_or_build_model():
-    if not os.path.exists(VEC_PATH) or not os.path.exists(DEST_VEC_PATH) or not os.path.exists(DEST_CSV_PATH):
+    import pandas as pd
+
+    if not os.path.exists(VEC_PATH) or not os.path.exists(DEST_CSV_PATH):
         source_csv = os.path.join(BASE_DIR, "processed_data", "destinations_clean.csv")
         if not os.path.exists(source_csv):
             source_csv = os.path.join(BASE_DIR, "data", "destinations", "nepal_destinations.csv")
@@ -58,40 +65,22 @@ def load_or_build_model():
             ).str.lower().str.replace(r"\s+", " ", regex=True).str.strip()
 
             vec = TfidfVectorizer(stop_words="english", ngram_range=(1, 2), max_features=10000)
-            d_vecs = vec.fit_transform(df["features"])
+            vec.fit(df["features"])
 
             joblib.dump(vec, VEC_PATH)
-            joblib.dump(d_vecs, DEST_VEC_PATH)
             df.to_csv(DEST_CSV_PATH, index=False)
-            return vec, d_vecs, df
+            return vec, None, df
         else:
             vec = TfidfVectorizer()
             df = pd.DataFrame([{"Name": "Everest Base Camp", "Type": "Trek", "Tourism_Category": "Nature", "City": "Solukhumbu", "Latitude": 28.0042, "Longitude": 86.8570}])
-            d_vecs = vec.fit_transform(["Everest Base Camp Trek Nature Solukhumbu"])
+            vec.fit(["Everest Base Camp Trek Nature Solukhumbu"])
             joblib.dump(vec, VEC_PATH)
-            joblib.dump(d_vecs, DEST_VEC_PATH)
             df.to_csv(DEST_CSV_PATH, index=False)
-            return vec, d_vecs, df
+            return vec, None, df
     else:
         vec = joblib.load(VEC_PATH)
-        d_vecs = joblib.load(DEST_VEC_PATH)
         df = pd.read_csv(DEST_CSV_PATH)
-        return vec, d_vecs, df
-
-vectorizer, destination_vectors, destinations = load_or_build_model()
-
-destinations = destinations.fillna(
-    {
-        "Name": "",
-        "Type": "",
-        "Tourism_Category": "",
-        "City": "",
-        "District": "",
-        "Province": "",
-        "Latitude": 0.0,
-        "Longitude": 0.0,
-    }
-)
+        return vec, None, df
 
 
 # ---------------------------------------------------------------------------
@@ -318,25 +307,38 @@ def _records_from_frame(frame):
     return frame.reindex(columns=columns).to_dict("records")
 
 
-_csv_records = []
+def _refresh_dataset(*, load_records=False):
+    """Load only the vectorizer for live rows; read the bundled CSV on fallback."""
+    global vectorizer, destinations, _csv_records, _dataset_mtime
+    with _dataset_lock:
+        if vectorizer is None:
+            if os.path.exists(VEC_PATH):
+                vectorizer = joblib.load(VEC_PATH)
+            else:
+                vectorizer, _unused_vectors, destinations = load_or_build_model()
 
+        if not load_records or not os.path.exists(DEST_CSV_PATH):
+            return
+        mtime = os.path.getmtime(DEST_CSV_PATH)
+        if _dataset_mtime == mtime and _csv_records is not None:
+            return
 
-def _refresh_dataset():
-    """Reload the vectorizer/CSV when the extract on disk changes."""
-    global vectorizer, destination_vectors, destinations, _csv_records
-    if not os.path.exists(DEST_CSV_PATH):
-        return
-    mtime = os.path.getmtime(DEST_CSV_PATH)
-    if getattr(recommend, "_last_mtime", None) == mtime and _csv_records:
-        return
-    vectorizer = joblib.load(VEC_PATH)
-    destination_vectors = joblib.load(DEST_VEC_PATH)
-    destinations = pd.read_csv(DEST_CSV_PATH).fillna({
-        "Name": "", "Type": "", "Tourism_Category": "", "City": "",
-        "District": "", "Province": "", "Latitude": 0.0, "Longitude": 0.0,
-    })
-    _csv_records = _records_from_frame(destinations)
-    recommend._last_mtime = mtime
+        columns = (
+            "ID", "Name", "Type", "Tourism_Category", "City", "Area",
+            "District", "Province", "Latitude", "Longitude", "search_text",
+        )
+        records = []
+        with open(DEST_CSV_PATH, newline="", encoding="utf-8-sig") as source:
+            for row in csv.DictReader(source):
+                record = {column: row.get(column) or "" for column in columns}
+                for column in ("Latitude", "Longitude"):
+                    try:
+                        record[column] = float(record[column])
+                    except (TypeError, ValueError):
+                        record[column] = 0.0
+                records.append(record)
+        _csv_records = records
+        _dataset_mtime = mtime
 
 
 def recommend(user_input, top_n=5, user_lat=None, user_lon=None, budget_level=None,
@@ -356,14 +358,14 @@ def recommend(user_input, top_n=5, user_lat=None, user_lon=None, budget_level=No
         user_input = "nepal tourism heritage nature adventure mountain"
 
     try:
-        _refresh_dataset()
-
         live_rows = _candidate_frame(candidate_rows)
         if live_rows:
+            _refresh_dataset()
             records = live_rows
             source = "live_catalog"
         else:
-            records = _csv_records or _records_from_frame(destinations)
+            _refresh_dataset(load_records=True)
+            records = _csv_records or []
             source = "bundled_osm_extract"
         if not records:
             return []

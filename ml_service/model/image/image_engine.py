@@ -15,20 +15,37 @@ CATEGORIES = ["mountain", "temple", "lake", "city"]
 
 _torch_available = False
 _model = None
+torch = transforms = Image = None
 
-try:
-    import torch
-    from torchvision import transforms
-    from PIL import Image
 
+def _ensure_torch() -> bool:
+    """Import torch only when a trained classifier actually exists.
+
+    ``import torch`` alone costs hundreds of MB of resident memory. It used to run
+    at import time even though ``classifier.pt`` is not shipped, so the ML service
+    paid for torch on every start and never used it -- enough to push a 512 MiB
+    Render instance over its limit. Without the model file the heuristic
+    analyzer below is used and torch is never loaded.
+    """
+    global _torch_available, torch, transforms, Image
+    if _torch_available:
+        return True
+    if not os.path.exists(MODEL_PATH):
+        return False
+    try:
+        import torch as _torch
+        from torchvision import transforms as _transforms
+        from PIL import Image as _Image
+    except ImportError:
+        return False
+    torch, transforms, Image = _torch, _transforms, _Image
     _torch_available = True
-except ImportError:
-    pass
+    return True
 
 
 def _load_model():
     global _model
-    if _model is not None or not _torch_available:
+    if _model is not None or not _ensure_torch():
         return _model
     if os.path.exists(MODEL_PATH):
         try:
@@ -40,7 +57,7 @@ def _load_model():
 
 
 def classify_image(image_path: str) -> dict:
-    if not _torch_available or _load_model() is None:
+    if not _ensure_torch() or _load_model() is None:
         # Heuristic analyzer based on filename & metadata
         name = os.path.basename(str(image_path or "")).lower()
         if any(w in name for w in ["mountain", "everest", "annapurna", "peak", "himal", "trek"]):

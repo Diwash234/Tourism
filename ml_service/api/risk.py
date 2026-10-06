@@ -1,8 +1,6 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from model.risk.risk_engine import predict_risk
-
 router = APIRouter()
 
 
@@ -19,6 +17,8 @@ class RiskRequest(BaseModel):
 
 @router.post("/predict")
 def predict(payload: RiskRequest):
+    from model.risk.risk_engine import predict_risk
+
     return predict_risk(
         latitude=payload.latitude,
         longitude=payload.longitude,
@@ -33,6 +33,8 @@ def predict(payload: RiskRequest):
 
 @router.post("/predict-safety")
 def predict_safety(payload: RiskRequest):
+    from model.risk.risk_engine import predict_risk
+
     return predict_risk(
         latitude=payload.latitude,
         longitude=payload.longitude,

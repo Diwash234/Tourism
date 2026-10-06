@@ -113,17 +113,19 @@ _VOCAB = {"signature": None, "words": [], "display": {}}
 
 
 def _vocabulary():
-    rows = tf.fact_rows()
     sig = tf._TABLE["signature"]
     if _VOCAB["signature"] != sig or not _VOCAB["words"]:
         display = {}
-        for r in rows:
-            for text in [r["name"]] + [a for a in re.split(r"[;,]", r["aliases"]) if a.strip()]:
+        from .models import Destination
+
+        destinations = Destination.publicly_visible().values_list("name", "aliases", "district")
+        for name, aliases, district in destinations.iterator(chunk_size=1000):
+            for text in [name or ""] + [a for a in re.split(r"[;,]", aliases or "") if a.strip()]:
                 key = _fold(text)
                 if 2 < len(key) <= 60:
                     display.setdefault(key, text.strip())
-            if r["district"]:
-                display.setdefault(_fold(r["district"]), r["district"])
+            if district:
+                display.setdefault(_fold(district), district)
         data = treq.load_dataset()
         for group in ("protected_areas", "restricted_areas", "heritage_sites"):
             for item in data[group]:
@@ -546,7 +548,7 @@ class SeasonGuideView(APIView):
             # Month-by-month fit for one destination (?destination=<id|slug>).
             qs = Destination.publicly_visible()
             dest = get_object_or_404(qs, pk=int(key)) if key.isdigit() else get_object_or_404(qs, slug=key)
-            row = next((r for r in tf.fact_rows() if r["id"] == dest.pk), None)
+            row = next(iter(tf.fact_rows(ids=[dest.pk])), None)
             if row is None:
                 return Response({"detail": "Destination not found."}, status=status.HTTP_404_NOT_FOUND)
             payload["destination"] = {
@@ -604,7 +606,7 @@ class DecisionView(APIView):
         origin = tf.resolve_origin(params)
         nationality = treq.normalize_nationality(params.get("nationality") or "foreign")
         days = _int(params, "days", 1, 90)
-        rows_by_id = {r["id"]: r for r in tf.fact_rows()}
+        rows_by_id = {r["id"]: r for r in tf.fact_rows(ids=[d.id for d in dests])}
         cards = _cards(request, [d.id for d in dests])
         places = []
         for d in dests:

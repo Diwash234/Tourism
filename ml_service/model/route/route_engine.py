@@ -22,13 +22,6 @@ Supported route types:
 import os
 from math import radians, degrees, sin, cos, sqrt, atan2
 
-import networkx as nx
-
-try:
-    import pandas as pd
-except ImportError:
-    pd = None
-
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -63,15 +56,7 @@ RISK_MULTIPLIER = {
 
 
 _risk_df = None
-
-if (
-    pd is not None
-    and os.path.exists(RISK_CSV_PATH)
-):
-    try:
-        _risk_df = pd.read_csv(RISK_CSV_PATH)
-    except Exception:
-        _risk_df = None
+_risk_data_loaded = False
 
 
 # Cached graph
@@ -129,6 +114,8 @@ def _load_graph():
             f"nepal_graph.graphml not found at: {GRAPH_PATH}"
         )
 
+    import networkx as nx
+
     g = nx.read_graphml(GRAPH_PATH)
 
     # Convert edge weights to floats.
@@ -164,10 +151,23 @@ def _risk_arrays():
     it only exists so nearest-row lookups run as one numpy vector op
     instead of a pandas copy-and-scan per call."""
 
-    global _risk_array_cache
+    global _risk_array_cache, _risk_data_loaded, _risk_df
 
     if _risk_array_cache is not None:
         return _risk_array_cache
+
+    if not _risk_data_loaded:
+        _risk_data_loaded = True
+        if os.path.exists(RISK_CSV_PATH):
+            try:
+                import pandas as pd
+
+                _risk_df = pd.read_csv(
+                    RISK_CSV_PATH,
+                    usecols=["latitude", "longitude", "risk_category"],
+                )
+            except (ImportError, OSError, ValueError):
+                _risk_df = None
 
     if _risk_df is None:
         _risk_array_cache = None
@@ -392,6 +392,8 @@ def shortest_path(origin, destination):
     Find the shortest path between two exact graph nodes.
     """
 
+    import networkx as nx
+
     g = _load_graph()
 
     if origin not in g:
@@ -447,6 +449,8 @@ def shortest_city_route(from_city, to_city):
     Find the shortest route between any tourism destination in one city
     and any tourism destination in another city.
     """
+
+    import networkx as nx
 
     start_places = find_destination_by_city(
         from_city
@@ -1019,6 +1023,8 @@ def best_route(
         cheapest
         trekking
     """
+
+    import networkx as nx
 
     g = _load_graph()
 

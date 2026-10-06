@@ -105,6 +105,7 @@ const JobBoard = lazy(() => import("./pages/JobBoard"))
 const SafetyCenter = lazy(() => import("./pages/SafetyCenter"))
 const Analytics = lazy(() => import("./pages/Analytics"))
 const Payments = lazy(() => import("./pages/Payment"))
+const ItineraryBuilder = lazy(() => import("./pages/ItineraryBuilder"))
 
 // New Features (Remote Repository Updates)
 const Packages = lazy(() => import("./pages/Packages"))
@@ -298,6 +299,7 @@ function App() {
           <Route path="/bookings" element={<BookingManagement />} />
           <Route path="/safety-center" element={<SafetyCenter />} />
           <Route path="/payments" element={<Payments />} />
+          <Route path="/itinerary-builder" element={<ItineraryBuilder />} />
 
           <Route
             path="/notifications"

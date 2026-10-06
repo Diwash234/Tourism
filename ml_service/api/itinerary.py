@@ -8,8 +8,6 @@ from typing import List, Optional, Union
 from fastapi import APIRouter, Query, Request
 from pydantic import BaseModel
 
-from services.itinerary_service import build_rich_itinerary, build_itinerary
-
 router = APIRouter()
 
 
@@ -28,6 +26,8 @@ class RichItineraryRequest(BaseModel):
 
 @router.post("/generate")
 def generate_rich_itinerary(payload: RichItineraryRequest):
+    from services.itinerary_service import build_rich_itinerary
+
     days = payload.days or payload.num_days or 3
     return build_rich_itinerary(
         days=days,
@@ -43,6 +43,8 @@ def generate_rich_itinerary(payload: RichItineraryRequest):
 
 @router.post("/build")
 def generate_build_itinerary(payload: RichItineraryRequest):
+    from services.itinerary_service import build_itinerary, build_rich_itinerary
+
     if payload.destination_names and not payload.interests:
         num_days = payload.num_days or payload.days or 3
         return build_itinerary(payload.destination_names, num_days)
@@ -67,6 +69,8 @@ def suggest_itinerary(
     interests: Optional[str] = Query("culture,nature"),
     start_city: Optional[str] = Query(None),
 ):
+    from services.itinerary_service import build_rich_itinerary
+
     interest_list = [i.strip() for i in interests.split(",") if i.strip()] if interests else ["culture"]
     return build_rich_itinerary(
         days=days,

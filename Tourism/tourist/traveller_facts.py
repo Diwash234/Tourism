@@ -443,6 +443,7 @@ def resolve_origin(params) -> dict | None:
 # Cached fact table
 # --------------------------------------------------------------------------
 _TABLE_LOCK = threading.Lock()
+_BUILD_LOCK = threading.Lock()
 _TABLE = {"signature": None, "rows": [], "checked_at": 0.0}
 SIGNATURE_RECHECK_SECONDS = 30
 
@@ -524,11 +525,14 @@ class _AttrRow:
             return None
 
 
-def _build_rows():
+def _build_rows(ids=None):
     from .models import Destination
     grid = _Grid(_hospital_points())
     # Plain values(), not model instances.
-    qs = Destination.publicly_visible().values(
+    qs = Destination.publicly_visible()
+    if ids is not None:
+        qs = qs.filter(id__in=ids)
+    qs = qs.values(
         "id", "name", "slug", "aliases", "municipality", "city", "district", "province",
         "latitude", "longitude", "elevation_m", "elevation_source", "elevation_retrieved_at",
         "altitude", "category__slug", "category__name", "short_description", "is_featured",
@@ -559,18 +563,41 @@ def _build_rows():
     return rows
 
 
-def fact_rows(force: bool = False) -> list[dict]:
-    """All public destinations as fact rows, rebuilt when the data changes."""
+def fact_rows(force: bool = False, ids=None) -> list[dict]:
+    """All public destinations as fact rows, rebuilt when the data changes.
+
+    The ~6,700-row build can take many seconds. It runs OUTSIDE ``_TABLE_LOCK``
+    (guarded by ``_BUILD_LOCK``) so that, while one thread rebuilds, every other
+    request keeps getting the previous table instead of queueing behind the lock
+    (that queueing showed up as 30-780 s "slow requests" with 0 queries). Only the
+    very first build, when there is no table yet, makes callers wait.
+    """
+    if ids is not None:
+        selected_ids = tuple(dict.fromkeys(ids))
+        return _build_rows(selected_ids) if selected_ids else []
+
     now = time.monotonic()
     with _TABLE_LOCK:
-        if not force and _TABLE["signature"] is not None and now - _TABLE["checked_at"] < SIGNATURE_RECHECK_SECONDS:
+        have_rows = _TABLE["signature"] is not None
+        if not force and have_rows and now - _TABLE["checked_at"] < SIGNATURE_RECHECK_SECONDS:
             return _TABLE["rows"]
+    if not _BUILD_LOCK.acquire(blocking=not have_rows):
+        return _TABLE["rows"]  # someone else is rebuilding; serve the stale table
+    try:
         sig = _signature()
-        _TABLE["checked_at"] = now
-        if force or sig != _TABLE["signature"]:
-            _TABLE["rows"] = _build_rows()
+        with _TABLE_LOCK:
+            _TABLE["checked_at"] = time.monotonic()
+            unchanged = not force and sig == _TABLE["signature"]
+            current = _TABLE["rows"]
+        if unchanged:
+            return current
+        rows = _build_rows()
+        with _TABLE_LOCK:
+            _TABLE["rows"] = rows
             _TABLE["signature"] = sig
-        return _TABLE["rows"]
+        return rows
+    finally:
+        _BUILD_LOCK.release()
 
 
 def invalidate():

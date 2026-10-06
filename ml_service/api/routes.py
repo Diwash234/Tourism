@@ -11,31 +11,35 @@ from model.route.route_engine import (
 )
 
 
-from services.itinerary_service import build_itinerary
-
-
-
 router = APIRouter()
 
 
 @router.get("/shortest-path")
 def get_shortest_path(origin: str = Query(...), destination: str = Query(...)):
+    from model.route.route_engine import shortest_path
+
     return shortest_path(origin, destination)
 
 
 @router.get("/city-route")
 def get_city_route(from_city: str = Query(...), to_city: str = Query(...)):
+    from model.route.route_engine import shortest_city_route
+
     return shortest_city_route(from_city, to_city)
 
 
 @router.get("/city/{city_name}")
 def get_city_places(city_name: str):
+    from model.route.route_engine import find_destination_by_city
+
     places = find_destination_by_city(city_name)
     return {"city": city_name, "count": len(places), "places": places}
 
 
 @router.get("/nearby")
 def get_nearby(name: str = Query(...), max_km: float = Query(150)):
+    from model.route.route_engine import nearby_destinations
+
     return {"nearby": nearby_destinations(name, max_km)}
 
 
@@ -46,6 +50,8 @@ class ItineraryRequest(BaseModel):
 
 @router.post("/itinerary")
 def post_itinerary(payload: ItineraryRequest):
+    from services.itinerary_service import build_itinerary
+
     return build_itinerary(payload.destination_names, payload.num_days)
 
 
@@ -67,6 +73,8 @@ class BestRouteRequest(BaseModel):
 
 @router.post("/best-route")
 def post_best_route(payload: BestRouteRequest):
+    from model.route.route_engine import best_route
+
     return best_route(
         payload.start_latitude,
         payload.start_longitude,

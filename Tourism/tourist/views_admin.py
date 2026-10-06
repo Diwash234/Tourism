@@ -1,4 +1,5 @@
 import re
+from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
@@ -21,6 +22,7 @@ from .schema_extensions import (
     MultiSourceImageSearchResponseSerializer,
 )
 
+from .image_server import image_server_url
 from .models import (
     Destination, Alert, DestinationImage, DestinationVideo, VisitHistory, Favorite, Review, Rating, Restaurant, DestinationTransitRoute, TravelPlan,
     SOSAlert, SharedTrip, LocationPing, Category, Hotel,

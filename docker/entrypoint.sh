@@ -22,7 +22,11 @@ start_ml_service() {
   # consumer on a 512 MiB instance; with it running alongside daphne the deploy
   # was killed with "Out of memory (used over 512Mi)". Django falls back to
   # deterministic CSV/database answers when it is off.
-  if [ "${START_ML_SERVICE:-1}" = "0" ]; then
+  # On Render (RENDER is set automatically) default to OFF when the variable is
+  # missing: the sidecar does not fit next to daphne in 512 MiB.
+  DEFAULT_ML=1
+  [ -n "${RENDER:-}" ] && DEFAULT_ML=0
+  if [ "${START_ML_SERVICE:-$DEFAULT_ML}" = "0" ]; then
     echo "entrypoint: ML service disabled (START_ML_SERVICE=0); using deterministic fallbacks"
     return 0
   fi

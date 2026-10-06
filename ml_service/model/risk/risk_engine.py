@@ -19,9 +19,6 @@ is missing or no location info was given at all.
 import os
 from math import radians, sin, cos, sqrt, atan2
 
-import joblib
-import pandas as pd
-
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "risk_model.joblib")
 # Adjust this if your actual path differs -- this matches what you showed
@@ -36,13 +33,37 @@ FEATURE_COLUMNS = [
     "natural_disaster_risk", "tourism_risk_index",
 ]
 
-_loaded = joblib.load(MODEL_PATH) if os.path.exists(MODEL_PATH) else None
-if isinstance(_loaded, dict):
-    model = _loaded.get("model")
-    FEATURE_COLUMNS = _loaded.get("features", FEATURE_COLUMNS)
-else:
-    model = _loaded
-_features_df = pd.read_csv(FEATURES_CSV_PATH) if os.path.exists(FEATURES_CSV_PATH) else None
+model = None
+_resources_loaded = False
+_features_df = None
+
+
+def _load_resources():
+    """Load the risk model and its compact lookup data on first use."""
+    global model, FEATURE_COLUMNS, _features_df, _resources_loaded
+    if _resources_loaded:
+        return
+
+    if os.path.exists(MODEL_PATH):
+        import joblib
+
+        loaded = joblib.load(MODEL_PATH)
+        if isinstance(loaded, dict):
+            model = loaded.get("model")
+            FEATURE_COLUMNS = loaded.get("features", FEATURE_COLUMNS)
+        else:
+            model = loaded
+
+    if model is not None and os.path.exists(FEATURES_CSV_PATH):
+        import pandas as pd
+
+        _features_df = pd.read_csv(
+            FEATURES_CSV_PATH,
+            usecols=lambda column: column in {
+                "place", "district", "latitude", "longitude", *FEATURE_COLUMNS,
+            },
+        )
+    _resources_loaded = True
 
 
 def _haversine_km(lat1, lon1, lat2, lon2):
@@ -54,6 +75,7 @@ def _haversine_km(lat1, lon1, lat2, lon2):
 
 def _lookup_nearest_place(latitude=None, longitude=None, city=None):
     """Returns the matching risk_features.csv row (as a dict) or None."""
+    _load_resources()
     if _features_df is None or _features_df.empty:
         return None
 
@@ -61,18 +83,23 @@ def _lookup_nearest_place(latitude=None, longitude=None, city=None):
     if city:
         # Prefer an exact-ish city/district/place-name match first.
         match = df[
-            df["place"].str.contains(city, case=False, na=False)
-            | df["district"].str.contains(city, case=False, na=False)
+            df["place"].str.contains(city, case=False, na=False, regex=False)
+            | df["district"].str.contains(city, case=False, na=False, regex=False)
         ]
         if not match.empty:
             return match.iloc[0].to_dict()
 
     if latitude is not None and longitude is not None:
-        df = df.copy()
-        df["_distance_km"] = df.apply(
-            lambda row: _haversine_km(latitude, longitude, row["latitude"], row["longitude"]), axis=1
-        )
-        nearest = df.loc[df["_distance_km"].idxmin()]
+        import numpy as np
+
+        latitudes = df["latitude"].to_numpy(dtype=float, copy=False)
+        longitudes = df["longitude"].to_numpy(dtype=float, copy=False)
+        lat1 = radians(float(latitude))
+        lat2 = np.radians(latitudes)
+        dlat = lat2 - lat1
+        dlon = np.radians(longitudes - float(longitude))
+        a = np.sin(dlat / 2) ** 2 + cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
+        nearest = df.iloc[int(np.argmin(a))]
         return nearest.to_dict()
 
     return None
@@ -88,6 +115,7 @@ def predict_risk(
     season_code=0,
     incident_count=0,
 ):
+    _load_resources()
     if model is None:
         return {
             "risk": "unknown",

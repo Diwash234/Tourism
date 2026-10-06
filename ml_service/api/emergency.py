@@ -1,8 +1,5 @@
 from fastapi import APIRouter, Query
 
-from services.emergency_service import nearest_facilities
-
-
 router = APIRouter(
     tags=["Emergency"]
 )
@@ -36,8 +33,9 @@ def nearest(
         None,
         description="hospital or police_station"
     ),
-    limit: int = Query(5)
+    limit: int = Query(5, ge=1, le=50)
 ):
+    from services.emergency_service import nearest_facilities
 
     facilities = nearest_facilities(
         latitude=lat,
@@ -65,8 +63,9 @@ def nearest(
 def hospitals(
     lat: float = Query(...),
     lon: float = Query(...),
-    limit: int = Query(5)
+    limit: int = Query(5, ge=1, le=50)
 ):
+    from services.emergency_service import nearest_facilities
 
     facilities = nearest_facilities(
         latitude=lat,
@@ -91,8 +90,9 @@ def hospitals(
 def police(
     lat: float = Query(...),
     lon: float = Query(...),
-    limit: int = Query(5)
+    limit: int = Query(5, ge=1, le=50)
 ):
+    from services.emergency_service import nearest_facilities
 
     facilities = nearest_facilities(
         latitude=lat,
@@ -118,8 +118,9 @@ def by_category(
     category: str,
     lat: float = Query(...),
     lon: float = Query(...),
-    limit: int = Query(5)
+    limit: int = Query(5, ge=1, le=50)
 ):
+    from services.emergency_service import nearest_facilities
 
     allowed = [
         "hospital",

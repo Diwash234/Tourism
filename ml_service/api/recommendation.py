@@ -3,8 +3,6 @@ from typing import List, Optional, Union, Any
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-from model.recommendation.recommendation_engine import recommend
-
 router = APIRouter()
 
 # Bounds on the request payload. Without them a client could ask for an
@@ -32,6 +30,8 @@ class RecommendationRequest(BaseModel):
 @router.post("")
 @router.post("/")
 def recommendation(request: RecommendationRequest):
+    from model.recommendation.recommendation_engine import recommend
+
     # Extract query terms
     query_terms = []
     if request.interest:

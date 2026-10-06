@@ -35,13 +35,14 @@ services:
         sync: false
       - key: ML_SERVICE_URL
         value: "http://localhost:8001"
-      # Run the ML sidecar (budget/itinerary/safety/recommendation) in the
-      # web container. The entrypoint starts it only AFTER migrations and
-      # the data phase, so its import spike cannot overlap other Python
-      # processes. Set to "0" if a 512 MiB instance ever OOMs -- Django
-      # falls back to deterministic CSV/database answers without it.
+      # Run the ML sidecar after database setup. ML models and optional
+      # accelerators now load only when their corresponding API is requested.
       - key: START_ML_SERVICE
-        value: "0"
+        value: "1"
+      - key: ASGI_THREADS
+        value: "2"
+      - key: ML_SERVICE_MAX_CONCURRENCY
+        value: "4"
       - key: ACCESS_TOKEN_LIFETIME_MIN
         value: "60"
       - key: REFRESH_TOKEN_LIFETIME_DAYS
@@ -50,12 +51,6 @@ services:
         value: "false"
       - key: NOTIFICATION_WORKER_INTERVAL
         value: "60"
-      # tourist/apps.py pre-builds ~6,700 destination fact rows in a daemon
-      # thread at start-up (measured: 14.6s). On a 512 MiB instance that
-      # overlapped daphne and pushed the deploy over the limit again. Off here;
-      # the fact table is still built on first use, just not pre-warmed.
-      - key: TRAVELLER_FACTS_WARMUP_ENABLED
-        value: "0"
       # Pre-builds the OpenAPI document at start-up. Useful in development
       # (saves the ~28s first request after each code save) but it is a
       # transient allocation, and a 512 MiB instance cannot afford it.

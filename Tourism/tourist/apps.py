@@ -34,7 +34,6 @@ class TouristsConfig(AppConfig):
 
         connection_created.connect(_harden_sqlite_connection)
         _start_notification_worker()
-        _warm_traveller_facts()
         _warm_openapi_schema()
 
 
@@ -91,59 +90,6 @@ def _warm_openapi_schema():
             close_old_connections()
 
     threading.Thread(target=warm, name="openapi-schema-warmup", daemon=True).start()
-
-
-def _warm_traveller_facts():
-    """Pre-build the destination fact table off the request path when enabled.
-
-    ``traveller_facts.fact_rows()`` builds one row per public destination
-    (~6,700). Building it lazily meant the first request after a process start
-    or a catalogue edit paid the whole build, pushing the AI recommendation
-    endpoint past the frontend's 20 s request timeout and making the feature
-    look broken. Warming it in a daemon thread means the first real request
-    finds a ready table. Local DEBUG runs disable this by default to avoid
-    competing with the website for CPU and memory. Never fatal; skipped for
-    management commands and tests.
-    """
-    import os
-    import sys
-    import threading
-
-    from django.conf import settings
-
-    if not getattr(settings, "TRAVELLER_FACTS_WARMUP_ENABLED", True):
-        return
-    argv = " ".join(sys.argv)
-    serving = any(k in argv for k in ("runserver", "gunicorn", "uvicorn", "daphne", "waitress"))
-    if not serving or "test" in sys.argv or "migrate" in sys.argv:
-        return
-    # runserver's autoreloader spawns a child; only the child should warm.
-    if "runserver" in argv and "--noreload" not in argv and os.environ.get("RUN_MAIN") != "true":
-        return
-
-    def warm():
-        import logging
-        import time
-
-        from django.db import close_old_connections
-
-        log = logging.getLogger("tourist.traveller_facts")
-        time.sleep(5)  # let the server finish booting
-        try:
-            from tourist import traveller_facts
-
-            started = time.monotonic()
-            rows = traveller_facts.fact_rows(force=True)
-            log.info(
-                "warmed %s destination fact rows in %.1fs",
-                len(rows), time.monotonic() - started,
-            )
-        except Exception as exc:  # noqa: BLE001 - warmup must never kill startup
-            log.warning("traveller fact warmup skipped: %s", exc)
-        finally:
-            close_old_connections()
-
-    threading.Thread(target=warm, name="traveller-facts-warmup", daemon=True).start()
 
 
 def _start_notification_worker():

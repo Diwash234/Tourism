@@ -19,13 +19,6 @@ PHRASES_PATH = os.path.join(
 )
 
 _dictionary = None
-_transformers_available = False
-
-try:
-    from transformers import pipeline  # noqa: F401
-    _transformers_available = True
-except ImportError:
-    pass
 
 
 def _load_dictionary() -> dict:
@@ -45,15 +38,6 @@ def _load_dictionary() -> dict:
 
 
 def translate(text: str, target_lang: str = "en") -> dict:
-    if _transformers_available and os.path.exists(
-        os.path.join(os.path.dirname(__file__), "model")
-    ):
-        # Hook for a real fine-tuned model once you've trained one.
-        # translator = pipeline("translation", model=os.path.join(os.path.dirname(__file__), "model"))
-        # result = translator(text)[0]["translation_text"]
-        # return {"translation": result, "source": "model"}
-        pass
-
     dictionary = _load_dictionary()
     match = dictionary.get(text.strip().lower())
     if match:

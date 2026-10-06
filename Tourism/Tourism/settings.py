@@ -274,18 +274,6 @@ STORAGES = {
 # present WhiteNoise serves it from the site root and Tourism/spa.py returns
 # index.html for client-side routes. Absent in development/tests.
 FRONTEND_DIST_DIR = Path(config("FRONTEND_DIST_DIR", default=str(BASE_DIR / "frontend_dist")))
-
-# Locally there is no Docker build, so nothing ever creates BASE_DIR/frontend_dist
-# and the SPA catch-all in Tourism/urls.py never registers -- `GET /` returns 404
-# and the site looks empty even though the frontend is built. The Vite output
-# lives in frontend/Tourism/dist, so fall back to it when the Docker path is
-# absent. In the image FRONTEND_DIST_DIR does exist (the Dockerfile copies the
-# build there), so this fallback is a no-op in production.
-if not (FRONTEND_DIST_DIR / "index.html").is_file():
-    _vite_dist = BASE_DIR.parent / "frontend" / "Tourism" / "dist"
-    if (_vite_dist / "index.html").is_file():
-        FRONTEND_DIST_DIR = _vite_dist
-
 if (FRONTEND_DIST_DIR / "index.html").is_file():
     WHITENOISE_ROOT = FRONTEND_DIST_DIR
 WHITENOISE_MIMETYPES = {".webmanifest": "application/manifest+json"}
@@ -531,25 +519,20 @@ TWILIO_FROM_NUMBER = _strip_placeholder_secret(config("TWILIO_FROM_NUMBER", defa
 NOTIFICATION_WORKER_ENABLED = config("NOTIFICATION_WORKER_ENABLED", default=True, cast=bool)
 NOTIFICATION_WORKER_INTERVAL = config("NOTIFICATION_WORKER_INTERVAL", default=60, cast=int)
 
-# tourist/apps.py can pre-build the destination fact table (~6,700 rows) in a
-# daemon thread when the web server starts. It is enabled by default outside
-# DEBUG, where it avoids a cold first recommendation request. Local debug runs
-# leave it off so its CPU and memory work do not compete with the website while
-# it is starting; set TRAVELLER_FACTS_WARMUP_ENABLED=1 to opt in.
+# tourist/apps.py pre-builds the destination fact table (~6,700 rows; measured
+# 14.6s) in a daemon thread when the web server starts, so the first AI
+# recommendation request finds it ready instead of timing out. That pre-warm is
+# a large allocation and it overlaps daphne, so it is opt-out for memory-limited
+# instances: Render's 512 MiB plan sets this to 0 and the table is simply built
+# on first use instead.
 #
 # This must exist as a real setting rather than relying on the getattr default
 # in apps.py, otherwise the environment variable would never be read.
+# Render sets RENDER=true automatically, so a 512 MiB Render instance is safe even
+# if this variable was never added in the dashboard (render.yaml is ignored for
+# services that were not created from a Blueprint).
 TRAVELLER_FACTS_WARMUP_ENABLED = config(
-    "TRAVELLER_FACTS_WARMUP_ENABLED", default=not DEBUG, cast=bool
-)
-
-# Pre-build the OpenAPI document at web start-up (see
-# Tourism/schema_cache.py). It is rebuilt only when the project's .py sources
-# change. It is enabled by default outside DEBUG, but disabled for local debug
-# runs because schema generation is CPU-heavy and can stall the website during
-# startup. Set OPENAPI_SCHEMA_WARMUP_ENABLED=1 to opt in locally.
-OPENAPI_SCHEMA_WARMUP_ENABLED = config(
-    "OPENAPI_SCHEMA_WARMUP_ENABLED", default=not DEBUG, cast=bool
+    "TRAVELLER_FACTS_WARMUP_ENABLED", default=not bool(os.environ.get("RENDER")), cast=bool
 )
 
 # ------------------------------------------------------------------

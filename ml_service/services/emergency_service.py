@@ -6,11 +6,11 @@ Loads hospital and police CSV datasets
 and finds nearest facilities using GPS.
 """
 
-import os
-import pandas as pd
-
+import csv
+import heapq
+import logging
+from itertools import chain
 from math import radians, sin, cos, sqrt, atan2
-
 from pathlib import Path
 
 # --------------------------------------------------
@@ -37,9 +37,7 @@ POLICE_FILE = BASE_DIR / "police_station_cleaned.csv"
 
 
 
-_cache = {}
-
-
+logger = logging.getLogger(__name__)
 
 # --------------------------------------------------
 # Distance calculation
@@ -88,82 +86,36 @@ def haversine_km(
 
 
 # --------------------------------------------------
-# CSV Loader
+# CSV streaming
 # --------------------------------------------------
 
-def load_csv(
-    name,
-    path
-):
+def _iter_facilities(path, facility_type, latitude, longitude):
+    if not path.is_file():
+        logger.warning("Emergency facility dataset not found: %s", path)
+        return
 
-    if name in _cache:
-        return _cache[name]
+    name_column = "hospital_name" if facility_type == "hospital" else "police_station"
+    with path.open(newline="", encoding="utf-8-sig") as source:
+        for place in csv.DictReader(source):
+            try:
+                place_lat = float(place["latitude"])
+                place_lon = float(place["longitude"])
+            except (KeyError, TypeError, ValueError):
+                continue
 
-
-    if not os.path.exists(path):
-
-        print(
-            "Missing dataset:",
-            path
-        )
-
-        return []
-
-
-    df = pd.read_csv(path)
-
-
-    df["latitude"] = pd.to_numeric(
-        df["latitude"],
-        errors="coerce"
-    )
-
-
-    df["longitude"] = pd.to_numeric(
-        df["longitude"],
-        errors="coerce"
-    )
-
-
-    df = df.dropna(
-        subset=[
-            "latitude",
-            "longitude"
-        ]
-    )
-
-
-    data = df.to_dict(
-        orient="records"
-    )
-
-
-    _cache[name] = data
-
-
-    return data
-
-
-
-# --------------------------------------------------
-# Get datasets
-# --------------------------------------------------
-
-def get_hospitals():
-
-    return load_csv(
-        "hospital",
-        HOSPITAL_FILE
-    )
-
-
-
-def get_police_stations():
-
-    return load_csv(
-        "police",
-        POLICE_FILE
-    )
+            yield {
+                "type": facility_type,
+                "name": place.get(name_column) or (
+                    "Unknown Hospital" if facility_type == "hospital" else "Unknown Police Station"
+                ),
+                "phone": place.get("phone") or "",
+                "address": place.get("address") or "",
+                "district": place.get("district") or "",
+                "province": place.get("province") or "",
+                "latitude": place_lat,
+                "longitude": place_lon,
+                "distance_km": round(haversine_km(latitude, longitude, place_lat, place_lon), 2),
+            }
 
 
 
@@ -177,114 +129,19 @@ def nearest_facilities(
     category=None,
     limit=5
 ):
-
-    results = []
-
-
-    facilities = {
-
-        "hospital":
-            get_hospitals(),
-
-        "police_station":
-            get_police_stations()
-
+    limit = max(1, min(int(limit), 50))
+    if category and category not in {"hospital", "police_station"}:
+        return []
+    facility_types = [category] if category else ["hospital", "police_station"]
+    files = {
+        "hospital": HOSPITAL_FILE,
+        "police_station": POLICE_FILE,
     }
-
-
-
-    selected = facilities
-
-
-    if category:
-
-        selected = {
-            category:
-            facilities.get(category, [])
-        }
-
-
-
-    for facility_type, places in selected.items():
-
-        for place in places:
-
-
-            distance = haversine_km(
-
-                latitude,
-                longitude,
-
-                place["latitude"],
-                place["longitude"]
-
-            )
-
-
-
-            if facility_type == "hospital":
-
-                name = place.get(
-                    "hospital_name",
-                    "Unknown Hospital"
-                )
-
-
-            else:
-
-                name = place.get(
-                    "police_station",
-                    "Unknown Police Station"
-                )
-
-
-
-            results.append({
-
-                "type": facility_type,
-
-                "name": name,
-
-                "phone": place.get(
-                    "phone",
-                    ""
-                ),
-
-                "address": place.get(
-                    "address",
-                    ""
-                ),
-
-                "district": place.get(
-                    "district",
-                    ""
-                ),
-
-                "province": place.get(
-                    "province",
-                    ""
-                ),
-
-                "latitude": place["latitude"],
-
-                "longitude": place["longitude"],
-
-                "distance_km": round(
-                    distance,
-                    2
-                )
-
-            })
-
-
-
-    results.sort(
-        key=lambda x:
-        x["distance_km"]
+    candidates = chain.from_iterable(
+        _iter_facilities(files[kind], kind, latitude, longitude)
+        for kind in facility_types
     )
-
-
-    return results[:limit]
+    return heapq.nsmallest(limit, candidates, key=lambda place: place["distance_km"])
 
 
 
