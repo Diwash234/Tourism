@@ -23,6 +23,12 @@ services:
       # which is plain TCP on Render's private network and does not do SSL.
       # Setting sslmode=require against it fails the handshake at boot.
       # Only set DATABASE_SSLMODE=require when pointing at the *external* URL.
+      # Primary admin credentials are entered in Render Environment Variables;
+      # never commit the password to the repository.
+      - key: TOURISM_ADMIN_EMAIL
+        sync: false
+      - key: TOURISM_ADMIN_PASSWORD
+        sync: false
       - key: PUBLIC_SITE_URL
         sync: false
       - key: VITE_SITE_URL
