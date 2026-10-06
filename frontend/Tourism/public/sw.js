@@ -8,9 +8,9 @@
  * - Background sync for form submissions
  */
 
-const _CACHE_NAME = "nepal-tourism-v4"
-const STATIC_CACHE = "nepal-tourism-static-v4"
-const API_CACHE = "nepal-tourism-api-v4"
+const _CACHE_NAME = "nepal-tourism-v5"
+const STATIC_CACHE = "nepal-tourism-static-v5"
+const API_CACHE = "nepal-tourism-api-v5"
 const OFFLINE_URL = "/offline.html"
 
 // Assets to precache on install
@@ -164,7 +164,7 @@ async function staleWhileRevalidate(request) {
       }
       return response
     })
-    .catch(() => cached)
+    .catch(() => cached || new Response("", { status: 503, statusText: "Offline" }))
 
   return cached || fetchPromise
 }
